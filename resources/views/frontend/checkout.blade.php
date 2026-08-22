@@ -21,7 +21,14 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Phone Number <span class="text-danger">*</span></label>
-                            <input type="tel" name="customer_phone" class="form-control rounded-3" placeholder="10-digit mobile" value="{{ old('customer_phone') }}" required>
+                            <div class="input-group">
+                                <input type="tel" name="customer_phone" class="form-control rounded-3" placeholder="10-digit mobile" value="{{ old('customer_phone', session('customer_phone')) }}" required>
+                                @if(!session('customer_phone'))
+                                    <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3" onclick="showOtpModal()"><i class="fa-solid fa-mobile-screen-button me-1"></i> Verify OTP</button>
+                                @else
+                                    <span class="input-group-text bg-success text-white small fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Verified</span>
+                                @endif
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold">Email Address (Optional)</label>
@@ -135,4 +142,16 @@
         </div>
     </form>
 </div>
+
+@include('frontend.partials.phone_otp_modal')
+
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(!session('customer_phone'))
+            showOtpModal();
+        @endif
+    });
+</script>
+@endsection
 @endsection

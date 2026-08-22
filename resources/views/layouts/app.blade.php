@@ -309,6 +309,9 @@
                             </ul>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.my-orders') ? 'active' : '' }}" href="{{ route('customer.my-orders') }}">My Orders</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('order.tracking') ? 'active' : '' }}" href="{{ route('order.tracking') }}">Track Order</a>
                         </li>
                     </ul>

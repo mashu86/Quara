@@ -44,6 +44,11 @@ Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');
 
+// Customer Phone Auth & My Orders
+Route::post('/phone-auth/verify', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'verifySession'])->name('phone.verify');
+Route::get('/my-orders', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'myOrders'])->name('customer.my-orders');
+Route::post('/customer/logout', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'logout'])->name('customer.logout');
+
 // Order Tracking
 Route::get('/order-tracking', [FrontendOrderController::class, 'track'])->name('order.tracking');
 

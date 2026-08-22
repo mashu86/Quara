@@ -56,6 +56,7 @@ Route::get('/order-tracking', [FrontendOrderController::class, 'track'])->name('
 Route::prefix('admin')->name('admin.')->group(function () {
 
     // Guest Admin Auth Routes
+    Route::get('/', [AdminAuthController::class, 'showLoginForm']);
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
@@ -96,6 +97,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');
         Route::post('/manual-sales', [AdminManualSalesController::class, 'store'])->name('manual-sales.store');
+        Route::get('/manual-sales/{order}/edit', [AdminManualSalesController::class, 'edit'])->name('manual-sales.edit');
+        Route::put('/manual-sales/{order}', [AdminManualSalesController::class, 'update'])->name('manual-sales.update');
 
         // Shipping Policy (Delivery Price Master)
         Route::resource('shipping-policies', \App\Http\Controllers\Admin\ShippingPolicyController::class);

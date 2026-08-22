@@ -42,6 +42,7 @@
                         <th>Total Amount</th>
                         <th>Payment</th>
                         <th>Date</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,6 +62,11 @@
                                 <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>
                             </td>
                             <td class="small text-muted">{{ $order->created_at->format('M d, Y h:i A') }}</td>
+                            <td class="text-end">
+                                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>

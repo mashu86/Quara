@@ -39,7 +39,9 @@
         .admin-sidebar {
             width: 260px;
             background-color: var(--qw-sidebar-bg);
-            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             color: #CCCCCC;
             position: fixed;
             top: 0;
@@ -53,6 +55,26 @@
             padding: 22px 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.07);
             background-color: #0D0D0E;
+            flex-shrink: 0;
+        }
+
+        .admin-sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 20px;
+        }
+
+        /* Custom Subtle Scrollbar */
+        .admin-sidebar-nav::-webkit-scrollbar {
+            width: 4px;
+        }
+        .admin-sidebar-nav::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .admin-sidebar-nav::-webkit-scrollbar-thumb {
+            background: var(--qw-gold);
+            border-radius: 4px;
         }
 
         .admin-sidebar .nav-link {
@@ -142,7 +164,7 @@
             </a>
         </div>
 
-        <nav class="mt-3">
+        <nav class="mt-3 admin-sidebar-nav">
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">

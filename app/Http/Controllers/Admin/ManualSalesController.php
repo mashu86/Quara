@@ -112,7 +112,9 @@ class ManualSalesController extends Controller
                 'product_size_id' => $pSize->id,
                 'product_name' => $product->name,
                 'size' => $pSize->size,
-                'price' => $validated['unit_price'],
+                'unit_price' => $validated['unit_price'],
+                'discount_amount' => 0.00,
+                'final_unit_price' => $validated['unit_price'],
                 'quantity' => $validated['quantity'],
                 'subtotal' => $subtotal,
             ]);
@@ -127,5 +129,135 @@ class ManualSalesController extends Controller
         });
 
         return redirect()->route('admin.manual-sales.index')->with('success', "Manual Sale #{$orderNumber} recorded successfully!");
+    }
+
+    public function edit(Order $order)
+    {
+        if ($order->order_source !== 'manual') {
+            return redirect()->route('admin.manual-sales.index')->with('error', 'Only manual offline sales can be edited here.');
+        }
+
+        $order->load(['items.product', 'items.productSize']);
+        $products = Product::where('status', 'active')->with(['sizes', 'images'])->get();
+        $firstItem = $order->items->first();
+
+        return view('admin.manual_sales.edit', compact('order', 'products', 'firstItem'));
+    }
+
+    public function update(Request $request, Order $order)
+    {
+        if ($order->order_source !== 'manual') {
+            return redirect()->route('admin.manual-sales.index')->with('error', 'Only manual offline sales can be edited here.');
+        }
+
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_email' => 'nullable|email|max:255',
+            'house_building' => 'nullable|string|max:255',
+            'street' => 'nullable|string|max:255',
+            'area' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'district' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'pin_code' => 'nullable|string|max:10',
+            'product_size_id' => 'required|exists:product_sizes,id',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'delivery_charge' => 'nullable|numeric|min:0',
+            'payment_method' => 'required|in:cash,upi,bank_transfer',
+            'payment_status' => 'required|in:paid,pending',
+            'notes' => 'nullable|string',
+        ]);
+
+        $firstItem = $order->items->first();
+        $newSize = ProductSize::with('product')->findOrFail($validated['product_size_id']);
+        $newProduct = $newSize->product;
+
+        $oldSizeId = $firstItem ? $firstItem->product_size_id : null;
+        $oldQty = $firstItem ? $firstItem->quantity : 0;
+        $newQty = $validated['quantity'];
+
+        if ($oldSizeId == $newSize->id) {
+            $diff = $newQty - $oldQty;
+            if ($diff > 0 && $newSize->stock < $diff) {
+                return back()->withInput()->with('error', "Insufficient stock for {$newProduct->name} (Size {$newSize->size}). Additional required: {$diff}, Available: {$newSize->stock} pcs.");
+            }
+        } else {
+            if ($newSize->stock < $newQty) {
+                return back()->withInput()->with('error', "Insufficient stock for {$newProduct->name} (Size {$newSize->size}). Available: {$newSize->stock} pcs.");
+            }
+        }
+
+        $subtotal = $validated['unit_price'] * $newQty;
+        $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
+        $grandTotal = $subtotal + $shipping;
+
+        DB::transaction(function () use ($order, $firstItem, $validated, $newProduct, $newSize, $subtotal, $shipping, $grandTotal, $oldSizeId, $oldQty, $newQty) {
+            if ($oldSizeId && $firstItem) {
+                if ($oldSizeId == $newSize->id) {
+                    $diff = $newQty - $oldQty;
+                    if ($diff > 0) {
+                        $this->stockService->deductStock($newSize->id, $diff, "Manual Sale Edit (#{$order->order_number})", auth()->user()->name);
+                    } elseif ($diff < 0) {
+                        $this->stockService->adjustStock($newSize->id, $newSize->stock + abs($diff), "Manual Sale Edit (#{$order->order_number})", auth()->user()->name);
+                    }
+                } else {
+                    $oldSizeObj = ProductSize::find($oldSizeId);
+                    if ($oldSizeObj) {
+                        $this->stockService->adjustStock($oldSizeObj->id, $oldSizeObj->stock + $oldQty, "Manual Sale Item Swapped (#{$order->order_number})", auth()->user()->name);
+                    }
+                    $this->stockService->deductStock($newSize->id, $newQty, "Manual Sale Edit (#{$order->order_number})", auth()->user()->name);
+                }
+            }
+
+            $order->update([
+                'customer_name' => $validated['customer_name'],
+                'customer_phone' => $validated['customer_phone'],
+                'customer_email' => $validated['customer_email'] ?? null,
+                'house_building' => $validated['house_building'] ?? 'Offline Store',
+                'street' => $validated['street'] ?? 'Direct Purchase',
+                'area' => $validated['area'] ?? 'Counter Sale',
+                'city' => $validated['city'] ?? 'Naduvil',
+                'district' => $validated['district'] ?? 'Kannur',
+                'state' => $validated['state'] ?? 'Kerala',
+                'pin_code' => $validated['pin_code'] ?? '670582',
+                'subtotal' => $subtotal,
+                'shipping' => $shipping,
+                'grand_total' => $grandTotal,
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => $validated['payment_status'],
+                'notes' => $validated['notes'] ?? $order->notes,
+            ]);
+
+            if ($firstItem) {
+                $firstItem->update([
+                    'product_id' => $newProduct->id,
+                    'product_size_id' => $newSize->id,
+                    'product_name' => $newProduct->name,
+                    'size' => $newSize->size,
+                    'unit_price' => $validated['unit_price'],
+                    'discount_amount' => 0.00,
+                    'final_unit_price' => $validated['unit_price'],
+                    'quantity' => $newQty,
+                    'subtotal' => $subtotal,
+                ]);
+            } else {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $newProduct->id,
+                    'product_size_id' => $newSize->id,
+                    'product_name' => $newProduct->name,
+                    'size' => $newSize->size,
+                    'unit_price' => $validated['unit_price'],
+                    'discount_amount' => 0.00,
+                    'final_unit_price' => $validated['unit_price'],
+                    'quantity' => $newQty,
+                    'subtotal' => $subtotal,
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.manual-sales.index')->with('success', "Manual Sale #{$order->order_number} updated successfully!");
     }
 }

@@ -203,11 +203,18 @@
     function updateStockNotice(elem) {
         const stock = parseInt(elem.getAttribute('data-stock'));
         const notice = document.getElementById('stockStatusNotice');
+        const input = document.getElementById('quantityInput');
         document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
         if (stock > 0) {
+            input.max = stock;
+            if (parseInt(input.value) > stock) {
+                input.value = stock;
+            }
             notice.className = 'text-success fw-semibold small';
             notice.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> In Stock (' + stock + ' available)';
         } else {
+            input.max = 0;
+            input.value = 1;
             notice.className = 'text-danger fw-semibold small';
             notice.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> This size is out of stock';
         }
@@ -219,9 +226,11 @@
 
     function adjustQty(amount) {
         const input = document.getElementById('quantityInput');
+        const maxStock = parseInt(input.max) || 50;
         let current = parseInt(input.value) || 1;
         current += amount;
         if (current < 1) current = 1;
+        if (current > maxStock) current = maxStock;
         input.value = current;
     }
 

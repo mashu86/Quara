@@ -2,6 +2,19 @@
 
 @section('title', 'QUARA WALDROP - Trendy & Affordable Ladies Wear')
 
+@section('styles')
+<style>
+    @media (max-width: 375px) {
+        .btn-select-buy {
+            font-size: 0.68rem !important;
+            padding: 5px 3px !important;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+        }
+    }
+</style>
+@endsection
+
 @section('content')
 <!-- Dynamic Home Main Content Master Area -->
 @if($homeContent)
@@ -105,7 +118,7 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm">SELECT SIZE & BUY</a>
+                                <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm btn-select-buy">SELECT SIZE & BUY</a>
                             </div>
                         </div>
                     </div>

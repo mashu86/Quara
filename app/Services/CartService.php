@@ -139,6 +139,7 @@ class CartService
         $cartSubtotal = $subtotal - $totalDiscount;
         $cartCount = $this->getCartCount();
         $shipping = 0.00;
+        $matchedPolicy = null;
 
         if ($cartCount > 0) {
             $policies = \App\Models\ShippingPolicy::where('status', 'active')
@@ -146,7 +147,6 @@ class CartService
                 ->orderBy('id', 'desc')
                 ->get();
 
-            $matchedPolicy = null;
             foreach ($policies as $policy) {
                 $evalVal = ($policy->criteria_type === 'cart_count') ? (float) $cartCount : (float) $cartSubtotal;
                 if ($policy->matches($evalVal)) {

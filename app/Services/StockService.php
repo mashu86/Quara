@@ -46,6 +46,33 @@ class StockService
     }
 
     /**
+     * Deduct stock for a single ProductSize with movement audit logging.
+     */
+    public function deductStock(int $productSizeId, int $qty, string $reason = 'Manual Sale', ?string $adminName = null): bool
+    {
+        return DB::transaction(function () use ($productSizeId, $qty, $reason, $adminName) {
+            $productSize = ProductSize::where('id', $productSizeId)->lockForUpdate()->firstOrFail();
+            $prevStock = $productSize->stock;
+            $newStock = max(0, $prevStock - $qty);
+
+            $productSize->update(['stock' => $newStock]);
+
+            StockMovement::create([
+                'product_id' => $productSize->product_id,
+                'product_size_id' => $productSize->id,
+                'size' => $productSize->size,
+                'previous_stock' => $prevStock,
+                'new_stock' => $newStock,
+                'difference' => -$qty,
+                'reason' => $reason,
+                'admin_name' => $adminName ?? (auth()->check() ? auth()->user()->name : 'Admin'),
+            ]);
+
+            return true;
+        });
+    }
+
+    /**
      * Deduct stock inside a database transaction with pessimistic locking.
      */
     public function deductStockForOrderItems(array $items): bool

@@ -1,24 +1,25 @@
 @extends('layouts.admin')
 
-@section('title', 'Record Manual Sale - QUARA WALDROP Admin')
+@section('title', 'Edit Manual Sale #' . $order->order_number . ' - QUARA WALDROP Admin')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h3 class="fw-bold mb-1">Record New Offline / Manual Sale</h3>
-        <p class="text-muted small mb-0">Record a walk-in, phone, or direct customer purchase.</p>
+        <h3 class="fw-bold mb-1">Edit Manual Sale #{{ $order->order_number }}</h3>
+        <p class="text-muted small mb-0">Update customer details, pricing, stock or payment status.</p>
     </div>
     <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3">&larr; Back to Manual Sales</a>
 </div>
 
-<form action="{{ route('admin.manual-sales.store') }}" method="POST">
+<form action="{{ route('admin.manual-sales.update', $order->id) }}" method="POST">
     @csrf
+    @method('PUT')
     <div class="row g-4">
         <!-- Left Side: Product Selection & Pricing -->
         <div class="col-lg-7">
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-shirt text-warning me-2"></i> Select Product & Size</h5>
+                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-shirt text-warning me-2"></i> Product & Size</h5>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Select Product <span class="text-danger">*</span></label>
@@ -26,6 +27,7 @@
                             <option value="">-- Choose Product --</option>
                             @foreach($products as $prod)
                                 <option value="{{ $prod->id }}" 
+                                        {{ ($firstItem && $firstItem->product_id == $prod->id) ? 'selected' : '' }}
                                         data-price="{{ $prod->final_price }}"
                                         data-sizes='@json($prod->sizes)'>
                                     {{ $prod->name }} (Price: ₹{{ number_format($prod->final_price, 2) }})
@@ -45,27 +47,27 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Quantity (pcs) <span class="text-danger">*</span></label>
-                            <input type="number" name="quantity" id="qtyInput" class="form-control rounded-3" value="1" min="1" required oninput="calcTotals()">
+                            <input type="number" name="quantity" id="qtyInput" class="form-control rounded-3" value="{{ old('quantity', $firstItem->quantity ?? 1) }}" min="1" required oninput="calcTotals()">
                         </div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Unit Price (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="unit_price" id="priceInput" class="form-control rounded-3" placeholder="0.00" required oninput="calcTotals()">
-                            <div class="form-text small">Default is current selling price, but you can override for custom discounts.</div>
+                            <input type="number" step="0.01" name="unit_price" id="priceInput" class="form-control rounded-3" value="{{ old('unit_price', $firstItem->unit_price ?? 0.00) }}" placeholder="0.00" required oninput="calcTotals()">
+                            <div class="form-text small">Override price or discount for this manual sale.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Delivery Charge (₹)</label>
-                            <input type="number" step="0.01" name="delivery_charge" id="shippingInput" class="form-control rounded-3" value="0.00" min="0" oninput="calcTotals()">
-                            <div class="form-text small">Leave as 0.00 for counter sales or free delivery.</div>
+                            <input type="number" step="0.01" name="delivery_charge" id="shippingInput" class="form-control rounded-3" value="{{ old('delivery_charge', $order->shipping ?? 0.00) }}" min="0" oninput="calcTotals()">
+                            <div class="form-text small">Delivery fee if applicable.</div>
                         </div>
                     </div>
 
                     <div class="mt-4 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
                         <span class="fw-bold text-dark fs-6">Grand Total Amount:</span>
-                        <span class="fs-3 fw-bold text-warning" id="grandTotalDisplay">₹0.00</span>
+                        <span class="fs-3 fw-bold text-warning" id="grandTotalDisplay">₹{{ number_format($order->grand_total, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -79,22 +81,23 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Payment Method <span class="text-danger">*</span></label>
                             <select name="payment_method" class="form-select rounded-3" required>
-                                <option value="upi">UPI (GPay/PhonePe/Paytm)</option>
-                                <option value="bank_transfer">Bank Transfer / Card</option>
+                                <option value="upi" {{ $order->payment_method === 'upi' ? 'selected' : '' }}>UPI (GPay/PhonePe/Paytm)</option>
+                                <option value="bank_transfer" {{ $order->payment_method === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer / Card</option>
+                                <option value="cash" {{ $order->payment_method === 'cash' ? 'selected' : '' }}>Cash Payment</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Payment Status <span class="text-danger">*</span></label>
                             <select name="payment_status" class="form-select rounded-3" required>
-                                <option value="paid">Paid (Fully Received)</option>
-                                <option value="pending">Pending (Pay Later)</option>
+                                <option value="paid" {{ $order->payment_status === 'paid' ? 'selected' : '' }}>Paid (Fully Received)</option>
+                                <option value="pending" {{ $order->payment_status === 'pending' ? 'selected' : '' }}>Pending (Pay Later)</option>
                             </select>
                         </div>
 
                         <div class="col-12">
                             <label class="form-label fw-bold">Notes / Special Instructions</label>
-                            <textarea name="notes" class="form-control rounded-3" rows="2" placeholder="e.g. Walk-in customer discount / Counter sale receipt #42"></textarea>
+                            <textarea name="notes" class="form-control rounded-3" rows="2" placeholder="e.g. Walk-in customer discount / Counter sale receipt #42">{{ old('notes', $order->notes) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -109,41 +112,41 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Customer Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_name" class="form-control rounded-3" placeholder="e.g. Anjali Nair" value="{{ old('customer_name') }}" required>
+                        <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name', $order->customer_name) }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mobile Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_phone" class="form-control rounded-3" placeholder="e.g. 9876543210" value="{{ old('customer_phone') }}" required>
+                        <input type="text" name="customer_phone" class="form-control rounded-3" value="{{ old('customer_phone', $order->customer_phone) }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email Address (Optional)</label>
-                        <input type="email" name="customer_email" class="form-control rounded-3" placeholder="customer@gmail.com" value="{{ old('customer_email') }}">
+                        <input type="email" name="customer_email" class="form-control rounded-3" value="{{ old('customer_email', $order->customer_email) }}">
                     </div>
 
                     <hr>
 
-                    <h6 class="fw-bold mb-2">Delivery Address (Optional for shipped orders)</h6>
+                    <h6 class="fw-bold mb-2">Delivery Address (Optional)</h6>
                     <div class="row g-2">
                         <div class="col-12">
-                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" placeholder="House / Building Name">
+                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" value="{{ old('house_building', $order->house_building) }}" placeholder="House / Building Name">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="street" class="form-control rounded-3 mb-2" placeholder="Street / Area">
+                            <input type="text" name="street" class="form-control rounded-3 mb-2" value="{{ old('street', $order->street) }}" placeholder="Street / Area">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town" value="Naduvil">
+                            <input type="text" name="city" class="form-control rounded-3 mb-2" value="{{ old('city', $order->city) }}" placeholder="City / Town">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District" value="Kannur">
+                            <input type="text" name="district" class="form-control rounded-3 mb-2" value="{{ old('district', $order->district) }}" placeholder="District">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code" value="670582">
+                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" value="{{ old('pin_code', $order->pin_code) }}" placeholder="PIN Code">
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm">RECORD MANUAL SALE</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm">UPDATE MANUAL SALE</button>
                 </div>
             </div>
         </div>
@@ -153,37 +156,38 @@
 
 @section('scripts')
 <script>
+    const selectedSizeId = "{{ $firstItem ? $firstItem->product_size_id : '' }}";
+
     function updateSizes() {
         const select = document.getElementById('productSelect');
         const selectedOption = select.options[select.selectedIndex];
         const sizeSelect = document.getElementById('sizeSelect');
-        const priceInput = document.getElementById('priceInput');
 
         sizeSelect.innerHTML = '<option value="">-- Choose Size --</option>';
         document.getElementById('stockNotice').innerText = '';
 
         if (!selectedOption.value) {
-            priceInput.value = '';
             calcTotals();
             return;
         }
-
-        const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-        priceInput.value = price.toFixed(2);
 
         const sizes = JSON.parse(selectedOption.getAttribute('data-sizes') || '[]');
         sizes.forEach(sz => {
             const opt = document.createElement('option');
             opt.value = sz.id;
             opt.setAttribute('data-stock', sz.stock);
+            if (sz.id == selectedSizeId) {
+                opt.selected = true;
+            }
             opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
-            if (sz.stock <= 0) {
+            if (sz.stock <= 0 && sz.id != selectedSizeId) {
                 opt.disabled = true;
                 opt.innerText += ' - OUT OF STOCK';
             }
             sizeSelect.appendChild(opt);
         });
 
+        updateStockNotice();
         calcTotals();
     }
 
@@ -208,5 +212,9 @@
         const grandTotal = (price * qty) + shipping;
         document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSizes();
+    });
 </script>
 @endsection

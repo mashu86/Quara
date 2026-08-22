@@ -48,8 +48,28 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label fw-bold">HTML Main Content <span class="text-danger">*</span></label>
-                    <textarea name="content_html" class="form-control rounded-3" rows="8" required>{{ old('content_html', $homeContent->content_html) }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">HTML Main Content <span class="text-danger">*</span></label>
+                        <span class="badge bg-dark"><i class="fa-solid fa-code me-1"></i> HTML Editor Toolbox</span>
+                    </div>
+
+                    <!-- Toolbox Controls -->
+                    <div class="card bg-light border-0 rounded-3 mb-2 shadow-sm">
+                        <div class="card-body p-2 d-flex flex-wrap align-items-center gap-1">
+                            <span class="small fw-bold text-muted me-2"><i class="fa-solid fa-toolbox text-warning me-1"></i> Toolbox:</span>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm fw-bold" onclick="insertHTML('<strong>', '</strong>')" title="Bold"><b>B</b></button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm" onclick="insertHTML('<em>', '</em>')" title="Italic"><i>I</i></button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm fw-bold" onclick="insertHTML('<h2 class=\'font-serif fw-bold mt-3 mb-2\'>', '</h2>')" title="Heading 2">H2</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm" onclick="insertHTML('<p class=\'lead text-muted mb-3\'>', '</p>')" title="Paragraph"><i class="fa-solid fa-paragraph me-1"></i> Text</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm text-gold fw-bold" onclick="insertHTML('<span class=\'text-gold fw-bold\'>', '</span>')" title="Gold Highlight">Gold</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm text-dark fw-bold" onclick="insertHTML('<a href=\'/shop\' class=\'btn btn-dark rounded-pill px-4 py-2 mt-2\'>', '</a>')" title="Shop Button"><i class="fa-solid fa-bag-shopping me-1"></i> Button</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm text-success fw-bold" onclick="insertHTML('<a href=\'https://wa.me/919544832975\' target=\'_blank\' class=\'btn btn-success rounded-pill px-4 py-2 mt-2\'><i class=\'fa-brands fa-whatsapp me-2\'></i>', '</a>')" title="WhatsApp Link"><i class="fa-brands fa-whatsapp me-1"></i> WA</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm" onclick="insertHTML('<span class=\'badge bg-gold rounded-pill px-3 py-2\'>', '</span>')" title="Badge"><i class="fa-solid fa-tag me-1"></i> Badge</button>
+                            <button type="button" class="btn btn-sm btn-white border shadow-sm" onclick="insertHTML('<div class=\'p-4 bg-light rounded-4 shadow-sm border text-center my-3\'>\n  ', '\n</div>')" title="Card Container"><i class="fa-solid fa-square-poll-vertical me-1"></i> Card</button>
+                        </div>
+                    </div>
+
+                    <textarea name="content_html" id="htmlContentArea" class="form-control rounded-3 font-monospace" rows="8" required>{{ old('content_html', $homeContent->content_html) }}</textarea>
                 </div>
 
                 <div class="col-12">
@@ -64,4 +84,23 @@
         </form>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+function insertHTML(startTag, endTag) {
+    const textarea = document.getElementById('htmlContentArea');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const replacement = startTag + (selectedText || 'Your Content Here') + endTag;
+
+    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+    textarea.selectionStart = start + startTag.length;
+    textarea.selectionEnd = start + startTag.length + (selectedText || 'Your Content Here').length;
+}
+</script>
 @endsection

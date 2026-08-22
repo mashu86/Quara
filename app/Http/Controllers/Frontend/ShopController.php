@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Frontend;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductSize;
+use Illuminate\Http\Request;
+
+class ShopController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Product::where('status', 'active')->with(['category', 'images', 'sizes']);
+
+        // General search box (partial matching product name or category name)
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhereHas('category', function ($cq) use ($search) {
+                      $cq->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        // Category Filter
+        if ($request->filled('category')) {
+            $categorySlug = $request->category;
+            $query->whereHas('category', function ($q) use ($categorySlug) {
+                $q->where('slug', $categorySlug);
+            });
+        }
+
+        // Min & Max price filters
+        if ($request->filled('min_price')) {
+            $query->where('final_price', '>=', (float) $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('final_price', '<=', (float) $request->max_price);
+        }
+
+        // Size filter
+        if ($request->filled('size')) {
+            $sizeVal = $request->size;
+            $query->whereHas('sizes', function ($q) use ($sizeVal) {
+                $q->where('size', $sizeVal)->where('stock', '>', 0);
+            });
+        }
+
+        // Stock status filter
+        if ($request->filled('stock')) {
+            if ($request->stock === 'in_stock') {
+                $query->whereHas('sizes', function ($q) {
+                    $q->where('stock', '>', 0);
+                });
+            } elseif ($request->stock === 'out_of_stock') {
+                $query->whereDoesntHave('sizes', function ($q) {
+                    $q->where('stock', '>', 0);
+                });
+            }
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'price_low') {
+            $query->orderBy('final_price', 'asc');
+        } elseif ($sort === 'price_high') {
+            $query->orderBy('final_price', 'desc');
+        } elseif ($sort === 'oldest') {
+            $query->orderBy('id', 'asc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        $products = $query->paginate(12)->withQueryString();
+        $categories = Category::where('status', 'active')->get();
+        $allSizes = ProductSize::select('size')->distinct()->pluck('size');
+
+        return view('frontend.shop', compact('products', 'categories', 'allSizes'));
+    }
+
+    public function categoryProducts(Request $request, string $slug)
+    {
+        $category = Category::where('slug', $slug)->where('status', 'active')->firstOrFail();
+
+        $request->merge(['category' => $slug]);
+        return $this->index($request);
+    }
+}

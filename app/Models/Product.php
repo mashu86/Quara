@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'category_id',
+        'name',
+        'slug',
+        'price',
+        'discount_type',
+        'discount_value',
+        'final_price',
+        'description',
+        'status',
+        'delivery_charge_type',
+        'weight_kg',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'final_price' => 'decimal:2',
+        'weight_kg' => 'decimal:2',
+    ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('is_primary', 'desc')->orderBy('sort_order', 'asc');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(ProductImage::class)->where('is_primary', true);
+    }
+
+    public function sizes(): HasMany
+    {
+        return $this->hasMany(ProductSize::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function getTotalStockAttribute(): int
+    {
+        return (int) $this->sizes->sum('stock');
+    }
+
+    public function getPrimaryImageUrlAttribute(): string
+    {
+        $primary = $this->images->first();
+        if ($primary && filter_var($primary->image_path, FILTER_VALIDATE_URL)) {
+            return $primary->image_path;
+        }
+        if ($primary && file_exists(public_path('storage/' . $primary->image_path))) {
+            return asset('storage/' . $primary->image_path);
+        }
+        if ($primary && file_exists(public_path($primary->image_path))) {
+            return asset($primary->image_path);
+        }
+        return asset('assets/images/logo.png');
+    }
+
+    public static function calculateFinalPrice($price, $discountType, $discountValue): float
+    {
+        $price = (float) $price;
+        $discountValue = (float) $discountValue;
+
+        if ($discountType === 'fixed') {
+            $final = $price - $discountValue;
+        } elseif ($discountType === 'percentage') {
+            $final = $price - ($price * ($discountValue / 100));
+        } else {
+            $final = $price;
+        }
+
+        return max(0, round($final, 2));
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($product) {
+            if (empty($product->slug)) {
+                $baseSlug = Str::slug($product->name);
+                $product->slug = $baseSlug . '-' . Str::random(4);
+            }
+            $product->final_price = self::calculateFinalPrice($product->price, $product->discount_type, $product->discount_value);
+        });
+
+        static::updating(function ($product) {
+            $product->final_price = self::calculateFinalPrice($product->price, $product->discount_type, $product->discount_value);
+        });
+    }
+}

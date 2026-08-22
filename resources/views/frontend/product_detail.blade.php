@@ -1,0 +1,235 @@
+@extends('layouts.app')
+
+@section('title', $product->name . ' - QUARA WALDROP')
+@section('meta_description', strip_tags(Str::limit($product->description, 150)))
+
+@section('content')
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('shop') }}" class="text-decoration-none text-muted">Shop</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}" class="text-decoration-none text-muted">{{ $product->category->name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($product->name, 30) }}</li>
+        </ol>
+    </nav>
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row g-4 g-lg-5">
+        <!-- Image Gallery -->
+        <div class="col-lg-6">
+            <div class="bg-white p-3 rounded-4 shadow-sm border">
+                <div class="mb-3 overflow-hidden rounded-3 text-center position-relative" style="max-height: 520px; background-color: #f8f8f8;">
+                    @if($discountPercentage > 0)
+                        <span class="qw-discount-badge fs-6">{{ $discountPercentage }}% OFF</span>
+                    @endif
+                    <img id="mainProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid w-100" style="object-fit: cover; max-height: 520px; cursor: zoom-in;" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
+                </div>
+
+                @if($product->images->count() > 1)
+                    <div class="d-flex gap-2 overflow-x-auto pb-2">
+                        @foreach($product->images as $img)
+                            @php
+                                $imgUrl = filter_var($img->image_path, FILTER_VALIDATE_URL)
+                                    ? $img->image_path
+                                    : asset($img->image_path);
+                            @endphp
+                            <img src="{{ $imgUrl }}" alt="Thumb" class="rounded-3 border thumbnail-selector" style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;" onclick="document.getElementById('mainProductImage').src='{{ $imgUrl }}'">
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            <div class="modal fade" id="imageZoomModal" tabindex="-1" aria-labelledby="imageZoomLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-xl">
+                    <div class="modal-content bg-dark border-0">
+                        <div class="modal-header border-0 py-2">
+                            <h2 class="modal-title text-white fs-6" id="imageZoomLabel">{{ $product->name }}</h2>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center p-2">
+                            <img id="zoomedProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid" style="max-height: 80vh; object-fit: contain;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Details & Buying Actions -->
+        <div class="col-lg-6">
+            <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border h-100 d-flex flex-column">
+                <span class="text-gold text-uppercase fw-bold tracking-wider small mb-1">{{ $product->category->name }}</span>
+                <h1 class="font-serif fw-bold h2 mb-3 text-dark">{{ $product->name }}</h1>
+
+                <!-- Pricing Display -->
+                <div class="d-flex align-items-baseline gap-3 mb-3 pb-3 border-bottom">
+                    <span class="display-6 fw-bold text-gold">₹{{ number_format($product->final_price, 2) }}</span>
+                    @if($product->discount_type !== 'none' && $product->price > $product->final_price)
+                        <span class="fs-4 text-muted text-decoration-line-through">₹{{ number_format($product->price, 2) }}</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-2">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
+                    @endif
+                </div>
+
+                <!-- Product Description -->
+                <div class="mb-4 text-secondary leading-relaxed">
+                    {!! $product->description !!}
+                </div>
+
+                <!-- Size Selection Form -->
+                <form action="{{ route('cart.add') }}" method="POST" id="productForm">
+                    @csrf
+                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+
+                    <div class="mb-4">
+                        <label class="form-label font-bold text-uppercase d-flex justify-content-between">
+                            <span>Select Size <span class="text-danger">*</span></span>
+                            <span id="stockStatusNotice" class="text-muted fw-normal small">Select size to check availability</span>
+                        </label>
+
+                        <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
+                            @php
+                                $totalProductStock = $product->sizes->sum('stock');
+                                $firstInStockSelected = false;
+                            @endphp
+
+                            @forelse($product->sizes as $pSize)
+                                @php
+                                    $isAvailable = $pSize->stock > 0;
+                                    $shouldCheck = false;
+                                    if ($isAvailable && !$firstInStockSelected) {
+                                        $shouldCheck = true;
+                                        $firstInStockSelected = true;
+                                    }
+                                @endphp
+                                <input type="radio" class="btn-check" name="size" id="size_{{ $pSize->id }}" value="{{ $pSize->size }}" data-stock="{{ $pSize->stock }}" onchange="updateStockNotice(this)" {{ $shouldCheck ? 'checked' : '' }}>
+                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold" for="size_{{ $pSize->id }}">
+                                    {{ $pSize->size }}
+                                    @if($pSize->stock > 0 && $pSize->stock <= 3)
+                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $pSize->stock }} left</span>
+                                    @elseif($pSize->stock <= 0)
+                                        <span class="badge bg-secondary text-white ms-1" style="font-size:0.65rem;">Out</span>
+                                    @endif
+                                </label>
+                            @empty
+                                <div class="alert alert-warning py-2 px-3 small">No size options available.</div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <!-- Quantity Selector -->
+                    <div class="mb-4">
+                        <label class="form-label font-bold text-uppercase">Quantity</label>
+                        <div class="input-group" style="max-width: 140px;">
+                            <button type="button" class="btn btn-outline-dark" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                            <input type="number" name="quantity" id="quantityInput" class="form-control text-center fw-bold" value="1" min="1" max="50">
+                            <button type="button" class="btn btn-outline-dark" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    @if($totalProductStock > 0)
+                        <div class="d-grid gap-3 d-sm-flex mb-4">
+                            <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold btn-lg flex-grow-1 shadow-sm purchase-action">
+                                <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
+                            </button>
+                            <button type="submit" formaction="{{ route('cart.buy_now') }}" class="btn btn-dark btn-lg flex-grow-1 shadow-sm purchase-action">
+                                <i class="fa-solid fa-bolt me-2 text-warning"></i> BUY NOW
+                            </button>
+                        </div>
+                    @else
+                        <div class="alert alert-danger text-center fw-bold py-3 mb-4 rounded-3">
+                            <i class="fa-solid fa-circle-xmark me-2"></i> OUT OF STOCK
+                        </div>
+                    @endif
+                </form>
+
+
+
+                <!-- Prefilled WhatsApp Inquiry -->
+                @php
+                    $waNumber = $whatsapp ? $whatsapp->phone_number : '8078037591';
+                    $waMsg = rawurlencode("Hi QUARA WALDROP, I am interested in: " . $product->name . " (Price: ₹" . $product->final_price . "). Link: " . url()->current());
+                    $waInquiryUrl = "https://wa.me/" . preg_replace('/[^0-9]/', '', ($whatsapp ? $whatsapp->country_code : '+91') . $waNumber) . "?text=" . $waMsg;
+                @endphp
+                <div class="mt-auto pt-3 border-top">
+                    <a href="{{ $waInquiryUrl }}" target="_blank" class="btn btn-outline-success w-100 rounded-pill font-semibold py-2">
+                        <i class="fa-brands fa-whatsapp me-2 fs-5"></i> Inquiry About This Item on WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    @if($relatedProducts->count() > 0)
+        <div class="mt-5 pt-4">
+            <h3 class="font-serif fw-bold mb-4">YOU MAY ALSO LIKE</h3>
+            <div class="row g-4">
+                @foreach($relatedProducts as $relProduct)
+                    <div class="col-6 col-md-3">
+                        <div class="qw-product-card h-100">
+                            <a href="{{ route('product.detail', $relProduct->slug) }}">
+                                <div class="qw-product-img-wrapper">
+                                    <img src="{{ $relProduct->primary_image_url }}" alt="{{ $relProduct->name }}" class="qw-product-img">
+                                </div>
+                            </a>
+                            <div class="p-3">
+                                <h6 class="font-serif fw-bold text-dark text-truncate mb-1">{{ $relProduct->name }}</h6>
+                                <span class="fs-6 fw-bold text-gold">₹{{ number_format($relProduct->final_price, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    function updateStockNotice(elem) {
+        const stock = parseInt(elem.getAttribute('data-stock'));
+        const notice = document.getElementById('stockStatusNotice');
+        document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
+        if (stock > 0) {
+            notice.className = 'text-success fw-semibold small';
+            notice.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> In Stock (' + stock + ' available)';
+        } else {
+            notice.className = 'text-danger fw-semibold small';
+            notice.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> This size is out of stock';
+        }
+    }
+
+    document.getElementById('mainProductImage').addEventListener('click', function () {
+        document.getElementById('zoomedProductImage').src = this.src;
+    });
+
+    function adjustQty(amount) {
+        const input = document.getElementById('quantityInput');
+        let current = parseInt(input.value) || 1;
+        current += amount;
+        if (current < 1) current = 1;
+        input.value = current;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkedSize = document.querySelector('input[name="size"]:checked');
+        if (checkedSize) {
+            updateStockNotice(checkedSize);
+        }
+    });
+</script>
+@endsection

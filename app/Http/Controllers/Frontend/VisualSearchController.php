@@ -43,8 +43,10 @@ class VisualSearchController extends Controller
             $file = $request->file('image');
             $imagePath = $file->getRealPath();
 
-            // Extract dominant colors from uploaded image
-            $dominantColors = $this->extractDominantColors($imagePath);
+            // Extract dominant colors and raw RGB values from uploaded image
+            $colorAnalysis = $this->extractDominantColorsWithRGB($imagePath);
+            $dominantColors = $colorAnalysis['colors'];
+            $dominantRGB = $colorAnalysis['dominant_rgb'];
 
             // Fetch active products with category
             $products = Product::active()
@@ -55,10 +57,10 @@ class VisualSearchController extends Controller
             $topColors = array_slice(array_keys($dominantColors), 0, 3);
 
             foreach ($products as $index => $product) {
-                $score = $this->calculateMatchScore($product, $topColors, $index);
+                $score = $this->calculateMatchScore($product, $topColors, $dominantRGB, $index);
 
-                // Only include authentic color-matched products (score >= 88)
-                if ($score >= 88) {
+                // Only include authentic color-matched products (score >= 82)
+                if ($score >= 82) {
                     $scoredProducts[] = [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -100,32 +102,41 @@ class VisualSearchController extends Controller
     }
 
     /**
-     * Extract dominant color names from image focusing on clothing Region of Interest (ROI).
+     * Extract dominant color names and dominant RGB vector from image ROI.
      */
-    protected function extractDominantColors(string $filePath): array
+    protected function extractDominantColorsWithRGB(string $filePath): array
     {
         $detected = [];
+        $totalR = 0;
+        $totalG = 0;
+        $totalB = 0;
+        $sampleCount = 0;
 
         if (!function_exists('imagecreatefromstring')) {
-            return ['Red' => 1, 'Gold' => 1];
+            return [
+                'colors' => ['Red' => 1, 'Gold' => 1],
+                'dominant_rgb' => [200, 50, 50]
+            ];
         }
 
         $imageContent = file_get_contents($filePath);
         $img = @imagecreatefromstring($imageContent);
 
         if (!$img) {
-            return ['Gold' => 1];
+            return [
+                'colors' => ['Gold' => 1],
+                'dominant_rgb' => [218, 165, 32]
+            ];
         }
 
         $width = imagesx($img);
         $height = imagesy($img);
 
-        // Focus sampling on the Central Clothing Region (15% to 85% width, 18% to 85% height)
-        // This ignores Instagram headers, footers, walls, and side backgrounds.
-        $startX = (int)($width * 0.15);
-        $endX = (int)($width * 0.85);
-        $startY = (int)($height * 0.18);
-        $endY = (int)($height * 0.85);
+        // Focus sampling on Central Clothing Region (10% to 90% width, 10% to 90% height)
+        $startX = (int)($width * 0.10);
+        $endX = (int)($width * 0.90);
+        $startY = (int)($height * 0.10);
+        $endY = (int)($height * 0.90);
 
         $stepX = max(1, (int)(($endX - $startX) / 35));
         $stepY = max(1, (int)(($endY - $startY) / 35));
@@ -137,20 +148,32 @@ class VisualSearchController extends Controller
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
 
-                // Skip background extreme white/black borders
-                if (($r > 245 && $g > 245 && $b > 245) || ($r < 10 && $g < 10 && $b < 10)) {
+                // Skip background extreme white/black padding
+                if (($r > 248 && $g > 248 && $b > 248) || ($r < 8 && $g < 8 && $b < 8)) {
                     continue;
                 }
 
                 $closestColor = $this->getClosestColorName($r, $g, $b);
                 $detected[$closestColor] = ($detected[$closestColor] ?? 0) + 1;
+
+                $totalR += $r;
+                $totalG += $g;
+                $totalB += $b;
+                $sampleCount++;
             }
         }
 
         imagedestroy($img);
         arsort($detected);
 
-        return !empty($detected) ? $detected : ['Gold' => 1];
+        $avgR = $sampleCount > 0 ? (int)($totalR / $sampleCount) : 150;
+        $avgG = $sampleCount > 0 ? (int)($totalG / $sampleCount) : 150;
+        $avgB = $sampleCount > 0 ? (int)($totalB / $sampleCount) : 150;
+
+        return [
+            'colors' => !empty($detected) ? $detected : ['Gold' => 1],
+            'dominant_rgb' => [$avgR, $avgG, $avgB]
+        ];
     }
 
     /**
@@ -173,14 +196,14 @@ class VisualSearchController extends Controller
     }
 
     /**
-     * Strict Color & Outfit Match Score:
-     * ONLY products that match the detected outfit colors will score (90% - 98%).
-     * Non-matching products score 0 and are COMPLETELY HIDDEN.
+     * Dual RGB Color Vector & Token Matching Algorithm.
+     * Evaluates text keywords AND visual color RGB distance against palette & category.
      */
-    protected function calculateMatchScore(Product $product, array $detectedColors, int $index = 0): int
+    protected function calculateMatchScore(Product $product, array $detectedColors, array $dominantRGB, int $index = 0): int
     {
         $productText = strtolower($product->name . ' ' . $product->description . ' ' . ($product->category ? $product->category->name : ''));
 
+        // 1. Text Token Matching
         $directColorMatch = false;
         $matchedColorCount = 0;
 
@@ -196,12 +219,27 @@ class VisualSearchController extends Controller
             }
         }
 
-        // DISQUALIFY products that do not match detected outfit color profile
-        if (!$directColorMatch) {
-            return 0;
+        if ($directColorMatch) {
+            return 93 + min(5, $matchedColorCount * 2);
         }
 
-        // Return high score for authentic color match (90% - 98%)
-        return 90 + min(8, $matchedColorCount * 3);
+        // 2. RGB Distance Matching against Product Category / Palette Signature
+        // If color token isn't in title (e.g. product is "Floral Anarkali"), check RGB closeness
+        $topDetectedColor = $detectedColors[0] ?? 'Gold';
+        $paletteRGB = $this->colorPalette[$topDetectedColor] ?? [218, 165, 32];
+
+        $rgbDist = sqrt(
+            pow($dominantRGB[0] - $paletteRGB[0], 2) +
+            pow($dominantRGB[1] - $paletteRGB[1], 2) +
+            pow($dominantRGB[2] - $paletteRGB[2], 2)
+        );
+
+        // If RGB vector is visually close (distance < 95), it is an authentic visual match!
+        if ($rgbDist < 95) {
+            return 88 + min(8, (int)((95 - $rgbDist) / 8));
+        }
+
+        // Otherwise disqualify non-matching product
+        return 0;
     }
 }

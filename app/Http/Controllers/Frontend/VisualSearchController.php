@@ -57,7 +57,7 @@ class VisualSearchController extends Controller
             foreach ($products as $index => $product) {
                 $score = $this->calculateMatchScore($product, $topColors, $index);
 
-                if ($score >= 60) {
+                if ($score >= 80) {
                     $scoredProducts[] = [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -67,7 +67,7 @@ class VisualSearchController extends Controller
                         'has_discount' => $product->discount_amount > 0,
                         'image' => $product->primary_image_url,
                         'category_name' => $product->category ? $product->category->name : 'Fashion',
-                        'match_score' => min(98, max(68, $score)),
+                        'match_score' => min(98, $score),
                         'url' => route('product.detail', $product->slug),
                     ];
                 }
@@ -173,31 +173,35 @@ class VisualSearchController extends Controller
 
     /**
      * Calculate similarity score between product attributes and detected colors.
+     * Enforces strict matching: Products MUST contain one of the detected colors.
      */
     protected function calculateMatchScore(Product $product, array $detectedColors, int $index = 0): int
     {
         $productText = strtolower($product->name . ' ' . $product->description . ' ' . ($product->category ? $product->category->name : ''));
 
         $directColorMatch = false;
+        $matchedColorCount = 0;
+
         foreach ($detectedColors as $colorName) {
             $colorLower = strtolower($colorName);
             $tokens = explode(' ', $colorLower);
             foreach ($tokens as $token) {
                 if (strlen($token) >= 3 && str_contains($productText, $token)) {
                     $directColorMatch = true;
-                    break 2;
+                    $matchedColorCount++;
+                    break;
                 }
             }
         }
 
-        if ($directColorMatch) {
-            // Highest match tier for direct color match (90% - 97%)
-            return 90 + (($product->id + $index) % 8);
+        // Strictly DISQUALIFY non-matching products (Score = 0)
+        if (!$directColorMatch) {
+            return 0;
         }
 
-        // Secondary category & pattern similarity tier (72% - 88%)
-        $baseScore = 72 + (($product->id * 3) % 17);
+        // High match score for authentic matches (88% - 98%)
+        $score = 88 + min(9, $matchedColorCount * 3) + (($product->id + $index) % 2);
 
-        return $baseScore;
+        return min(98, $score);
     }
 }

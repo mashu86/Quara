@@ -37,7 +37,8 @@ class PaymentService
         $realRazorpayOrderId = '';
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                ->withBasicAuth($razorpayKey, $razorpaySecret)
                 ->post('https://api.razorpay.com/v1/orders', [
                     'amount' => $amountInPaise,
                     'currency' => 'INR',

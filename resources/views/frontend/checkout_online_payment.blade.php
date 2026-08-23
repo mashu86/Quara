@@ -74,10 +74,20 @@
             }
         },
         "handler": function (response){
+            if (!response.razorpay_payment_id || !response.razorpay_signature) {
+                alert("Payment was not completed or failed verification. Please try again.");
+                window.location.href = "{{ route('checkout.index') }}";
+                return;
+            }
             document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id || '';
             document.getElementById('razorpay_order_id').value = response.razorpay_order_id || '{{ $paymentResult["razorpay_order_id"] ?? "" }}';
             document.getElementById('razorpay_signature').value = response.razorpay_signature || '';
             document.getElementById('razorpayForm').submit();
+        },
+        "modal": {
+            "ondismiss": function() {
+                console.log('Payment modal dismissed');
+            }
         },
         "prefill": {
             "name": "{{ $order->customer_name }}",
@@ -90,6 +100,11 @@
     };
 
     const rzp = new Razorpay(options);
+
+    rzp.on('payment.failed', function (response){
+        alert('Payment Failed: ' + (response.error.description || 'Transaction failed or bank error'));
+        window.location.href = "{{ route('checkout.index') }}";
+    });
 
     document.getElementById('rzp-button').onclick = function(e){
         rzp.open();

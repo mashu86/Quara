@@ -7,14 +7,34 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border text-center">
-                <div class="mb-4">
-                    <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 40px;">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                </div>
+                @if($order->payment_status === 'paid' || $order->payment_method === 'cod')
+                    <div class="mb-4">
+                        <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 40px;">
+                            <i class="fa-solid fa-check"></i>
+                        </span>
+                    </div>
 
-                <h1 class="font-serif fw-bold display-6 mb-2">THANK YOU FOR YOUR ORDER!</h1>
-                <p class="text-muted fs-5 mb-4">Your order has been placed successfully and is being prepared with care.</p>
+                    <h1 class="font-serif fw-bold display-6 mb-2">THANK YOU FOR YOUR ORDER!</h1>
+                    <p class="text-muted fs-5 mb-4">Your order has been placed successfully and is being prepared with care.</p>
+                @elseif($order->payment_status === 'failed')
+                    <div class="mb-4">
+                        <span class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 40px;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </span>
+                    </div>
+
+                    <h1 class="font-serif fw-bold display-6 mb-2 text-danger">PAYMENT UNSUCCESSFUL</h1>
+                    <p class="text-muted fs-5 mb-4">The online payment for this order failed or was cancelled by the bank. No money was charged.</p>
+                @else
+                    <div class="mb-4">
+                        <span class="bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 40px;">
+                            <i class="fa-solid fa-clock"></i>
+                        </span>
+                    </div>
+
+                    <h1 class="font-serif fw-bold display-6 mb-2">PAYMENT PENDING</h1>
+                    <p class="text-muted fs-5 mb-4">Your payment is currently pending verification.</p>
+                @endif
 
                 <div class="alert alert-light border rounded-3 p-4 text-start mb-4">
                     <div class="row g-3">
@@ -28,10 +48,15 @@
                         </div>
                         <div class="col-sm-6">
                             <span class="text-muted small text-uppercase font-bold">Payment Method</span>
-                            <h6 class="fw-bold text-uppercase mb-0">{{ $order->payment_method }} ({{ ucfirst($order->payment_status) }})</h6>
+                            <h6 class="fw-bold text-uppercase mb-0">
+                                {{ $order->payment_method }} 
+                                <span class="badge {{ $order->payment_status === 'paid' ? 'bg-success' : ($order->payment_status === 'failed' ? 'bg-danger' : 'bg-warning text-dark') }}">
+                                    {{ ucfirst($order->payment_status) }}
+                                </span>
+                            </h6>
                         </div>
                         <div class="col-sm-6">
-                            <span class="text-muted small text-uppercase font-bold">Total Paid / Payable</span>
+                            <span class="text-muted small text-uppercase font-bold">Total Amount</span>
                             <h5 class="fw-bold text-gold mb-0">₹{{ number_format($order->grand_total, 2) }}</h5>
                         </div>
                     </div>

@@ -52,11 +52,13 @@ class VisualSearchController extends Controller
                 ->get();
 
             $scoredProducts = [];
+            $topColors = array_slice(array_keys($dominantColors), 0, 3);
 
             foreach ($products as $product) {
-                $score = $this->calculateMatchScore($product, $dominantColors);
+                $score = $this->calculateMatchScore($product, $topColors);
 
-                if ($score > 40) {
+                // Strictly enforce threshold: Only products with a real color or category match (> 70)
+                if ($score >= 70) {
                     $scoredProducts[] = [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -66,7 +68,7 @@ class VisualSearchController extends Controller
                         'has_discount' => $product->discount_amount > 0,
                         'image' => $product->primary_image_url,
                         'category_name' => $product->category ? $product->category->name : 'Fashion',
-                        'match_score' => min(98, max(65, $score)),
+                        'match_score' => min(98, $score),
                         'url' => route('product.detail', $product->slug),
                     ];
                 }
@@ -80,28 +82,9 @@ class VisualSearchController extends Controller
             // Return top 8 matches
             $topMatches = array_slice($scoredProducts, 0, 8);
 
-            // Fallback if low matches
-            if (empty($topMatches) && $products->count() > 0) {
-                $fallback = $products->take(6);
-                foreach ($fallback as $product) {
-                    $topMatches[] = [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'slug' => $product->slug,
-                        'price' => number_format($product->price, 2),
-                        'final_price' => number_format($product->final_price, 2),
-                        'has_discount' => $product->discount_amount > 0,
-                        'image' => $product->primary_image_url,
-                        'category_name' => $product->category ? $product->category->name : 'Fashion',
-                        'match_score' => rand(72, 88),
-                        'url' => route('product.detail', $product->slug),
-                    ];
-                }
-            }
-
             return response()->json([
                 'success' => true,
-                'detected_colors' => array_slice(array_keys($dominantColors), 0, 3),
+                'detected_colors' => $topColors,
                 'total_matches' => count($topMatches),
                 'products' => $topMatches,
             ]);
@@ -185,22 +168,33 @@ class VisualSearchController extends Controller
 
     /**
      * Calculate similarity score between product attributes and detected colors.
+     * Enforces strict matching: product MUST contain one of the detected colors.
      */
     protected function calculateMatchScore(Product $product, array $detectedColors): int
     {
-        $baseScore = rand(45, 55);
         $productText = strtolower($product->name . ' ' . $product->description . ' ' . ($product->category ? $product->category->name : ''));
 
-        foreach (array_keys($detectedColors) as $colorName) {
+        $matchedColorCount = 0;
+        foreach ($detectedColors as $colorName) {
             $colorLower = strtolower($colorName);
-            if (str_contains($productText, $colorLower)) {
-                $baseScore += 25;
+            // Check for color name or sub-token (e.g. "green", "red", "blue", "pink")
+            $tokens = explode(' ', $colorLower);
+            foreach ($tokens as $token) {
+                if (strlen($token) >= 3 && str_contains($productText, $token)) {
+                    $matchedColorCount++;
+                    break;
+                }
             }
         }
 
-        // Add variance for visual diversity
-        $baseScore += ($product->id % 15);
+        // Strictly DISQUALIFY products that do not match detected colors
+        if ($matchedColorCount === 0) {
+            return 0;
+        }
 
-        return min(97, $baseScore);
+        // Base score for strict matches starts at 78%
+        $score = 78 + ($matchedColorCount * 8);
+
+        return min(97, $score);
     }
 }

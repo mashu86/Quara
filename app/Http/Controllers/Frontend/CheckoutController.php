@@ -53,7 +53,13 @@ class CheckoutController extends Controller
 
         $summary = $this->cartService->getSummary();
 
-        return view('frontend.checkout', compact('cart', 'summary'));
+        $email = session('customer_email');
+        $lastOrder = null;
+        if ($email) {
+            $lastOrder = Order::where('customer_email', $email)->latest()->first();
+        }
+
+        return view('frontend.checkout', compact('cart', 'summary', 'lastOrder'));
     }
 
     public function process(Request $request)

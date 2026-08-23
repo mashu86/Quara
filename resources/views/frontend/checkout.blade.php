@@ -12,58 +12,70 @@
             <!-- Customer Shipping Address -->
             <div class="col-lg-7">
                 <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
-                    <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom"><i class="fa-solid fa-truck me-2 text-gold"></i> Shipping Address</h5>
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <h5 class="font-serif fw-bold mb-0"><i class="fa-solid fa-truck me-2 text-gold"></i> Shipping Address</h5>
+                        <span class="badge bg-light text-muted border rounded-pill px-3 py-2 small fw-normal"><i class="fa-solid fa-user-check me-1 text-success"></i> Guest Checkout Enabled</span>
+                    </div>
 
                     <div class="row g-3">
+                        <div id="autofillBadgeContainer" class="col-12" style="display: {{ $lastOrder ? 'block' : 'none' }};">
+                            <div class="alert alert-success border-0 rounded-3 small py-2 px-3 d-flex align-items-center justify-content-between mb-0">
+                                <div>
+                                    <i class="fa-solid fa-wand-magic-sparkles me-2 text-gold"></i>
+                                    <strong>Saved address autofilled from previous order!</strong> You can edit any field below.
+                                </div>
+                                <span class="badge bg-white text-success border fw-normal">Editable</span>
+                            </div>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name') }}" required>
+                            <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name', $lastOrder?->customer_name) }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Email Address <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="email" name="customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}" required>
-                                @if(!session('customer_email'))
-                                    <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3" onclick="showOtpModal()"><i class="fa-solid fa-envelope me-1"></i> Verify OTP</button>
-                                @else
-                                    <span class="input-group-text bg-success text-white small fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Verified</span>
-                                @endif
+                                <input type="email" name="customer_email" id="checkout_customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}" required>
+                                <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3" onclick="showOtpModal()"><i class="fa-solid fa-envelope me-1"></i> Verify OTP</button>
+                            </div>
+                            <div class="form-text small text-muted">
+                                <i class="fa-solid fa-shield-halved text-gold me-1"></i> Guest checkout available. Verifying OTP fetches your saved address.
                             </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold">Mobile Phone Number <span class="text-danger">*</span></label>
-                            <input type="tel" name="customer_phone" class="form-control rounded-3" placeholder="10-digit mobile number" value="{{ old('customer_phone') }}" required>
+                            <input type="tel" name="customer_phone" class="form-control rounded-3" placeholder="10-digit mobile number" value="{{ old('customer_phone', $lastOrder?->customer_phone) }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">House / Flat / Building No. <span class="text-danger">*</span></label>
-                            <input type="text" name="house_building" class="form-control rounded-3" value="{{ old('house_building') }}" required>
+                            <input type="text" name="house_building" class="form-control rounded-3" value="{{ old('house_building', $lastOrder?->house_building) }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Street / Road Name <span class="text-danger">*</span></label>
-                            <input type="text" name="street" class="form-control rounded-3" value="{{ old('street') }}" required>
+                            <input type="text" name="street" class="form-control rounded-3" value="{{ old('street', $lastOrder?->street) }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Area / Landmark <span class="text-danger">*</span></label>
-                            <input type="text" name="area" class="form-control rounded-3" value="{{ old('area') }}" required>
+                            <input type="text" name="area" class="form-control rounded-3" value="{{ old('area', $lastOrder?->area) }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">City / Town <span class="text-danger">*</span></label>
-                            <input type="text" name="city" class="form-control rounded-3" value="{{ old('city') }}" required>
+                            <input type="text" name="city" class="form-control rounded-3" value="{{ old('city', $lastOrder?->city) }}" required>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">District <span class="text-danger">*</span></label>
-                            <input type="text" name="district" class="form-control rounded-3" value="{{ old('district') }}" required>
+                            <input type="text" name="district" class="form-control rounded-3" value="{{ old('district', $lastOrder?->district) }}" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">State <span class="text-danger">*</span></label>
-                            <input type="text" name="state" class="form-control rounded-3" value="{{ old('state') }}" required>
+                            <input type="text" name="state" class="form-control rounded-3" value="{{ old('state', $lastOrder?->state) }}" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">PIN Code <span class="text-danger">*</span></label>
-                            <input type="text" name="pin_code" class="form-control rounded-3" value="{{ old('pin_code') }}" required>
+                            <input type="text" name="pin_code" class="form-control rounded-3" value="{{ old('pin_code', $lastOrder?->pin_code) }}" required>
                         </div>
 
                         <div class="col-12">

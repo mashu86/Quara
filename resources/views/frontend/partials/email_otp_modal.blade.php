@@ -257,21 +257,26 @@
                     const areaInput = document.querySelector('input[name="area"]');
                     const cityInput = document.querySelector('input[name="city"]');
                     const districtInput = document.querySelector('input[name="district"]');
+                    const stateInput = document.querySelector('input[name="state"]');
                     const pinInput = document.querySelector('input[name="pin_code"]');
 
-                    if (nameInput && !nameInput.value) nameInput.value = d.customer_name || '';
-                    if (phoneInput && !phoneInput.value) phoneInput.value = d.customer_phone || '';
-                    if (houseInput && !houseInput.value) houseInput.value = d.house_building || '';
-                    if (streetInput && !streetInput.value) streetInput.value = d.street || '';
-                    if (areaInput && !areaInput.value) areaInput.value = d.area || '';
-                    if (cityInput && !cityInput.value) cityInput.value = d.city || '';
-                    if (districtInput && !districtInput.value) districtInput.value = d.district || '';
-                    if (pinInput && !pinInput.value) pinInput.value = d.pin_code || '';
+                    if (nameInput) nameInput.value = d.customer_name || '';
+                    if (phoneInput) phoneInput.value = d.customer_phone || '';
+                    if (houseInput) houseInput.value = d.house_building || '';
+                    if (streetInput) streetInput.value = d.street || '';
+                    if (areaInput) areaInput.value = d.area || '';
+                    if (cityInput) cityInput.value = d.city || '';
+                    if (districtInput) districtInput.value = d.district || '';
+                    if (stateInput) stateInput.value = d.state || '';
+                    if (pinInput) pinInput.value = d.pin_code || '';
+
+                    const autofillBadgeContainer = document.getElementById('autofillBadgeContainer');
+                    if (autofillBadgeContainer) autofillBadgeContainer.style.display = 'block';
                 }
 
-                // Refresh page or redirect to my-orders / checkout
+                // Redirect or stay on checkout without reloading
                 if (window.location.pathname.includes('/checkout')) {
-                    window.location.reload();
+                    // Stay on checkout page with autofilled fields ready for editing/ordering
                 } else if (window.location.pathname.includes('/my-orders')) {
                     window.location.reload();
                 } else {

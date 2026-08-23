@@ -263,4 +263,40 @@ class CheckoutController extends Controller
 
         return view('frontend.order_success', compact('order'));
     }
+
+    /**
+     * Fetch previous shipping address details by email for instant autofill (Zero OTP).
+     */
+    public function fetchAddressByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $lastOrder = Order::where('customer_email', $email)->latest()->first();
+
+        if ($lastOrder) {
+            return response()->json([
+                'found' => true,
+                'details' => [
+                    'customer_name' => $lastOrder->customer_name,
+                    'customer_phone' => $lastOrder->customer_phone,
+                    'customer_email' => $lastOrder->customer_email,
+                    'house_building' => $lastOrder->house_building,
+                    'street' => $lastOrder->street,
+                    'area' => $lastOrder->area,
+                    'city' => $lastOrder->city,
+                    'district' => $lastOrder->district,
+                    'state' => $lastOrder->state,
+                    'pin_code' => $lastOrder->pin_code,
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'found' => false,
+            'message' => 'No previous orders found for this email.'
+        ]);
+    }
 }

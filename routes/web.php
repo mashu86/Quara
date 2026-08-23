@@ -43,6 +43,7 @@ Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_
 
 // Checkout Routes
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');

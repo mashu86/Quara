@@ -34,12 +34,9 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Email Address <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="email" name="customer_email" id="checkout_customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}" required>
-                                <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3" onclick="showOtpModal()"><i class="fa-solid fa-envelope me-1"></i> Verify OTP</button>
-                            </div>
+                            <input type="email" name="customer_email" id="checkout_customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}" required>
                             <div class="form-text small text-muted">
-                                <i class="fa-solid fa-shield-halved text-gold me-1"></i> Guest checkout available. Verifying OTP fetches your saved address.
+                                <i class="fa-solid fa-sparkles text-gold me-1"></i> Typing your email automatically fetches saved delivery address from past orders.
                             </div>
                         </div>
                         <div class="col-12">
@@ -160,9 +157,64 @@
 @section('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        @if(!session('customer_email'))
-            showOtpModal();
-        @endif
+        const emailInput = document.getElementById('checkout_customer_email');
+        if (!emailInput) return;
+
+        let debounceTimer;
+
+        function autoFetchAddressByEmail() {
+            const email = emailInput.value.trim();
+            if (!email || !email.includes('@') || email.length < 5) return;
+
+            fetch("{{ route('checkout.fetch_address') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.found && data.details) {
+                    const d = data.details;
+                    const nameInput = document.querySelector('input[name="customer_name"]');
+                    const phoneInput = document.querySelector('input[name="customer_phone"]');
+                    const houseInput = document.querySelector('input[name="house_building"]');
+                    const streetInput = document.querySelector('input[name="street"]');
+                    const areaInput = document.querySelector('input[name="area"]');
+                    const cityInput = document.querySelector('input[name="city"]');
+                    const districtInput = document.querySelector('input[name="district"]');
+                    const stateInput = document.querySelector('input[name="state"]');
+                    const pinInput = document.querySelector('input[name="pin_code"]');
+
+                    if (nameInput) nameInput.value = d.customer_name || nameInput.value || '';
+                    if (phoneInput) phoneInput.value = d.customer_phone || phoneInput.value || '';
+                    if (houseInput) houseInput.value = d.house_building || houseInput.value || '';
+                    if (streetInput) streetInput.value = d.street || streetInput.value || '';
+                    if (areaInput) areaInput.value = d.area || areaInput.value || '';
+                    if (cityInput) cityInput.value = d.city || cityInput.value || '';
+                    if (districtInput) districtInput.value = d.district || districtInput.value || '';
+                    if (stateInput) stateInput.value = d.state || stateInput.value || '';
+                    if (pinInput) pinInput.value = d.pin_code || pinInput.value || '';
+
+                    const autofillBadge = document.getElementById('autofillBadgeContainer');
+                    if (autofillBadge) autofillBadge.style.display = 'block';
+                }
+            })
+            .catch(err => console.log('Address fetch error:', err));
+        }
+
+        emailInput.addEventListener('blur', autoFetchAddressByEmail);
+        emailInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(autoFetchAddressByEmail, 700);
+        });
+
+        // Trigger auto fetch on load if email is already present
+        if (emailInput.value.trim().length > 5) {
+            autoFetchAddressByEmail();
+        }
     });
 </script>
 @endsection

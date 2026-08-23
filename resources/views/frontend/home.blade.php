@@ -59,7 +59,7 @@
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                         <div class="qw-category-card">
-                            <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg">
+                            <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">
                             <div class="qw-category-overlay">
                                 <h4 class="font-serif fw-bold mb-1" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
                                     {{ $category->name }}
@@ -100,7 +100,7 @@
 
                         <a href="{{ route('product.detail', $product->slug) }}" class="text-decoration-none">
                             <div class="qw-product-img-wrapper">
-                                <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img">
+                                <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img" loading="lazy">
                                 @if($product->total_stock <= 0)
                                     <div class="qw-out-of-stock-overlay">
                                         <span class="qw-out-of-stock-badge">OUT OF STOCK</span>

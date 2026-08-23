@@ -21,8 +21,8 @@ class HomeContent extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if ($this->image_blob && $this->image_mime) {
-            return 'data:' . $this->image_mime . ';base64,' . base64_encode($this->image_blob);
+        if ($this->image_mime && ($this->image_blob || $this->id)) {
+            return route('home_content.image', $this->id);
         }
         return null;
     }

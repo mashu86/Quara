@@ -16,6 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
 
+
     <!-- Bootstrap 5 CSS & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -329,8 +330,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Categories</a>
                             <ul class="dropdown-menu border-0 shadow-sm rounded-3">
-                                @php $navCategories = \App\Models\Category::where('status', 'active')->get(); @endphp
-                                @foreach($navCategories as $navCat)
+                                @foreach($navCategories ?? [] as $navCat)
                                     <li><a class="dropdown-menu-item dropdown-item" href="{{ route('category.products', $navCat->slug) }}">{{ $navCat->name }}</a></li>
                                 @endforeach
                             </ul>
@@ -385,8 +385,7 @@
 
     <!-- Floating WhatsApp Button -->
     @php
-        $whatsappObj = \App\Models\SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
-        $waLink = $whatsappObj ? $whatsappObj->formatted_link : 'https://wa.me/918078037591';
+        $waLink = (isset($whatsappObj) && $whatsappObj) ? $whatsappObj->formatted_link : 'https://wa.me/918078037591';
     @endphp
     <a href="{{ $waLink }}" class="qw-floating-whatsapp" target="_blank" title="Chat with us on WhatsApp" aria-label="WhatsApp Support">
         <i class="fa-brands fa-whatsapp"></i>
@@ -402,8 +401,7 @@
                         QUARA WALDROP brings you affordable, high-fashion Korean tops, flattering western dresses, and trendy daily casual apparel. Dress beyond ordinary without breaking the bank.
                     </p>
                     <div class="d-flex gap-3">
-                        @php $socialLinks = \App\Models\SocialMedia::where('status', 'active')->orderBy('sort_order')->get(); @endphp
-                        @foreach($socialLinks as $soc)
+                        @foreach($socialLinks ?? [] as $soc)
                             <a href="{{ $soc->formatted_link }}" target="_blank" class="fs-5"><i class="fa-brands fa-{{ $soc->type === 'whatsapp' ? 'whatsapp' : $soc->type }}"></i></a>
                         @endforeach
                     </div>

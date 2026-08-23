@@ -12,7 +12,9 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $homeContent = HomeContent::where('status', 'active')->first();
+        $homeContent = HomeContent::select(['id', 'title', 'content_html', 'custom_css', 'image_position', 'status', 'image_mime'])
+            ->where('status', 'active')
+            ->first();
         $categories = Category::where('status', 'active')->withCount(['products' => function ($q) {
             $q->where('status', 'active');
         }])->get();
@@ -22,8 +24,6 @@ class HomeController extends Controller
             ->take(8)
             ->get();
 
-        $whatsapp = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
-
-        return view('frontend.home', compact('homeContent', 'categories', 'featuredProducts', 'whatsapp'));
+        return view('frontend.home', compact('homeContent', 'categories', 'featuredProducts'));
     }
 }

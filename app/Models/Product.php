@@ -74,16 +74,21 @@ class Product extends Model
     public function getPrimaryImageUrlAttribute(): string
     {
         $primary = $this->images->first();
-        if ($primary && filter_var($primary->image_path, FILTER_VALIDATE_URL)) {
-            return $primary->image_path;
+        if (!$primary || empty($primary->image_path)) {
+            return asset('assets/images/logo.png');
         }
-        if ($primary && file_exists(public_path('storage/' . $primary->image_path))) {
-            return asset('storage/' . $primary->image_path);
+
+        $path = $primary->image_path;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
         }
-        if ($primary && file_exists(public_path($primary->image_path))) {
-            return asset($primary->image_path);
+
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, 'assets/')) {
+            return asset($path);
         }
-        return asset('assets/images/logo.png');
+
+        return asset('storage/' . $path);
     }
 
     public static function calculateFinalPrice($price, $discountType, $discountValue): float

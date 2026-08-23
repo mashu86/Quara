@@ -127,7 +127,7 @@
 
                             <a href="{{ route('product.detail', $product->slug) }}">
                                 <div class="qw-product-img-wrapper">
-                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img">
+                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img" loading="lazy">
                                     @if($product->total_stock <= 0)
                                         <div class="qw-out-of-stock-overlay">
                                             <span class="qw-out-of-stock-badge">OUT OF STOCK</span>

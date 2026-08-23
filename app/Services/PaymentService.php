@@ -81,19 +81,26 @@ class PaymentService
     }
 
     /**
-     * Verify online payment callback signature.
+     * Verify online payment callback signature strictly using Razorpay HMAC.
      */
     public function verifyOnlinePayment(Order $order, string $paymentId, string $razorpayOrderId, string $signature): bool
     {
-        $razorpaySecret = config('services.razorpay.secret', env('RAZORPAY_SECRET', 'rzp_test_samplesecret123'));
+        $razorpaySecret = config('services.razorpay.secret', env('RAZORPAY_SECRET'));
 
-        // In test/demo environment or when signature matches generated HMAC
+        if (empty($razorpaySecret) || empty($signature) || empty($paymentId) || empty($razorpayOrderId)) {
+            Log::warning('Razorpay verification missing credentials or payload', [
+                'order_number' => $order->order_number,
+                'payment_id' => $paymentId,
+                'razorpay_order_id' => $razorpayOrderId,
+            ]);
+            $this->markPaymentFailed($order);
+            return false;
+        }
+
+        // Strict Razorpay HMAC SHA256 Signature Verification
         $expectedSignature = hash_hmac('sha256', $razorpayOrderId . '|' . $paymentId, $razorpaySecret);
 
-        // Accept valid signature OR standard test payment verification
-        $isValid = ($signature === $expectedSignature) || (!empty($paymentId) && str_starts_with($paymentId, 'pay_'));
-
-        if ($isValid) {
+        if (hash_equals($expectedSignature, $signature)) {
             $payment = $order->payment;
             if ($payment) {
                 $payment->update([
@@ -114,11 +121,17 @@ class PaymentService
             return true;
         }
 
+        Log::error('Razorpay signature mismatch for Order #' . $order->order_number);
+        $this->markPaymentFailed($order);
+
+        return false;
+    }
+
+    private function markPaymentFailed(Order $order): void
+    {
         if ($order->payment) {
             $order->payment->update(['status' => 'failed']);
         }
         $order->update(['payment_status' => 'failed']);
-
-        return false;
     }
 }

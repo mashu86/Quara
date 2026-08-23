@@ -30,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with(compact('navCategories', 'whatsappObj', 'socialLinks'));
         });
+
+        View::composer('layouts.admin', function ($view) {
+            $pendingCount = \App\Models\Order::where('order_status', 'pending')->count();
+            $unreadCount = \App\Models\Notification::where('is_read', false)->count();
+
+            $view->with(compact('pendingCount', 'unreadCount'));
+        });
     }
 }
 

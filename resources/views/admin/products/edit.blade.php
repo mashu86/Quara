@@ -8,7 +8,7 @@
     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3">&larr; Back to Products</a>
 </div>
 
-<form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+<form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
     @csrf
     @method('PUT')
 

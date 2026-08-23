@@ -18,8 +18,32 @@
     </div>
 </div>
 
-<!-- Filters -->
-<div class="card border-0 rounded-4 shadow-sm mb-4">
+@php
+    $activeExpenseFilterCount = (request()->filled('search') ? 1 : 0)
+        + (request()->filled('start_date') ? 1 : 0)
+        + (request()->filled('end_date') ? 1 : 0);
+@endphp
+
+<!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
+<div class="d-lg-none mb-3">
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#expenseFilterModal">
+            <i class="fa-solid fa-sliders text-warning"></i>
+            <span class="fw-semibold">Filter Expenses</span>
+            @if($activeExpenseFilterCount > 0)
+                <span class="badge bg-warning text-dark rounded-pill">{{ $activeExpenseFilterCount }}</span>
+            @endif
+        </button>
+        @if($activeExpenseFilterCount > 0)
+            <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        @endif
+    </div>
+</div>
+
+<!-- Desktop Filters (d-none d-lg-block) -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body p-3">
         <form action="{{ route('admin.expenses.index') }}" method="GET" class="row g-2 align-items-center">
             <div class="col-md-4">
@@ -36,6 +60,42 @@
                 <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary rounded-pill"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Expense Mobile Filter Modal (d-lg-none) -->
+<div class="modal fade d-lg-none" id="expenseFilterModal" tabindex="-1" aria-labelledby="expenseFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="expenseFilterModalLabel">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i> Filter Expenses
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.expenses.index') }}" method="GET">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Search Keyword</label>
+                        <input type="text" name="search" class="form-control rounded-3" placeholder="Search expense name or category..." value="{{ request('search') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">From Date</label>
+                        <input type="date" name="start_date" class="form-control rounded-3" value="{{ request('start_date') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">To Date</label>
+                        <input type="date" name="end_date" class="form-control rounded-3" value="{{ request('end_date') }}">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-check me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

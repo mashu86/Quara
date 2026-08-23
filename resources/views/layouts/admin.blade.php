@@ -193,8 +193,7 @@
                 <li class="nav-item">
                     <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-receipt me-2"></i> Website Orders
-                        @php $pendingCount = \App\Models\Order::where('order_status', 'pending')->count(); @endphp
-                        @if($pendingCount > 0)
+                        @if(($pendingCount ?? 0) > 0)
                             <span class="badge bg-warning text-dark ms-auto fw-bold">{{ $pendingCount }}</span>
                         @endif
                     </a>
@@ -207,8 +206,7 @@
                 <li class="nav-item">
                     <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-bell me-2"></i> Notifications
-                        @php $unreadCount = \App\Models\Notification::where('is_read', false)->count(); @endphp
-                        @if($unreadCount > 0)
+                        @if(($unreadCount ?? 0) > 0)
                             <span class="badge-notification ms-auto">{{ $unreadCount }}</span>
                         @endif
                     </a>
@@ -243,6 +241,11 @@
                     <a href="{{ route('home') }}" target="_blank" class="nav-link">
                         <i class="fa-solid fa-globe me-2"></i> View Customer Site
                     </a>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link border-0 bg-transparent text-start w-100" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="fa-solid fa-key me-2 text-warning"></i> Change Password
+                    </button>
                 </li>
                 <li class="nav-item">
                     <form action="{{ route('admin.logout') }}" method="POST">
@@ -283,6 +286,12 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
                         <li>
+                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="fa-solid fa-key me-2 text-warning"></i> Change Password
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
                             <form action="{{ route('admin.logout') }}" method="POST">
                                 @csrf
                                 <button type="submit" class="dropdown-item text-danger">
@@ -315,13 +324,115 @@
         </div>
     </div>
 
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                    <h5 class="modal-title font-serif fw-bold" id="changePasswordModalLabel">
+                        <i class="fa-solid fa-key text-warning me-2"></i> Change Admin Password
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('admin.change-password') }}" method="POST">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label for="old_password" class="form-label fw-semibold text-dark">Old Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                                <input type="password" class="form-control border-start-0 border-end-0 @error('old_password') is-invalid @enderror" id="old_password" name="old_password" placeholder="Enter old password" required>
+                                <span class="input-group-text bg-light border-start-0 role-button toggle-password-btn" data-target="old_password" style="cursor: pointer;">
+                                    <i class="fa-solid fa-eye text-muted"></i>
+                                </span>
+                            </div>
+                            @error('old_password')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label fw-semibold text-dark">New Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-key text-muted"></i></span>
+                                <input type="password" class="form-control border-start-0 border-end-0 @error('new_password') is-invalid @enderror" id="new_password" name="new_password" placeholder="Enter new password (min 6 chars)" required minlength="6">
+                                <span class="input-group-text bg-light border-start-0 role-button toggle-password-btn" data-target="new_password" style="cursor: pointer;">
+                                    <i class="fa-solid fa-eye text-muted"></i>
+                                </span>
+                            </div>
+                            @error('new_password')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_password_confirmation" class="form-label fw-semibold text-dark">Confirm New Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-circle-check text-muted"></i></span>
+                                <input type="password" class="form-control border-start-0 border-end-0" id="new_password_confirmation" name="new_password_confirmation" placeholder="Confirm new password" required>
+                                <span class="input-group-text bg-light border-start-0 role-button toggle-password-btn" data-target="new_password_confirmation" style="cursor: pointer;">
+                                    <i class="fa-solid fa-eye text-muted"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.getElementById('adminSidebar')?.classList.toggle('show');
         });
+
+        function handleAdminFormSubmit(form) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.disabled) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> UPLOADING & SAVING... PLEASE WAIT...';
+            }
+            return true;
+        }
+
+        document.querySelectorAll('.toggle-password-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var targetId = this.getAttribute('data-target');
+                var input = document.getElementById(targetId);
+                var icon = this.querySelector('i');
+                if (input && icon) {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                }
+            });
+        });
     </script>
+    @if($errors->has('old_password') || $errors->has('new_password'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var modalEl = document.getElementById('changePasswordModal');
+            if (modalEl) {
+                var modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
+    </script>
+    @endif
     @yield('scripts')
 </body>
 </html>

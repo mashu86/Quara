@@ -13,8 +13,34 @@
     </a>
 </div>
 
-<!-- Search & Filters -->
-<div class="card border-0 rounded-4 shadow-sm mb-4">
+@php
+    $activeFilterCount = (request()->filled('search') ? 1 : 0)
+        + (request()->filled('category_id') ? 1 : 0)
+        + (request()->filled('status') ? 1 : 0)
+        + (request()->filled('stock_status') ? 1 : 0)
+        + (request()->filled('sort') && request()->sort !== 'newest' ? 1 : 0);
+@endphp
+
+<!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
+<div class="d-lg-none mb-3">
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#productFilterModal">
+            <i class="fa-solid fa-sliders text-warning"></i>
+            <span class="fw-semibold">Filter Products</span>
+            @if($activeFilterCount > 0)
+                <span class="badge bg-warning text-dark rounded-pill">{{ $activeFilterCount }}</span>
+            @endif
+        </button>
+        @if($activeFilterCount > 0)
+            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        @endif
+    </div>
+</div>
+
+<!-- Desktop Search & Filters (d-none d-lg-block) -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body">
         <form action="{{ route('admin.products.index') }}" method="GET" class="row g-3">
             <div class="col-md-3">
@@ -51,6 +77,68 @@
                 </select>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Product Mobile Filter Modal (d-lg-none) -->
+<div class="modal fade d-lg-none" id="productFilterModal" tabindex="-1" aria-labelledby="productFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="productFilterModalLabel">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i> Filter Products
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.products.index') }}" method="GET">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Search Name / Keyword</label>
+                        <input type="text" name="search" class="form-control rounded-3" placeholder="Search product name..." value="{{ request()->search }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Category</label>
+                        <select name="category_id" class="form-select rounded-3">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ request()->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Status</label>
+                        <select name="status" class="form-select rounded-3">
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ request()->status === 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request()->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Stock Availability</label>
+                        <select name="stock_status" class="form-select rounded-3">
+                            <option value="">All Stock</option>
+                            <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>In Stock</option>
+                            <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Sort By</label>
+                        <select name="sort" class="form-select rounded-3">
+                            <option value="newest" {{ request()->sort === 'newest' ? 'selected' : '' }}>Newest</option>
+                            <option value="oldest" {{ request()->sort === 'oldest' ? 'selected' : '' }}>Oldest</option>
+                            <option value="price_low" {{ request()->sort === 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
+                            <option value="price_high" {{ request()->sort === 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-check me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

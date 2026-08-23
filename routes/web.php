@@ -47,10 +47,11 @@ Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');
 
-// Customer Phone Auth & My Orders
-Route::post('/phone-auth/verify', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'verifySession'])->name('phone.verify');
-Route::get('/my-orders', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'myOrders'])->name('customer.my-orders');
-Route::post('/customer/logout', [\App\Http\Controllers\Frontend\PhoneAuthController::class, 'logout'])->name('customer.logout');
+// Customer Email Auth & My Orders
+Route::post('/email-auth/send-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'sendOtp'])->name('email.send-otp');
+Route::post('/email-auth/verify-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'verifyOtp'])->name('email.verify-otp');
+Route::get('/my-orders', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'myOrders'])->name('customer.my-orders');
+Route::post('/customer/logout', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'logout'])->name('customer.logout');
 
 // Order Tracking
 Route::get('/order-tracking', [FrontendOrderController::class, 'track'])->name('order.tracking');
@@ -78,6 +79,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Authenticated Admin Routes
     Route::middleware([AdminMiddleware::class])->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/change-password', [AdminAuthController::class, 'changePassword'])->name('change-password');
 
         // Category Master
         Route::resource('categories', AdminCategoryController::class);
@@ -90,10 +92,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy');
 
         // Home Main Content Master
-        Route::resource('home-content', AdminHomeContentController::class);
+        Route::resource('home-content', AdminHomeContentController::class)->parameters(['home-content' => 'home_content']);
 
         // Social Media Master
-        Route::resource('social-media', AdminSocialMediaController::class);
+        Route::resource('social-media', AdminSocialMediaController::class)->parameters(['social-media' => 'social_media']);
 
         // Orders & Manual Offline Sales Management
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');

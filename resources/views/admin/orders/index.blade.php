@@ -10,8 +10,32 @@
     </div>
 </div>
 
-<!-- Search & Filters -->
-<div class="card border-0 rounded-4 shadow-sm mb-4">
+@php
+    $activeOrderFilterCount = (request()->filled('search') ? 1 : 0)
+        + (request()->filled('status') ? 1 : 0)
+        + (request()->filled('payment_method') ? 1 : 0);
+@endphp
+
+<!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
+<div class="d-lg-none mb-3">
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#orderFilterModal">
+            <i class="fa-solid fa-sliders text-warning"></i>
+            <span class="fw-semibold">Filter Orders</span>
+            @if($activeOrderFilterCount > 0)
+                <span class="badge bg-warning text-dark rounded-pill">{{ $activeOrderFilterCount }}</span>
+            @endif
+        </button>
+        @if($activeOrderFilterCount > 0)
+            <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        @endif
+    </div>
+</div>
+
+<!-- Desktop Search & Filters (d-none d-lg-block) -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body p-3 p-sm-4">
         <form action="{{ route('admin.orders.index') }}" method="GET" class="row g-3">
             <div class="col-12 col-md-4">
@@ -42,6 +66,55 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Order Mobile Filter Modal (d-lg-none) -->
+<div class="modal fade d-lg-none" id="orderFilterModal" tabindex="-1" aria-labelledby="orderFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="orderFilterModalLabel">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i> Filter Orders
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.orders.index') }}" method="GET">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Search Order # / Customer / Phone</label>
+                        <input type="text" name="search" class="form-control rounded-3" placeholder="Search Order #, Name, Phone..." value="{{ request()->search }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Order Status</label>
+                        <select name="status" class="form-select rounded-3">
+                            <option value="">All Order Statuses</option>
+                            <option value="pending" {{ request()->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="confirmed" {{ request()->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                            <option value="processing" {{ request()->status === 'processing' ? 'selected' : '' }}>Processing</option>
+                            <option value="packed" {{ request()->status === 'packed' ? 'selected' : '' }}>Packed</option>
+                            <option value="shipped" {{ request()->status === 'shipped' ? 'selected' : '' }}>Shipped</option>
+                            <option value="delivered" {{ request()->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                            <option value="cancelled" {{ request()->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Payment Method</label>
+                        <select name="payment_method" class="form-select rounded-3">
+                            <option value="">All Payment Methods</option>
+                            <option value="cod" {{ request()->payment_method === 'cod' ? 'selected' : '' }}>Cash on Delivery (COD)</option>
+                            <option value="online" {{ request()->payment_method === 'online' ? 'selected' : '' }}>Razorpay Online</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-check me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

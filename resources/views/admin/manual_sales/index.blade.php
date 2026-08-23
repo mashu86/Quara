@@ -13,8 +13,30 @@
     </a>
 </div>
 
-<!-- Filter / Search -->
-<div class="card border-0 rounded-4 shadow-sm mb-4">
+@php
+    $activeManualFilterCount = request()->filled('search') ? 1 : 0;
+@endphp
+
+<!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
+<div class="d-lg-none mb-3">
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#manualSalesFilterModal">
+            <i class="fa-solid fa-sliders text-warning"></i>
+            <span class="fw-semibold">Search Offline Sales</span>
+            @if($activeManualFilterCount > 0)
+                <span class="badge bg-warning text-dark rounded-pill">{{ $activeManualFilterCount }}</span>
+            @endif
+        </button>
+        @if($activeManualFilterCount > 0)
+            <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        @endif
+    </div>
+</div>
+
+<!-- Desktop Filter / Search (d-none d-lg-block) -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body p-3">
         <form action="{{ route('admin.manual-sales.index') }}" method="GET" class="row g-2 align-items-center">
             <div class="col-md-9">
@@ -25,6 +47,34 @@
                 <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-secondary rounded-pill"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Manual Sales Mobile Filter Modal (d-lg-none) -->
+<div class="modal fade d-lg-none" id="manualSalesFilterModal" tabindex="-1" aria-labelledby="manualSalesFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="manualSalesFilterModalLabel">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i> Search Offline Sales
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.manual-sales.index') }}" method="GET">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Search Order # / Customer Name / Phone</label>
+                        <input type="text" name="search" class="form-control rounded-3" placeholder="Search by Order #, Customer Name, Phone..." value="{{ request('search') }}">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

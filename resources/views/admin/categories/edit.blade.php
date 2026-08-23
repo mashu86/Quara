@@ -10,7 +10,7 @@
 
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-4 p-md-5">
-        <form action="{{ route('admin.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
             @csrf
             @method('PUT')
 

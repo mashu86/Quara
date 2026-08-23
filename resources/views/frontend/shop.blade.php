@@ -25,7 +25,7 @@
         </div>
 
         <!-- Sorting dropdown -->
-        <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+        <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-2 mt-3 mt-md-0 mb-2 mb-md-0">
             @foreach(request()->except(['sort', 'page']) as $key => $val)
                 <input type="hidden" name="{{ $key }}" value="{{ $val }}">
             @endforeach
@@ -39,9 +39,36 @@
         </form>
     </div>
 
+@php
+    $activeShopFilterCount = (request()->filled('search') ? 1 : 0)
+        + (request()->filled('category') ? 1 : 0)
+        + (request()->filled('min_price') ? 1 : 0)
+        + (request()->filled('max_price') ? 1 : 0)
+        + (request()->filled('size') ? 1 : 0)
+        + (request()->filled('stock') ? 1 : 0);
+@endphp
+
+    <!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
+    <div class="d-lg-none mt-3 mb-4">
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#shopFilterModal">
+                <i class="fa-solid fa-sliders text-warning"></i>
+                <span class="fw-semibold">Filter & Search</span>
+                @if($activeShopFilterCount > 0)
+                    <span class="badge bg-warning text-dark rounded-pill">{{ $activeShopFilterCount }}</span>
+                @endif
+            </button>
+            @if($activeShopFilterCount > 0)
+                <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            @endif
+        </div>
+    </div>
+
     <div class="row g-4">
-        <!-- Sidebar Filters -->
-        <div class="col-lg-3">
+        <!-- Sidebar Filters (Desktop Only) -->
+        <div class="col-lg-3 d-none d-lg-block">
             <div class="bg-white p-4 rounded-4 shadow-sm border">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="font-serif fw-bold mb-0"><i class="fa-solid fa-filter text-gold me-2"></i> Filters</h5>
@@ -111,6 +138,93 @@
                 </form>
             </div>
         </div>
+
+<!-- Shop Mobile Filter Modal (d-lg-none) -->
+<div class="modal fade d-lg-none" id="shopFilterModal" tabindex="-1" aria-labelledby="shopFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="shopFilterModalLabel">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i> Filter Products
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('shop') }}" method="GET">
+                <div class="modal-body p-4">
+                    <!-- Search Input -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Search Keyword</label>
+                        <input type="text" name="search" class="form-control rounded-3" placeholder="Name or keyword..." value="{{ request()->search }}">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Category</label>
+                        <select name="category" class="form-select rounded-3">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->slug }}" {{ request()->category == $cat->slug ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Price Filter -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Price Range (₹)</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="min_price" class="form-control rounded-3" placeholder="Min Price" value="{{ request()->min_price }}">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="max_price" class="form-control rounded-3" placeholder="Max Price" value="{{ request()->max_price }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Size Filter -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Size</label>
+                        <select name="size" class="form-select rounded-3">
+                            <option value="">All Sizes</option>
+                            @foreach($allSizes as $sz)
+                                <option value="{{ $sz }}" {{ request()->size == $sz ? 'selected' : '' }}>Size {{ $sz }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Stock Availability -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Stock Status</label>
+                        <select name="stock" class="form-select rounded-3">
+                            <option value="">All Products</option>
+                            <option value="in_stock" {{ request()->stock == 'in_stock' ? 'selected' : '' }}>In Stock Only</option>
+                            <option value="out_of_stock" {{ request()->stock == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+                        </select>
+                    </div>
+
+                    <!-- Sort Filter -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-dark">Sort By</label>
+                        <select name="sort" class="form-select rounded-3">
+                            <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
+                            <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
+                            <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                            <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
+                    <button type="submit" class="btn btn-qw-gold rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-check me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
         <!-- Product Grid -->
         <div class="col-lg-9">

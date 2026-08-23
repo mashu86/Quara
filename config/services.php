@@ -45,4 +45,9 @@ return [
         'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '91'),
     ],
 
+    'razorpay' => [
+        'key' => env('RAZORPAY_KEY', 'rzp_test_TSufN32ein6bH1'),
+        'secret' => env('RAZORPAY_SECRET', 'XSGykO9qm8HrYPka8DbYpUQF'),
+    ],
+
 ];

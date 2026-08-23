@@ -8,38 +8,38 @@
         <div>
             <h2 class="font-serif fw-bold mb-1">My Orders & Purchase History</h2>
             <p class="text-muted small mb-0">
-                Viewing past orders linked to Phone: 
-                <strong class="text-dark">+91 {{ $phone ?? 'Not Verified' }}</strong>
+                Viewing past orders linked to Email: 
+                <strong class="text-dark">{{ $email ?? 'Not Verified' }}</strong>
             </p>
         </div>
 
         <div class="mt-3 mt-md-0 d-flex gap-2">
-            @if(session('customer_phone'))
+            @if(session('customer_email'))
                 <form action="{{ route('customer.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-outline-danger rounded-pill btn-sm px-3 fw-bold">
-                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Phone Session
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Email Session
                     </button>
                 </form>
             @else
-                <button type="button" onclick="showOtpModal()" class="btn btn-warning rounded-pill btn-sm px-4 fw-bold shadow-sm">
-                    <i class="fa-solid fa-mobile-screen-button me-1"></i> Verify Phone to View Orders
+                <button type="button" onclick="showOtpModal()" class="btn btn-warning rounded-pill btn-sm px-4 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); color: #fff;">
+                    <i class="fa-solid fa-envelope me-1"></i> Verify Email to View Orders
                 </button>
             @endif
         </div>
     </div>
 
-    @if(!$phone)
-        <!-- Prompt to Verify Phone -->
+    @if(!$email)
+        <!-- Prompt to Verify Email -->
         <div class="card border-0 rounded-4 shadow-sm text-center py-5">
             <div class="card-body p-4">
-                <i class="fa-solid fa-shield-cat text-warning display-4 mb-3"></i>
-                <h4 class="font-serif fw-bold">Enter Mobile Number to View Orders</h4>
+                <i class="fa-solid fa-envelope-circle-check text-warning display-4 mb-3"></i>
+                <h4 class="font-serif fw-bold">Enter Email Address to View Orders</h4>
                 <p class="text-muted col-md-6 mx-auto mb-4">
-                    നിങ്ങളുടെ മുൻപത്തെ ഓർഡറുകളും തത്സമയ ട്രാക്കിംഗ് വിവരങ്ങളും കാണാൻ മൊബൈൽ നമ്പർ വെരിഫൈ ചെയ്യുക.
+                    നിങ്ങളുടെ മുൻപത്തെ ഓർഡറുകളും തത്സമയ ട്രാക്കിംഗ് വിവരങ്ങളും കാണാൻ Email വെരിഫൈ ചെയ്യുക. 6-ഡിജിറ്റ് OTP നിങ്ങളുടെ ഇമെയിലിലേക്ക് അയക്കുന്നതാണ്.
                 </p>
                 <button type="button" onclick="showOtpModal()" class="btn btn-dark rounded-pill px-5 py-3 fw-bold shadow">
-                    VERIFY PHONE NUMBER NOW <i class="fa-solid fa-arrow-right ms-2"></i>
+                    VERIFY EMAIL ADDRESS NOW <i class="fa-solid fa-arrow-right ms-2"></i>
                 </button>
             </div>
         </div>
@@ -113,8 +113,8 @@
                 <div class="col-12 text-center py-5">
                     <div class="p-5 bg-white rounded-4 shadow-sm border col-md-6 mx-auto">
                         <i class="fa-solid fa-box-open text-muted fs-1 mb-3"></i>
-                        <h5 class="fw-bold">No orders found for this phone number.</h5>
-                        <p class="text-muted small">You haven't placed any orders yet with +91 {{ $phone }}.</p>
+                        <h5 class="fw-bold">No orders found for this Email address.</h5>
+                        <p class="text-muted small">You haven't placed any orders yet with {{ $email }}.</p>
                         <a href="{{ route('shop') }}" class="btn btn-gold rounded-pill px-4 fw-bold mt-2">SHOP NEW ARRIVALS</a>
                     </div>
                 </div>
@@ -123,6 +123,6 @@
     @endif
 </div>
 
-<!-- Include Reusable Phone OTP Modal -->
-@include('frontend.partials.phone_otp_modal')
+<!-- Include Reusable Email OTP Modal -->
+@include('frontend.partials.email_otp_modal')
 @endsection

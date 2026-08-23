@@ -271,16 +271,19 @@
         /* Footer */
         .qw-footer {
             background-color: #0E0E10;
-            color: #CCCCCC;
+            color: #FFFFFF !important;
             border-top: 3px solid var(--qw-gold);
         }
+        .qw-footer .text-muted {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
         .qw-footer a {
-            color: #B5B5B5;
+            color: #FFFFFF !important;
             text-decoration: none;
             transition: color 0.2s ease;
         }
         .qw-footer a:hover {
-            color: var(--qw-gold);
+            color: var(--qw-gold) !important;
         }
 
         /* Responsive Mobile Utilities */

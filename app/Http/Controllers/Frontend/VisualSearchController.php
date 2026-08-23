@@ -99,7 +99,7 @@ class VisualSearchController extends Controller
     }
 
     /**
-     * Extract dominant color names from image using GD sampling.
+     * Extract dominant color names from image focusing on clothing Region of Interest (ROI).
      */
     protected function extractDominantColors(string $filePath): array
     {
@@ -119,18 +119,28 @@ class VisualSearchController extends Controller
         $width = imagesx($img);
         $height = imagesy($img);
 
-        // Sample 30x30 grid points
-        $stepX = max(1, (int)($width / 30));
-        $stepY = max(1, (int)($height / 30));
+        // Focus sampling on the Central Clothing Region (15% to 85% width, 18% to 85% height)
+        // This ignores Instagram headers, footers, walls, and side backgrounds.
+        $startX = (int)($width * 0.15);
+        $endX = (int)($width * 0.85);
+        $startY = (int)($height * 0.18);
+        $endY = (int)($height * 0.85);
 
-        for ($x = 0; $x < $width; $x += $stepX) {
-            for ($y = 0; $y < $height; $y += $stepY) {
+        $stepX = max(1, (int)(($endX - $startX) / 35));
+        $stepY = max(1, (int)(($endY - $startY) / 35));
+
+        for ($x = $startX; $x < $endX; $x += $stepX) {
+            for ($y = $startY; $y < $endY; $y += $stepY) {
                 $rgb = imagecolorat($img, $x, $y);
                 $r = ($rgb >> 16) & 0xFF;
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
 
-                // Include all valid clothing colors (including White & Black)
+                // Skip background extreme white/black borders
+                if (($r > 245 && $g > 245 && $b > 245) || ($r < 10 && $g < 10 && $b < 10)) {
+                    continue;
+                }
+
                 $closestColor = $this->getClosestColorName($r, $g, $b);
                 $detected[$closestColor] = ($detected[$closestColor] ?? 0) + 1;
             }

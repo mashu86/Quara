@@ -251,7 +251,12 @@
                             </a>
 
                             <div class="p-3 d-flex flex-column flex-grow-1">
-                                <span class="text-muted small text-uppercase font-bold mb-1" style="font-size: 0.75rem;">{{ $product->category->name }}</span>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small text-uppercase font-bold" style="font-size: 0.75rem;">{{ $product->category->name }}</span>
+                                    <button type="button" onclick="shareProductLink('{{ route('product.detail', $product->slug) }}', '{{ addslashes($product->name) }}')" class="btn btn-link text-muted p-0 border-0" title="Share Product">
+                                        <i class="fa-solid fa-share-nodes text-gold"></i>
+                                    </button>
+                                </div>
                                 <h6 class="font-serif fw-bold text-dark mb-2 text-truncate" title="{{ $product->name }}">
                                     <a href="{{ route('product.detail', $product->slug) }}" class="text-dark text-decoration-none">{{ $product->name }}</a>
                                 </h6>
@@ -299,4 +304,28 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    function shareProductLink(url, title) {
+        if (navigator.share) {
+            navigator.share({
+                title: title + ' - QUARA WALDROP',
+                text: 'Check out ' + title + ' on QUARA WALDROP!',
+                url: url
+            }).catch(() => {
+                copyToClipboard(url);
+            });
+        } else {
+            copyToClipboard(url);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Product link copied to clipboard!');
+        });
+    }
+</script>
 @endsection

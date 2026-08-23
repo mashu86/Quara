@@ -157,15 +157,38 @@
 
 
 
-                <!-- Prefilled WhatsApp Inquiry -->
+                <!-- Share Product & WhatsApp Inquiry -->
                 @php
                     $waNumber = $whatsapp ? $whatsapp->phone_number : '8078037591';
-                    $waMsg = rawurlencode("Hi QUARA WALDROP, I am interested in: " . $product->name . " (Price: ₹" . $product->final_price . "). Link: " . url()->current());
+                    $productUrl = route('product.detail', $product->slug);
+                    $waMsg = rawurlencode("Hi QUARA WALDROP, I am interested in: " . $product->name . " (Price: ₹" . number_format($product->final_price, 2) . "). Link: " . $productUrl);
                     $waInquiryUrl = "https://wa.me/" . preg_replace('/[^0-9]/', '', ($whatsapp ? $whatsapp->country_code : '+91') . $waNumber) . "?text=" . $waMsg;
+                    
+                    $shareText = rawurlencode("Check out " . $product->name . " on QUARA WALDROP (₹" . number_format($product->final_price, 2) . ")!");
+                    $waShareUrl = "https://api.whatsapp.com/send?text=" . $shareText . "%20" . rawurlencode($productUrl);
                 @endphp
                 <div class="mt-auto pt-3 border-top">
-                    <a href="{{ $waInquiryUrl }}" target="_blank" class="btn btn-outline-success w-100 rounded-pill font-semibold py-2">
-                        <i class="fa-brands fa-whatsapp me-2 fs-5"></i> Inquiry About This Item on WhatsApp
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold small text-muted text-uppercase tracking-wider">
+                            <i class="fa-solid fa-share-nodes me-1 text-gold"></i> Share This Product
+                        </span>
+                        <span id="copyToast" class="badge bg-success d-none small">
+                            <i class="fa-solid fa-check me-1"></i> Link Copied!
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mb-2">
+                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success flex-grow-1 rounded-pill font-semibold py-2 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center gap-1">
+                            <i class="fa-brands fa-whatsapp fs-5"></i> Share on WhatsApp
+                        </a>
+                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center gap-1">
+                            <i class="fa-solid fa-link text-gold"></i>
+                            <span>Copy Link</span>
+                        </button>
+                    </div>
+
+                    <a href="{{ $waInquiryUrl }}" target="_blank" class="btn btn-light text-muted border w-100 rounded-pill font-semibold py-2 btn-sm">
+                        <i class="fa-brands fa-whatsapp text-success me-2"></i> Inquiry via WhatsApp
                     </a>
                 </div>
             </div>
@@ -245,5 +268,31 @@
             updateStockNotice(checkedSize);
         }
     });
+
+    function shareProductLink(url, title) {
+        if (navigator.share) {
+            navigator.share({
+                title: title + ' - QUARA WALDROP',
+                text: 'Check out ' + title + ' on QUARA WALDROP!',
+                url: url
+            }).catch(() => {
+                copyToClipboard(url);
+            });
+        } else {
+            copyToClipboard(url);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('copyToast');
+            if (toast) {
+                toast.classList.remove('d-none');
+                setTimeout(() => toast.classList.add('d-none'), 2500);
+            } else {
+                alert('Product link copied to clipboard!');
+            }
+        });
+    }
 </script>
 @endsection

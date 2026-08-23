@@ -48,6 +48,9 @@ Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');
 
+// Visual Image / Screenshot Search Route
+Route::post('/visual-search/upload', [\App\Http\Controllers\Frontend\VisualSearchController::class, 'search'])->name('visual.search');
+
 // Customer Email Auth & My Orders
 Route::post('/email-auth/send-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'sendOtp'])->name('email.send-otp');
 Route::post('/email-auth/verify-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'verifyOtp'])->name('email.verify-otp');

@@ -47,12 +47,7 @@
                 @if($product->images->count() > 1)
                     <div class="d-flex gap-2 overflow-x-auto pb-2">
                         @foreach($product->images as $img)
-                            @php
-                                $imgUrl = filter_var($img->image_path, FILTER_VALIDATE_URL)
-                                    ? $img->image_path
-                                    : asset($img->image_path);
-                            @endphp
-                            <img src="{{ $imgUrl }}" alt="Thumb" class="rounded-3 border thumbnail-selector" style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;" onclick="document.getElementById('mainProductImage').src='{{ $imgUrl }}'">
+                            <img src="{{ $img->image_url }}" alt="Thumb" class="rounded-3 border thumbnail-selector" style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;" onclick="document.getElementById('mainProductImage').src='{{ $img->image_url }}'">
                         @endforeach
                     </div>
                 @endif

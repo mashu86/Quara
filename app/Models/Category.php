@@ -35,11 +35,12 @@ class Category extends Model
             return asset('assets/images/logo.png');
         }
 
-        if (filter_var($this->background_image, FILTER_VALIDATE_URL)) {
+        if (str_starts_with($this->background_image, 'http://') || str_starts_with($this->background_image, 'https://') || filter_var($this->background_image, FILTER_VALIDATE_URL)) {
             return $this->background_image;
         }
 
-        return asset($this->background_image);
+        $cleanPath = ltrim(str_replace('storage/', '', $this->background_image), '/');
+        return route('media.show', ['path' => $cleanPath]);
     }
 
     protected static function boot()

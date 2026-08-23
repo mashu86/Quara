@@ -17,6 +17,7 @@ use App\Http\Controllers\Frontend\ShopController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
+use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 
 /*
@@ -30,6 +31,8 @@ Route::get('/category/{slug}', [ShopController::class, 'categoryProducts'])->nam
 Route::get('/product/{slug}', [ProductDetailController::class, 'show'])->name('product.detail');
 Route::get('/product/{slug}/check-shipping', [ProductDetailController::class, 'checkShipping'])->name('product.check-shipping');
 Route::get('/home-content/image/{homeContent}', [AdminHomeContentController::class, 'showImage'])->name('home_content.image');
+Route::get('/media/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('media.show');
+Route::get('/storage/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('storage.file');
 
 // Cart Routes
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');

@@ -84,11 +84,8 @@ class Product extends Model
             return $path;
         }
 
-        if (str_starts_with($path, 'storage/') || str_starts_with($path, 'assets/')) {
-            return asset($path);
-        }
-
-        return asset('storage/' . $path);
+        $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
+        return route('media.show', ['path' => $cleanPath]);
     }
 
     public static function calculateFinalPrice($price, $discountType, $discountValue): float

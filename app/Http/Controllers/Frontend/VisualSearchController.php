@@ -57,7 +57,8 @@ class VisualSearchController extends Controller
             foreach ($products as $index => $product) {
                 $score = $this->calculateMatchScore($product, $topColors, $index);
 
-                if ($score >= 70) {
+                // Only include authentic color-matched products (score >= 88)
+                if ($score >= 88) {
                     $scoredProducts[] = [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -172,9 +173,9 @@ class VisualSearchController extends Controller
     }
 
     /**
-     * Smart Multi-Tier Similarity Score:
-     * Tier 1: Direct Color Match (92% - 98% Match) - Appears first at top!
-     * Tier 2: Category & Fashion Style Similarity (75% - 85% Match) - Appears underneath as similar styles!
+     * Strict Color & Outfit Match Score:
+     * ONLY products that match the detected outfit colors will score (90% - 98%).
+     * Non-matching products score 0 and are COMPLETELY HIDDEN.
      */
     protected function calculateMatchScore(Product $product, array $detectedColors, int $index = 0): int
     {
@@ -195,13 +196,12 @@ class VisualSearchController extends Controller
             }
         }
 
-        if ($directColorMatch) {
-            // Tier 1: High Match Score for Direct Color Match (92% - 98%)
-            return 92 + min(6, $matchedColorCount * 2);
+        // DISQUALIFY products that do not match detected outfit color profile
+        if (!$directColorMatch) {
+            return 0;
         }
 
-        // Tier 2: Smart Style & Category Match (75% - 84%)
-        // Displays related products in similar fashion categories
-        return 75 + (($product->id + $index) % 9);
+        // Return high score for authentic color match (90% - 98%)
+        return 90 + min(8, $matchedColorCount * 3);
     }
 }

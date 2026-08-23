@@ -101,6 +101,11 @@
                         <a href="{{ route('product.detail', $product->slug) }}" class="text-decoration-none">
                             <div class="qw-product-img-wrapper">
                                 <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img">
+                                @if($product->total_stock <= 0)
+                                    <div class="qw-out-of-stock-overlay">
+                                        <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
+                                    </div>
+                                @endif
                             </div>
                         </a>
 
@@ -118,7 +123,11 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm btn-select-buy">SELECT SIZE & BUY</a>
+                                @if($product->total_stock <= 0)
+                                    <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75">OUT OF STOCK</a>
+                                @else
+                                    <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm btn-select-buy">SELECT SIZE & BUY</a>
+                                @endif
                             </div>
                         </div>
                     </div>

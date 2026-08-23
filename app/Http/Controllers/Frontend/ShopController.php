@@ -12,7 +12,7 @@ class ShopController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::where('status', 'active')->with(['category', 'images', 'sizes']);
+        $query = Product::active()->with(['category', 'images', 'sizes']);
 
         // General search box (partial matching product name or category name)
         if ($request->filled('search')) {

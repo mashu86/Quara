@@ -36,6 +36,11 @@
                     @if($discountPercentage > 0)
                         <span class="qw-discount-badge fs-6">{{ $discountPercentage }}% OFF</span>
                     @endif
+                    @if($product->total_stock <= 0)
+                        <div class="qw-out-of-stock-overlay">
+                            <span class="qw-out-of-stock-badge fs-6 px-4 py-2">OUT OF STOCK</span>
+                        </div>
+                    @endif
                     <img id="mainProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid w-100" style="object-fit: cover; max-height: 520px; cursor: zoom-in;" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
                 </div>
 
@@ -183,6 +188,11 @@
                             <a href="{{ route('product.detail', $relProduct->slug) }}">
                                 <div class="qw-product-img-wrapper">
                                     <img src="{{ $relProduct->primary_image_url }}" alt="{{ $relProduct->name }}" class="qw-product-img">
+                                    @if($relProduct->total_stock <= 0)
+                                        <div class="qw-out-of-stock-overlay">
+                                            <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </a>
                             <div class="p-3">

@@ -63,6 +63,14 @@ class Product extends Model
         return (int) $this->sizes->sum('stock');
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')
+            ->whereHas('category', function ($q) {
+                $q->where('status', 'active');
+            });
+    }
+
     public function getPrimaryImageUrlAttribute(): string
     {
         $primary = $this->images->first();

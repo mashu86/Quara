@@ -181,6 +181,33 @@
             z-index: 2;
         }
 
+        .qw-out-of-stock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: all 0.3s ease;
+        }
+        .qw-out-of-stock-badge {
+            background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            padding: 7px 16px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
         /* Category Card Grid */
         .qw-category-card {
             position: relative;

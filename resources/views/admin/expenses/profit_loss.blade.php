@@ -139,7 +139,7 @@
                     @forelse($expensesList as $exp)
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($exp->expense_date)->format('M d, Y') }}</td>
-                            <td class="fw-semibold">{{ $exp->expense_name }}</td>
+                            <td class="fw-semibold">{{ $exp->title ?? $exp->expense_name }}</td>
                             <td><span class="badge bg-light text-dark border">{{ $exp->category ?? 'General' }}</span></td>
                             <td class="fw-bold text-danger">₹{{ number_format($exp->amount, 2) }}</td>
                             <td class="small text-muted">{{ $exp->notes ?? '-' }}</td>

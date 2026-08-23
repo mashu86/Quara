@@ -16,8 +16,10 @@ class ExpenseController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('expense_name', 'LIKE', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
                   ->orWhere('category', 'LIKE', "%{$search}%");
+            });
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
@@ -37,15 +39,24 @@ class ExpenseController extends Controller
 
     public function store(Request $request)
     {
+        $title = $request->input('title') ?? $request->input('expense_name');
+        $request->merge(['title' => $title]);
+
         $validated = $request->validate([
-            'expense_name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'expense_date' => 'required|date',
             'category' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
         ]);
 
-        Expense::create($validated);
+        Expense::create([
+            'title' => $validated['title'],
+            'amount' => $validated['amount'],
+            'expense_date' => $validated['expense_date'],
+            'category' => $validated['category'] ?? 'General',
+            'notes' => $validated['notes'] ?? null,
+        ]);
 
         return redirect()->route('admin.expenses.index')->with('success', 'Expense recorded successfully!');
     }

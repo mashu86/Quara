@@ -21,4 +21,9 @@ class Expense extends Model
         'amount' => 'decimal:2',
         'expense_date' => 'date',
     ];
+
+    public function getExpenseNameAttribute(): ?string
+    {
+        return $this->title;
+    }
 }

@@ -22,7 +22,10 @@ class CartService
 
     public function add(int $productId, string $size, int $quantity): array
     {
-        $product = Product::with(['images', 'sizes'])->findOrFail($productId);
+        $product = Product::active()->with(['images', 'sizes'])->find($productId);
+        if (!$product) {
+            return ['success' => false, 'message' => 'Product is currently unavailable.'];
+        }
         $stockCheck = $this->stockService->checkStock($productId, $size, $quantity);
 
         if (!$stockCheck['available']) {

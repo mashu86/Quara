@@ -128,6 +128,11 @@
                             <a href="{{ route('product.detail', $product->slug) }}">
                                 <div class="qw-product-img-wrapper">
                                     <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img">
+                                    @if($product->total_stock <= 0)
+                                        <div class="qw-out-of-stock-overlay">
+                                            <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </a>
 
@@ -147,14 +152,18 @@
                                 <!-- Available Sizes -->
                                 <div class="mb-3">
                                     @foreach($product->sizes as $pSize)
-                                        <span class="badge {{ $pSize->stock > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white' }} small me-1">
+                                        <span class="badge {{ $pSize->stock > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white opacity-75' }} small me-1">
                                             {{ $pSize->size }}
                                         </span>
                                     @endforeach
                                 </div>
 
                                 <div class="d-grid">
-                                    <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm">VIEW DETAILS</a>
+                                    @if($product->total_stock <= 0)
+                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75">OUT OF STOCK</a>
+                                    @else
+                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm">VIEW DETAILS</a>
+                                    @endif
                                 </div>
                             </div>
                         </div>

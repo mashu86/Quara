@@ -20,7 +20,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Expense Name / Title <span class="text-danger">*</span></label>
-                        <input type="text" name="expense_name" class="form-control rounded-3" placeholder="e.g. Cardboard Courier Packing Boxes Batch #4" value="{{ old('expense_name') }}" required>
+                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Cardboard Courier Packing Boxes Batch #4" value="{{ old('title', old('expense_name')) }}" required>
                     </div>
 
                     <div class="row g-3 mb-3">

@@ -14,13 +14,13 @@ class ProductDetailController extends Controller
     public function show(string $slug)
     {
         $product = Product::where('slug', $slug)
-            ->where('status', 'active')
+            ->active()
             ->with(['category', 'images', 'sizes'])
             ->firstOrFail();
 
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
-            ->where('status', 'active')
+            ->active()
             ->with(['category', 'images'])
             ->take(4)
             ->get();

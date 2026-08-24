@@ -48,12 +48,12 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     const options = {
-        "key": "{{ $paymentResult['razorpay_key'] ?? config('services.razorpay.key') ?? env('RAZORPAY_KEY') }}",
+        "key": "{{ $paymentResult['razorpay_key'] }}",
         "amount": "{{ $paymentResult['amount'] ?? ($order->grand_total * 100) }}",
         "currency": "INR",
         "name": "QUARA WALDROP",
         "description": "Order #{{ $order->order_number }} Payment",
-        "image": "{{ asset('assets/images/logo.png') }}",
+        "image": window.location.origin + "/assets/images/logo.png",
         @if(!empty($paymentResult['razorpay_order_id']) && str_starts_with($paymentResult['razorpay_order_id'], 'order_'))
         "order_id": "{{ $paymentResult['razorpay_order_id'] }}",
         @endif

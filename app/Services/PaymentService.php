@@ -30,8 +30,12 @@ class PaymentService
         }
 
         // Online Payment via Razorpay
-        $razorpayKey = config('services.razorpay.key', env('RAZORPAY_KEY', 'rzp_test_TSufN32ein6bH1'));
-        $razorpaySecret = config('services.razorpay.secret', env('RAZORPAY_SECRET', 'XSGykO9qm8HrYPka8DbYpUQF'));
+        $razorpayKey = config('services.razorpay.key');
+        $razorpaySecret = config('services.razorpay.secret');
+
+        if (!is_string($razorpayKey) || !str_starts_with($razorpayKey, 'rzp_live_') || empty($razorpaySecret)) {
+            throw new \RuntimeException('Razorpay Live Mode credentials are not configured correctly.');
+        }
 
         $amountInPaise = (int) round($order->grand_total * 100);
         $realRazorpayOrderId = '';
@@ -86,7 +90,7 @@ class PaymentService
      */
     public function verifyOnlinePayment(Order $order, string $paymentId, string $razorpayOrderId, string $signature): bool
     {
-        $razorpaySecret = config('services.razorpay.secret', env('RAZORPAY_SECRET'));
+        $razorpaySecret = config('services.razorpay.secret');
 
         if (empty($razorpaySecret) || empty($signature) || empty($paymentId) || empty($razorpayOrderId)) {
             Log::warning('Razorpay verification missing credentials or payload', [

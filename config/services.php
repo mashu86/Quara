@@ -46,8 +46,8 @@ return [
     ],
 
     'razorpay' => [
-        'key' => env('RAZORPAY_KEY', 'rzp_test_TSufN32ein6bH1'),
-        'secret' => env('RAZORPAY_SECRET', 'XSGykO9qm8HrYPka8DbYpUQF'),
+        'key' => env('RAZORPAY_KEY'),
+        'secret' => env('RAZORPAY_SECRET'),
     ],
 
     'openai' => [

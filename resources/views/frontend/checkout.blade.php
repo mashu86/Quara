@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h2 class="font-serif fw-bold display-6 mb-4"><i class="fa-solid fa-lock text-gold me-2"></i> SECURE CHECKOUT</h2>
+    <h5 class="font-serif fw-bold fs-5 mb-3"><i class="fa-solid fa-lock text-gold me-2"></i> SECURE CHECKOUT</h5>
 
     <form action="{{ route('checkout.process') }}" method="POST">
         @csrf
@@ -12,7 +12,7 @@
             <!-- Customer Shipping Address -->
             <div class="col-lg-7">
                 <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-1 mb-3 pb-2 border-bottom">
                         <h5 class="font-serif fw-bold mb-0"><i class="fa-solid fa-truck me-2 text-gold"></i> Shipping Address</h5>
                         <span class="badge bg-light text-muted border rounded-pill px-3 py-2 small fw-normal"><i class="fa-solid fa-user-check me-1 text-success"></i> Guest Checkout Enabled</span>
                     </div>
@@ -87,12 +87,12 @@
                     <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom"><i class="fa-solid fa-wallet me-2 text-gold"></i> Payment Method</h5>
 
                     <input type="hidden" name="payment_method" value="online">
-                    <div class="p-3 rounded-3 border border-warning bg-light d-flex align-items-center justify-content-between">
+                    <div class="p-3 rounded-3 border border-warning bg-light d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
                         <div>
                             <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
                             <div class="text-muted small">Pay securely using UPI, cards, netbanking or wallets via Razorpay</div>
                         </div>
-                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay Secure</span>
+                        <span class="badge bg-success rounded-pill px-3 py-2 mt-1 mt-sm-0"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay Secure</span>
                     </div>
                 </div>
             </div>
@@ -143,8 +143,8 @@
                         <span class="text-gold">₹{{ number_format($summary['grand_total'], 2) }}</span>
                     </div>
 
-                    <button type="submit" class="btn btn-qw-gold btn-lg w-100 rounded-pill shadow-sm">
-                        PLACE ORDER NOW <i class="fa-solid fa-circle-check ms-2"></i>
+                    <button type="submit" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold" style="font-size: 0.82rem; padding-top: 7px; padding-bottom: 7px;">
+                        PLACE ORDER NOW <i class="fa-solid fa-circle-check ms-1"></i>
                     </button>
                 </div>
             </div>

@@ -291,6 +291,8 @@
             .qw-logo-img { max-height: 44px; }
             .qw-category-card { height: 170px; }
             .qw-floating-whatsapp { width: 52px; height: 52px; font-size: 28px; bottom: 18px; right: 18px; }
+            .qw-btn-card { font-size: 0.72rem !important; padding: 6px 8px !important; letter-spacing: 0.2px !important; }
+            .purchase-action { font-size: 0.85rem !important; padding: 10px 14px !important; letter-spacing: 0.3px; }
         }
     </style>
     @yield('styles')
@@ -458,22 +460,22 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 rounded-4 shadow">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title font-serif">Search QUARA WALDROP</h5>
+                    <h5 class="modal-title font-serif fs-5 fw-bold">Search Products</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-3 p-md-4">
                     <form action="{{ route('shop') }}" method="GET">
                         <div class="input-group mb-3">
-                            <input type="text" name="search" class="form-control form-control-lg border-end-0 rounded-start-pill" placeholder="Search tops, dresses, Korean style..." required>
-                            <button type="submit" class="btn btn-qw-gold rounded-end-pill px-4">
+                            <input type="text" name="search" class="form-control form-control-md border-end-0 rounded-start-pill" placeholder="Search tops, dresses, items..." required>
+                            <button type="submit" class="btn btn-qw-gold rounded-end-pill px-3">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </button>
                         </div>
                     </form>
 
-                    <div class="text-center pt-3 border-top">
-                        <button type="button" class="btn btn-outline-warning rounded-pill px-4 btn-sm fw-bold shadow-sm" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#imageSearchModal" style="color: #b89327; border-color: #d4af37;">
-                            <i class="fa-solid fa-camera me-2"></i> SEARCH BY OUTFIT PHOTO / SCREENSHOT
+                    <div class="text-center pt-2 border-top">
+                        <button type="button" class="btn btn-outline-warning rounded-pill px-3 py-2 btn-sm fw-bold shadow-sm" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#imageSearchModal" style="color: #b89327; border-color: #d4af37;">
+                            <i class="fa-solid fa-camera me-1"></i> Search by Outfit Photo
                         </button>
                     </div>
                 </div>

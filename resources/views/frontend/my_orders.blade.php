@@ -4,16 +4,16 @@
 
 @section('content')
 <div class="container py-5">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-2 border-bottom">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start mb-4 pb-2 border-bottom">
         <div>
-            <h2 class="font-serif fw-bold mb-1">My Orders & Purchase History</h2>
+            <h3 class="font-serif fw-bold mb-1 fs-4">My Orders & History</h3>
             <p class="text-muted small mb-0">
                 Viewing past orders linked to Email: 
                 <strong class="text-dark">{{ $email ?? 'Not Verified' }}</strong>
             </p>
         </div>
 
-        <div class="mt-3 mt-md-0 d-flex gap-2">
+        <div class="mt-3 mt-md-0 d-flex justify-content-center gap-2">
             @if(session('customer_email'))
                 <form action="{{ route('customer.logout') }}" method="POST">
                     @csrf
@@ -22,7 +22,7 @@
                     </button>
                 </form>
             @else
-                <button type="button" onclick="showOtpModal()" class="btn btn-warning rounded-pill btn-sm px-4 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); color: #fff;">
+                <button type="button" onclick="showOtpModal()" class="btn btn-warning rounded-pill btn-sm px-3 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); color: #fff;">
                     <i class="fa-solid fa-envelope me-1"></i> Verify Email to View Orders
                 </button>
             @endif
@@ -31,15 +31,15 @@
 
     @if(!$email)
         <!-- Prompt to Verify Email -->
-        <div class="card border-0 rounded-4 shadow-sm text-center py-5">
-            <div class="card-body p-4">
+        <div class="card border-0 rounded-4 shadow-sm text-center py-4 py-md-5">
+            <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center">
                 <i class="fa-solid fa-envelope-circle-check text-warning display-4 mb-3"></i>
-                <h4 class="font-serif fw-bold">Enter Email Address to View Orders</h4>
-                <p class="text-muted col-md-6 mx-auto mb-4">
-                    നിങ്ങളുടെ മുൻപത്തെ ഓർഡറുകളും തത്സമയ ട്രാക്കിംഗ് വിവരങ്ങളും കാണാൻ Email വെരിഫൈ ചെയ്യുക. 6-ഡിജിറ്റ് OTP നിങ്ങളുടെ ഇമെയിലിലേക്ക് അയക്കുന്നതാണ്.
+                <h5 class="font-serif fw-bold mb-2 text-center">Verify Email to View Orders</h5>
+                <p class="text-muted small col-md-6 mx-auto mb-4 text-center">
+                    Verify your email address to view past orders and live tracking updates. A 6-digit OTP will be sent to your email.
                 </p>
-                <button type="button" onclick="showOtpModal()" class="btn btn-dark rounded-pill px-5 py-3 fw-bold shadow">
-                    VERIFY EMAIL ADDRESS NOW <i class="fa-solid fa-arrow-right ms-2"></i>
+                <button type="button" onclick="showOtpModal()" class="btn btn-dark rounded-pill px-4 py-2 btn-sm fw-bold shadow-sm mx-auto" style="font-size: 0.82rem;">
+                    VERIFY EMAIL NOW <i class="fa-solid fa-arrow-right ms-1"></i>
                 </button>
             </div>
         </div>

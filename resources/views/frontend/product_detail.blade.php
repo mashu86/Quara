@@ -140,11 +140,11 @@
 
                     <!-- Actions -->
                     @if($totalProductStock > 0)
-                        <div class="d-grid gap-3 d-sm-flex mb-4">
-                            <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold btn-lg flex-grow-1 shadow-sm purchase-action">
+                        <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-4">
+                            <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 py-md-3">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
                             </button>
-                            <button type="submit" formaction="{{ route('cart.buy_now') }}" class="btn btn-dark btn-lg flex-grow-1 shadow-sm purchase-action">
+                            <button type="submit" formaction="{{ route('cart.buy_now') }}" class="btn btn-dark flex-grow-1 shadow-sm purchase-action py-2 py-md-3">
                                 <i class="fa-solid fa-bolt me-2 text-warning"></i> BUY NOW
                             </button>
                         </div>
@@ -178,12 +178,13 @@
                     </div>
                     
                     <div class="d-flex gap-2 mb-2">
-                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success flex-grow-1 rounded-pill font-semibold py-2 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center gap-1">
-                            <i class="fa-brands fa-whatsapp fs-5"></i> Share on WhatsApp
+                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill font-semibold py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center gap-1" title="Share on WhatsApp">
+                            <i class="fa-brands fa-whatsapp fs-5"></i>
+                            <span class="d-none d-sm-inline">Share on WhatsApp</span>
                         </a>
-                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center gap-1">
+                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center gap-1" title="Copy Link">
                             <i class="fa-solid fa-link text-gold"></i>
-                            <span>Copy Link</span>
+                            <span class="d-none d-sm-inline">Copy Link</span>
                         </button>
                     </div>
 

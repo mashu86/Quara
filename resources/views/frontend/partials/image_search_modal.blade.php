@@ -3,36 +3,36 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
             <!-- Modal Header -->
-            <div class="modal-header bg-dark text-white border-0 px-4 py-3 align-items-center">
+            <div class="modal-header bg-dark text-white border-0 px-3 px-md-4 py-2 py-md-3 align-items-center">
                 <div class="d-flex align-items-center gap-2">
                     <div class="rounded-circle bg-gold-subtle p-2 text-gold">
-                        <i class="fa-solid fa-camera fs-5"></i>
+                        <i class="fa-solid fa-camera fs-6 fs-md-5"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title font-serif fw-bold mb-0" id="imageSearchModalLabel">Visual Search by Image / Screenshot</h5>
-                        <p class="text-muted small mb-0">Upload any outfit photo or screenshot to find matching products</p>
+                        <h5 class="modal-title font-serif fw-bold mb-0 fs-6 fs-md-5" id="imageSearchModalLabel">Visual Search by Photo</h5>
+                        <p class="text-muted small mb-0" style="font-size: 0.78rem;">Upload outfit photo/screenshot to find matches</p>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <!-- Modal Body -->
-            <div class="modal-body p-4 bg-light">
+            <div class="modal-body p-3 p-md-4 bg-light">
                 <!-- Dropzone Area -->
-                <div id="visualDropzone" class="border-2 border-dashed rounded-4 p-4 text-center bg-white position-relative shadow-sm transition-all" style="cursor: pointer; border-color: #d4af37;">
+                <div id="visualDropzone" class="border-2 border-dashed rounded-4 p-3 p-md-4 text-center bg-white position-relative shadow-sm transition-all" style="cursor: pointer; border-color: #d4af37;">
                     <input type="file" id="visualFileInput" accept="image/*" class="d-none">
                     
                     <div id="dropzoneContent">
-                        <div class="mb-3">
-                            <span class="d-inline-flex p-3 rounded-circle bg-light text-gold shadow-sm">
-                                <i class="fa-solid fa-cloud-arrow-up display-6"></i>
+                        <div class="mb-2 mb-md-3">
+                            <span class="d-inline-flex p-2 p-md-3 rounded-circle bg-light text-gold shadow-sm">
+                                <i class="fa-solid fa-cloud-arrow-up fs-3 fs-md-2"></i>
                             </span>
                         </div>
-                        <h6 class="font-serif fw-bold mb-1">Drag & Drop Image / Screenshot Here</h6>
-                        <p class="text-muted small mb-3">or <span class="text-gold fw-bold text-decoration-underline">Browse File</span> from your phone or computer</p>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <span class="badge bg-light text-muted border px-2 py-1 small"><i class="fa-solid fa-file-image me-1"></i> JPG, PNG, WEBP</span>
-                            <span class="badge bg-light text-muted border px-2 py-1 small"><i class="fa-solid fa-mobile-screen me-1"></i> Screenshots Supported</span>
+                        <h6 class="font-serif fw-bold mb-1 fs-6">Upload or Drop Image</h6>
+                        <p class="text-muted small mb-2 mb-md-3" style="font-size: 0.8rem;">Tap to <span class="text-gold fw-bold text-decoration-underline">Browse File</span> from gallery</p>
+                        <div class="d-flex flex-wrap justify-content-center gap-1 gap-md-2">
+                            <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.7rem;"><i class="fa-solid fa-file-image me-1"></i> Photos</span>
+                            <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.7rem;"><i class="fa-solid fa-mobile-screen me-1"></i> Screenshots</span>
                         </div>
                     </div>
 
@@ -62,11 +62,11 @@
 
                 <!-- Results Container -->
                 <div id="visualSearchResultsArea" class="d-none mt-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3 border-bottom pb-2">
                         <h6 class="font-serif fw-bold mb-0 text-dark">
                             <i class="fa-solid fa-wand-magic-sparkles text-gold me-2"></i> Matched Products (<span id="matchCount">0</span>)
                         </h6>
-                        <div id="detectedColorsContainer" class="d-flex gap-1 align-items-center"></div>
+                        <div id="detectedColorsContainer" class="d-flex flex-wrap gap-1 align-items-center"></div>
                     </div>
 
                     <!-- Products Grid -->
@@ -262,8 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <h6 class="font-serif fw-bold text-dark text-truncate mb-1" style="font-size: 0.85rem;" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</h6>
                                 <div class="fw-bold text-gold small">&#8377;${escapeHtml(p.final_price)}</div>
                             </div>
-                            <a href="${escapeHtml(p.url)}" class="btn btn-dark btn-sm rounded-pill w-100 mt-2 py-1 small">
-                                VIEW PRODUCT <i class="fa-solid fa-arrow-right ms-1"></i>
+                            <a href="${escapeHtml(p.url)}" class="btn btn-dark btn-sm rounded-pill w-100 mt-2 py-1" title="View Product">
+                                <i class="fa-solid fa-eye"></i>
+                                <span class="d-none d-sm-inline ms-1">VIEW PRODUCT</span>
                             </a>
                         </div>
                     </div>

@@ -215,11 +215,15 @@
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
-                    <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
-                    <button type="submit" class="btn btn-qw-gold rounded-pill px-4 fw-bold">
-                        <i class="fa-solid fa-check me-1"></i> Apply Filters
-                    </button>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 py-2">
+                    <div class="d-flex w-100 gap-2">
+                        <a href="{{ route('shop') }}" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill text-center py-1-5 fw-semibold" style="font-size: 0.8rem; padding-top: 6px; padding-bottom: 6px;">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Reset
+                        </a>
+                        <button type="submit" class="btn btn-qw-gold btn-sm rounded-pill flex-fill py-1-5 fw-bold" style="font-size: 0.8rem; padding-top: 6px; padding-bottom: 6px;">
+                            <i class="fa-solid fa-check me-1"></i> Apply Filters
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -279,9 +283,9 @@
 
                                 <div class="d-grid">
                                     @if($product->total_stock <= 0)
-                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75">OUT OF STOCK</a>
+                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75 qw-btn-card">OUT OF STOCK</a>
                                     @else
-                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm">VIEW DETAILS</a>
+                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm qw-btn-card">VIEW DETAILS</a>
                                     @endif
                                 </div>
                             </div>

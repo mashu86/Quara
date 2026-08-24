@@ -1,27 +1,27 @@
 <!-- Email OTP Verification Modal -->
 <div class="modal fade" id="emailOtpModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="emailOtpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-sm-custom" style="max-width: 440px;">
         <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
-            <div class="modal-header border-0 bg-dark text-white p-4 position-relative">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-gold text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 48px; height: 48px;">
+            <div class="modal-header border-0 bg-dark text-white p-3 p-md-4 position-relative">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-gold text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5" style="width: 38px; height: 38px;">
                         <i class="fa-solid fa-envelope"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title font-serif fw-bold mb-1" id="emailOtpModalLabel">Email Verification</h5>
-                        <span class="badge bg-gold text-dark small fw-bold"><i class="fa-solid fa-shield-halved me-1"></i> Quick 6-Digit OTP</span>
+                        <h6 class="modal-title font-serif fw-bold mb-0" id="emailOtpModalLabel">Email Verification</h6>
+                        <span class="badge bg-gold text-dark style-small fw-bold" style="font-size: 0.68rem;"><i class="fa-solid fa-shield-halved me-1"></i> Quick 6-Digit OTP</span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body p-4">
+            <div class="modal-body p-3 p-md-4">
                 <!-- Guidance Info Card -->
-                <div class="row g-2 mb-4">
+                <div class="row g-2 mb-3">
                     <div class="col-12">
-                        <div class="alert alert-warning border-0 rounded-3 small mb-0 shadow-sm" style="background-color: #FFFDF0; border-left: 4px solid #D4AF37 !important;">
+                        <div class="alert alert-warning border-0 rounded-3 small mb-0 p-2 px-3 shadow-sm" style="background-color: #FFFDF0; border-left: 3px solid #D4AF37 !important; font-size: 0.78rem;">
                             <strong class="d-block text-dark fw-bold mb-1"><i class="fa-solid fa-circle-info me-1 text-warning"></i> Why Email Verification?</strong>
-                            <span class="text-muted">Verifying your Email saves your delivery address and retrieves your complete <strong>My Orders</strong> history even if your session expires.</span>
+                            <span class="text-muted">Verifying your Email saves your delivery address and retrieves your complete <strong>My Orders</strong> history.</span>
                         </div>
                     </div>
                 </div>
@@ -30,24 +30,24 @@
                 <div id="emailOtpStep1">
                     <form id="sendEmailOtpForm" onsubmit="handleSendEmailOtp(event)">
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">Email Address <span class="text-danger">*</span></label>
-                            <div class="input-group">
+                            <label class="form-label fw-bold text-dark small">Email Address <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-dark"><i class="fa-solid fa-at"></i></span>
-                                <input type="email" id="emailInput" class="form-control form-control-lg rounded-end-3" placeholder="name@example.com" required value="{{ session('customer_email') }}">
+                                <input type="email" id="emailInput" class="form-control rounded-end-3" placeholder="name@example.com" required value="{{ session('customer_email') }}" style="font-size: 0.85rem;">
                             </div>
-                            <div class="form-text small">A 6-digit verification OTP will be sent to this email (valid for 60s).</div>
+                            <div class="form-text small" style="font-size: 0.72rem;">A 6-digit verification OTP will be sent to this email (valid for 60s).</div>
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" id="sendEmailOtpBtn" class="btn btn-dark rounded-pill py-3 fw-bold shadow-sm">
-                                <i class="fa-solid fa-paper-plane text-gold me-2"></i> SEND 6-DIGIT OTP (60s)
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" id="sendEmailOtpBtn" class="btn btn-dark btn-sm rounded-pill py-2 fw-bold shadow-sm" style="font-size: 0.82rem;">
+                                <i class="fa-solid fa-paper-plane text-gold me-1"></i> SEND 6-DIGIT OTP (60s)
                             </button>
                             
-                            <div class="text-center my-1">
-                                <span class="text-muted small fw-bold">&mdash; OR &mdash;</span>
+                            <div class="text-center my-0">
+                                <span class="text-muted small fw-bold" style="font-size: 0.7rem;">&mdash; OR &mdash;</span>
                             </div>
 
-                            <button type="button" class="btn btn-outline-secondary rounded-pill py-2 fw-semibold small" data-bs-dismiss="modal">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill py-1-5 fw-semibold" data-bs-dismiss="modal" style="font-size: 0.78rem;">
                                 <i class="fa-solid fa-bolt text-warning me-1"></i> Continue as Guest (No OTP)
                             </button>
                         </div>
@@ -57,32 +57,32 @@
                 <!-- Step 2: 6-Digit OTP Code Verification -->
                 <div id="emailOtpStep2" style="display: none;">
                     <div class="text-center mb-3">
-                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small mb-2">
+                        <span class="badge bg-light text-dark border px-3 py-1-5 rounded-pill small mb-2" style="font-size: 0.75rem;">
                             OTP Sent to: <strong id="sentEmailDisplay">example@domain.com</strong>
                         </span>
-                        <p class="small text-muted mb-0">Enter the 6-digit OTP verification code sent to your inbox:</p>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Enter the 6-digit OTP verification code sent to your inbox:</p>
                     </div>
 
                     <form id="verifyEmailOtpForm" onsubmit="handleVerifyEmailOtp(event)">
                         <div class="mb-3">
-                            <input type="text" id="emailOtpCodeInput" class="form-control form-control-lg text-center fw-bold font-monospace tracking-widest rounded-3" placeholder="------" maxlength="6" pattern="[0-9]{6}" required style="font-size: 1.5rem; letter-spacing: 0.5rem;">
+                            <input type="text" id="emailOtpCodeInput" class="form-control text-center fw-bold font-monospace tracking-widest rounded-3 py-2" placeholder="------" maxlength="6" pattern="[0-9]{6}" required style="font-size: 1.25rem; letter-spacing: 0.4rem;">
                         </div>
 
                         <!-- 60-Second Resend Countdown -->
                         <div class="text-center mb-3">
-                            <span id="timerContainer" class="small text-muted">
+                            <span id="timerContainer" class="small text-muted" style="font-size: 0.78rem;">
                                 <i class="fa-solid fa-clock text-warning me-1"></i> Resend OTP in: <strong id="resendCountdown" class="text-dark">60</strong>s
                             </span>
-                            <button type="button" id="resendOtpBtn" class="btn btn-link text-decoration-none small p-0 fw-bold text-gold ms-2" onclick="handleSendEmailOtp(event)" style="display: none;">
+                            <button type="button" id="resendOtpBtn" class="btn btn-link text-decoration-none small p-0 fw-bold text-gold ms-2" onclick="handleSendEmailOtp(event)" style="display: none; font-size: 0.78rem;">
                                 <i class="fa-solid fa-rotate-right me-1"></i> Resend OTP Code
                             </button>
                         </div>
 
                         <div class="d-grid gap-2 mt-3">
-                            <button type="submit" id="verifyEmailOtpBtn" class="btn btn-warning rounded-pill py-3 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
-                                VERIFY OTP & CONTINUE <i class="fa-solid fa-circle-check ms-2"></i>
+                            <button type="submit" id="verifyEmailOtpBtn" class="btn btn-warning btn-sm rounded-pill py-2 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;">
+                                VERIFY OTP & CONTINUE <i class="fa-solid fa-circle-check ms-1"></i>
                             </button>
-                            <button type="button" class="btn btn-link text-muted btn-sm text-decoration-none" onclick="resetEmailOtpStep()">
+                            <button type="button" class="btn btn-link text-muted btn-sm text-decoration-none" onclick="resetEmailOtpStep()" style="font-size: 0.75rem;">
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Change Email Address
                             </button>
                         </div>
@@ -90,8 +90,8 @@
                 </div>
 
                 <!-- Alert Notifications inside Modal -->
-                <div id="emailOtpSuccessAlert" class="alert alert-success border-0 rounded-3 small mt-3 p-2 text-center" style="display: none;"></div>
-                <div id="emailOtpErrorAlert" class="alert alert-danger border-0 rounded-3 small mt-3 p-2 text-center" style="display: none;"></div>
+                <div id="emailOtpSuccessAlert" class="alert alert-success border-0 rounded-3 small mt-3 p-2 text-center" style="display: none; font-size: 0.78rem;"></div>
+                <div id="emailOtpErrorAlert" class="alert alert-danger border-0 rounded-3 small mt-3 p-2 text-center" style="display: none; font-size: 0.78rem;"></div>
             </div>
         </div>
     </div>

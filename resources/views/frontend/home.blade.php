@@ -46,12 +46,12 @@
 @endif
 
 <!-- Categories Section -->
-<section class="py-5">
+<section class="py-4 py-md-5">
     <div class="container">
         <div class="text-center mb-4">
-            <span class="text-gold text-uppercase fw-bold tracking-wider">CHIC COLLECTIONS</span>
-            <h2 class="font-serif display-6 fw-bold">SHOP BY CATEGORY</h2>
-            <div class="mx-auto bg-gold" style="width: 60px; height: 3px;"></div>
+            <span class="text-gold text-uppercase fw-bold tracking-wider small">CHIC COLLECTIONS</span>
+            <h2 class="font-serif display-6 fw-bold fs-3 fs-md-2 mb-2">SHOP BY CATEGORY</h2>
+            <div class="mx-auto bg-gold" style="width: 50px; height: 3px;"></div>
         </div>
 
         <div class="row g-3">
@@ -77,14 +77,14 @@
 </section>
 
 <!-- Featured Products Grid -->
-<section class="py-5 bg-white border-top border-bottom">
+<section class="py-4 py-md-5 bg-white border-top border-bottom">
     <div class="container">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
             <div>
-                <span class="text-gold text-uppercase fw-bold">TRENDING NOW</span>
-                <h2 class="font-serif display-6 fw-bold mb-0">NEW ARRIVALS</h2>
+                <span class="text-gold text-uppercase fw-bold small">TRENDING NOW</span>
+                <h2 class="font-serif display-6 fw-bold mb-0 fs-3 fs-md-2">NEW ARRIVALS</h2>
             </div>
-            <a href="{{ route('shop') }}" class="btn btn-qw-outline mt-3 mt-md-0">VIEW ALL PRODUCTS <i class="fa-solid fa-arrow-right ms-1"></i></a>
+            <a href="{{ route('shop') }}" class="btn btn-qw-outline btn-sm rounded-pill px-3 py-2 mt-3 mt-md-0 fw-semibold" style="font-size: 0.8rem;">VIEW ALL PRODUCTS <i class="fa-solid fa-arrow-right ms-1"></i></a>
         </div>
 
         <div class="row g-4">

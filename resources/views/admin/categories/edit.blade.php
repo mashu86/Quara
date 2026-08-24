@@ -3,9 +3,11 @@
 @section('title', 'Edit Category - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold mb-0">Edit Category: {{ $category->name }}</h3>
-    <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3">&larr; Back to Categories</a>
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+    <h3 class="fw-bold mb-0 fs-4 fs-sm-3">Edit Category: {{ $category->name }}</h3>
+    <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3 py-1-5 mt-1 mt-sm-0" style="font-size: 0.78rem;">
+        &larr; Back to Categories
+    </a>
 </div>
 
 <div class="card border-0 rounded-4 shadow-sm">
@@ -44,7 +46,10 @@
                 </div>
 
                 <div class="col-12 mt-4">
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold px-5 py-2">UPDATE CATEGORY</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold px-4 px-sm-5 py-2" style="font-size: 0.82rem;">
+                        <span class="d-inline d-sm-none">UPDATE</span>
+                        <span class="d-none d-sm-inline">UPDATE CATEGORY</span>
+                    </button>
                 </div>
             </div>
         </form>

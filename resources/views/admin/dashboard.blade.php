@@ -2,17 +2,28 @@
 
 @section('title', 'Admin Dashboard - QUARA WALDROP')
 
+@section('styles')
+<style>
+    @media (max-width: 576px) {
+        .admin-dash-mobile-btn {
+            font-size: 0.74rem !important;
+            padding: 6px 10px !important;
+        }
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold mb-1 fs-4 fs-sm-3">Dashboard Overview</h3>
         <p class="text-muted small mb-0">Welcome back, {{ auth()->user()->name }}! Here is what's happening today.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2 mt-2 mt-sm-0">
-        <a href="{{ route('admin.products.create') }}" class="btn btn-dark rounded-pill btn-sm px-3 py-2 fw-semibold shadow-sm">
+    <div class="d-flex w-100 w-sm-auto gap-2 mt-2 mt-sm-0">
+        <a href="{{ route('admin.products.create') }}" class="btn btn-dark rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-semibold shadow-sm text-center admin-dash-mobile-btn">
             <i class="fa-solid fa-plus me-1"></i> Add Product
         </a>
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-warning rounded-pill btn-sm px-3 py-2 fw-bold text-dark shadow-sm me-1">
+        <a href="{{ route('admin.orders.index') }}" class="btn btn-warning rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-bold text-dark shadow-sm text-center admin-dash-mobile-btn">
             <i class="fa-solid fa-receipt me-1"></i> View Orders
         </a>
     </div>

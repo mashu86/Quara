@@ -32,13 +32,24 @@
             color: #FFF;
             font-weight: 600;
             border-radius: 50px;
-            padding: 12px;
+            padding: 10px 16px;
+            font-size: 0.92rem;
             border: none;
             transition: all 0.3s ease;
         }
         .btn-gold:hover {
             opacity: 0.95;
             transform: translateY(-2px);
+        }
+        @media (max-width: 576px) {
+            .btn-gold {
+                padding: 7px 12px;
+                font-size: 0.78rem;
+            }
+            .login-card {
+                padding: 1.25rem !important;
+                border-radius: 16px;
+            }
         }
         .input-group-text {
             cursor: pointer;

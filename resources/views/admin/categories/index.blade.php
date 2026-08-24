@@ -80,15 +80,19 @@
                                 </form>
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-dark me-1"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                                <div class="d-flex align-items-center justify-content-end gap-1 flex-nowrap">
+                                    <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-dark rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Edit Category">
+                                        <i class="fa-solid fa-pen-to-square"></i><span class="d-none d-sm-inline ms-1">Edit</span>
+                                    </a>
 
-                                <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this category?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" {{ $category->products_count > 0 ? 'disabled title="Cannot delete category containing products"' : '' }}>
-                                        <i class="fa-solid fa-trash"></i> Delete
-                                    </button>
-                                </form>
+                                    <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this category?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Delete Category" {{ $category->products_count > 0 ? 'disabled title="Cannot delete category containing products"' : '' }}>
+                                            <i class="fa-solid fa-trash"></i><span class="d-none d-sm-inline ms-1">Delete</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

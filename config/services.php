@@ -50,4 +50,9 @@ return [
         'secret' => env('RAZORPAY_SECRET', 'XSGykO9qm8HrYPka8DbYpUQF'),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'vision_model' => env('OPENAI_VISION_MODEL', 'gpt-4o-mini'),
+    ],
+
 ];

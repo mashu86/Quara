@@ -4,368 +4,356 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class VisualSearchController extends Controller
 {
-    /**
-     * Common color mapping table for fashion products.
-     */
-    protected array $colorPalette = [
-        'Red' => [220, 20, 60],
-        'Maroon' => [128, 0, 0],
-        'Pink' => [255, 105, 180],
-        'Rose' => [255, 192, 203],
-        'Green' => [34, 139, 34],
-        'Emerald Green' => [0, 100, 0],
-        'Blue' => [30, 144, 255],
-        'Navy Blue' => [0, 0, 128],
-        'Yellow' => [255, 215, 0],
-        'Gold' => [218, 165, 32],
-        'Black' => [20, 20, 20],
-        'White' => [245, 245, 245],
-        'Purple' => [128, 0, 128],
-        'Lavender' => [230, 230, 250],
-        'Orange' => [255, 140, 0],
-        'Peach' => [255, 218, 185],
-        'Beige' => [245, 245, 220],
-        'Brown' => [139, 69, 19],
-    ];
+    private const MAX_RESULTS = 8;
 
-    public function search(Request $request)
+    private const AI_BATCH_SIZE = 12;
+
+    public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
 
         try {
-            $file = $request->file('image');
-            $imagePath = $file->getRealPath();
-
-            $openAiKey = env('OPENAI_API_KEY');
-
-            // 1. OpenAI Vision API Integration (If Key Provided)
-            if (!empty($openAiKey)) {
-                $aiAnalysis = $this->analyzeWithOpenAIVision($imagePath, $openAiKey);
-                
-                if (isset($aiAnalysis['is_clothing']) && !$aiAnalysis['is_clothing']) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No outfit or dress detected in this photo. Please upload a clear photo of a dress.',
-                    ], 422);
-                }
-
-                if (!empty($aiAnalysis['keywords'])) {
-                    $aiKeywords = $aiAnalysis['keywords'];
-                    $aiColor = $aiAnalysis['color'] ?? '';
-                    
-                    return $this->matchProductsWithAI($aiKeywords, $aiColor);
-                }
-            }
-
-            // 2. High-Precision Local Color & ROI Sampling
-            $colorAnalysis = $this->extractDominantColorsWithRGB($imagePath);
-            $dominantColors = $colorAnalysis['colors'];
-            $dominantRGB = $colorAnalysis['dominant_rgb'];
-
-            // Fetch active products with category
             $products = Product::active()
-                ->with(['category', 'images', 'sizes'])
+                ->with(['category', 'images'])
                 ->get();
 
-            $scoredProducts = [];
-            $topColors = array_slice(array_keys($dominantColors), 0, 3);
+            if ($products->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'detected_colors' => [],
+                    'total_matches' => 0,
+                    'products' => [],
+                ]);
+            }
 
-            foreach ($products as $index => $product) {
-                $score = $this->calculateMatchScore($product, $topColors, $dominantRGB, $index);
+            $apiKey = (string) config('services.openai.api_key', '');
 
-                // Only include authentic color-matched products (score >= 82)
-                if ($score >= 82) {
-                    $scoredProducts[] = [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'slug' => $product->slug,
-                        'price' => number_format($product->price, 2),
-                        'final_price' => number_format($product->final_price, 2),
-                        'has_discount' => $product->discount_amount > 0,
-                        'image' => $product->primary_image_url,
-                        'category_name' => $product->category ? $product->category->name : 'Fashion',
-                        'match_score' => min(98, $score),
-                        'url' => route('product.detail', $product->slug),
-                    ];
+            if ($apiKey !== '') {
+                $aiResult = $this->matchCatalogWithVision(
+                    $request->file('image')->getRealPath(),
+                    $products,
+                    $apiKey
+                );
+
+                if ($aiResult !== null) {
+                    if (($aiResult['is_clothing'] ?? true) === false) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'No dress or outfit was detected. Please upload a clear clothing photo.',
+                        ], 422);
+                    }
+
+                    return response()->json($this->formatAiResult($aiResult, $products));
                 }
             }
 
-            // Sort products by match score descending
-            usort($scoredProducts, function ($a, $b) {
-                return $b['match_score'] <=> $a['match_score'];
-            });
-
-            // Return top 8 matches
-            $topMatches = array_slice($scoredProducts, 0, 8);
-
+            // The browser compares the uploaded photo with these actual product
+            // images. This works even when GD/Imagick or an AI key is unavailable.
             return response()->json([
                 'success' => true,
-                'detected_colors' => $topColors,
-                'total_matches' => count($topMatches),
-                'products' => $topMatches,
+                'matching_mode' => 'browser_visual',
+                'client_visual_verification' => true,
+                'match_threshold' => 56,
+                'detected_colors' => [],
+                'total_matches' => 0,
+                'products' => $products
+                    ->filter(fn (Product $product) => $product->images->isNotEmpty())
+                    ->take(60)
+                    ->map(fn (Product $product) => $this->formatProduct($product))
+                    ->values(),
             ]);
-
-        } catch (Exception $e) {
-            \Log::error('Visual Search Error: '.$e->getMessage());
+        } catch (Throwable $exception) {
+            Log::error('Visual Search Error', [
+                'exception' => $exception,
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to analyze image. Please try another image.',
+                'message' => 'Unable to analyze this image. Please try another clear outfit photo.',
             ], 500);
         }
     }
 
     /**
-     * OpenAI Vision API call to analyze outfit features with 100% precision.
+     * Compare the uploaded outfit against the catalog's actual images. Products
+     * are sent in small batches so the prompt remains reliable as the catalog grows.
      */
-    protected function analyzeWithOpenAIVision(string $filePath, string $apiKey): array
+    protected function matchCatalogWithVision(string $queryPath, Collection $products, string $apiKey): ?array
     {
-        try {
-            $base64Image = base64_encode(file_get_contents($filePath));
-            $mimeType = mime_content_type($filePath);
+        $queryDataUrl = $this->fileToDataUrl($queryPath);
 
-            $payload = [
-                'model' => 'gpt-4o-mini',
-                'messages' => [
-                    [
-                        'role' => 'user',
-                        'content' => [
-                            [
-                                'type' => 'text',
-                                'text' => 'Analyze this photo for a fashion store. Is there a clothing item or outfit shown? Respond ONLY in valid JSON format: {"is_clothing": true/false, "clothing_type": "kurti/saree/gown/dress/shirt/etc", "color": "color_name", "pattern": "floral/solid/embroidered/etc", "keywords": ["keyword1", "keyword2"]}'
-                            ],
-                            [
-                                'type' => 'image_url',
-                                'image_url' => [
-                                    'url' => "data:{$mimeType};base64,{$base64Image}"
-                                ]
-                            ]
-                        ]
-                    ]
+        if ($queryDataUrl === null) {
+            return null;
+        }
+
+        $allMatches = [];
+        $detectedColors = [];
+        $detectedPattern = null;
+        $clothingWasDetected = false;
+        $receivedValidResult = false;
+
+        foreach ($products->chunk(self::AI_BATCH_SIZE) as $batch) {
+            $content = [
+                [
+                    'type' => 'text',
+                    'text' => implode("\n", [
+                        'You are the strict visual-search engine for a fashion shop.',
+                        'The first image is the customer query. Remaining images are labeled catalog products.',
+                        'A match MUST be the same garment class (for example top vs top, saree vs saree, gown vs gown).',
+                        'Ignore the person, face, skin, pose, body shape, accessories, room and background. Judge only the clothing.',
+                        'Compare garment type, silhouette/cut, dominant and secondary colors, pattern/print, neckline, sleeves and visible material.',
+                        'A different color is allowed when the garment design, print or embroidery layout, pattern, cut and silhouette strongly match.',
+                        'Do not reject an otherwise strong same-design product only because its color is different.',
+                        'Reject products that merely share a generic word or a background color. Do not return weak matches.',
+                        'Use scores 90-99 only for the same/near-identical item, 80-89 for a strong visual match, 72-79 for a credible similar item.',
+                        'Omit every product below 72. It is correct to return an empty matches array.',
+                        'Return only JSON: {"is_clothing":boolean,"detected_colors":["color"],"detected_pattern":"solid/floral/striped/checked/embroidered/printed/other","matches":[{"product_id":integer,"score":integer}]}.',
+                    ]),
                 ],
-                'max_tokens' => 300,
-                'response_format' => ['type' => 'json_object']
+                [
+                    'type' => 'text',
+                    'text' => 'CUSTOMER_QUERY_IMAGE',
+                ],
+                [
+                    'type' => 'image_url',
+                    'image_url' => ['url' => $queryDataUrl, 'detail' => 'high'],
+                ],
             ];
 
-            $ch = curl_init('https://api.openai.com/v1/chat/completions');
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $apiKey
-            ]);
+            $includedIds = [];
 
-            $response = curl_exec($ch);
-            curl_close($ch);
+            foreach ($batch as $product) {
+                $imageUrl = $this->productImageForVision($product);
 
-            if ($response) {
-                $resData = json_decode($response, true);
-                if (isset($resData['choices'][0]['message']['content'])) {
-                    return json_decode($resData['choices'][0]['message']['content'], true) ?? [];
-                }
-            }
-        } catch (Exception $e) {
-            \Log::error('OpenAI Vision API Error: ' . $e->getMessage());
-        }
-
-        return [];
-    }
-
-    /**
-     * Match products using AI vision extracted keywords.
-     */
-    protected function matchProductsWithAI(array $keywords, string $color): \Illuminate\Http\JsonResponse
-    {
-        $products = Product::active()->with(['category', 'images', 'sizes'])->get();
-        $scoredProducts = [];
-
-        foreach ($products as $product) {
-            $pText = strtolower($product->name . ' ' . $product->description . ' ' . ($product->category ? $product->category->name : ''));
-            $matches = 0;
-
-            foreach ($keywords as $kw) {
-                if (strlen($kw) >= 3 && str_contains($pText, strtolower($kw))) {
-                    $matches++;
-                }
-            }
-
-            if ($matches > 0) {
-                $scoredProducts[] = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
-                    'price' => number_format($product->price, 2),
-                    'final_price' => number_format($product->final_price, 2),
-                    'has_discount' => $product->discount_amount > 0,
-                    'image' => $product->primary_image_url,
-                    'category_name' => $product->category ? $product->category->name : 'Fashion',
-                    'match_score' => min(98, 88 + ($matches * 3)),
-                    'url' => route('product.detail', $product->slug),
-                ];
-            }
-        }
-
-        usort($scoredProducts, function ($a, $b) {
-            return $b['match_score'] <=> $a['match_score'];
-        });
-
-        $topMatches = array_slice($scoredProducts, 0, 8);
-
-        return response()->json([
-            'success' => true,
-            'detected_colors' => [$color],
-            'total_matches' => count($topMatches),
-            'products' => $topMatches,
-        ]);
-    }
-
-    /**
-     * Extract dominant color names and dominant RGB vector from image ROI.
-     */
-    protected function extractDominantColorsWithRGB(string $filePath): array
-    {
-        $detected = [];
-        $totalR = 0;
-        $totalG = 0;
-        $totalB = 0;
-        $sampleCount = 0;
-
-        if (!function_exists('imagecreatefromstring')) {
-            return [
-                'colors' => ['Red' => 1, 'Gold' => 1],
-                'dominant_rgb' => [200, 50, 50]
-            ];
-        }
-
-        $imageContent = file_get_contents($filePath);
-        $img = @imagecreatefromstring($imageContent);
-
-        if (!$img) {
-            return [
-                'colors' => ['Gold' => 1],
-                'dominant_rgb' => [218, 165, 32]
-            ];
-        }
-
-        $width = imagesx($img);
-        $height = imagesy($img);
-
-        // Focus sampling on Central Clothing Region (10% to 90% width, 10% to 90% height)
-        $startX = (int)($width * 0.10);
-        $endX = (int)($width * 0.90);
-        $startY = (int)($height * 0.10);
-        $endY = (int)($height * 0.90);
-
-        $stepX = max(1, (int)(($endX - $startX) / 35));
-        $stepY = max(1, (int)(($endY - $startY) / 35));
-
-        for ($x = $startX; $x < $endX; $x += $stepX) {
-            for ($y = $startY; $y < $endY; $y += $stepY) {
-                $rgb = imagecolorat($img, $x, $y);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-
-                // Skip background extreme white/black padding
-                if (($r > 248 && $g > 248 && $b > 248) || ($r < 8 && $g < 8 && $b < 8)) {
+                if ($imageUrl === null) {
                     continue;
                 }
 
-                $closestColor = $this->getClosestColorName($r, $g, $b);
-                $detected[$closestColor] = ($detected[$closestColor] ?? 0) + 1;
+                $includedIds[] = (int) $product->id;
+                $content[] = [
+                    'type' => 'text',
+                    'text' => sprintf(
+                        'CATALOG_PRODUCT_ID: %d | NAME: %s | CATEGORY: %s',
+                        $product->id,
+                        $this->cleanPromptText($product->name),
+                        $this->cleanPromptText($product->category?->name ?? 'Fashion')
+                    ),
+                ];
+                $content[] = [
+                    'type' => 'image_url',
+                    'image_url' => ['url' => $imageUrl, 'detail' => 'high'],
+                ];
+            }
 
-                $totalR += $r;
-                $totalG += $g;
-                $totalB += $b;
-                $sampleCount++;
+            if ($includedIds === []) {
+                continue;
+            }
+
+            $payload = [
+                'model' => (string) config('services.openai.vision_model', 'gpt-4o-mini'),
+                'messages' => [[
+                    'role' => 'user',
+                    'content' => $content,
+                ]],
+                'max_tokens' => 500,
+                'temperature' => 0,
+                'response_format' => ['type' => 'json_object'],
+            ];
+
+            $result = $this->sendVisionRequest($payload, $apiKey);
+
+            if ($result === null) {
+                continue;
+            }
+
+            $receivedValidResult = true;
+            $batchMatches = is_array($result['matches'] ?? null) ? $result['matches'] : [];
+            $batchColors = is_array($result['detected_colors'] ?? null) ? $result['detected_colors'] : [];
+            if ($detectedPattern === null && is_string($result['detected_pattern'] ?? null)) {
+                $detectedPattern = trim($result['detected_pattern']);
+            }
+            $clothingWasDetected = $clothingWasDetected
+                || ($result['is_clothing'] ?? false) === true
+                || $batchMatches !== [];
+            $detectedColors = array_merge($detectedColors, $batchColors);
+
+            foreach ($batchMatches as $match) {
+                if (! is_array($match)) {
+                    continue;
+                }
+
+                $productId = filter_var($match['product_id'] ?? null, FILTER_VALIDATE_INT);
+                $score = filter_var($match['score'] ?? null, FILTER_VALIDATE_INT);
+
+                if ($productId === false || $score === false || ! in_array($productId, $includedIds, true)) {
+                    continue;
+                }
+
+                if ($score < 72 || $score > 99) {
+                    continue;
+                }
+
+                $allMatches[$productId] = max($allMatches[$productId] ?? 0, $score);
             }
         }
 
-        imagedestroy($img);
-        arsort($detected);
+        if (! $receivedValidResult) {
+            return null;
+        }
 
-        $avgR = $sampleCount > 0 ? (int)($totalR / $sampleCount) : 150;
-        $avgG = $sampleCount > 0 ? (int)($totalG / $sampleCount) : 150;
-        $avgB = $sampleCount > 0 ? (int)($totalB / $sampleCount) : 150;
+        arsort($allMatches);
 
         return [
-            'colors' => !empty($detected) ? $detected : ['Gold' => 1],
-            'dominant_rgb' => [$avgR, $avgG, $avgB]
+            'is_clothing' => $clothingWasDetected,
+            'detected_colors' => array_values(array_unique(array_filter(
+                array_map(fn ($color) => trim((string) $color), $detectedColors)
+            ))),
+            'detected_pattern' => $detectedPattern,
+            'matches' => collect($allMatches)
+                ->take(self::MAX_RESULTS)
+                ->map(fn (int $score, int $id) => ['product_id' => $id, 'score' => $score])
+                ->values()
+                ->all(),
         ];
     }
 
-    /**
-     * Find closest color in palette using Euclidean distance in RGB.
-     */
-    protected function getClosestColorName(int $r, int $g, int $b): string
+    protected function sendVisionRequest(array $payload, string $apiKey): ?array
     {
-        $closestName = 'Gold';
-        $minDist = 999999;
+        $curl = curl_init('https://api.openai.com/v1/chat/completions');
 
-        foreach ($this->colorPalette as $name => $rgb) {
-            $dist = sqrt(pow($r - $rgb[0], 2) + pow($g - $rgb[1], 2) + pow($b - $rgb[2], 2));
-            if ($dist < $minDist) {
-                $minDist = $dist;
-                $closestName = $name;
-            }
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer '.$apiKey,
+            ],
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 45,
+        ]);
+
+        $response = curl_exec($curl);
+        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
+
+        if (! is_string($response) || $status < 200 || $status >= 300) {
+            Log::warning('Visual search AI request failed', [
+                'status' => $status,
+                'curl_error' => $curlError,
+            ]);
+
+            return null;
         }
 
-        return $closestName;
+        $responseData = json_decode($response, true);
+        $json = $responseData['choices'][0]['message']['content'] ?? null;
+
+        if (! is_string($json)) {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
-    /**
-     * Dual RGB Color Vector & Token Matching Algorithm.
-     * Evaluates text keywords AND visual color RGB distance against palette & category.
-     */
-    protected function calculateMatchScore(Product $product, array $detectedColors, array $dominantRGB, int $index = 0): int
+    protected function formatAiResult(array $result, Collection $products): array
     {
-        $productText = strtolower($product->name . ' ' . $product->description . ' ' . ($product->category ? $product->category->name : ''));
+        $productsById = $products->keyBy('id');
+        $matches = collect($result['matches'] ?? [])
+            ->map(function (array $match) use ($productsById) {
+                $product = $productsById->get((int) ($match['product_id'] ?? 0));
 
-        // 1. Text Token Matching
-        $directColorMatch = false;
-        $matchedColorCount = 0;
-
-        foreach ($detectedColors as $colorName) {
-            $colorLower = strtolower($colorName);
-            $tokens = explode(' ', $colorLower);
-            foreach ($tokens as $token) {
-                if (strlen($token) >= 3 && str_contains($productText, $token)) {
-                    $directColorMatch = true;
-                    $matchedColorCount++;
-                    break;
+                if (! $product) {
+                    return null;
                 }
-            }
+
+                return array_merge($this->formatProduct($product), [
+                    'match_score' => (int) $match['score'],
+                ]);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return [
+            'success' => true,
+            'matching_mode' => 'ai_catalog_visual',
+            'detected_colors' => array_slice($result['detected_colors'] ?? [], 0, 4),
+            'detected_pattern' => $result['detected_pattern'] ?? null,
+            'total_matches' => count($matches),
+            'products' => $matches,
+        ];
+    }
+
+    protected function formatProduct(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'price' => number_format((float) $product->price, 2),
+            'final_price' => number_format((float) $product->final_price, 2),
+            'has_discount' => (float) $product->final_price < (float) $product->price,
+            'image' => $product->primary_image_url,
+            'category_name' => $product->category?->name ?? 'Fashion',
+            'url' => route('product.detail', $product->slug),
+        ];
+    }
+
+    protected function productImageForVision(Product $product): ?string
+    {
+        $imagePath = $product->images->first()?->image_path;
+
+        if (! is_string($imagePath) || $imagePath === '') {
+            return null;
         }
 
-        if ($directColorMatch) {
-            return 93 + min(5, $matchedColorCount * 2);
+        if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
+            return $imagePath;
         }
 
-        // 2. RGB Distance Matching against Product Category / Palette Signature
-        // If color token isn't in title (e.g. product is "Floral Anarkali"), check RGB closeness
-        $topDetectedColor = $detectedColors[0] ?? 'Gold';
-        $paletteRGB = $this->colorPalette[$topDetectedColor] ?? [218, 165, 32];
+        $cleanPath = ltrim(str_replace('storage/', '', str_replace('\\', '/', $imagePath)), '/');
+        $localPath = storage_path('app/public/'.$cleanPath);
 
-        $rgbDist = sqrt(
-            pow($dominantRGB[0] - $paletteRGB[0], 2) +
-            pow($dominantRGB[1] - $paletteRGB[1], 2) +
-            pow($dominantRGB[2] - $paletteRGB[2], 2)
-        );
-
-        // If RGB vector is visually close (distance < 95), it is an authentic visual match!
-        if ($rgbDist < 95) {
-            return 88 + min(8, (int)((95 - $rgbDist) / 8));
+        if (! is_file($localPath)) {
+            $localPath = public_path($cleanPath);
         }
 
-        // Otherwise disqualify non-matching product
-        return 0;
+        return $this->fileToDataUrl($localPath);
+    }
+
+    protected function fileToDataUrl(string $path): ?string
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            return null;
+        }
+
+        $mime = mime_content_type($path) ?: 'image/jpeg';
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
+    }
+
+    protected function cleanPromptText(?string $value): string
+    {
+        return mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string) $value)) ?? ''), 0, 120);
     }
 }

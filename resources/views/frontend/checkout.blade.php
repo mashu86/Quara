@@ -89,10 +89,10 @@
                     <input type="hidden" name="payment_method" value="online">
                     <div class="p-3 rounded-3 border border-warning bg-light d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-qrcode text-warning me-2"></i> Online Payment (UPI / GPay / PhonePe / QR)</div>
-                            <div class="text-muted small">Instant & 100% secure payment via Razorpay gateway</div>
+                            <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
+                            <div class="text-muted small">Pay securely using UPI, cards, netbanking or wallets via Razorpay</div>
                         </div>
-                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay UPI</span>
+                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay Secure</span>
                     </div>
                 </div>
             </div>

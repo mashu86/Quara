@@ -57,22 +57,6 @@
         @if(!empty($paymentResult['razorpay_order_id']) && str_starts_with($paymentResult['razorpay_order_id'], 'order_'))
         "order_id": "{{ $paymentResult['razorpay_order_id'] }}",
         @endif
-        "config": {
-            "display": {
-                "blocks": {
-                    "upi": {
-                        "name": "Pay with UPI / QR",
-                        "instruments": [
-                            { "method": "upi" }
-                        ]
-                    }
-                },
-                "sequence": ["block.upi"],
-                "preferences": {
-                    "show_default_blocks": false
-                }
-            }
-        },
         "handler": function (response){
             if (!response.razorpay_payment_id || !response.razorpay_signature) {
                 alert("Payment was not completed or failed verification. Please try again.");

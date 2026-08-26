@@ -104,12 +104,12 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
                             <input type="number" step="0.01" name="price" id="priceInput" class="form-control rounded-3" value="{{ old('price', $product->price) }}" required oninput="calcDiscount()">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6" id="discountTypeCol">
                             <label class="form-label fw-bold">Discount Type</label>
                             <select name="discount_type" id="discountTypeSelect" class="form-select rounded-3" onchange="calcDiscount()">
                                 <option value="none" {{ old('discount_type', $product->discount_type) == 'none' ? 'selected' : '' }}>No Discount</option>
@@ -118,7 +118,7 @@
                             </select>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-none" id="discountValueContainer">
                             <label class="form-label fw-bold">Discount Value</label>
                             <input type="number" step="0.01" name="discount_value" id="discountValueInput" class="form-control rounded-3" value="{{ old('discount_value', $product->discount_value) }}" oninput="calcDiscount()">
                         </div>
@@ -362,8 +362,25 @@
 <script>
     function calcDiscount() {
         const price = parseFloat(document.getElementById('priceInput').value) || 0;
-        const type = document.getElementById('discountTypeSelect').value;
-        const val = parseFloat(document.getElementById('discountValueInput').value) || 0;
+        const typeSelect = document.getElementById('discountTypeSelect');
+        const type = typeSelect ? typeSelect.value : 'none';
+        const valInput = document.getElementById('discountValueInput');
+        const valContainer = document.getElementById('discountValueContainer');
+        const priceCol = document.getElementById('basePriceCol');
+        const typeCol = document.getElementById('discountTypeCol');
+
+        let val = parseFloat(valInput ? valInput.value : 0) || 0;
+
+        if (type === 'none') {
+            if (valContainer) valContainer.classList.add('d-none');
+            if (priceCol) priceCol.className = 'col-md-6';
+            if (typeCol) typeCol.className = 'col-md-6';
+            val = 0;
+        } else {
+            if (valContainer) valContainer.classList.remove('d-none');
+            if (priceCol) priceCol.className = 'col-md-4';
+            if (typeCol) typeCol.className = 'col-md-4';
+        }
 
         let finalPrice = price;
         if (type === 'fixed') {
@@ -372,7 +389,8 @@
             finalPrice = Math.max(0, price - (price * (val / 100)));
         }
 
-        document.getElementById('finalPriceDisplay').innerText = '₹' + finalPrice.toFixed(2);
+        const display = document.getElementById('finalPriceDisplay');
+        if (display) display.innerText = '₹' + finalPrice.toFixed(2);
     }
 
     function addNewSizeRow() {
@@ -511,6 +529,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         updateCategorySelectionDisplay();
+        calcDiscount();
     });
 </script>
 @endsection

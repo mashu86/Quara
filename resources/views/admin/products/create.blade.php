@@ -380,14 +380,16 @@
             btnText.classList.remove('text-dark', 'fw-bold');
         } else {
             const labels = Array.from(checkboxes).map(cb => {
-                const label = document.querySelector(`label[for="${cb.id}"]`);
-                return label ? label.innerText.trim() : '';
+                const item = cb.closest('.category-item');
+                return item ? item.innerText.trim() : '';
             }).filter(Boolean);
 
             if (checkboxes.length === 1) {
-                btnText.innerText = labels[0];
-            } else {
+                btnText.innerText = labels[0] || '1 Selected';
+            } else if (labels.length > 0) {
                 btnText.innerText = `${checkboxes.length} Selected (${labels.slice(0, 2).join(', ')}${labels.length > 2 ? '...' : ''})`;
+            } else {
+                btnText.innerText = `${checkboxes.length} Selected`;
             }
             btnText.classList.remove('text-muted');
             btnText.classList.add('text-dark', 'fw-bold');

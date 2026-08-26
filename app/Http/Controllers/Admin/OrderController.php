@@ -149,4 +149,37 @@ class OrderController extends Controller
         $order->load(['items.product', 'payment']);
         return view('admin.orders.invoice', compact('order'));
     }
+
+    public function sendFollowupEmail(Request $request, Order $order)
+    {
+        if (!$order->customer_email) {
+            return response()->json(['success' => false, 'message' => 'No customer email provided.']);
+        }
+
+        try {
+            Mail::to($order->customer_email)->send(new \App\Mail\OrderConfirmationMail($order));
+            return response()->json(['success' => true, 'message' => 'Follow-up email dispatched.']);
+        } catch (Exception $e) {
+            \Log::error('Order Followup Email Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function incrementWaCount(Request $request, Order $order)
+    {
+        $type = $request->input('type', 'thank_you');
+        if ($type === 'couriered') {
+            $order->increment('wa_couriered_count');
+        } else {
+            $order->increment('wa_thank_you_count');
+        }
+
+        $order->refresh();
+
+        return response()->json([
+            'success' => true,
+            'wa_thank_you_count' => $order->wa_thank_you_count,
+            'wa_couriered_count' => $order->wa_couriered_count,
+        ]);
+    }
 }

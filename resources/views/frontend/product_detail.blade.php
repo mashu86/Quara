@@ -74,11 +74,11 @@
                 <h1 class="font-serif fw-bold h2 mb-3 text-dark">{{ $product->name }}</h1>
 
                 <!-- Pricing Display -->
-                <div class="d-flex align-items-baseline gap-3 mb-3 pb-3 border-bottom">
-                    <span class="display-6 fw-bold text-gold">₹{{ number_format($product->final_price, 2) }}</span>
+                <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3 mb-3 pb-3 border-bottom">
+                    <span class="fs-2 fw-bold text-gold mb-0">₹{{ number_format($product->final_price, 2) }}</span>
                     @if($product->discount_type !== 'none' && $product->price > $product->final_price)
-                        <span class="fs-4 text-muted text-decoration-line-through">₹{{ number_format($product->price, 2) }}</span>
-                        <span class="badge bg-danger rounded-pill px-3 py-2">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
+                        <span class="fs-5 text-muted text-decoration-line-through mb-0">₹{{ number_format($product->price, 2) }}</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
                     @endif
                 </div>
 

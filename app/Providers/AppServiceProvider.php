@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\SocialMedia;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         // Share layout data with views
         View::composer('layouts.app', function ($view) {
             $navCategories = Category::where('status', 'active')->select(['id', 'name', 'slug'])->get();
@@ -34,8 +37,9 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.admin', function ($view) {
             $pendingCount = \App\Models\Order::where('order_status', 'pending')->count();
             $unreadCount = \App\Models\Notification::where('is_read', false)->count();
+            $recentNotifications = \App\Models\Notification::with('order')->orderBy('id', 'desc')->take(5)->get();
 
-            $view->with(compact('pendingCount', 'unreadCount'));
+            $view->with(compact('pendingCount', 'unreadCount', 'recentNotifications'));
         });
     }
 }

@@ -118,11 +118,19 @@
     </div>
 </div>
 
+<style>
+    @media (max-width: 768px) {
+        .orders-table th, .orders-table td { font-size: 0.73rem !important; padding: 0.5rem 0.35rem !important; }
+        .orders-table .btn { font-size: 0.68rem !important; padding: 0.25rem 0.45rem !important; }
+        .orders-table .badge { font-size: 0.63rem !important; padding: 0.2em 0.45em !important; }
+    }
+</style>
+
 <!-- Table -->
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table orders-table align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th class="ps-3">Order #</th>
@@ -161,11 +169,14 @@
                             </td>
                             <td class="text-end pe-3">
                                 <div class="d-flex flex-nowrap justify-content-end align-items-center gap-1">
-                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-pill px-2 px-sm-3 py-1 text-nowrap small fw-semibold">
-                                        <i class="fa-solid fa-eye me-1"></i> View
+                                    <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle rounded-md-pill px-2 px-md-2.5 py-1 text-nowrap small fw-bold" title="WhatsApp Follow-up">
+                                        <i class="fa-brands fa-whatsapp me-0 me-md-1"></i><span class="d-none d-md-inline">WhatsApp</span>
+                                    </button>
+                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle rounded-md-pill px-2 px-md-3 py-1 text-nowrap small fw-semibold" title="View Details">
+                                        <i class="fa-solid fa-eye me-0 me-md-1"></i><span class="d-none d-md-inline">View</span>
                                     </a>
-                                    <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-pill px-2 px-sm-3 py-1 text-nowrap small fw-bold">
-                                        <i class="fa-solid fa-print me-1"></i> Invoice
+                                    <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle rounded-md-pill px-2 px-md-3 py-1 text-nowrap small fw-bold" title="Print Invoice">
+                                        <i class="fa-solid fa-print me-0 me-md-1"></i><span class="d-none d-md-inline">Invoice</span>
                                     </a>
                                 </div>
                             </td>
@@ -183,4 +194,6 @@
         {{ $orders->links() }}
     </div>
 </div>
+
+@include('admin.orders.partials.whatsapp_modal')
 @endsection

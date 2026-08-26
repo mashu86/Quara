@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Record Expense - QUARA WALDROP Admin')
+@section('title', 'Edit Expense - QUARA WALDROP Admin')
 
 @section('content')
 <style>
@@ -36,8 +36,8 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
     <div>
-        <h3 class="fw-bold mb-1 page-header-title">Record New Expense</h3>
-        <p class="text-muted small mb-0 page-header-subtitle">Add operational costs, packing materials, logistics, or inventory purchase costs.</p>
+        <h3 class="fw-bold mb-1 page-header-title">Edit Expense Record</h3>
+        <p class="text-muted small mb-0 page-header-subtitle">Update expense details, amount, category, or add/remove bill receipt images.</p>
     </div>
     <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-dark rounded-3 px-2.5 px-md-3 py-1.5 py-md-2 fw-bold shadow-sm back-expense-btn" title="Back to Expenses">
         &larr;<span class="d-none d-md-inline"> Back to Expenses</span>
@@ -48,36 +48,47 @@
     <div class="col-lg-8">
         <div class="card border-0 rounded-4 shadow-sm">
             <div class="card-body p-4 p-md-5">
-                <form action="{{ route('admin.expenses.store') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.expenses.update', $expense->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
+                    @method('PUT')
+
+                    <input type="hidden" name="remove_receipt_image" id="removeReceiptImageInput" value="0">
+                    <div id="removedImagesInputsContainer"></div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Expense Name / Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Cardboard Courier Packing Boxes Batch #4" value="{{ old('title', old('expense_name')) }}" required>
+                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Cardboard Courier Packing Boxes Batch #4" value="{{ old('title', $expense->title) }}" required>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Expense Amount (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="amount" class="form-control rounded-3" placeholder="1500.00" value="{{ old('amount') }}" required>
+                            <input type="number" step="0.01" name="amount" class="form-control rounded-3" placeholder="1500.00" value="{{ old('amount', $expense->amount) }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Expense Date <span class="text-danger">*</span></label>
-                            <input type="date" name="expense_date" class="form-control rounded-3" value="{{ old('expense_date', date('Y-m-d')) }}" required>
+                            <input type="date" name="expense_date" class="form-control rounded-3" value="{{ old('expense_date', \Carbon\Carbon::parse($expense->expense_date)->format('Y-m-d')) }}" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Category</label>
                         <select name="category" class="form-select rounded-3">
-                            <option value="Packaging & Materials">Packaging & Materials</option>
-                            <option value="Shipping & Courier Charges">Shipping & Courier Charges</option>
-                            <option value="Inventory / Fabric Purchase">Inventory / Fabric Purchase</option>
-                            <option value="Marketing & Advertisements">Marketing & Advertisements</option>
-                            <option value="Rent & Utilities">Rent & Utilities</option>
-                            <option value="Salaries / Workmanship">Salaries / Workmanship</option>
-                            <option value="Miscellaneous">Miscellaneous</option>
+                            @php
+                                $categories = [
+                                    'Packaging & Materials',
+                                    'Shipping & Courier Charges',
+                                    'Inventory / Fabric Purchase',
+                                    'Marketing & Advertisements',
+                                    'Rent & Utilities',
+                                    'Salaries / Workmanship',
+                                    'Miscellaneous'
+                                ];
+                            @endphp
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat }}" {{ old('category', $expense->category) === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -88,6 +99,21 @@
                         
                         <div class="p-3 bg-light rounded-3 border">
                             <div id="receiptImagesGrid" class="d-flex flex-wrap gap-3 align-items-center">
+                                
+                                <!-- Existing Uploaded Images Gallery -->
+                                @foreach($expense->receipt_images as $idx => $imgPath)
+                                    <div class="position-relative border rounded-3 p-1 bg-white shadow-sm" id="existingCard_{{ $idx }}" style="width: 120px; height: 120px;">
+                                        <a href="{{ asset($imgPath) }}" target="_blank" title="View full image">
+                                            <img src="{{ asset($imgPath) }}" class="w-100 h-100 rounded-2" style="object-fit: cover;">
+                                        </a>
+                                        <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 translate-middle-y me-n1 mt-n1 shadow" 
+                                                style="width: 24px; height: 24px; padding: 0; line-height: 24px; font-size: 11px;" 
+                                                title="Remove this existing image" onclick="removeExistingImage('{{ $imgPath }}', {{ $idx }})">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                @endforeach
+
                                 <!-- Hidden file inputs will be dynamically appended here -->
                                 <div id="fileInputsContainer">
                                     <input type="file" name="receipt_images[]" id="receiptInput_0" class="d-none" accept="image/*" onchange="handleFileSelected(this, 0)">
@@ -100,18 +126,18 @@
                                 </label>
                             </div>
                             <div class="form-text extra-small text-muted mt-2">
-                                <i class="fa-solid fa-info-circle me-1"></i> Click <strong>+ Add Image</strong> to select photos or bill screenshots. You can add multiple images. Click the red <strong>X</strong> on any preview to remove it.
+                                <i class="fa-solid fa-info-circle me-1"></i> Click <strong>+ Add Image</strong> to attach more photos or bills. Click the red <strong>X</strong> on any card to delete that specific image.
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold">Notes / Description</label>
-                        <textarea name="notes" class="form-control rounded-3" rows="3" placeholder="Additional details or invoice reference number...">{{ old('notes') }}</textarea>
+                        <textarea name="notes" class="form-control rounded-3" rows="3" placeholder="Additional details or invoice reference number...">{{ old('notes', $expense->notes) }}</textarea>
                     </div>
 
                     <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-2.5 py-md-3 shadow-sm text-dark submit-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
-                        <i class="fa-solid fa-floppy-disk me-1"></i> SAVE EXPENSE RECORD
+                        <i class="fa-solid fa-floppy-disk me-1"></i> UPDATE EXPENSE RECORD
                     </button>
                 </form>
             </div>
@@ -168,6 +194,19 @@ function removeReceiptCard(index) {
     const input = document.getElementById(`receiptInput_${index}`);
     if (card) card.remove();
     if (input) input.remove();
+}
+
+function removeExistingImage(imgPath, idx) {
+    if (confirm('Are you sure you want to remove this receipt image?')) {
+        const card = document.getElementById(`existingCard_${idx}`);
+        if (card) card.remove();
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'removed_receipt_images[]';
+        input.value = imgPath;
+        document.getElementById('removedImagesInputsContainer').appendChild(input);
+    }
 }
 </script>
 @endsection

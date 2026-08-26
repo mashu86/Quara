@@ -19,14 +19,14 @@ class Category extends Model
         'status',
     ];
 
-    public function products(): HasMany
+    public function products()
     {
-        return $this->hasMany(Product::class);
+        return $this->belongsToMany(Product::class, 'category_product')->withTimestamps();
     }
 
-    public function activeProducts(): HasMany
+    public function activeProducts()
     {
-        return $this->hasMany(Product::class)->where('status', 'active');
+        return $this->belongsToMany(Product::class, 'category_product')->where('products.status', 'active')->withTimestamps();
     }
 
     public function getBackgroundImageUrlAttribute(): string

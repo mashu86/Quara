@@ -8,17 +8,17 @@
         <div>
             <h3 class="font-serif fw-bold mb-1 fs-4">My Orders & History</h3>
             <p class="text-muted small mb-0">
-                Viewing past orders linked to Email: 
-                <strong class="text-dark">{{ $email ?? 'Not Verified' }}</strong>
+                Viewing past orders linked to: 
+                <strong class="text-dark">{{ $email ?: ($phone ? ('Phone: ' . $phone) : 'Not Verified') }}</strong>
             </p>
         </div>
 
         <div class="mt-3 mt-md-0 d-flex justify-content-center gap-2">
-            @if(session('customer_email'))
+            @if(session('customer_email') || session('customer_phone'))
                 <form action="{{ route('customer.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-outline-danger rounded-pill btn-sm px-3 fw-bold">
-                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Email Session
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Session
                     </button>
                 </form>
             @else
@@ -29,18 +29,31 @@
         </div>
     </div>
 
-    @if(!$email)
-        <!-- Prompt to Verify Email -->
+    @if(!$email && !$phone)
+        <!-- Prompt / Quick Lookup by Mobile or Email -->
         <div class="card border-0 rounded-4 shadow-sm text-center py-4 py-md-5">
             <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center">
-                <i class="fa-solid fa-envelope-circle-check text-warning display-4 mb-3"></i>
-                <h5 class="font-serif fw-bold mb-2 text-center">Verify Email to View Orders</h5>
-                <p class="text-muted small col-md-6 mx-auto mb-4 text-center">
-                    Verify your email address to view past orders and live tracking updates. A 6-digit OTP will be sent to your email.
+                <i class="fa-solid fa-boxes-packing text-warning display-4 mb-3"></i>
+                <h5 class="font-serif fw-bold mb-2 text-center">Find Your Past Orders</h5>
+                <p class="text-muted small col-md-7 mx-auto mb-4 text-center">
+                    Enter your 10-digit Mobile Phone Number or Email Address below to view all your past orders and live tracking updates.
                 </p>
-                <button type="button" onclick="showOtpModal()" class="btn btn-dark rounded-pill px-4 py-2 btn-sm fw-bold shadow-sm mx-auto" style="font-size: 0.82rem;">
-                    VERIFY EMAIL NOW <i class="fa-solid fa-arrow-right ms-1"></i>
-                </button>
+
+                <form action="{{ route('customer.my-orders') }}" method="GET" class="col-md-6 col-lg-5 mx-auto mb-3">
+                    <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+                        <input type="text" name="contact" class="form-control border-0 px-4 fs-6" placeholder="Mobile Number or Email..." required>
+                        <button type="submit" class="btn btn-qw-gold px-4 fw-bold">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> VIEW ORDERS
+                        </button>
+                    </div>
+                </form>
+
+                <div class="d-flex align-items-center justify-content-center gap-2 text-muted small mt-2">
+                    <span>Or prefer OTP email verification?</span>
+                    <button type="button" onclick="showOtpModal()" class="btn btn-link text-gold p-0 text-decoration-none fw-bold">
+                        Verify Email with OTP <i class="fa-solid fa-arrow-right small"></i>
+                    </button>
+                </div>
             </div>
         </div>
     @else

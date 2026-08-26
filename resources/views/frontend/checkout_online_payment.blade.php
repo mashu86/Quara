@@ -53,7 +53,7 @@
         "currency": "INR",
         "name": "QUARA WALDROP",
         "description": "Order #{{ $order->order_number }} Payment",
-        "image": window.location.origin + "/assets/images/logo.png",
+        "image": (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ? (window.location.origin + "/assets/images/logo.png") : "",
         @if(!empty($paymentResult['razorpay_order_id']) && str_starts_with($paymentResult['razorpay_order_id'], 'order_'))
         "order_id": "{{ $paymentResult['razorpay_order_id'] }}",
         @endif

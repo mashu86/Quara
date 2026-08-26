@@ -3,13 +3,53 @@
 @section('title', 'Manual Sales - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    @media (max-width: 576px) {
+        .add-offline-btn {
+            border-radius: 8px !important;
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.65rem !important;
+        }
+        .offline-sales-title {
+            font-size: 1.15rem !important;
+        }
+        .offline-sales-subtitle {
+            font-size: 0.72rem !important;
+        }
+        .search-trigger-btn {
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.75rem !important;
+        }
+        #manualSalesFilterModal .modal-title {
+            font-size: 0.9rem !important;
+        }
+        #manualSalesFilterModal .form-label {
+            font-size: 0.76rem !important;
+        }
+        #manualSalesFilterModal .form-control {
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.65rem !important;
+        }
+        #manualSalesFilterModal .btn {
+            font-size: 0.78rem !important;
+            padding: 0.35rem 0.8rem !important;
+        }
+        #manualSalesFilterModal .modal-body {
+            padding: 1rem !important;
+        }
+        #manualSalesFilterModal .modal-footer {
+            padding: 0.65rem 1rem !important;
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
     <div>
-        <h3 class="fw-bold mb-1">Manual / Offline Sales</h3>
-        <p class="text-muted small mb-0">Record offline store purchases, counter sales & direct customer orders.</p>
+        <h3 class="fw-bold mb-1 offline-sales-title">Offline Sales</h3>
+        <p class="text-muted small mb-0 offline-sales-subtitle">Record offline store purchases, counter sales & direct customer orders.</p>
     </div>
-    <a href="{{ route('admin.manual-sales.create') }}" class="btn btn-warning rounded-pill fw-bold px-4">
-        <i class="fa-solid fa-plus me-1"></i> Record New Offline Sale
+    <a href="{{ route('admin.manual-sales.create') }}" class="btn btn-warning rounded-3 rounded-md-pill fw-bold px-2.5 px-md-4 py-1.5 py-md-2 add-offline-btn shadow-sm text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Record New Offline Sale">
+        <i class="fa-solid fa-plus me-0 me-md-1"></i><span class="d-none d-md-inline"> Record New Offline Sale</span>
     </a>
 </div>
 
@@ -20,7 +60,7 @@
 <!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
 <div class="d-lg-none mb-3">
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#manualSalesFilterModal">
+        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2 search-trigger-btn" data-bs-toggle="modal" data-bs-target="#manualSalesFilterModal">
             <i class="fa-solid fa-sliders text-warning"></i>
             <span class="fw-semibold">Search Offline Sales</span>
             @if($activeManualFilterCount > 0)

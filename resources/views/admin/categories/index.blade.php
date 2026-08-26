@@ -3,13 +3,13 @@
 @section('title', 'Category Master - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
     <div>
-        <h3 class="fw-bold mb-1">Category Master</h3>
-        <p class="text-muted small mb-0">Organize and manage apparel categories</p>
+        <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Category Master</h4>
+        <p class="text-muted small mb-0 d-none d-sm-block">Organize and manage apparel categories</p>
     </div>
-    <a href="{{ route('admin.categories.create') }}" class="btn btn-warning rounded-pill fw-bold mt-3 mt-md-0 px-4">
-        <i class="fa-solid fa-plus me-1"></i> Add New Category
+    <a href="{{ route('admin.categories.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1 text-nowrap" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Category">
+        <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Category</span>
     </a>
 </div>
 

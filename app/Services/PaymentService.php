@@ -33,8 +33,8 @@ class PaymentService
         $razorpayKey = config('services.razorpay.key');
         $razorpaySecret = config('services.razorpay.secret');
 
-        if (!is_string($razorpayKey) || !str_starts_with($razorpayKey, 'rzp_live_') || empty($razorpaySecret)) {
-            throw new \RuntimeException('Razorpay Live Mode credentials are not configured correctly.');
+        if (!is_string($razorpayKey) || (!str_starts_with($razorpayKey, 'rzp_live_') && !str_starts_with($razorpayKey, 'rzp_test_')) || empty($razorpaySecret)) {
+            throw new \RuntimeException('Razorpay credentials are not configured correctly.');
         }
 
         $amountInPaise = (int) round($order->grand_total * 100);
@@ -122,6 +122,9 @@ class PaymentService
                 'payment_status' => 'paid',
                 'order_status' => 'confirmed',
             ]);
+
+            // Calculate and record Razorpay payment gateway charges
+            $order->calculateRazorpayCharge();
 
             return true;
         }

@@ -133,21 +133,46 @@ class EmailAuthController extends Controller
     public function myOrders(Request $request)
     {
         $email = session('customer_email');
+        $phone = session('customer_phone');
+
+        if ($request->filled('contact')) {
+            $contact = trim($request->contact);
+            if (filter_var($contact, FILTER_VALIDATE_EMAIL)) {
+                $email = strtolower($contact);
+                session(['customer_email' => $email]);
+            } else {
+                $phone = preg_replace('/[^0-9]/', '', $contact);
+                if (!empty($phone)) {
+                    session(['customer_phone' => $phone]);
+                }
+            }
+        }
 
         if (!$email && $request->filled('email')) {
             $email = strtolower(trim($request->email));
             session(['customer_email' => $email]);
         }
-
-        $orders = collect();
-        if ($email) {
-            $orders = Order::where('customer_email', $email)
-                ->with(['items.product', 'payment'])
-                ->latest()
-                ->get();
+        if (!$phone && $request->filled('phone')) {
+            $phone = preg_replace('/[^0-9]/', '', $request->phone);
+            session(['customer_phone' => $phone]);
         }
 
-        return view('frontend.my_orders', compact('orders', 'email'));
+        $orders = collect();
+        if ($email || $phone) {
+            $orders = Order::where(function ($query) use ($email, $phone) {
+                if ($email) {
+                    $query->where('customer_email', $email);
+                }
+                if ($phone) {
+                    $query->orWhere('customer_phone', $phone);
+                }
+            })
+            ->with(['items.product', 'payment'])
+            ->latest()
+            ->get();
+        }
+
+        return view('frontend.my_orders', compact('orders', 'email', 'phone'));
     }
 
     /**
@@ -155,7 +180,7 @@ class EmailAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        session()->forget('customer_email');
-        return redirect()->route('home')->with('success', 'You have logged out of your email session.');
+        session()->forget(['customer_email', 'customer_phone']);
+        return redirect()->route('home')->with('success', 'You have logged out of your session.');
     }
 }

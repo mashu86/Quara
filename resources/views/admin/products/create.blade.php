@@ -3,18 +3,59 @@
 @section('title', 'Add Product - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold mb-0">Create New Product</h3>
-    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3">&larr; Back to Products</a>
+<style>
+@media (max-width: 576px) {
+    .admin-prod-page-title {
+        font-size: 1.05rem !important;
+    }
+    .admin-back-btn {
+        font-size: 0.72rem !important;
+        padding: 0.25rem 0.65rem !important;
+    }
+    .admin-prod-card-body {
+        padding: 0.85rem !important;
+    }
+    .admin-prod-card-body h5 {
+        font-size: 0.92rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    .admin-prod-card-body .form-label {
+        font-size: 0.78rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    .admin-prod-card-body .form-control, 
+    .admin-prod-card-body .form-select {
+        font-size: 0.82rem !important;
+        padding: 0.35rem 0.6rem !important;
+    }
+    .admin-prod-card-body .form-text {
+        font-size: 0.72rem !important;
+    }
+    .btn-submit-product {
+        font-size: 0.82rem !important;
+        padding: 0.6rem 1rem !important;
+    }
+    .size-row .form-control {
+        font-size: 0.8rem !important;
+        padding: 0.3rem 0.5rem !important;
+    }
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 flex-wrap gap-2">
+    <h3 class="fw-bold mb-0 admin-prod-page-title">Create New Product</h3>
+    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-dark rounded-pill btn-sm admin-back-btn text-nowrap">
+        <i class="fa-solid fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back to </span>Products
+    </a>
 </div>
 
 <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
     @csrf
-    <div class="row g-4">
+    <div class="row g-3 g-md-4">
         <!-- Main Fields -->
         <div class="col-lg-8">
-            <div class="card border-0 rounded-4 shadow-sm mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4 admin-prod-card-body">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Basic Details</h5>
 
                     <div class="row g-3">
@@ -24,13 +65,36 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
-                            <select name="category_id" class="form-select rounded-3" required>
-                                <option value="">Select Category</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
+                            <label class="form-label fw-bold">Categories (Select Multiple) <span class="text-danger">*</span></label>
+                            <div class="dropdown custom-category-dropdown position-relative">
+                                <button class="btn btn-outline-secondary form-select text-start rounded-3 d-flex justify-content-between align-items-center bg-white shadow-none" type="button" id="categoryDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="categoryDropdownBtnText" class="text-truncate me-2 text-muted">Select Categories</span>
+                                </button>
+                                <div class="dropdown-menu p-3 shadow-lg border-0 rounded-3 w-100 mt-1" aria-labelledby="categoryDropdownBtn" style="min-width: 280px; max-width: 100%;">
+                                    <div class="mb-2">
+                                        <input type="text" class="form-control form-control-sm rounded-3" id="categorySearchInput" placeholder="🔍 Search category..." onkeyup="filterCategories(this)" onclick="event.stopPropagation()">
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-primary small fw-bold" onclick="selectAllCategories()">Select All</button>
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted small" onclick="clearCategorySelection()">Clear All</button>
+                                    </div>
+                                    <div id="categoryListContainer" style="max-height: 230px; overflow-y: auto;">
+                                        @php $oldCategoryIds = old('category_ids', old('category_id') ? [old('category_id')] : []); @endphp
+                                        @foreach($categories as $cat)
+                                            <label class="category-item d-flex align-items-center gap-2 py-2 px-2 rounded cursor-pointer user-select-none" style="cursor: pointer; transition: background 0.15s ease-in-out;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                                                <input class="form-check-input category-checkbox m-0 flex-shrink-0" type="checkbox" name="category_ids[]" value="{{ $cat->id }}" id="cat_cb_{{ $cat->id }}" onchange="updateCategorySelectionDisplay()" {{ in_array($cat->id, (array)$oldCategoryIds) ? 'checked' : '' }} style="width: 18px; height: 18px; cursor: pointer;">
+                                                <span class="text-dark small fw-medium flex-grow-1">
+                                                    {{ $cat->name }}
+                                                </span>
+                                            </label>
+                                        @endforeach
+                                        <div id="noCategoriesFound" class="text-muted small text-center py-2 d-none">No categories found</div>
+                                    </div>
+                                </div>
+                            </div>
+                            @error('category_ids')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="col-md-4">
@@ -68,11 +132,11 @@
             </div>
 
             <!-- Size-wise Stock Section -->
-            <div class="card border-0 rounded-4 shadow-sm mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4 admin-prod-card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                         <h5 class="fw-bold mb-0"><i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Size & Stock Management</h5>
-                        <button type="button" class="btn btn-outline-dark btn-sm rounded-pill" onclick="addSizeRow()"><i class="fa-solid fa-plus me-1"></i> Add Size Row</button>
+                        <button type="button" class="btn btn-outline-dark btn-sm  py-1 px-2.5" style="font-size: 0.78rem;" onclick="addSizeRow()"><i class="fa-solid fa-plus me-1"></i></button>
                     </div>
 
                     <div id="sizeRowsContainer">
@@ -81,7 +145,7 @@
                                 <input type="text" name="sizes[]" class="form-control rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="Free Size" required>
                             </div>
                             <div class="col-5">
-                                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Initial Stock Qty" value="10" min="0" required>
+                                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Initial Stock Qty" value="1" min="0" required>
                             </div>
                             <div class="col-2">
                                 <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-3" onclick="removeSizeRow(this)"><i class="fa-solid fa-xmark"></i></button>
@@ -94,8 +158,8 @@
 
         <!-- Right Column: Images & Publish -->
         <div class="col-lg-4">
-            <div class="card border-0 rounded-4 shadow-sm mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4 admin-prod-card-body">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Status & Delivery Setup</h5>
 
                     <div class="mb-3">
@@ -131,8 +195,9 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label small fw-bold mb-0">Sub Images / Additional Gallery</label>
-                            <button type="button" class="btn btn-outline-warning btn-sm rounded-pill font-bold" onclick="addSubImageSlot()">
-                                <i class="fa-solid fa-plus me-1"></i> Add 
+                            <button type="button" class="btn btn-outline-warning btn-sm py-1 px-2.5" style="font-size: 0.78rem;" onclick="addSubImageSlot()">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
                         </div>
                         <div class="form-text small mb-3">Add as many sub-images as needed. Each image can be previewed or removed individually.</div>
                         
@@ -152,7 +217,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 shadow-sm mt-3">SAVE & PUBLISH PRODUCT</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-2.5 py-md-3 btn-submit-product shadow-sm mt-3">SAVE & PUBLISH PRODUCT</button>
                 </div>
             </div>
         </div>
@@ -186,7 +251,7 @@
                 <input type="text" name="sizes[]" class="form-control rounded-3" placeholder="Size (e.g. S, M, L)" required>
             </div>
             <div class="col-5">
-                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Stock Qty" value="5" min="0" required>
+                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Stock Qty" value="1" min="0" required>
             </div>
             <div class="col-2">
                 <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-3" onclick="removeSizeRow(this)"><i class="fa-solid fa-xmark"></i></button>
@@ -284,5 +349,72 @@
             previewBox.classList.add('d-none');
         }
     }
+
+    // Category Multi-Select Dropdown Functions
+    function updateCategorySelectionDisplay() {
+        const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+        const btnText = document.getElementById('categoryDropdownBtnText');
+        if (!btnText) return;
+
+        if (checkboxes.length === 0) {
+            btnText.innerText = 'Select Categories';
+            btnText.classList.add('text-muted');
+            btnText.classList.remove('text-dark', 'fw-bold');
+        } else {
+            const labels = Array.from(checkboxes).map(cb => {
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                return label ? label.innerText.trim() : '';
+            }).filter(Boolean);
+
+            if (checkboxes.length === 1) {
+                btnText.innerText = labels[0];
+            } else {
+                btnText.innerText = `${checkboxes.length} Selected (${labels.slice(0, 2).join(', ')}${labels.length > 2 ? '...' : ''})`;
+            }
+            btnText.classList.remove('text-muted');
+            btnText.classList.add('text-dark', 'fw-bold');
+        }
+    }
+
+    function filterCategories(input) {
+        const term = input.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.category-item');
+        let hasMatch = false;
+
+        items.forEach(item => {
+            const text = item.innerText.toLowerCase();
+            if (text.includes(term)) {
+                item.classList.remove('d-none');
+                hasMatch = true;
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        const noResult = document.getElementById('noCategoriesFound');
+        if (noResult) {
+            if (hasMatch) {
+                noResult.classList.add('d-none');
+            } else {
+                noResult.classList.remove('d-none');
+            }
+        }
+    }
+
+    function selectAllCategories() {
+        const visibleCheckboxes = document.querySelectorAll('.category-item:not(.d-none) .category-checkbox');
+        visibleCheckboxes.forEach(cb => cb.checked = true);
+        updateCategorySelectionDisplay();
+    }
+
+    function clearCategorySelection() {
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateCategorySelectionDisplay();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCategorySelectionDisplay();
+    });
 </script>
 @endsection

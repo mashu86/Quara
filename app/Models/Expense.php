@@ -15,6 +15,7 @@ class Expense extends Model
         'category',
         'expense_date',
         'notes',
+        'receipt_image',
     ];
 
     protected $casts = [
@@ -25,5 +26,17 @@ class Expense extends Model
     public function getExpenseNameAttribute(): ?string
     {
         return $this->title;
+    }
+
+    public function getReceiptImagesAttribute(): array
+    {
+        if (empty($this->receipt_image)) {
+            return [];
+        }
+        $decoded = json_decode($this->receipt_image, true);
+        if (is_array($decoded)) {
+            return array_values($decoded);
+        }
+        return [$this->receipt_image];
     }
 }

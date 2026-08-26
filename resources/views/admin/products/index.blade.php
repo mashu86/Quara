@@ -3,16 +3,6 @@
 @section('title', 'Product Master - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">Product Master</h3>
-        <p class="text-muted small mb-0">Manage product inventory, pricing, discounts and variants</p>
-    </div>
-    <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-pill fw-bold mt-3 mt-md-0 px-4">
-        <i class="fa-solid fa-plus me-1"></i> Add New Product
-    </a>
-</div>
-
 @php
     $activeFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('category_id') ? 1 : 0)
@@ -21,18 +11,26 @@
         + (request()->filled('sort') && request()->sort !== 'newest' ? 1 : 0);
 @endphp
 
-<!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
-<div class="d-lg-none mb-3">
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#productFilterModal">
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
+    <div>
+        <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Product Master</h4>
+        <p class="text-muted small mb-0 d-none d-sm-block">Manage product inventory, pricing, discounts and variants</p>
+    </div>
+    <div class="d-flex align-items-center gap-1.5 gap-sm-2">
+        <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1 text-nowrap" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
+            <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Product</span>
+        </a>
+
+        <!-- Mobile Filter Icon Button (d-lg-none) -->
+        <button type="button" class="btn btn-dark rounded-3 btn-sm px-2.5 py-1 position-relative d-lg-none" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#productFilterModal" title="Filter Products">
             <i class="fa-solid fa-sliders text-warning"></i>
-            <span class="fw-semibold">Filter Products</span>
             @if($activeFilterCount > 0)
-                <span class="badge bg-warning text-dark rounded-pill">{{ $activeFilterCount }}</span>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size: 0.62rem;">{{ $activeFilterCount }}</span>
             @endif
         </button>
+
         @if($activeFilterCount > 0)
-            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 btn-sm px-2 py-1 d-lg-none" style="font-size: 0.78rem;" title="Clear Filters">
                 <i class="fa-solid fa-rotate-left"></i>
             </a>
         @endif
@@ -171,7 +169,16 @@
                                 <h6 class="fw-bold text-dark mb-0">{{ $product->name }}</h6>
                                 <span class="text-muted small">Slug: {{ $product->slug }}</span>
                             </td>
-                            <td><span class="badge bg-light text-dark border">{{ $product->category->name }}</span></td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1" style="max-width: 160px;">
+                                    @php
+                                        $cats = $product->categories->isNotEmpty() ? $product->categories : collect([$product->category])->filter();
+                                    @endphp
+                                    @foreach($cats as $cat)
+                                        <span class="badge bg-light text-dark border">{{ $cat->name }}</span>
+                                    @endforeach
+                                </div>
+                            </td>
                             <td>₹{{ number_format($product->price, 2) }}</td>
                             <td>
                                 @if($product->discount_type === 'fixed')
@@ -201,13 +208,19 @@
                                 </span>
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark me-1"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                                <div class="d-flex align-items-center justify-content-end gap-1 gap-md-2">
+                                    <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark px-2 px-md-3" title="Edit Product">
+                                        <i class="fa-solid fa-pen-to-square"></i> <span class="d-none d-md-inline ms-1">Edit</span>
+                                    </a>
 
-                                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this product permanently?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i> Delete</button>
-                                </form>
+                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this product permanently?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2 px-md-3" title="Delete Product">
+                                            <i class="fa-solid fa-trash"></i> <span class="d-none d-md-inline ms-1">Delete</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

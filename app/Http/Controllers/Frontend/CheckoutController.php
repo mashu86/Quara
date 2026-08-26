@@ -160,6 +160,11 @@ class CheckoutController extends Controller
                     ]);
                 }
 
+                session([
+                    'customer_phone' => $validated['customer_phone'],
+                    'customer_email' => $order->customer_email ? strtolower(trim($order->customer_email)) : session('customer_email')
+                ]);
+
                 return $order;
             });
 
@@ -269,12 +274,23 @@ class CheckoutController extends Controller
      */
     public function fetchAddressByEmail(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|max:255',
-        ]);
+        $email = strtolower(trim($request->input('email', '')));
+        $phone = preg_replace('/[^0-9]/', '', $request->input('phone', ''));
 
-        $email = strtolower(trim($request->email));
-        $lastOrder = Order::where('customer_email', $email)->latest()->first();
+        $query = Order::query();
+        if ($email && $phone) {
+            $query->where(function($q) use ($email, $phone) {
+                $q->where('customer_email', $email)->orWhere('customer_phone', $phone);
+            });
+        } elseif ($email) {
+            $query->where('customer_email', $email);
+        } elseif ($phone) {
+            $query->where('customer_phone', $phone);
+        } else {
+            return response()->json(['found' => false]);
+        }
+
+        $lastOrder = $query->latest()->first();
 
         if ($lastOrder) {
             return response()->json([
@@ -296,7 +312,7 @@ class CheckoutController extends Controller
 
         return response()->json([
             'found' => false,
-            'message' => 'No previous orders found for this email.'
+            'message' => 'No previous orders found.'
         ]);
     }
 }

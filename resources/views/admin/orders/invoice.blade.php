@@ -46,6 +46,56 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+        @media (max-width: 576px) {
+            .invoice-card {
+                margin: 12px auto !important;
+                border-radius: 12px !important;
+            }
+            .invoice-header {
+                padding: 18px 16px !important;
+            }
+            .brand-logo-text {
+                font-size: 1.25rem !important;
+                letter-spacing: 1px !important;
+            }
+            .invoice-header h2 {
+                font-size: 0.9rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            .invoice-header .small {
+                font-size: 0.7rem !important;
+            }
+            .invoice-card .p-4.p-sm-5 {
+                padding: 1rem 0.85rem !important;
+            }
+            .invoice-card h5 {
+                font-size: 0.92rem !important;
+            }
+            .invoice-card h6 {
+                font-size: 0.8rem !important;
+            }
+            .invoice-card p, .invoice-card td, .invoice-card th, .invoice-card div {
+                font-size: 0.74rem !important;
+            }
+            .table-invoice th {
+                font-size: 0.68rem !important;
+                padding: 0.4rem 0.3rem !important;
+            }
+            .table-invoice td {
+                padding: 0.45rem 0.3rem !important;
+            }
+            .invoice-badge {
+                font-size: 0.62rem !important;
+                padding: 3px 8px !important;
+            }
+            .invoice-grand-total {
+                font-size: 0.95rem !important;
+            }
+            .invoice-back-btn {
+                padding: 0.25rem 0.65rem !important;
+                font-size: 0.85rem !important;
+            }
+        }
         @media print {
             body {
                 background: #fff;
@@ -64,12 +114,12 @@
 </head>
 <body>
 
-<div class="no-print text-center pt-4">
-    <button onclick="window.print()" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm me-2">
-        <i class="fa-solid fa-print me-1"></i> Print Invoice
+<div class="no-print d-flex justify-content-between align-items-center pt-4 px-3 px-sm-0 mx-auto" style="max-width: 850px;">
+    <button onclick="window.print()" class="btn btn-warning rounded-pill px-3 px-sm-4 fw-bold shadow-sm" style="background-color: #ffc107; border-color: #ffc107;">
+        <i class="fa-solid fa-print me-1"></i> <span class="d-none d-sm-inline">Print </span>Invoice
     </button>
-    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm">
-        &larr; Back to Order Details
+    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark rounded-3 px-3 px-sm-4 fw-bold shadow-sm invoice-back-btn" title="Back to Order Details">
+        &larr;<span class="d-none d-sm-inline"> Back to Order Details</span>
     </a>
 </div>
 

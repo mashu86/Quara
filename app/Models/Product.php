@@ -38,6 +38,11 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('is_primary', 'desc')->orderBy('sort_order', 'asc');
@@ -66,8 +71,12 @@ class Product extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active')
-            ->whereHas('category', function ($q) {
-                $q->where('status', 'active');
+            ->where(function ($q) {
+                $q->whereHas('category', function ($catQ) {
+                    $catQ->where('status', 'active');
+                })->orWhereHas('categories', function ($catQ) {
+                    $catQ->where('status', 'active');
+                });
             });
     }
 

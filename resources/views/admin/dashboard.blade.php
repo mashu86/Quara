@@ -9,6 +9,20 @@
             font-size: 0.74rem !important;
             padding: 6px 10px !important;
         }
+        .admin-dash-card-title {
+            font-size: 0.95rem !important;
+        }
+        .admin-dash-table th, .admin-dash-table td {
+            font-size: 0.8rem !important;
+            padding: 0.45rem 0.5rem !important;
+        }
+        .admin-dash-stock-name {
+            font-size: 0.82rem !important;
+        }
+        .admin-dash-stock-badge {
+            font-size: 0.74rem !important;
+            padding: 4px 8px !important;
+        }
     }
 </style>
 @endsection
@@ -85,12 +99,12 @@
     <div class="col-lg-8">
         <div class="card border-0 rounded-4 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-bell text-warning me-2"></i> Recent / New Orders</h5>
-                <a href="{{ route('admin.orders.index') }}" class="btn btn-link btn-sm text-decoration-none">View All Orders &rarr;</a>
+                <h5 class="fw-bold mb-0 text-dark admin-dash-card-title"><i class="fa-solid fa-bell text-warning me-2"></i> Recent / New Orders</h5>
+                <a href="{{ route('admin.orders.index') }}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem;">View All &rarr;</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+                    <table class="table align-middle mb-0 admin-dash-table">
                         <thead class="table-light">
                             <tr>
                                 <th>Order #</th>
@@ -110,18 +124,18 @@
                                         </a>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark">{{ $order->customer_name }}</div>
-                                        <div class="small text-muted">{{ $order->customer_phone }}</div>
+                                        <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
+                                        <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
                                     </td>
-                                    <td><span class="badge bg-light text-dark border text-uppercase">{{ $order->payment_method }}</span></td>
+                                    <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
                                     <td class="fw-bold">₹{{ number_format($order->grand_total, 2) }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize">
+                                        <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize" style="font-size: 0.72rem;">
                                             {{ $order->order_status }}
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark btn-sm rounded-pill">Manage</a>
+                                        <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark btn-sm rounded-pill py-0 px-2" style="font-size: 0.74rem;">Manage</a>
                                     </td>
                                 </tr>
                             @empty
@@ -140,19 +154,19 @@
     <div class="col-lg-4">
         <div class="card border-0 rounded-4 shadow-sm">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Low Stock Alerts</h5>
+                <h5 class="fw-bold mb-0 text-danger admin-dash-card-title"><i class="fa-solid fa-triangle-exclamation me-2"></i> Low Stock Alerts</h5>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     @forelse($lowStockSizes as $pSize)
-                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2.5 px-3">
                             <div>
-                                <h6 class="fw-bold mb-0 text-dark">{{ $pSize->product->name ?? 'Unknown Product' }}</h6>
-                                <span class="badge bg-dark">Size: {{ $pSize->size }}</span>
+                                <h6 class="fw-bold mb-0 text-dark admin-dash-stock-name">{{ $pSize->product->name ?? 'Unknown Product' }}</h6>
+                                <span class="badge bg-dark" style="font-size: 0.72rem;">Size: {{ $pSize->size }}</span>
                             </div>
                             <div class="text-end">
-                                <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">{{ $pSize->stock }} left</span>
-                                <a href="{{ route('admin.products.edit', $pSize->product_id) }}" class="btn btn-link btn-sm p-0 d-block text-decoration-none">Update</a>
+                                <span class="badge bg-danger rounded-pill px-2.5 py-1.5 admin-dash-stock-badge">{{ $pSize->stock }} left</span>
+                                <a href="{{ route('admin.products.edit', $pSize->product_id) }}" class="btn btn-link btn-sm p-0 d-block text-decoration-none text-muted" style="font-size: 0.75rem;">Update</a>
                             </div>
                         </li>
                     @empty

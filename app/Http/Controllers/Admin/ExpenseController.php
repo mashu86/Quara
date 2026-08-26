@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Order;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ExpenseController extends Controller
 {
@@ -48,7 +51,32 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'category' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
+
+        $imagePaths = [];
+        if ($request->hasFile('receipt_images')) {
+            foreach ($request->file('receipt_images') as $file) {
+                if ($file && $file->isValid()) {
+                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('uploads/expenses'), $filename);
+                    $imagePaths[] = 'uploads/expenses/' . $filename;
+                }
+            }
+        } elseif ($request->hasFile('receipt_image')) {
+            $file = $request->file('receipt_image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/expenses'), $filename);
+            $imagePaths[] = 'uploads/expenses/' . $filename;
+        }
+
+        $receiptValue = null;
+        if (count($imagePaths) === 1) {
+            $receiptValue = $imagePaths[0];
+        } elseif (count($imagePaths) > 1) {
+            $receiptValue = json_encode($imagePaths);
+        }
 
         Expense::create([
             'title' => $validated['title'],
@@ -56,43 +84,188 @@ class ExpenseController extends Controller
             'expense_date' => $validated['expense_date'],
             'category' => $validated['category'] ?? 'General',
             'notes' => $validated['notes'] ?? null,
+            'receipt_image' => $receiptValue,
         ]);
 
         return redirect()->route('admin.expenses.index')->with('success', 'Expense recorded successfully!');
     }
 
+    public function show(Expense $expense)
+    {
+        if (request()->wantsJson()) {
+            $images = array_map(function($img) {
+                return asset($img);
+            }, $expense->receipt_images);
+
+            return response()->json([
+                'success' => true,
+                'expense' => [
+                    'id' => $expense->id,
+                    'title' => $expense->title,
+                    'amount' => number_format($expense->amount, 2),
+                    'category' => $expense->category,
+                    'expense_date' => \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y'),
+                    'notes' => $expense->notes,
+                    'receipt_image_urls' => $images,
+                    'receipt_image_url' => count($images) > 0 ? $images[0] : null,
+                ]
+            ]);
+        }
+
+        return view('admin.expenses.show', compact('expense'));
+    }
+
+    public function edit(Expense $expense)
+    {
+        return view('admin.expenses.edit', compact('expense'));
+    }
+
+    public function update(Request $request, Expense $expense)
+    {
+        $title = $request->input('title') ?? $request->input('expense_name');
+        $request->merge(['title' => $title]);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'expense_date' => 'required|date',
+            'category' => 'nullable|string|max:100',
+            'notes' => 'nullable|string',
+            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ]);
+
+        $existingImages = $expense->receipt_images;
+        $removedImages = $request->input('removed_receipt_images', []);
+        if (is_string($removedImages)) {
+            $removedImages = json_decode($removedImages, true) ?? [];
+        }
+
+        if ($request->input('remove_receipt_image') == '1') {
+            foreach ($existingImages as $img) {
+                if (file_exists(public_path($img))) {
+                    @unlink(public_path($img));
+                }
+            }
+            $existingImages = [];
+        } elseif (!empty($removedImages)) {
+            $keptImages = [];
+            foreach ($existingImages as $img) {
+                if (in_array($img, $removedImages)) {
+                    if (file_exists(public_path($img))) {
+                        @unlink(public_path($img));
+                    }
+                } else {
+                    $keptImages[] = $img;
+                }
+            }
+            $existingImages = $keptImages;
+        }
+
+        $newImagePaths = [];
+        if ($request->hasFile('receipt_images')) {
+            foreach ($request->file('receipt_images') as $file) {
+                if ($file && $file->isValid()) {
+                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('uploads/expenses'), $filename);
+                    $newImagePaths[] = 'uploads/expenses/' . $filename;
+                }
+            }
+        } elseif ($request->hasFile('receipt_image')) {
+            $file = $request->file('receipt_image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/expenses'), $filename);
+            $newImagePaths[] = 'uploads/expenses/' . $filename;
+        }
+
+        $finalImages = array_merge($existingImages, $newImagePaths);
+
+        $receiptValue = null;
+        if (count($finalImages) === 1) {
+            $receiptValue = $finalImages[0];
+        } elseif (count($finalImages) > 1) {
+            $receiptValue = json_encode(array_values($finalImages));
+        }
+
+        $expense->update([
+            'title' => $validated['title'],
+            'amount' => $validated['amount'],
+            'expense_date' => $validated['expense_date'],
+            'category' => $validated['category'] ?? 'General',
+            'notes' => $validated['notes'] ?? null,
+            'receipt_image' => $receiptValue,
+        ]);
+
+        return redirect()->route('admin.expenses.index')->with('success', 'Expense record updated successfully!');
+    }
+
     public function destroy(Expense $expense)
     {
+        if ($expense->receipt_image && file_exists(public_path($expense->receipt_image))) {
+            @unlink(public_path($expense->receipt_image));
+        }
+
         $expense->delete();
         return redirect()->route('admin.expenses.index')->with('success', 'Expense deleted successfully.');
     }
 
+    /**
+     * Profit & Loss Report with itemized Razorpay charges, product costs, shipping, and expenses.
+     */
     public function profitLossReport(Request $request)
     {
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        // Orders Revenue (Delivered / Paid orders)
+        // Base Orders Query for paid/completed orders (excluding cancelled/refunded)
         $ordersQuery = Order::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->whereIn('payment_status', ['paid', 'completed']);
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled');
 
-        $totalSalesRevenue = $ordersQuery->sum('subtotal');
-        $totalShippingRevenue = $ordersQuery->sum('shipping');
-        $totalGrossRevenue = $ordersQuery->sum('grand_total');
+        $totalSalesRevenue = (clone $ordersQuery)->sum('subtotal');
+        $totalShippingRevenue = (clone $ordersQuery)->sum('shipping');
+        $totalGrossRevenue = (clone $ordersQuery)->sum('grand_total');
 
-        $totalOrdersCount = $ordersQuery->count();
-        $onlineOrdersCount = (clone $ordersQuery)->where(function($q){
-            $q->where('order_source', 'website')->orWhereNull('order_source');
-        })->count();
-        $manualOrdersCount = (clone $ordersQuery)->where('order_source', 'manual')->count();
+        // Revenue split by Payment Method
+        $codSalesRevenue = (clone $ordersQuery)->where('payment_method', 'cod')->sum('grand_total');
+        $onlineSalesRevenue = (clone $ordersQuery)->where('payment_method', 'online')->sum('grand_total');
 
-        // Expenses
-        $totalExpenses = Expense::whereBetween('expense_date', [$startDate, $endDate])->sum('amount');
+        $totalOrdersCount = (clone $ordersQuery)->count();
+        $codOrdersCount = (clone $ordersQuery)->where('payment_method', 'cod')->count();
+        $onlineOrdersCount = (clone $ordersQuery)->where('payment_method', 'online')->count();
+
+        // Calculate Product Cost Price for sold items
+        $paidOrderIds = (clone $ordersQuery)->pluck('id');
+        $totalProductCost = 0.00;
+        if (Schema::hasColumn('products', 'cost_price') && count($paidOrderIds) > 0) {
+            $totalProductCost = DB::table('order_items')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereIn('order_items.order_id', $paidOrderIds)
+                ->sum(DB::raw('COALESCE(products.cost_price, 0) * order_items.quantity'));
+        }
+
+        // Calculate Razorpay Gateway Charges (Only for Online Paid orders)
+        // Auto-recalculate if razorpay_total_charge is zero on online paid order
+        $onlinePaidOrders = (clone $ordersQuery)->where('payment_method', 'online')->get();
+        $feePct = (float) Setting::get('razorpay_fee_percent', 2.00);
+        $gstPct = (float) Setting::get('razorpay_gst_percent', 18.00);
+
+        foreach ($onlinePaidOrders as $o) {
+            if ($o->razorpay_total_charge <= 0) {
+                $o->calculateRazorpayCharge(null, $feePct, $gstPct);
+            }
+        }
+
+        $totalRazorpayCharges = (clone $ordersQuery)->where('payment_method', 'online')->sum('razorpay_total_charge');
+
+        // Recorded General Expenses
+        $otherExpenses = Expense::whereBetween('expense_date', [$startDate, $endDate])->sum('amount');
         $expensesList = Expense::whereBetween('expense_date', [$startDate, $endDate])
             ->orderBy('expense_date', 'desc')
             ->get();
 
-        // Profit / Loss calculation
+        // Total Cost/Expenses = Product Cost + Delivery Shipping Cost + Razorpay Charges + Other Expenses
+        $totalExpenses = $totalProductCost + $totalShippingRevenue + $totalRazorpayCharges + $otherExpenses;
         $netProfitLoss = $totalGrossRevenue - $totalExpenses;
         $isProfit = $netProfitLoss >= 0;
 
@@ -102,13 +275,109 @@ class ExpenseController extends Controller
             'totalSalesRevenue',
             'totalShippingRevenue',
             'totalGrossRevenue',
+            'codSalesRevenue',
+            'onlineSalesRevenue',
             'totalOrdersCount',
+            'codOrdersCount',
             'onlineOrdersCount',
-            'manualOrdersCount',
+            'totalProductCost',
+            'totalRazorpayCharges',
+            'otherExpenses',
             'totalExpenses',
             'expensesList',
             'netProfitLoss',
-            'isProfit'
+            'isProfit',
+            'feePct',
+            'gstPct'
         ));
+    }
+
+    /**
+     * Dedicated Razorpay Payment Gateway Charges Report.
+     */
+    public function razorpayReport(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+
+        $feePct = (float) Setting::get('razorpay_fee_percent', 2.00);
+        $gstPct = (float) Setting::get('razorpay_gst_percent', 18.00);
+
+        $query = Order::where('payment_method', 'online')
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->orderBy('id', 'desc');
+
+        // Recalculate if any record missing fee data
+        $orders = $query->paginate(20)->withQueryString();
+        foreach ($orders as $o) {
+            if ($o->razorpay_total_charge <= 0) {
+                $o->calculateRazorpayCharge(null, $feePct, $gstPct);
+            }
+        }
+
+        $summaryQuery = Order::where('payment_method', 'online')
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        $totalOnlineRevenue = $summaryQuery->sum('grand_total');
+        $totalRazorpayBaseFee = $summaryQuery->sum('razorpay_base_fee');
+        $totalRazorpayGstFee = $summaryQuery->sum('razorpay_gst_fee');
+        $totalRazorpayCharges = $summaryQuery->sum('razorpay_total_charge');
+        $totalNetReceived = $summaryQuery->sum('razorpay_net_amount');
+
+        return view('admin.reports.razorpay', compact(
+            'orders',
+            'startDate',
+            'endDate',
+            'feePct',
+            'gstPct',
+            'totalOnlineRevenue',
+            'totalRazorpayBaseFee',
+            'totalRazorpayGstFee',
+            'totalRazorpayCharges',
+            'totalNetReceived'
+        ));
+    }
+
+    /**
+     * Display Admin Settings Page.
+     */
+    public function settings()
+    {
+        $razorpayFeePercent = Setting::get('razorpay_fee_percent', '2.00');
+        $razorpayGstPercent = Setting::get('razorpay_gst_percent', '18.00');
+
+        return view('admin.settings.index', compact('razorpayFeePercent', 'razorpayGstPercent'));
+    }
+
+    /**
+     * Update Admin Settings (Razorpay Fee % & GST %).
+     */
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'razorpay_fee_percent' => 'required|numeric|min:0|max:100',
+            'razorpay_gst_percent' => 'required|numeric|min:0|max:100',
+            'recalculate_past_orders' => 'nullable|boolean',
+        ]);
+
+        Setting::set('razorpay_fee_percent', number_format((float) $validated['razorpay_fee_percent'], 2, '.', ''), 'payment');
+        Setting::set('razorpay_gst_percent', number_format((float) $validated['razorpay_gst_percent'], 2, '.', ''), 'payment');
+
+        // If admin requested past orders recalculation
+        if ($request->boolean('recalculate_past_orders')) {
+            $onlineOrders = Order::where('payment_method', 'online')->get();
+            $feePct = (float) $validated['razorpay_fee_percent'];
+            $gstPct = (float) $validated['razorpay_gst_percent'];
+
+            foreach ($onlineOrders as $o) {
+                $o->calculateRazorpayCharge(null, $feePct, $gstPct);
+            }
+        }
+
+        return redirect()->route('admin.settings.index')->with('success', 'Razorpay payment settings updated successfully!');
     }
 }

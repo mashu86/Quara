@@ -12,7 +12,7 @@ class ShopController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::active()->with(['category', 'images', 'sizes']);
+        $query = Product::active()->with(['category', 'categories', 'images', 'sizes']);
 
         // General search box (partial matching product name or category name)
         if ($request->filled('search')) {
@@ -22,6 +22,9 @@ class ShopController extends Controller
                   ->orWhere('description', 'LIKE', "%{$search}%")
                   ->orWhereHas('category', function ($cq) use ($search) {
                       $cq->where('name', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('categories', function ($cq) use ($search) {
+                      $cq->where('name', 'LIKE', "%{$search}%");
                   });
             });
         }
@@ -29,8 +32,12 @@ class ShopController extends Controller
         // Category Filter
         if ($request->filled('category')) {
             $categorySlug = $request->category;
-            $query->whereHas('category', function ($q) use ($categorySlug) {
-                $q->where('slug', $categorySlug);
+            $query->where(function ($q) use ($categorySlug) {
+                $q->whereHas('category', function ($cq) use ($categorySlug) {
+                    $cq->where('slug', $categorySlug);
+                })->orWhereHas('categories', function ($cq) use ($categorySlug) {
+                    $cq->where('slug', $categorySlug);
+                });
             });
         }
 

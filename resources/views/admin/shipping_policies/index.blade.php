@@ -3,16 +3,14 @@
 @section('title', 'Delivery Price Master - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
     <div>
-        <h3 class="fw-bold mb-1 fs-4 fs-sm-3">Delivery Price Master (Shipping Policies)</h3>
-        <p class="text-muted small mb-0">Create flexible delivery charge rules based on Cart Item Count or Cart Price Subtotal.</p>
+        <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Delivery Price Master</h4>
+        <p class="text-muted small mb-0 d-none d-sm-block">Create flexible delivery charge rules based on Cart Item Count or Price.</p>
     </div>
-    <div class="mt-2 mt-sm-0">
-        <a href="{{ route('admin.shipping-policies.create') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark me-2">
-            <i class="fa-solid fa-plus me-1"></i> Add New Policy
-        </a>
-    </div>
+    <a href="{{ route('admin.shipping-policies.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1 text-nowrap" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Policy">
+        <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Policy</span>
+    </a>
 </div>
 
 @if(session('success'))
@@ -28,20 +26,20 @@
             <table class="table align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th class="ps-4">Priority</th>
+                        <th class="ps-3">Priority</th>
                         <th>Policy Name</th>
                         <th>Criteria</th>
                         <th>Conditions</th>
                         <th>Delivery Type</th>
                         <th>Charge (₹)</th>
                         <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
+                        <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($policies as $policy)
                         <tr>
-                            <td class="ps-4"><span class="badge bg-secondary rounded-circle">{{ $policy->priority }}</span></td>
+                            <td class="ps-3"><span class="badge bg-secondary rounded-circle">{{ $policy->priority }}</span></td>
                             <td class="fw-bold text-dark">{{ $policy->name }}</td>
                             <td>
                                 @if($policy->criteria_type === 'cart_count')
@@ -75,17 +73,20 @@
                                     <span class="badge bg-danger rounded-pill px-3">Inactive</span>
                                 @endif
                             </td>
-                            <td class="text-end pe-4">
-                                <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-pill me-1">
-                                    <i class="fa-solid fa-pen-to-square"></i> Edit
-                                </a>
-                                <form action="{{ route('admin.shipping-policies.destroy', $policy->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this policy?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
+                            <td class="text-end pe-3">
+                                <div class="d-flex align-items-center justify-content-end gap-1 flex-nowrap">
+                                    <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Edit Policy">
+                                        <i class="fa-solid fa-pen-to-square"></i><span class="d-none d-sm-inline ms-1">Edit</span>
+                                    </a>
+
+                                    <form action="{{ route('admin.shipping-policies.destroy', $policy->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this policy?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Delete Policy">
+                                            <i class="fa-solid fa-trash"></i><span class="d-none d-sm-inline ms-1">Delete</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

@@ -107,6 +107,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::post('/orders/{order}/courier-dispatch', [AdminOrderController::class, 'updateCourierDispatch'])->name('orders.update-courier-dispatch');
         Route::post('/orders/{order}/toggle-cancellation-lock', [AdminOrderController::class, 'toggleCancellationLock'])->name('orders.toggle-cancellation-lock');
+        Route::post('/orders/{order}/send-followup-email', [AdminOrderController::class, 'sendFollowupEmail'])->name('orders.send-followup-email');
+        Route::post('/orders/{order}/increment-wa-count', [AdminOrderController::class, 'incrementWaCount'])->name('orders.increment-wa-count');
 
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');
@@ -118,8 +120,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('shipping-policies', \App\Http\Controllers\Admin\ShippingPolicyController::class);
 
         // Expenses & Profit/Loss Financial Management
-        Route::resource('expenses', AdminExpenseController::class)->except(['show', 'edit', 'update']);
+        Route::resource('expenses', AdminExpenseController::class);
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
+        Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
+
+        // Admin Settings (Razorpay Fee % & GST %)
+        Route::get('/settings', [AdminExpenseController::class, 'settings'])->name('settings.index');
+        Route::post('/settings', [AdminExpenseController::class, 'updateSettings'])->name('settings.update');
 
         // Order Invoice Printable View
         Route::get('/orders/{order}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');

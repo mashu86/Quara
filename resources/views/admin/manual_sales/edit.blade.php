@@ -3,12 +3,69 @@
 @section('title', 'Edit Manual Sale #' . $order->order_number . ' - QUARA WALDROP Admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    @media (max-width: 576px) {
+        .back-offline-btn {
+            padding: 0.25rem 0.55rem !important;
+            font-size: 0.82rem !important;
+            border-radius: 8px !important;
+        }
+        .page-header-title {
+            font-size: 1.15rem !important;
+        }
+        .page-header-subtitle {
+            font-size: 0.72rem !important;
+        }
+        .card-body.p-4 {
+            padding: 1rem 0.85rem !important;
+        }
+        .card-body h5 {
+            font-size: 0.92rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        .card-body h5 i {
+            font-size: 0.9rem !important;
+        }
+        .card-body h6 {
+            font-size: 0.82rem !important;
+        }
+        .form-label {
+            font-size: 0.78rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .form-control, .form-select {
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.65rem !important;
+        }
+        .form-text {
+            font-size: 0.7rem !important;
+        }
+        .grand-total-box {
+            padding: 0.65rem 0.85rem !important;
+            margin-top: 1rem !important;
+        }
+        .grand-total-label {
+            font-size: 0.78rem !important;
+        }
+        .grand-total-amount {
+            font-size: 1.25rem !important;
+        }
+        .submit-sale-btn {
+            padding: 0.65rem 1rem !important;
+            font-size: 0.82rem !important;
+            margin-top: 1rem !important;
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
     <div>
-        <h3 class="fw-bold mb-1">Edit Manual Sale #{{ $order->order_number }}</h3>
-        <p class="text-muted small mb-0">Update customer details, pricing, stock or payment status.</p>
+        <h3 class="fw-bold mb-1 page-header-title">Edit Offline Sale #{{ $order->order_number }}</h3>
+        <p class="text-muted small mb-0 page-header-subtitle">Update customer details, pricing, stock or payment status.</p>
     </div>
-    <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-3">&larr; Back to Manual Sales</a>
+    <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-dark rounded-3 px-2.5 px-md-3 py-1.5 py-md-2 fw-bold shadow-sm back-offline-btn" title="Back to Offline Sales">
+        &larr;<span class="d-none d-md-inline"> Back to Offline Sales</span>
+    </a>
 </div>
 
 <form action="{{ route('admin.manual-sales.update', $order->id) }}" method="POST">
@@ -65,9 +122,9 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
-                        <span class="fw-bold text-dark fs-6">Grand Total Amount:</span>
-                        <span class="fs-3 fw-bold text-warning" id="grandTotalDisplay">₹{{ number_format($order->grand_total, 2) }}</span>
+                    <div class="mt-4 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center grand-total-box">
+                        <span class="fw-bold text-dark fs-6 grand-total-label">Grand Total Amount:</span>
+                        <span class="fs-3 fw-bold text-warning grand-total-amount" id="grandTotalDisplay">₹{{ number_format($order->grand_total, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -146,7 +203,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm">UPDATE MANUAL SALE</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm submit-sale-btn">UPDATE MANUAL SALE</button>
                 </div>
             </div>
         </div>

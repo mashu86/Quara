@@ -188,13 +188,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(2px);
+            background: transparent;
+            backdrop-filter: none;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 5;
-            transition: all 0.3s ease;
+            pointer-events: none;
         }
         .qw-out-of-stock-badge {
             background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
@@ -440,7 +440,7 @@
 
                 <div class="col-lg-3 col-md-6">
                     <h6 class="text-white text-uppercase font-serif mb-3 gold-gradient-text">Customer Support</h6>
-                    <p class="small text-muted mb-2"><i class="fa-solid fa-envelope text-gold me-2"></i> support@quarawaldrop.com</p>
+                    <p class="small text-muted mb-2"><i class="fa-solid fa-envelope text-gold me-2"></i> quarawaldrop@gmail.com</p>
                     <p class="small text-muted mb-2"><i class="fa-brands fa-whatsapp text-gold me-2"></i> Instant WhatsApp Care</p>
                     <p class="small text-muted"><i class="fa-solid fa-truck text-gold me-2"></i> Fast pan-India delivery</p>
                 </div>

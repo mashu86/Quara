@@ -24,14 +24,20 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'sizes', 'images']);
+        $query = Product::with(['category', 'categories', 'sizes', 'images']);
 
         if ($request->filled('search')) {
             $query->where('name', 'LIKE', '%' . $request->search . '%');
         }
 
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $catId = $request->category_id;
+            $query->where(function ($q) use ($catId) {
+                $q->where('category_id', $catId)
+                  ->orWhereHas('categories', function ($cq) use ($catId) {
+                      $cq->where('categories.id', $catId);
+                  });
+            });
         }
 
         if ($request->filled('status')) {
@@ -62,21 +68,23 @@ class ProductController extends Controller
         }
 
         $products = $query->paginate(10)->withQueryString();
-        $categories = Category::where('status', 'active')->get();
+        $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
 
         return view('admin.products.index', compact('products', 'categories'));
     }
 
     public function create()
     {
-        $categories = Category::where('status', 'active')->get();
+        $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
         return view('admin.products.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
             'discount_type' => 'required|in:none,fixed,percentage',
@@ -91,13 +99,24 @@ class ProductController extends Controller
             'stocks' => 'required|array',
         ]);
 
+        $categoryIds = $request->input('category_ids', []);
+        if (empty($categoryIds) && $request->filled('category_id')) {
+            $categoryIds = [$request->category_id];
+        }
+
+        if (empty($categoryIds)) {
+            return back()->withErrors(['category_ids' => 'Please select at least one category.'])->withInput();
+        }
+
+        $validated['category_id'] = $categoryIds[0];
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
         $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(4);
 
-        DB::transaction(function () use ($validated, $request) {
+        DB::transaction(function () use ($validated, $request, $categoryIds) {
             $product = Product::create($validated);
+            $product->categories()->sync($categoryIds);
 
             // Handle Sizes and Stock
             foreach ($validated['sizes'] as $index => $sizeName) {
@@ -145,15 +164,17 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['category', 'sizes', 'images', 'stockMovements']);
-        $categories = Category::where('status', 'active')->get();
+        $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements']);
+        $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
         return view('admin.products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
             'discount_type' => 'required|in:none,fixed,percentage',
@@ -170,12 +191,23 @@ class ProductController extends Controller
             'stock_adjustment_reason' => 'nullable|string',
         ]);
 
+        $categoryIds = $request->input('category_ids', []);
+        if (empty($categoryIds) && $request->filled('category_id')) {
+            $categoryIds = [$request->category_id];
+        }
+
+        if (empty($categoryIds)) {
+            return back()->withErrors(['category_ids' => 'Please select at least one category.'])->withInput();
+        }
+
+        $validated['category_id'] = $categoryIds[0];
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
 
-        DB::transaction(function () use ($validated, $request, $product) {
+        DB::transaction(function () use ($validated, $request, $product, $categoryIds) {
             $product->update($validated);
+            $product->categories()->sync($categoryIds);
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 

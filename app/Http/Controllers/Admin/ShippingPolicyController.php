@@ -21,18 +21,7 @@ class ShippingPolicyController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'criteria_type' => 'required|in:cart_count,cart_price',
-            'from_value' => 'required|numeric|min:0',
-            'from_operator' => 'required|in:<,<=,>,>=',
-            'to_value' => 'nullable|numeric|min:0',
-            'to_operator' => 'nullable|in:<,<=,>,>=',
-            'delivery_type' => 'required|in:free,custom',
-            'charge_amount' => 'nullable|numeric|min:0',
-            'status' => 'required|in:active,inactive',
-            'priority' => 'nullable|integer|min:0',
-        ]);
+        $validated = $request->validate($this->validationRules($request), $this->validationMessages());
 
         $validated['charge_amount'] = ($validated['delivery_type'] === 'free') ? 0.00 : ($validated['charge_amount'] ?? 0.00);
         $validated['priority'] = $validated['priority'] ?? 0;
@@ -49,18 +38,7 @@ class ShippingPolicyController extends Controller
 
     public function update(Request $request, ShippingPolicy $shippingPolicy)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'criteria_type' => 'required|in:cart_count,cart_price',
-            'from_value' => 'required|numeric|min:0',
-            'from_operator' => 'required|in:<,<=,>,>=',
-            'to_value' => 'nullable|numeric|min:0',
-            'to_operator' => 'nullable|in:<,<=,>,>=',
-            'delivery_type' => 'required|in:free,custom',
-            'charge_amount' => 'nullable|numeric|min:0',
-            'status' => 'required|in:active,inactive',
-            'priority' => 'nullable|integer|min:0',
-        ]);
+        $validated = $request->validate($this->validationRules($request), $this->validationMessages());
 
         $validated['charge_amount'] = ($validated['delivery_type'] === 'free') ? 0.00 : ($validated['charge_amount'] ?? 0.00);
         $validated['priority'] = $validated['priority'] ?? 0;
@@ -68,6 +46,34 @@ class ShippingPolicyController extends Controller
         $shippingPolicy->update($validated);
 
         return redirect()->route('admin.shipping-policies.index')->with('success', 'Shipping policy updated successfully!');
+    }
+
+    private function validationRules(Request $request): array
+    {
+        $usesItemCount = $request->input('criteria_type') === 'cart_count';
+        $criteriaValueRule = $usesItemCount ? 'integer' : 'numeric';
+        $criteriaMinimum = $usesItemCount ? 1 : 0;
+
+        return [
+            'name' => 'required|string|max:255',
+            'criteria_type' => 'required|in:cart_count,cart_price',
+            'from_value' => "required|{$criteriaValueRule}|min:{$criteriaMinimum}",
+            'from_operator' => 'required|in:<,<=,>,>=',
+            'to_value' => "nullable|{$criteriaValueRule}|min:{$criteriaMinimum}",
+            'to_operator' => 'nullable|in:<,<=,>,>=',
+            'delivery_type' => 'required|in:free,custom',
+            'charge_amount' => 'nullable|numeric|min:0',
+            'status' => 'required|in:active,inactive',
+            'priority' => 'nullable|integer|min:0',
+        ];
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'from_value.integer' => 'From Item Count must be a whole number (for example: 1, 2, 3).',
+            'to_value.integer' => 'To Item Count must be a whole number (for example: 1, 2, 3).',
+        ];
     }
 
     public function destroy(ShippingPolicy $shippingPolicy)

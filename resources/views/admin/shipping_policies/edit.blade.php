@@ -67,7 +67,7 @@
                         </div>
                         <div>
                             <label class="form-label small fw-bold" id="fromValueLabel">From Value</label>
-                            <input type="number" step="0.01" name="from_value" class="form-control form-control-sm rounded-3" value="{{ old('from_value', $shippingPolicy->from_value) }}" min="0" required>
+                            <input type="number" step="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? '1' : '0.01' }}" name="from_value" id="fromValueInput" class="form-control form-control-sm rounded-3" value="{{ old('from_value', $shippingPolicy->from_value) }}" min="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? '1' : '0' }}" inputmode="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? 'numeric' : 'decimal' }}" required>
                         </div>
                     </div>
                 </div>
@@ -91,7 +91,7 @@
                         </div>
                         <div>
                             <label class="form-label small fw-bold" id="toValueLabel">To Value</label>
-                            <input type="number" step="0.01" name="to_value" class="form-control form-control-sm rounded-3" value="{{ old('to_value', $shippingPolicy->to_value) }}" min="0" placeholder="Unlimited if left empty">
+                            <input type="number" step="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? '1' : '0.01' }}" name="to_value" id="toValueInput" class="form-control form-control-sm rounded-3" value="{{ old('to_value', $shippingPolicy->to_value) }}" min="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? '1' : '0' }}" inputmode="{{ old('criteria_type', $shippingPolicy->criteria_type) === 'cart_count' ? 'numeric' : 'decimal' }}" placeholder="Unlimited if left empty">
                         </div>
                     </div>
                 </div>
@@ -166,6 +166,10 @@
         const type = document.getElementById('criteriaTypeSelect').value;
         const fromLabel = document.getElementById('fromValueLabel');
         const toLabel = document.getElementById('toValueLabel');
+        const criteriaInputs = [
+            document.getElementById('fromValueInput'),
+            document.getElementById('toValueInput')
+        ];
 
         if (type === 'cart_count') {
             fromLabel.innerText = 'From Item Count (Qty)';
@@ -173,6 +177,35 @@
         } else {
             fromLabel.innerText = 'From Cart Subtotal (₹)';
             toLabel.innerText = 'To Cart Subtotal (₹)';
+        }
+
+        criteriaInputs.forEach(input => {
+            input.step = type === 'cart_count' ? '1' : '0.01';
+            input.min = type === 'cart_count' ? '1' : '0';
+            input.inputMode = type === 'cart_count' ? 'numeric' : 'decimal';
+
+            if (type === 'cart_count' && input.value !== '') {
+                const numericValue = Number(input.value);
+                if (Number.isFinite(numericValue)) {
+                    input.value = String(Math.max(1, Math.trunc(numericValue)));
+                }
+            }
+        });
+    }
+
+    function enforceWholeItemCount(event) {
+        if (document.getElementById('criteriaTypeSelect').value === 'cart_count'
+            && ['.', ',', 'e', 'E', '+', '-'].includes(event.key)) {
+            event.preventDefault();
+        }
+    }
+
+    function sanitizeItemCount(event) {
+        if (document.getElementById('criteriaTypeSelect').value === 'cart_count' && event.target.value !== '') {
+            const numericValue = Number(event.target.value);
+            if (Number.isFinite(numericValue)) {
+                event.target.value = String(Math.max(1, Math.trunc(numericValue)));
+            }
         }
     }
 
@@ -187,6 +220,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        [document.getElementById('fromValueInput'), document.getElementById('toValueInput')].forEach(input => {
+            input.addEventListener('keydown', enforceWholeItemCount);
+            input.addEventListener('input', sanitizeItemCount);
+        });
+
         updateCriteriaLabels();
         toggleCustomChargeBox();
     });

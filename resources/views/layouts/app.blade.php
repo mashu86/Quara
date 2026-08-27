@@ -8,8 +8,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/logo.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,7 +95,7 @@
         }
 
         .qw-logo-img {
-            max-height: 52px;
+            max-height: 88px;
             width: auto;
             object-fit: contain;
         }
@@ -288,7 +288,7 @@
 
         /* Responsive Mobile Utilities */
         @media (max-width: 576px) {
-            .qw-logo-img { max-height: 44px; }
+            .qw-logo-img { max-height: 68px; }
             .qw-category-card { height: 170px; }
             .qw-floating-whatsapp { width: 52px; height: 52px; font-size: 28px; bottom: 18px; right: 18px; }
             .qw-btn-card { font-size: 0.72rem !important; padding: 6px 8px !important; letter-spacing: 0.2px !important; }
@@ -308,9 +308,11 @@
                 </a>
 
                 <div class="d-flex align-items-center d-lg-none ms-auto me-2 gap-1">
+                    {{-- Search by Photo button intentionally hidden.
                     <button type="button" class="btn btn-link text-gold p-2" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="Search by Photo / Screenshot">
                         <i class="fa-solid fa-camera fs-5"></i>
                     </button>
+                    --}}
                     <a href="#" class="btn btn-link text-dark p-2" data-bs-toggle="modal" data-bs-target="#searchModal">
                         <i class="fa-solid fa-magnifying-glass fs-5"></i>
                     </a>
@@ -356,9 +358,11 @@
                             <i class="fa-solid fa-magnifying-glass text-dark"></i>
                         </button>
 
+                        {{-- Search by Photo button intentionally hidden.
                         <button type="button" class="btn rounded-pill px-3 py-2 btn-sm fw-bold shadow-sm d-flex align-items-center gap-1 border-0 text-white" data-bs-toggle="modal" data-bs-target="#imageSearchModal" style="background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);">
                             <i class="fa-solid fa-camera me-1"></i> Search by Photo
                         </button>
+                        --}}
 
                         <a href="{{ route('cart.index') }}" class="btn btn-outline-dark rounded-pill px-3 position-relative d-flex align-items-center gap-2">
                             <i class="fa-solid fa-bag-shopping text-gold"></i>

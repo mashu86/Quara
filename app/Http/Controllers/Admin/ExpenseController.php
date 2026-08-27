@@ -15,7 +15,7 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Expense::orderBy('expense_date', 'desc');
+        $query = Expense::query();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -25,14 +25,41 @@ class ExpenseController extends Controller
             });
         }
 
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('expense_date', [$request->start_date, $request->end_date]);
+        if ($request->filled('start_date')) {
+            $query->whereDate('expense_date', '>=', $request->start_date);
         }
 
-        $expenses = $query->paginate(15)->withQueryString();
-        $totalExpenseAmount = $query->sum('amount');
+        if ($request->filled('end_date')) {
+            $query->whereDate('expense_date', '<=', $request->end_date);
+        }
 
-        return view('admin.expenses.index', compact('expenses', 'totalExpenseAmount'));
+        $today = Carbon::now('Asia/Kolkata')->startOfDay();
+
+        $totalExpenses = Expense::sum('amount');
+        $thisMonthExpenses = Expense::whereBetween('expense_date', [
+            $today->copy()->startOfMonth()->toDateString(),
+            $today->copy()->endOfMonth()->toDateString(),
+        ])->sum('amount');
+        $thisWeekExpenses = Expense::whereBetween('expense_date', [
+            $today->copy()->startOfWeek()->toDateString(),
+            $today->copy()->endOfWeek()->toDateString(),
+        ])->sum('amount');
+        $todayExpenses = Expense::whereDate('expense_date', $today->toDateString())->sum('amount');
+
+        $filteredExpenseTotal = (clone $query)->sum('amount');
+        $expenses = $query->orderBy('expense_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.expenses.index', compact(
+            'expenses',
+            'totalExpenses',
+            'thisMonthExpenses',
+            'thisWeekExpenses',
+            'todayExpenses',
+            'filteredExpenseTotal'
+        ));
     }
 
     public function create()

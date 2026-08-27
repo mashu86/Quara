@@ -4,6 +4,59 @@
 
 @section('content')
 <style>
+    .expense-summary-card {
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .expense-summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08) !important;
+    }
+    .expense-summary-card .min-w-0 {
+        min-width: 0;
+    }
+    .expense-summary-icon {
+        align-items: center;
+        border-radius: 14px;
+        display: flex;
+        flex: 0 0 46px;
+        font-size: 1.15rem;
+        height: 46px;
+        justify-content: center;
+        width: 46px;
+    }
+    .expense-summary-label {
+        color: #6c757d;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .expense-summary-value {
+        color: #151515;
+        font-size: clamp(1.15rem, 2vw, 1.55rem);
+        line-height: 1.15;
+    }
+    .filtered-expense-card {
+        background: linear-gradient(135deg, #171719 0%, #2c2c30 100%);
+        color: #fff;
+    }
+    .expense-action-cell {
+        white-space: nowrap;
+    }
+    .expense-action-group {
+        align-items: center;
+        display: inline-flex;
+        flex-wrap: nowrap;
+        gap: 0.3rem;
+    }
+    .expense-action-group form {
+        display: inline-flex !important;
+        flex: 0 0 auto;
+        margin: 0 !important;
+    }
     @media (max-width: 576px) {
         .expense-title {
             font-size: 1.15rem !important;
@@ -40,13 +93,63 @@
         #expenseFilterModal .modal-footer {
             padding: 0.65rem 1rem !important;
         }
+        .expense-summary-card .card-body {
+            align-items: center !important;
+            column-gap: 0.5rem !important;
+            display: grid !important;
+            grid-template-columns: 32px minmax(0, 1fr);
+            grid-template-rows: auto auto;
+            padding: 0.75rem !important;
+            row-gap: 0.4rem !important;
+        }
+        .expense-summary-icon {
+            border-radius: 9px;
+            flex-basis: 32px;
+            font-size: 0.78rem;
+            grid-column: 1;
+            grid-row: 1;
+            height: 32px;
+            width: 32px;
+        }
+        .expense-summary-card .min-w-0 {
+            display: contents;
+        }
+        .expense-summary-label {
+            font-size: 0.58rem;
+            grid-column: 2;
+            grid-row: 1;
+            letter-spacing: 0.02em;
+            margin-bottom: 0 !important;
+            white-space: nowrap;
+        }
+        .expense-summary-value {
+            font-size: 0.92rem;
+            grid-column: 1 / -1;
+            grid-row: 2;
+            margin-top: 0.05rem;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .expense-action-group .btn {
+            align-items: center;
+            border-radius: 50% !important;
+            display: inline-flex;
+            height: 30px;
+            justify-content: center;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 30px;
+        }
+        .expense-action-group .btn i {
+            margin: 0 !important;
+        }
     }
 </style>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 mb-md-4">
     <div>
-        <h3 class="fw-bold mb-1 expense-title">Business Expense Management</h3>
-        <p class="text-muted small mb-0 expense-subtitle">Record all business expenditures, operating costs & material expenses.</p>
+        <h3 class="fw-bold mb-1 expense-title">General Expenses</h3>
+        <p class="text-muted small mb-0 expense-subtitle">All expenses shown here are general business expenses.</p>
     </div>
     <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
         <a href="{{ route('admin.reports.profit-loss') }}" class="btn btn-outline-dark rounded-pill px-3 py-1.5 pnl-btn shadow-sm w-100 w-sm-auto text-center fw-bold" title="Profit & Loss Report">
@@ -71,6 +174,54 @@
         + (request()->filled('end_date') ? 1 : 0);
 @endphp
 
+<!-- General Expense Summary -->
+<div class="row g-2 g-md-3 mb-3 mb-md-4">
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm expense-summary-card">
+            <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
+                <div class="expense-summary-icon bg-dark text-warning"><i class="fa-solid fa-wallet"></i></div>
+                <div class="min-w-0">
+                    <div class="expense-summary-label mb-1">Total Expenses</div>
+                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($totalExpenses, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm expense-summary-card">
+            <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
+                <div class="expense-summary-icon bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-calendar-days"></i></div>
+                <div class="min-w-0">
+                    <div class="expense-summary-label mb-1">This Month</div>
+                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($thisMonthExpenses, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm expense-summary-card">
+            <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
+                <div class="expense-summary-icon bg-primary-subtle text-primary"><i class="fa-solid fa-calendar-week"></i></div>
+                <div class="min-w-0">
+                    <div class="expense-summary-label mb-1">This Week</div>
+                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($thisWeekExpenses, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm expense-summary-card">
+            <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
+                <div class="expense-summary-icon bg-success-subtle text-success"><i class="fa-solid fa-sun"></i></div>
+                <div class="min-w-0">
+                    <div class="expense-summary-label mb-1">Today</div>
+                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($todayExpenses, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
 <div class="d-lg-none mb-3">
     <div class="d-flex gap-2">
@@ -87,27 +238,53 @@
             </a>
         @endif
     </div>
+    @if($activeExpenseFilterCount > 0)
+        <div class="card border-0 shadow-sm filtered-expense-card rounded-4 mt-2">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <div class="small text-white-50">Filtered Expenses</div>
+                    <div class="small text-white-50">{{ $expenses->total() }} matching record(s)</div>
+                </div>
+                <div class="fw-bold fs-5 text-warning text-nowrap">&#8377;{{ number_format($filteredExpenseTotal, 2) }}</div>
+            </div>
+        </div>
+    @endif
 </div>
 
 <!-- Desktop Filters (d-none d-lg-block) -->
-<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
-    <div class="card-body p-3">
-        <form action="{{ route('admin.expenses.index') }}" method="GET" class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <input type="text" name="search" class="form-control rounded-pill px-3" placeholder="Search expense name or category..." value="{{ request('search') }}">
+<div class="row g-3 mb-4 d-none d-lg-flex align-items-stretch">
+    <div class="{{ $activeExpenseFilterCount > 0 ? 'col-lg-9' : 'col-12' }}">
+        <div class="card border-0 rounded-4 shadow-sm h-100">
+            <div class="card-body p-3 d-flex align-items-center">
+                <form action="{{ route('admin.expenses.index') }}" method="GET" class="row g-2 align-items-center w-100 m-0">
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control rounded-pill px-3" placeholder="Search expense name or category..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" name="start_date" class="form-control rounded-pill px-3" value="{{ request('start_date') }}" aria-label="Expense start date">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" name="end_date" class="form-control rounded-pill px-3" value="{{ request('end_date') }}" aria-label="Expense end date">
+                    </div>
+                    <div class="col-md-2 d-flex gap-1">
+                        <button type="submit" class="btn btn-dark rounded-pill w-100"><i class="fa-solid fa-filter me-1"></i> Filter</button>
+                        <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary rounded-pill" title="Clear filters"><i class="fa-solid fa-rotate-left"></i></a>
+                    </div>
+                </form>
             </div>
-            <div class="col-md-3">
-                <input type="date" name="start_date" class="form-control rounded-pill px-3" value="{{ request('start_date') }}">
-            </div>
-            <div class="col-md-3">
-                <input type="date" name="end_date" class="form-control rounded-pill px-3" value="{{ request('end_date') }}">
-            </div>
-            <div class="col-md-2 d-flex gap-1">
-                <button type="submit" class="btn btn-dark rounded-pill w-100"><i class="fa-solid fa-filter me-1"></i> Filter</button>
-                <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary rounded-pill"><i class="fa-solid fa-rotate-left"></i></a>
-            </div>
-        </form>
+        </div>
     </div>
+    @if($activeExpenseFilterCount > 0)
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm filtered-expense-card rounded-4 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                    <div class="small text-white-50 mb-1">Filtered Expenses</div>
+                    <div class="fw-bold fs-4 text-warning text-truncate">&#8377;{{ number_format($filteredExpenseTotal, 2) }}</div>
+                    <div class="small text-white-50">{{ $expenses->total() }} matching record(s)</div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 <!-- Expense Mobile Filter Modal (d-lg-none) -->
@@ -181,16 +358,18 @@
                                 @endif
                             </td>
                             <td class="small text-muted text-truncate" style="max-width: 180px;">{{ $expense->notes ?? '-' }}</td>
-                            <td class="text-end">
-                                <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-2.5 py-1 me-1" onclick="showExpenseDetail({{ $expense->id }})">
-                                    <i class="fa-solid fa-eye me-1"></i> View
-                                </button>
-                                <a href="{{ route('admin.expenses.edit', $expense->id) }}" class="btn btn-outline-warning btn-sm rounded-circle me-1" title="Edit Expense"><i class="fa-solid fa-pen"></i></a>
-                                <form action="{{ route('admin.expenses.destroy', $expense->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this expense record?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Expense"><i class="fa-solid fa-trash"></i></button>
-                                </form>
+                            <td class="text-end expense-action-cell">
+                                <div class="expense-action-group">
+                                    <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-2.5 py-1" onclick="showExpenseDetail({{ $expense->id }})" title="View Expense">
+                                        <i class="fa-solid fa-eye me-1 me-sm-0 me-md-1"></i><span class="d-none d-md-inline">View</span>
+                                    </button>
+                                    <a href="{{ route('admin.expenses.edit', $expense->id) }}" class="btn btn-outline-warning btn-sm rounded-circle" title="Edit Expense"><i class="fa-solid fa-pen"></i></a>
+                                    <form action="{{ route('admin.expenses.destroy', $expense->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this expense record?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Expense"><i class="fa-solid fa-trash"></i></button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

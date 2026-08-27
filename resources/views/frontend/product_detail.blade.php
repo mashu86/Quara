@@ -3,11 +3,230 @@
 @section('title', $product->name . ' - QUARA WALDROP')
 @section('meta_description', strip_tags(Str::limit($product->description, 150)))
 
+@section('styles')
+<style>
+    .product-detail-page,
+    .product-detail-page .row > * {
+        min-width: 0;
+    }
+
+    .product-detail-breadcrumb {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+        scrollbar-width: none;
+        white-space: nowrap;
+    }
+
+    .product-detail-breadcrumb::-webkit-scrollbar {
+        display: none;
+    }
+
+    .product-detail-breadcrumb .breadcrumb-item {
+        flex-shrink: 0;
+    }
+
+    .product-main-image-wrap {
+        aspect-ratio: 4 / 5;
+        max-height: 520px;
+        background-color: #f8f8f8;
+    }
+
+    .product-main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: zoom-in;
+    }
+
+    .product-description {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .product-description img,
+    .product-description video,
+    .product-description iframe,
+    .product-description table {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    .product-size-option {
+        max-width: 100%;
+        min-width: 64px;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    @media (max-width: 575.98px) {
+        .product-detail-page {
+            padding-top: 0.85rem !important;
+            padding-bottom: 2rem !important;
+        }
+
+        .product-detail-page > .product-detail-nav {
+            margin-bottom: 0.85rem !important;
+        }
+
+        .product-detail-row {
+            --bs-gutter-y: 0.9rem;
+        }
+
+        .product-gallery-card {
+            padding: 0.5rem !important;
+            border-radius: 0.85rem !important;
+        }
+
+        .product-main-image-wrap {
+            max-height: none;
+            margin-bottom: 0.5rem !important;
+            border-radius: 0.65rem !important;
+        }
+
+        .product-thumbnail-strip {
+            gap: 0.4rem !important;
+            margin-bottom: -0.1rem;
+        }
+
+        .product-thumbnail-strip .thumbnail-selector {
+            width: 58px !important;
+            height: 58px !important;
+            flex: 0 0 58px;
+        }
+
+        .product-info-card {
+            height: auto !important;
+            padding: 1rem !important;
+            border-radius: 0.85rem !important;
+        }
+
+        .product-title {
+            font-size: 1.45rem !important;
+            line-height: 1.25;
+            margin-bottom: 0.75rem !important;
+            overflow-wrap: anywhere;
+        }
+
+        .product-price-row {
+            gap: 0.45rem !important;
+            margin-bottom: 0.85rem !important;
+            padding-bottom: 0.85rem !important;
+        }
+
+        .product-current-price {
+            font-size: 1.65rem !important;
+        }
+
+        .product-original-price {
+            font-size: 1rem !important;
+        }
+
+        .product-save-badge {
+            padding: 0.4rem 0.65rem !important;
+            font-size: 0.7rem !important;
+        }
+
+        .product-description {
+            margin-bottom: 1rem !important;
+            font-size: 0.9rem;
+        }
+
+        .product-size-section,
+        .product-quantity-section {
+            margin-bottom: 1rem !important;
+        }
+
+        .product-size-heading {
+            align-items: flex-start !important;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        #stockStatusNotice {
+            display: block;
+            width: 100%;
+            line-height: 1.35;
+            white-space: normal;
+        }
+
+        #sizeButtonGroup {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+        }
+
+        .product-size-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            min-height: 42px;
+            min-width: 0;
+            padding: 0.45rem 0.5rem !important;
+        }
+
+        .product-size-option .badge {
+            margin-left: 0 !important;
+        }
+
+        .product-purchase-actions {
+            margin-bottom: 1rem !important;
+        }
+
+        .product-purchase-actions .purchase-action {
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .product-share-actions > * {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .product-share-actions .product-share-label {
+            display: inline !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .product-related-section {
+            margin-top: 2rem !important;
+            padding-top: 0 !important;
+        }
+
+        .product-related-grid {
+            --bs-gutter-x: 0.75rem;
+            --bs-gutter-y: 0.75rem;
+        }
+
+        .product-related-card-body {
+            padding: 0.65rem !important;
+        }
+
+        #imageZoomModal .modal-dialog {
+            margin: 0.5rem;
+        }
+    }
+
+    @media (max-width: 359.98px) {
+        #sizeButtonGroup {
+            grid-template-columns: 1fr;
+        }
+
+        .product-share-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+@endsection
+
 @section('content')
-<div class="container py-4">
+<div class="container py-4 product-detail-page">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb small">
+    <nav aria-label="breadcrumb" class="mb-4 product-detail-nav">
+        <ol class="breadcrumb small product-detail-breadcrumb">
             <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Home</a></li>
             <li class="breadcrumb-item"><a href="{{ route('shop') }}" class="text-decoration-none text-muted">Shop</a></li>
             <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}" class="text-decoration-none text-muted">{{ $product->category->name }}</a></li>
@@ -28,11 +247,11 @@
         </div>
     @endif
 
-    <div class="row g-4 g-lg-5">
+    <div class="row g-4 g-lg-5 product-detail-row">
         <!-- Image Gallery -->
         <div class="col-lg-6">
-            <div class="bg-white p-3 rounded-4 shadow-sm border">
-                <div class="mb-3 overflow-hidden rounded-3 text-center position-relative" style="max-height: 520px; background-color: #f8f8f8;">
+            <div class="bg-white p-3 rounded-4 shadow-sm border product-gallery-card">
+                <div class="mb-3 overflow-hidden rounded-3 text-center position-relative product-main-image-wrap">
                     @if($discountPercentage > 0)
                         <span class="qw-discount-badge fs-6">{{ $discountPercentage }}% OFF</span>
                     @endif
@@ -41,11 +260,11 @@
                             <span class="qw-out-of-stock-badge fs-6 px-4 py-2">OUT OF STOCK</span>
                         </div>
                     @endif
-                    <img id="mainProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid w-100" style="object-fit: cover; max-height: 520px; cursor: zoom-in;" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
+                    <img id="mainProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="product-main-image" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
                 </div>
 
                 @if($product->images->count() > 1)
-                    <div class="d-flex gap-2 overflow-x-auto pb-2">
+                    <div class="d-flex gap-2 overflow-x-auto pb-2 product-thumbnail-strip">
                         @foreach($product->images as $img)
                             <img src="{{ $img->image_url }}" alt="Thumb" class="rounded-3 border thumbnail-selector" style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;" onclick="document.getElementById('mainProductImage').src='{{ $img->image_url }}'">
                         @endforeach
@@ -69,21 +288,21 @@
 
         <!-- Product Details & Buying Actions -->
         <div class="col-lg-6">
-            <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border h-100 d-flex flex-column">
+            <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
                 <span class="text-gold text-uppercase fw-bold tracking-wider small mb-1">{{ $product->category->name }}</span>
-                <h1 class="font-serif fw-bold h2 mb-3 text-dark">{{ $product->name }}</h1>
+                <h1 class="font-serif fw-bold h2 mb-3 text-dark product-title">{{ $product->name }}</h1>
 
                 <!-- Pricing Display -->
-                <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3 mb-3 pb-3 border-bottom">
-                    <span class="fs-2 fw-bold text-gold mb-0">₹{{ number_format($product->final_price, 2) }}</span>
+                <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3 mb-3 pb-3 border-bottom product-price-row">
+                    <span class="fs-2 fw-bold text-gold mb-0 product-current-price">₹{{ number_format($product->final_price, 2) }}</span>
                     @if($product->discount_type !== 'none' && $product->price > $product->final_price)
-                        <span class="fs-5 text-muted text-decoration-line-through mb-0">₹{{ number_format($product->price, 2) }}</span>
-                        <span class="badge bg-danger rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
+                        <span class="fs-5 text-muted text-decoration-line-through mb-0 product-original-price">₹{{ number_format($product->price, 2) }}</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-2 fw-semibold product-save-badge" style="font-size: 0.8rem;">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
                     @endif
                 </div>
 
                 <!-- Product Description -->
-                <div class="mb-4 text-secondary leading-relaxed">
+                <div class="mb-4 text-secondary leading-relaxed product-description">
                     {!! $product->description !!}
                 </div>
 
@@ -92,8 +311,8 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
 
-                    <div class="mb-4">
-                        <label class="form-label font-bold text-uppercase d-flex justify-content-between">
+                    <div class="mb-4 product-size-section">
+                        <label class="form-label font-bold text-uppercase d-flex justify-content-between product-size-heading">
                             <span>Select Size <span class="text-danger">*</span></span>
                             <span id="stockStatusNotice" class="text-muted fw-normal small">Select size to check availability</span>
                         </label>
@@ -114,7 +333,7 @@
                                     }
                                 @endphp
                                 <input type="radio" class="btn-check" name="size" id="size_{{ $pSize->id }}" value="{{ $pSize->size }}" data-stock="{{ $pSize->stock }}" onchange="updateStockNotice(this)" {{ $shouldCheck ? 'checked' : '' }}>
-                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold" for="size_{{ $pSize->id }}">
+                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option" for="size_{{ $pSize->id }}">
                                     {{ $pSize->size }}
                                     @if($pSize->stock > 0 && $pSize->stock <= 3)
                                         <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $pSize->stock }} left</span>
@@ -129,7 +348,7 @@
                     </div>
 
                     <!-- Quantity Selector -->
-                    <div class="mb-4">
+                    <div class="mb-4 product-quantity-section">
                         <label class="form-label font-bold text-uppercase">Quantity</label>
                         <div class="input-group" style="max-width: 140px;">
                             <button type="button" class="btn btn-outline-dark" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
@@ -140,7 +359,7 @@
 
                     <!-- Actions -->
                     @if($totalProductStock > 0)
-                        <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-4">
+                        <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-4 product-purchase-actions">
                             <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 py-md-3">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
                             </button>
@@ -177,14 +396,14 @@
                         </span>
                     </div>
                     
-                    <div class="d-flex gap-2 mb-2">
+                    <div class="d-flex gap-2 mb-2 product-share-actions">
                         <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill font-semibold py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center gap-1" title="Share on WhatsApp">
                             <i class="fa-brands fa-whatsapp fs-5"></i>
-                            <span class="d-none d-sm-inline">Share on WhatsApp</span>
+                            <span class="product-share-label"><span class="d-none d-sm-inline">Share on </span>WhatsApp</span>
                         </a>
                         <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center gap-1" title="Copy Link">
                             <i class="fa-solid fa-link text-gold"></i>
-                            <span class="d-none d-sm-inline">Copy Link</span>
+                            <span class="product-share-label">Copy Link</span>
                         </button>
                     </div>
 
@@ -198,9 +417,9 @@
 
     <!-- Related Products -->
     @if($relatedProducts->count() > 0)
-        <div class="mt-5 pt-4">
+        <div class="mt-5 pt-4 product-related-section">
             <h3 class="font-serif fw-bold mb-4">YOU MAY ALSO LIKE</h3>
-            <div class="row g-4">
+            <div class="row g-4 product-related-grid">
                 @foreach($relatedProducts as $relProduct)
                     <div class="col-6 col-md-3">
                         <div class="qw-product-card h-100">
@@ -214,7 +433,7 @@
                                     @endif
                                 </div>
                             </a>
-                            <div class="p-3">
+                            <div class="p-3 product-related-card-body">
                                 <h6 class="font-serif fw-bold text-dark text-truncate mb-1">{{ $relProduct->name }}</h6>
                                 <span class="fs-6 fw-bold text-gold">₹{{ number_format($relProduct->final_price, 2) }}</span>
                             </div>

@@ -153,10 +153,23 @@
                         @foreach($product->sizes as $pSize)
                             <div class="row g-2 mb-2 align-items-center">
                                 <div class="col-4">
-                                    <input type="text" class="form-control bg-light rounded-3" value="Size: {{ $pSize->size }}" readonly>
+                                    <input type="text"
+                                           name="existing_sizes[{{ $pSize->id }}]"
+                                           class="form-control rounded-3"
+                                           value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
+                                           placeholder="Size name"
+                                           aria-label="Size name"
+                                           maxlength="50"
+                                           required>
+                                    @error('existing_sizes.' . $pSize->id)
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-5">
-                                    <input type="number" name="existing_stocks[{{ $pSize->id }}]" class="form-control rounded-3" value="{{ $pSize->stock }}" min="0" required>
+                                    <input type="number" name="existing_stocks[{{ $pSize->id }}]" class="form-control rounded-3" value="{{ old('existing_stocks.' . $pSize->id, $pSize->stock) }}" min="0" required>
+                                    @error('existing_stocks.' . $pSize->id)
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-3">
                                     <span class="badge bg-dark rounded-pill px-3">Current: {{ $pSize->stock }} pcs</span>

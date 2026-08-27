@@ -23,7 +23,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-bold small">Text Color (Hex) <span class="text-danger">*</span></label>
-                    <input type="color" name="text_color" class="form-control form-control-color w-100 rounded-3" value="{{ old('text_color', '#FFFFFF') }}" required>
+                    <input type="color" name="text_color" class="form-control form-control-color w-100 rounded-3" value="{{ old('text_color', '#d4af37') }}" required>
                 </div>
 
                 <div class="col-md-6">

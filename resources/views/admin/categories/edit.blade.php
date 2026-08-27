@@ -29,12 +29,12 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-bold small">Background Image</label>
-                    @if($category->background_image)
-                        <div class="mb-2">
-                            <img src="{{ $category->background_image_url }}" alt="Current Background" class="rounded-3 border" style="height: 60px; object-fit: cover;">
-                        </div>
-                    @endif
-                    <input type="file" name="background_image" class="form-control rounded-3" accept="image/*">
+                    <div id="backgroundImagePreview"
+                         class="mb-2 rounded-3 border"
+                         data-original-image="{{ $category->background_image ? $category->background_image_url : '' }}"
+                         style="width: 90px; height: 60px; background-color: #000; background-image: {{ $category->background_image ? 'url(\'' . $category->background_image_url . '\')' : 'none' }}; background-size: cover; background-position: center;"
+                         title="Background image preview"></div>
+                    <input id="backgroundImageInput" type="file" name="background_image" class="form-control rounded-3" accept="image/*">
                 </div>
 
                 <div class="col-md-6">
@@ -54,4 +54,32 @@
         </form>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    document.getElementById('backgroundImageInput')?.addEventListener('change', function () {
+        const preview = document.getElementById('backgroundImagePreview');
+        const selectedFile = this.files?.[0];
+
+        if (!preview) {
+            return;
+        }
+
+        if (preview.dataset.previewUrl) {
+            URL.revokeObjectURL(preview.dataset.previewUrl);
+            delete preview.dataset.previewUrl;
+        }
+
+        if (selectedFile) {
+            const previewUrl = URL.createObjectURL(selectedFile);
+            preview.dataset.previewUrl = previewUrl;
+            preview.style.backgroundImage = `url("${previewUrl}")`;
+            return;
+        }
+
+        const originalImage = preview.dataset.originalImage;
+        preview.style.backgroundImage = originalImage ? `url("${originalImage}")` : 'none';
+    });
+</script>
 @endsection

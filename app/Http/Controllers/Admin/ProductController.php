@@ -185,10 +185,14 @@ class ProductController extends Controller
             'weight_kg' => 'nullable|numeric|min:0.01',
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:3072',
             'existing_sizes' => 'nullable|array',
+            'existing_sizes.*' => 'required|string|max:50',
             'existing_stocks' => 'nullable|array',
+            'existing_stocks.*' => 'required|integer|min:0',
             'new_sizes' => 'nullable|array',
+            'new_sizes.*' => 'nullable|string|max:50',
             'new_stocks' => 'nullable|array',
-            'stock_adjustment_reason' => 'nullable|string',
+            'new_stocks.*' => 'nullable|integer|min:0',
+            'stock_adjustment_reason' => 'nullable|string|max:255',
         ]);
 
         $categoryIds = $request->input('category_ids', []);
@@ -211,12 +215,33 @@ class ProductController extends Controller
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 
-            // Update existing sizes stock
-            if ($request->has('existing_stocks')) {
-                foreach ($request->existing_stocks as $sizeId => $newStock) {
-                    $pSize = ProductSize::find($sizeId);
-                    if ($pSize && $pSize->stock != $newStock) {
-                        $this->stockService->adjustStock($sizeId, (int)$newStock, $reason, auth()->user()->name);
+            // Update existing size names and stock for this product only.
+            $existingSizes = $validated['existing_sizes'] ?? [];
+            $existingStocks = $validated['existing_stocks'] ?? [];
+            $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks)));
+
+            $productSizes = ProductSize::where('product_id', $product->id)
+                ->whereIn('id', $requestedSizeIds)
+                ->get()
+                ->keyBy('id');
+
+            foreach ($requestedSizeIds as $sizeId) {
+                $pSize = $productSizes->get((int) $sizeId);
+                if (!$pSize) {
+                    continue;
+                }
+
+                if (array_key_exists($sizeId, $existingSizes)) {
+                    $newSizeName = trim($existingSizes[$sizeId]);
+                    if ($pSize->size !== $newSizeName) {
+                        $pSize->update(['size' => $newSizeName]);
+                    }
+                }
+
+                if (array_key_exists($sizeId, $existingStocks)) {
+                    $newStock = (int) $existingStocks[$sizeId];
+                    if ($pSize->stock !== $newStock) {
+                        $this->stockService->adjustStock($pSize->id, $newStock, $reason, auth()->user()->name);
                     }
                 }
             }

@@ -61,7 +61,11 @@
                     @forelse($categories as $category)
                         <tr>
                             <td>
-                                <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="rounded-3 border" style="width: 70px; height: 50px; object-fit: cover;">
+                                @if($category->background_image)
+                                    <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="rounded-3 border" style="width: 70px; height: 50px; object-fit: cover;">
+                                @else
+                                    <div class="rounded-3 border bg-black" style="width: 70px; height: 50px;" title="Default black background"></div>
+                                @endif
                             </td>
                             <td class="fw-bold text-dark">{{ $category->name }}</td>
                             <td><code>{{ $category->slug }}</code></td>

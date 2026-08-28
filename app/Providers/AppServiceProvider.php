@@ -81,7 +81,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Share layout data with views
         View::composer('layouts.app', function ($view) {
-            $navCategories = Category::where('status', 'active')->select(['id', 'name', 'slug'])->get();
+            $navCategories = Category::where('status', 'active')->select(['id', 'name', 'slug'])->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
             $whatsappObj = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
             $socialLinks = SocialMedia::where('status', 'active')->orderBy('sort_order')->get();
 

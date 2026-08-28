@@ -17,6 +17,7 @@ class Category extends Model
         'background_image',
         'text_color',
         'status',
+        'sort_order',
     ];
 
     public function products()

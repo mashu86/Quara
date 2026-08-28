@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordCo
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
 use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
@@ -100,6 +101,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('products/{product}/add-stock-batch', [AdminProductController::class, 'addStockBatch'])->name('products.add-stock-batch');
         Route::post('product-images/{image}/set-primary', [AdminProductController::class, 'setPrimaryImage'])->name('product-images.set-primary');
         Route::delete('product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy');
+
+        // Display Preference & Drag-and-Drop Sorting
+        Route::get('/display-order', [AdminDisplayOrderController::class, 'index'])->name('display-order.index');
+        Route::post('/display-order/update-preference', [AdminDisplayOrderController::class, 'updatePreference'])->name('display-order.update-preference');
+        Route::post('/display-order/update-category-order', [AdminDisplayOrderController::class, 'updateCategoryOrder'])->name('display-order.update-category-order');
+        Route::post('/display-order/update-product-order', [AdminDisplayOrderController::class, 'updateProductOrder'])->name('display-order.update-product-order');
 
         // Home Main Content Master
         Route::resource('home-content', AdminHomeContentController::class)->parameters(['home-content' => 'home_content']);

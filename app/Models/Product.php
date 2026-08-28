@@ -25,6 +25,7 @@ class Product extends Model
         'is_out_of_stock',
         'delivery_charge_type',
         'weight_kg',
+        'sort_order',
     ];
 
     protected $casts = [

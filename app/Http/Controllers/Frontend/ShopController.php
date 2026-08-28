@@ -84,11 +84,11 @@ class ShopController extends Controller
         } elseif ($sort === 'oldest') {
             $query->orderBy('id', 'asc');
         } else {
-            $query->orderBy('id', 'desc');
+            $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
         }
 
         $products = $query->paginate(12)->withQueryString();
-        $categories = Category::where('status', 'active')->get();
+        $categories = Category::where('status', 'active')->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
         $allSizes = ProductSize::select('size')->distinct()->pluck('size');
 
         // Dynamic SEO Metadata & Canonical URL Handling

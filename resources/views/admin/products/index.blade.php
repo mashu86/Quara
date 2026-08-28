@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Product Master - QUARA WALDROP Admin')
+@section('title', 'Product Master - ' . $siteName . ' Admin')
 
 @section('content')
 @php

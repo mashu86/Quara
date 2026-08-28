@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Manual Sale #' . $order->order_number . ' - QUARA WALDROP Admin')
+@section('title', 'Edit Manual Sale #' . $order->order_number . ' - ' . $siteName . ' Admin')
 
 @section('content')
 <style>

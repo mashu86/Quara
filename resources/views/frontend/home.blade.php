@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'QUARA WALDROP - Trendy & Affordable Ladies Wear')
+@section('title', $siteName . ' - Trendy & Affordable Ladies Wear')
 
 @section('styles')
 <style>
@@ -187,8 +187,8 @@
     function shareProductLink(url, title) {
         if (navigator.share) {
             navigator.share({
-                title: title + ' - QUARA WALDROP',
-                text: 'Check out ' + title + ' on QUARA WALDROP!',
+                title: title + ' - ' + @js($siteName),
+                text: 'Check out ' + title + ' on ' + @js($siteName) + '!',
                 url: url
             }).catch(() => {
                 copyToClipboard(url);

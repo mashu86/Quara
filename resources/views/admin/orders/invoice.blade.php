@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{{ $order->order_number }} - QUARA WALDROP</title>
+    <title>Invoice #{{ $order->order_number }} - {{ $siteName }}</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
@@ -127,7 +127,7 @@
     <!-- Header -->
     <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <div class="brand-logo-text mb-1">QUARA WALDROP</div>
+            <div class="brand-logo-text mb-1">{{ $siteName }}</div>
             <p class="mb-0 small text-light opacity-75">Modest & Affordable Ladies Fashion</p>
             <p class="mb-0 small text-light opacity-75">Naduvil, Kannur, Kerala - 670582 | Ph: +91 98765 43210</p>
         </div>
@@ -248,8 +248,8 @@
 
         <!-- Footer -->
         <div class="text-center mt-5 pt-4 border-top">
-            <p class="mb-1 fw-bold text-dark">Thank you for shopping with QUARA WALDROP!</p>
-            <p class="mb-0 text-muted small">For any support or query regarding this order, please email quarawaldrop@gmail.com or WhatsApp us.</p>
+            <p class="mb-1 fw-bold text-dark">Thank you for shopping with {{ $siteName }}!</p>
+            <p class="mb-0 text-muted small">For any support or query regarding this order, please email {{ $supportEmail }} or WhatsApp us.</p>
         </div>
     </div>
 </div>

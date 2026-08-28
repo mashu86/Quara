@@ -17,6 +17,7 @@ use App\Http\Controllers\Frontend\ShopController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 
@@ -124,9 +125,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
         Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
 
-        // Admin Settings (Razorpay Fee % & GST %)
-        Route::get('/settings', [AdminExpenseController::class, 'settings'])->name('settings.index');
-        Route::post('/settings', [AdminExpenseController::class, 'updateSettings'])->name('settings.update');
+        // Master Settings (branding, email and payment configuration)
+        Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
 
         // Order Invoice Printable View
         Route::get('/orders/{order}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');

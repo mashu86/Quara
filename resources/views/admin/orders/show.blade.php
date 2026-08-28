@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Order Details - QUARA WALDROP Admin')
+@section('title', 'Order Details - ' . $siteName . ' Admin')
 
 @section('content')
 <div class="mb-3 mb-md-4">

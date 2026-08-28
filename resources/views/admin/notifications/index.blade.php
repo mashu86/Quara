@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Notifications - QUARA WALDROP Admin')
+@section('title', 'Notifications - ' . $siteName . ' Admin')
 
 @section('content')
 <style>

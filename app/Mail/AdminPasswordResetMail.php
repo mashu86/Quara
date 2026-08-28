@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -13,7 +14,9 @@ class AdminPasswordResetMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $token;
+
     public string $email;
+
     public string $resetUrl;
 
     public function __construct(string $token, string $email)
@@ -26,7 +29,7 @@ class AdminPasswordResetMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Password Reset Request - QUARA WALDROP Admin',
+            subject: 'Password Reset Request - '.Setting::get('site_name', config('app.name')).' Admin',
         );
     }
 

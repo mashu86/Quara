@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Admin Dashboard - QUARA WALDROP')
+@section('title', 'Admin Dashboard - ' . $siteName)
 
 @section('styles')
 <style>

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Order Management - QUARA WALDROP Admin')
+@section('title', 'Order Management - ' . $siteName . ' Admin')
 
 @section('content')
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">

@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - QUARA WALDROP</title>
+    <title>Admin Login - {{ $siteName }}</title>
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="icon" href="{{ $siteFaviconUrl }}">
+    <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -60,7 +60,7 @@
 <body>
     <div class="login-card p-4 p-sm-5">
         <div class="text-center mb-4">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" style="max-height: 60px;">
+            <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" style="max-height: 60px; max-width: 100%; object-fit: contain;">
             <h5 class="fw-bold mt-3 text-dark">Admin Portal Login</h5>
             <p class="text-muted small">Manage catalog, orders & inventory</p>
         </div>

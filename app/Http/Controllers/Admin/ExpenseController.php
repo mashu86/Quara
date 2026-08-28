@@ -369,42 +369,4 @@ class ExpenseController extends Controller
         ));
     }
 
-    /**
-     * Display Admin Settings Page.
-     */
-    public function settings()
-    {
-        $razorpayFeePercent = Setting::get('razorpay_fee_percent', '2.00');
-        $razorpayGstPercent = Setting::get('razorpay_gst_percent', '18.00');
-
-        return view('admin.settings.index', compact('razorpayFeePercent', 'razorpayGstPercent'));
-    }
-
-    /**
-     * Update Admin Settings (Razorpay Fee % & GST %).
-     */
-    public function updateSettings(Request $request)
-    {
-        $validated = $request->validate([
-            'razorpay_fee_percent' => 'required|numeric|min:0|max:100',
-            'razorpay_gst_percent' => 'required|numeric|min:0|max:100',
-            'recalculate_past_orders' => 'nullable|boolean',
-        ]);
-
-        Setting::set('razorpay_fee_percent', number_format((float) $validated['razorpay_fee_percent'], 2, '.', ''), 'payment');
-        Setting::set('razorpay_gst_percent', number_format((float) $validated['razorpay_gst_percent'], 2, '.', ''), 'payment');
-
-        // If admin requested past orders recalculation
-        if ($request->boolean('recalculate_past_orders')) {
-            $onlineOrders = Order::where('payment_method', 'online')->get();
-            $feePct = (float) $validated['razorpay_fee_percent'];
-            $gstPct = (float) $validated['razorpay_gst_percent'];
-
-            foreach ($onlineOrders as $o) {
-                $o->calculateRazorpayCharge(null, $feePct, $gstPct);
-            }
-        }
-
-        return redirect()->route('admin.settings.index')->with('success', 'Razorpay payment settings updated successfully!');
-    }
 }

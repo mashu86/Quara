@@ -84,7 +84,7 @@ class Product extends Model
     {
         $primary = $this->images->first();
         if (!$primary || empty($primary->image_path)) {
-            return asset('assets/images/logo.png');
+            return Setting::logoUrl();
         }
 
         $path = $primary->image_path;

@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - QUARA WALDROP Admin</title>
+    <title>Forgot Password - {{ $siteName }} Admin</title>
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="icon" href="{{ $siteFaviconUrl }}">
+    <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,7 +45,7 @@
 <body>
     <div class="login-card p-4 p-sm-5">
         <div class="text-center mb-4">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" style="max-height: 60px;">
+            <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" style="max-height: 60px; max-width: 100%; object-fit: contain;">
             <h5 class="fw-bold mt-3 text-dark">Forgot Admin Password?</h5>
             <p class="text-muted small">Enter your email address and we'll send you a password reset link.</p>
         </div>
@@ -70,8 +70,8 @@
             @csrf
             <div class="mb-4">
                 <label class="form-label small fw-bold text-uppercase">Admin Email Address</label>
-                <input type="email" name="email" class="form-control rounded-3 bg-light" value="quarawaldrop@gmail.com" readonly required>
-                <div class="form-text small text-muted"><i class="fa-solid fa-lock me-1"></i> Admin recovery emails are locked to the official address.</div>
+                <input type="email" name="email" class="form-control rounded-3 bg-light" value="{{ $supportEmail }}" readonly required>
+                <div class="form-text small text-muted"><i class="fa-solid fa-lock me-1"></i> Reset links are sent to the email configured in Master Settings.</div>
             </div>
 
             <button type="submit" class="btn btn-gold w-100 shadow-sm mb-3">SEND RESET LINK</button>

@@ -32,7 +32,7 @@ class Category extends Model
     public function getBackgroundImageUrlAttribute(): string
     {
         if (!$this->background_image) {
-            return asset('assets/images/logo.png');
+            return Setting::logoUrl();
         }
 
         if (str_starts_with($this->background_image, 'http://') || str_starts_with($this->background_image, 'https://') || filter_var($this->background_image, FILTER_VALIDATE_URL)) {

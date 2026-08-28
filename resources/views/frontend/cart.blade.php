@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Shopping Cart - QUARA WALDROP')
+@section('title', 'Shopping Cart - ' . $siteName)
 
 @section('content')
 <div class="container py-4">

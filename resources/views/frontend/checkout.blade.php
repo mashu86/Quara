@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Checkout - QUARA WALDROP')
+@section('title', 'Checkout - ' . $siteName)
 
 @section('content')
 <div class="container py-4">

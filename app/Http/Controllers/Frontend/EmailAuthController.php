@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Setting;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -35,13 +36,14 @@ class EmailAuthController extends Controller
         // Attempt to send email
         $mailSent = false;
         try {
-            Mail::raw("Your QUARA WALDROP verification code is: {$otp} (valid for 60 seconds).", function ($message) use ($email) {
+            $siteName = Setting::get('site_name', config('app.name'));
+            Mail::raw("Your {$siteName} verification code is: {$otp} (valid for 60 seconds).", function ($message) use ($email, $siteName) {
                 $message->to($email)
-                    ->subject('QUARA WALDROP - Your 6-Digit OTP Code');
+                    ->subject($siteName.' - Your 6-Digit OTP Code');
             });
             $mailSent = true;
         } catch (Exception $e) {
-            \Log::warning('Email OTP Mail Send Exception: ' . $e->getMessage());
+            \Log::warning('Email OTP Mail Send Exception: '.$e->getMessage());
         }
 
         return response()->json([
@@ -72,7 +74,7 @@ class EmailAuthController extends Controller
         $sessionCode = session('email_otp_code');
         $sessionExpires = session('email_otp_expires_at');
 
-        if (!$sessionCode || strtolower($sessionEmail) !== $email) {
+        if (! $sessionCode || strtolower($sessionEmail) !== $email) {
             return response()->json([
                 'success' => false,
                 'message' => 'No OTP request found for this email. Please click Resend OTP.',
@@ -142,17 +144,17 @@ class EmailAuthController extends Controller
                 session(['customer_email' => $email]);
             } else {
                 $phone = preg_replace('/[^0-9]/', '', $contact);
-                if (!empty($phone)) {
+                if (! empty($phone)) {
                     session(['customer_phone' => $phone]);
                 }
             }
         }
 
-        if (!$email && $request->filled('email')) {
+        if (! $email && $request->filled('email')) {
             $email = strtolower(trim($request->email));
             session(['customer_email' => $email]);
         }
-        if (!$phone && $request->filled('phone')) {
+        if (! $phone && $request->filled('phone')) {
             $phone = preg_replace('/[^0-9]/', '', $request->phone);
             session(['customer_phone' => $phone]);
         }
@@ -167,9 +169,9 @@ class EmailAuthController extends Controller
                     $query->orWhere('customer_phone', $phone);
                 }
             })
-            ->with(['items.product', 'payment'])
-            ->latest()
-            ->get();
+                ->with(['items.product', 'payment'])
+                ->latest()
+                ->get();
         }
 
         return view('frontend.my_orders', compact('orders', 'email', 'phone'));
@@ -181,6 +183,7 @@ class EmailAuthController extends Controller
     public function logout(Request $request)
     {
         session()->forget(['customer_email', 'customer_phone']);
+
         return redirect()->route('home')->with('success', 'You have logged out of your session.');
     }
 }

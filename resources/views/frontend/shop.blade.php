@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Shop All - QUARA WALDROP Fashion Store')
+@section('title', 'Shop All - ' . $siteName . ' Fashion Store')
 
 @section('content')
 <div class="container py-4">
@@ -315,8 +315,8 @@
     function shareProductLink(url, title) {
         if (navigator.share) {
             navigator.share({
-                title: title + ' - QUARA WALDROP',
-                text: 'Check out ' + title + ' on QUARA WALDROP!',
+                title: title + ' - ' + @js($siteName),
+                text: 'Check out ' + title + ' on ' + @js($siteName) + '!',
                 url: url
             }).catch(() => {
                 copyToClipboard(url);

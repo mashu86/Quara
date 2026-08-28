@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Shipping Policy - QUARA WALDROP Admin')
+@section('title', 'Edit Shipping Policy - ' . $siteName . ' Admin')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">

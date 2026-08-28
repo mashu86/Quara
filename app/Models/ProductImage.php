@@ -25,7 +25,7 @@ class ProductImage extends Model
     public function getImageUrlAttribute(): string
     {
         if (empty($this->image_path)) {
-            return asset('assets/images/logo.png');
+            return Setting::logoUrl();
         }
 
         if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://') || filter_var($this->image_path, FILTER_VALIDATE_URL)) {

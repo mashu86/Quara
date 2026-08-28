@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Razorpay Charges Master Report - QUARA WALDROP Admin')
+@section('title', 'Razorpay Charges Master Report - ' . $siteName . ' Admin')
 
 @section('content')
 <style>

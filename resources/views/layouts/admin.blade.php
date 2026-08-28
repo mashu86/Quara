@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Admin Dashboard - QUARA WALDROP')</title>
+    <title>@yield('title', 'Admin Dashboard - ' . $siteName)</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="icon" href="{{ $siteFaviconUrl }}">
+    <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -247,7 +247,7 @@
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="brand-header d-flex justify-content-between align-items-center px-3 px-lg-4">
             <a href="{{ route('admin.dashboard') }}">
-                <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" style="max-height: 42px;">
+                <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" style="max-height: 42px; max-width: 190px; object-fit: contain;">
             </a>
             <button type="button" class="btn text-white p-1 d-lg-none border-0 shadow-none fs-5" id="sidebarCloseBtn" title="Close Menu">
                 <i class="fa-solid fa-xmark text-warning"></i>
@@ -320,7 +320,7 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-gear me-2"></i> Payment Settings
+                        <i class="fa-solid fa-gear me-2"></i> Master Settings
                     </a>
                 </li>
 
@@ -367,7 +367,7 @@
                 <i class="fa-solid fa-bars"></i>
             </button>
 
-            <h5 class="mb-0 font-bold d-none d-sm-block">QUARA WALDROP <span class="badge bg-dark ms-2 fw-normal">Admin Panel</span></h5>
+            <h5 class="mb-0 font-bold d-none d-sm-block">{{ $siteName }} <span class="badge bg-dark ms-2 fw-normal">Admin Panel</span></h5>
 
             <div class="d-flex align-items-center gap-3">
                 <div class="dropdown">

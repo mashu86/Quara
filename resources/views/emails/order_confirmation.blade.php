@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Order Confirmation - QUARA WALDROP</title>
+    <title>Order Confirmation - {{ $siteName }}</title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #F8F9FA; margin: 0; padding: 20px; color: #111111; }
         .email-container { max-width: 650px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #EAEAEA; }
@@ -21,7 +21,7 @@
 <body>
     <div class="email-container">
         <div class="header">
-            <img src="{{ $message->embed(public_path('assets/images/logo.png')) }}" alt="QUARA WALDROP">
+            <img src="{{ $message->embed($siteLogoPath) }}" alt="{{ $siteName }}">
         </div>
         <div class="content">
             <div class="order-badge">Order Confirmed: {{ $order->order_number }}</div>
@@ -74,9 +74,9 @@
             </div>
         </div>
         <div class="footer">
-            <p style="margin: 0 0 5px 0; font-weight: bold; color: #111111;">QUARA WALDROP – Elegant & Affordable Ladies Wear</p>
-            <p style="margin: 0;">Support Email: <a href="mailto:quarawaldrop@gmail.com" style="color: #C9962E; text-decoration: none;">quarawaldrop@gmail.com</a></p>
-            <p style="margin: 5px 0 0 0; font-size: 11px;">&copy; {{ date('Y') }} QUARA WALDROP. All rights reserved.</p>
+            <p style="margin: 0 0 5px 0; font-weight: bold; color: #111111;">{{ $siteName }} – Elegant & Affordable Ladies Wear</p>
+            <p style="margin: 0;">Support Email: <a href="mailto:{{ $supportEmail }}" style="color: #C9962E; text-decoration: none;">{{ $supportEmail }}</a></p>
+            <p style="margin: 5px 0 0 0; font-size: 11px;">&copy; {{ date('Y') }} {{ $siteName }}. All rights reserved.</p>
         </div>
     </div>
 </body>

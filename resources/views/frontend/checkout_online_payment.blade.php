@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Complete Online Payment - QUARA WALDROP')
+@section('title', 'Complete Online Payment - ' . $siteName)
 
 @section('content')
 <div class="container py-5 text-center">
@@ -51,9 +51,9 @@
         "key": "{{ $paymentResult['razorpay_key'] }}",
         "amount": "{{ $paymentResult['amount'] ?? ($order->grand_total * 100) }}",
         "currency": "INR",
-        "name": "QUARA WALDROP",
+        "name": @js($siteName),
         "description": "Order #{{ $order->order_number }} Payment",
-        "image": (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ? (window.location.origin + "/assets/images/logo.png") : "",
+        "image": (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ? @js($siteLogoUrl) : "",
         @if(!empty($paymentResult['razorpay_order_id']) && str_starts_with($paymentResult['razorpay_order_id'], 'order_'))
         "order_id": "{{ $paymentResult['razorpay_order_id'] }}",
         @endif

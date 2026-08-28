@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Home Content - QUARA WALDROP Admin')
+@section('title', 'Add Home Content - ' . $siteName . ' Admin')
 
 @section('content')
 <style>

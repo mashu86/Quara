@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - QUARA WALDROP Admin</title>
+    <title>Reset Password - {{ $siteName }} Admin</title>
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="icon" href="{{ $siteFaviconUrl }}">
+    <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -49,7 +49,7 @@
 <body>
     <div class="login-card p-4 p-sm-5">
         <div class="text-center mb-4">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" style="max-height: 60px;">
+            <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" style="max-height: 60px; max-width: 100%; object-fit: contain;">
             <h5 class="fw-bold mt-3 text-dark">Reset Admin Password</h5>
             <p class="text-muted small">Enter your new password below</p>
         </div>
@@ -69,8 +69,9 @@
             <input type="hidden" name="token" value="{{ $token }}">
 
             <div class="mb-3">
-                <label class="form-label small fw-bold text-uppercase">Email Address</label>
+                <label class="form-label small fw-bold text-uppercase">Configured Recovery Email Address</label>
                 <input type="email" name="email" class="form-control rounded-3" value="{{ old('email', $email) }}" required readonly>
+                <div class="form-text small text-muted"><i class="fa-solid fa-gear me-1"></i> This address is managed from Admin Master Settings.</div>
             </div>
 
             <div class="mb-3">

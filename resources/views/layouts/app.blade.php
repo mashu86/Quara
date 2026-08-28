@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'QUARA WALDROP - Affordable & Trendy Ladies Western Wear')</title>
-    <meta name="description" content="@yield('meta_description', 'Shop elegant, trendy & affordable ladies fashion, Korean tops, western dresses & daily chic wear at QUARA WALDROP.')">
+    <title>@yield('title', $siteName . ' - Affordable & Trendy Ladies Western Wear')</title>
+    <meta name="description" content="@yield('meta_description', 'Shop elegant, trendy & affordable ladies fashion at ' . $siteName . '.')">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon / Shop Icon -->
-    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/favicon-round.png') }}?v=3">
+    <link rel="icon" href="{{ $siteFaviconUrl }}">
+    <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -304,7 +304,7 @@
         <div class="container">
             <nav class="navbar navbar-expand-lg navbar-light py-2">
                 <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
-                    <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" class="qw-logo-img">
+                    <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" class="qw-logo-img">
                 </a>
 
                 <div class="d-flex align-items-center d-lg-none ms-auto me-2 gap-1">
@@ -412,9 +412,9 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
-                    <img src="{{ asset('assets/images/logo.png') }}" alt="QUARA WALDROP" class="mb-3" style="max-height: 50px;">
+                    <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" class="mb-3" style="max-height: 50px;">
                     <p class="small text-muted mb-3">
-                        QUARA WALDROP brings you affordable, high-fashion Korean tops, flattering western dresses, and trendy daily casual apparel. Dress beyond ordinary without breaking the bank.
+                        {{ $siteName }} brings you affordable, high-fashion Korean tops, flattering western dresses, and trendy daily casual apparel. Dress beyond ordinary without breaking the bank.
                     </p>
                     <div class="d-flex gap-3">
                         @foreach($socialLinks ?? [] as $soc)
@@ -444,7 +444,7 @@
 
                 <div class="col-lg-3 col-md-6">
                     <h6 class="text-white text-uppercase font-serif mb-3 gold-gradient-text">Customer Support</h6>
-                    <p class="small text-muted mb-2"><i class="fa-solid fa-envelope text-gold me-2"></i> quarawaldrop@gmail.com</p>
+                    <p class="small text-muted mb-2"><i class="fa-solid fa-envelope text-gold me-2"></i> <a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a></p>
                     <p class="small text-muted mb-2"><i class="fa-brands fa-whatsapp text-gold me-2"></i> Instant WhatsApp Care</p>
                     <p class="small text-muted"><i class="fa-solid fa-truck text-gold me-2"></i> Fast pan-India delivery</p>
                 </div>
@@ -453,7 +453,7 @@
             <hr class="my-4 border-secondary opacity-25">
 
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center small text-muted">
-                <p class="mb-0">&copy; {{ date('Y') }} <strong>QUARA WALDROP</strong>. All Rights Reserved.</p>
+                <p class="mb-0">&copy; {{ date('Y') }} <strong>{{ $siteName }}</strong>. All Rights Reserved.</p>
                 <p class="mb-0">Designed with Elegance & Affordability</p>
             </div>
         </div>

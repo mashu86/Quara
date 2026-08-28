@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Order;
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -14,6 +15,7 @@ class OrderConfirmationMail extends Mailable
     use Queueable, SerializesModels;
 
     public Order $order;
+
     public string $trackingUrl;
 
     public function __construct(Order $order)
@@ -28,7 +30,7 @@ class OrderConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Order Confirmation - {$this->order->order_number} | QUARA WALDROP",
+            subject: "Order Confirmation - {$this->order->order_number} | ".Setting::get('site_name', config('app.name')),
         );
     }
 

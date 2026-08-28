@@ -145,7 +145,8 @@
         const storeWaLink = "https://wa.me/" + storePhone;
         const orderSuccessUrl = "{{ url('/checkout/success') }}/" + orderNo;
 
-        let msg = `*Official Message from QUARA WALDROP* (${storePhoneFormatted})\n\n`;
+        const storeName = @js($siteName);
+        let msg = `*Official Message from ${storeName}* (${storePhoneFormatted})\n\n`;
         msg += `Dear ${name},\n\n`;
 
         if (isCouriered) {
@@ -158,7 +159,7 @@
             msg += `*View Order Details & Invoice:*\n${orderSuccessUrl}\n\n`;
             msg += `You can track your package using the link above.\n\n`;
         } else {
-            msg += `Thank you for purchasing from QUARA WALDROP! We have received your order #${orderNo}.\n\n`;
+            msg += `Thank you for purchasing from ${storeName}! We have received your order #${orderNo}.\n\n`;
             msg += `*Order ID:* ${orderNo}\n`;
             msg += `*Total Amount:* ₹${grandTotal}\n\n`;
             msg += `*Order Address:*\n${addressStr}\n\n`;
@@ -171,7 +172,7 @@
         msg += `*Direct WhatsApp Support:*\n`;
         msg += `*Phone:* ${storePhoneFormatted}\n`;
         msg += `*WhatsApp Link:* ${storeWaLink}\n\n`;
-        msg += `Warm regards,\nQUARA WALDROP`;
+        msg += `Warm regards,\n${storeName}`;
 
         document.getElementById('waMessageTextarea').value = msg;
         syncWhatsappUrl();

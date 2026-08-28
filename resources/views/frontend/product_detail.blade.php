@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $product->name . ' - QUARA WALDROP')
+@section('title', $product->name . ' - ' . $siteName)
 @section('meta_description', strip_tags(Str::limit($product->description, 150)))
 
 @section('styles')
@@ -380,10 +380,10 @@
                 @php
                     $waNumber = $whatsapp ? $whatsapp->phone_number : '8078037591';
                     $productUrl = route('product.detail', $product->slug);
-                    $waMsg = rawurlencode("Hi QUARA WALDROP, I am interested in: " . $product->name . " (Price: ₹" . number_format($product->final_price, 2) . "). Link: " . $productUrl);
+                    $waMsg = rawurlencode("Hi {$siteName}, I am interested in: " . $product->name . " (Price: ₹" . number_format($product->final_price, 2) . "). Link: " . $productUrl);
                     $waInquiryUrl = "https://wa.me/" . preg_replace('/[^0-9]/', '', ($whatsapp ? $whatsapp->country_code : '+91') . $waNumber) . "?text=" . $waMsg;
                     
-                    $shareText = rawurlencode("Check out " . $product->name . " on QUARA WALDROP (₹" . number_format($product->final_price, 2) . ")!");
+                    $shareText = rawurlencode("Check out " . $product->name . " on {$siteName} (₹" . number_format($product->final_price, 2) . ")!");
                     $waShareUrl = "https://api.whatsapp.com/send?text=" . $shareText . "%20" . rawurlencode($productUrl);
                 @endphp
                 <div class="mt-auto pt-3 border-top">
@@ -492,8 +492,8 @@
     function shareProductLink(url, title) {
         if (navigator.share) {
             navigator.share({
-                title: title + ' - QUARA WALDROP',
-                text: 'Check out ' + title + ' on QUARA WALDROP!',
+                title: title + ' - ' + @js($siteName),
+                text: 'Check out ' + title + ' on ' + @js($siteName) + '!',
                 url: url
             }).catch(() => {
                 copyToClipboard(url);

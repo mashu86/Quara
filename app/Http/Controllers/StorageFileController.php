@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use Illuminate\Support\Facades\Response;
 
 class StorageFileController extends Controller
@@ -16,15 +17,15 @@ class StorageFileController extends Controller
             $cleanPath = substr($cleanPath, 8);
         }
 
-        $fullPath = storage_path('app/public/' . $cleanPath);
+        $fullPath = storage_path('app/public/'.$cleanPath);
 
-        if (!file_exists($fullPath) || !is_file($fullPath)) {
+        if (! file_exists($fullPath) || ! is_file($fullPath)) {
             $publicPath = public_path($cleanPath);
             if (file_exists($publicPath) && is_file($publicPath)) {
                 return Response::file($publicPath);
             }
 
-            $defaultLogo = public_path('assets/images/logo.png');
+            $defaultLogo = Setting::logoPath();
             if (file_exists($defaultLogo)) {
                 return Response::file($defaultLogo, [
                     'Content-Type' => 'image/png',

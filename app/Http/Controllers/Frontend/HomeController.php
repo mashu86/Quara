@@ -24,6 +24,17 @@ class HomeController extends Controller
             ->take(8)
             ->get();
 
-        return view('frontend.home', compact('homeContent', 'categories', 'featuredProducts'));
+        $seoTitle = 'Quara Wardrobe | Online Fashion Store & Ladies Wear';
+        $seoDescription = 'Shop elegant, trendy & affordable ladies fashion, western wear, Korean tops, and stylish dresses at Quara Wardrobe online store. Fast pan-India delivery.';
+        $canonicalUrl = route('home');
+
+        return view('frontend.home', compact(
+            'homeContent',
+            'categories',
+            'featuredProducts',
+            'seoTitle',
+            'seoDescription',
+            'canonicalUrl'
+        ));
     }
 }

@@ -1,7 +1,78 @@
 @extends('layouts.app')
 
-@section('title', $product->name . ' - ' . $siteName)
-@section('meta_description', strip_tags(Str::limit($product->description, 150)))
+@section('title', $seoTitle ?? ($product->name . ' - Buy Online | Quara Wardrobe'))
+@section('meta_description', $seoDescription ?? strip_tags(Str::limit($product->description, 150)))
+@section('canonical_url', $canonicalUrl ?? route('product.detail', $product->slug))
+@section('og_image', $ogImage ?? $product->primary_image_url)
+
+@section('json_ld')
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Product",
+      "@id": "{{ route('product.detail', $product->slug) }}#product",
+      "name": "{{ addslashes($product->name) }}",
+      "image": [
+        @foreach($product->images as $idx => $img)
+          "{{ $img->image_url }}"{{ !$loop->last ? ',' : '' }}
+        @endforeach
+      ],
+      "description": "{{ addslashes(strip_tags(Str::limit($product->description, 300))) }}",
+      "sku": "{{ $product->sku ?: ('QW-PROD-' . $product->id) }}",
+      "brand": {
+        "@type": "Brand",
+        "name": "Quara Wardrobe"
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": "{{ route('product.detail', $product->slug) }}",
+        "priceCurrency": "INR",
+        "price": "{{ number_format($product->final_price, 2, '.', '') }}",
+        "priceValidUntil": "{{ date('Y-12-31') }}",
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "{{ $product->total_stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}",
+        "seller": {
+          "@type": "Organization",
+          "name": "Quara Wardrobe"
+        }
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "{{ route('product.detail', $product->slug) }}#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "{{ route('home') }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Shop",
+          "item": "{{ route('shop') }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "{{ addslashes($product->category->name) }}",
+          "item": "{{ route('category.products', $product->category->slug) }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "{{ addslashes($product->name) }}",
+          "item": "{{ route('product.detail', $product->slug) }}"
+        }
+      ]
+    }
+  ]
+}
+</script>
+@endsection
 
 @section('styles')
 <style>

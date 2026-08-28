@@ -33,7 +33,22 @@ class ProductDetailController extends Controller
             $discountPercentage = round((($product->price - $product->final_price) / $product->price) * 100);
         }
 
-        return view('frontend.product_detail', compact('product', 'relatedProducts', 'whatsapp', 'discountPercentage'));
+        // Product SEO & Canonical URL
+        $seoTitle = $product->name . ' - Buy Online | Quara Wardrobe';
+        $seoDescription = Str::limit(strip_tags($product->description), 155, '...');
+        $canonicalUrl = route('product.detail', $product->slug);
+        $ogImage = $product->primary_image_url;
+
+        return view('frontend.product_detail', compact(
+            'product',
+            'relatedProducts',
+            'whatsapp',
+            'discountPercentage',
+            'seoTitle',
+            'seoDescription',
+            'canonicalUrl',
+            'ogImage'
+        ));
     }
 
     public function checkShipping(Request $request, string $slug)

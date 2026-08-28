@@ -71,19 +71,53 @@
 <form action="{{ route('admin.manual-sales.store') }}" method="POST">
     @csrf
     <div class="row g-4">
-        <!-- Left Side: Product Selection & Pricing -->
+        <!-- Left Side: Category, Product Selection & Pricing -->
         <div class="col-lg-7">
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-shirt text-warning me-2"></i> Select Product & Size</h5>
 
+                    <!-- Category Filter Checkboxes -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold mb-0">Filter by Category (Select Multiple)</label>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none me-2 fw-semibold" onclick="selectAllCategories(true)">Select All</button>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted fw-semibold" onclick="selectAllCategories(false)">Clear All</button>
+                            </div>
+                        </div>
+                        <div class="p-3 border rounded-3 bg-light" style="max-height: 140px; overflow-y: auto;">
+                            <div class="row g-2">
+                                @foreach($categories as $cat)
+                                    <div class="col-6 col-sm-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input category-checkbox" type="checkbox" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="filterProductsByCategory()">
+                                            <label class="form-check-label text-truncate w-100 small fw-medium" for="cat_{{ $cat->id }}" title="{{ $cat->name }}">
+                                                {{ $cat->name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="form-text small text-muted">If no category is selected, products from all categories will be shown.</div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Select Product <span class="text-danger">*</span></label>
-                        <select name="product_id" id="productSelect" class="form-select rounded-3" required onchange="updateSizes()">
+                        <select name="product_id" id="productSelect" class="form-select rounded-3" required onchange="onProductChange()">
                             <option value="">-- Choose Product --</option>
                             @foreach($products as $prod)
+                                @php
+                                    $catIds = array_values(array_filter(array_unique(array_merge(
+                                        [$prod->category_id],
+                                        $prod->categories->pluck('id')->toArray()
+                                    ))));
+                                @endphp
                                 <option value="{{ $prod->id }}" 
                                         data-price="{{ $prod->final_price }}"
+                                        data-image="{{ $prod->primary_image_url }}"
+                                        data-categories='@json($catIds)'
                                         data-sizes='@json($prod->sizes)'>
                                     {{ $prod->name }} (Price: ₹{{ number_format($prod->final_price, 2) }})
                                 </option>
@@ -94,7 +128,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Select Size <span class="text-danger">*</span></label>
-                            <select name="product_size_id" id="sizeSelect" class="form-select rounded-3" required onchange="updateStockNotice()">
+                            <select name="product_size_id" id="sizeSelect" class="form-select rounded-3" required onchange="onSizeChange()">
                                 <option value="">-- Select Product First --</option>
                             </select>
                             <div class="form-text small fw-bold text-success" id="stockNotice"></div>
@@ -102,7 +136,8 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Quantity (pcs) <span class="text-danger">*</span></label>
-                            <input type="number" name="quantity" id="qtyInput" class="form-control rounded-3" value="1" min="1" required oninput="calcTotals()">
+                            <input type="number" name="quantity" id="qtyInput" class="form-control rounded-3" value="1" min="1" required oninput="validateQuantity()">
+                            <div class="form-text small fw-bold text-danger d-none" id="qtyErrorNotice"></div>
                         </div>
                     </div>
 
@@ -138,6 +173,7 @@
                             <select name="payment_method" class="form-select rounded-3" required>
                                 <option value="upi">UPI (GPay/PhonePe/Paytm)</option>
                                 <option value="bank_transfer">Bank Transfer / Card</option>
+                                <option value="cash">Cash Payment</option>
                             </select>
                         </div>
 
@@ -158,8 +194,32 @@
             </div>
         </div>
 
-        <!-- Right Side: Customer Details & Submit -->
+        <!-- Right Side: Product Image Confirmation & Customer Details -->
         <div class="col-lg-5">
+            <!-- Product Confirmation Image Preview Card -->
+            <div class="card border-0 rounded-4 shadow-sm mb-4" id="productPreviewCard">
+                <div class="card-body p-4 text-center">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2 text-start">
+                        <i class="fa-solid fa-image text-warning me-2"></i> Product Confirmation
+                    </h5>
+                    <div id="productPreviewContainer">
+                        <div class="p-4 bg-light rounded-3 text-muted" id="noProductSelectedPlaceholder">
+                            <i class="fa-solid fa-box-open fa-3x mb-2 text-secondary opacity-50"></i>
+                            <p class="mb-0 small fw-bold">Select a product to view its image & details for confirmation.</p>
+                        </div>
+                        <div id="productSelectedContent" class="d-none">
+                            <div class="position-relative mb-3 mx-auto" style="max-width: 250px;">
+                                <img id="previewImage" src="" alt="Product Image" class="img-fluid rounded-3 border shadow-sm" style="max-height: 220px; object-fit: contain; width: 100%;">
+                            </div>
+                            <h6 id="previewProductName" class="fw-bold text-dark mb-1"></h6>
+                            <div class="text-warning fw-bold fs-5 mb-1" id="previewProductPrice"></div>
+                            <div id="previewSizeStockInfo" class="badge bg-light text-dark border px-3 py-2 mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Details Card -->
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-user text-warning me-2"></i> Customer Details</h5>
@@ -210,6 +270,56 @@
 
 @section('scripts')
 <script>
+    function filterProductsByCategory() {
+        const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+        const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        const productSelect = document.getElementById('productSelect');
+        const options = productSelect.options;
+        let selectedStillValid = false;
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            if (!opt.value) continue;
+
+            const catIds = JSON.parse(opt.getAttribute('data-categories') || '[]');
+            const isMatched = (selectedCatIds.length === 0) || catIds.some(id => selectedCatIds.includes(parseInt(id)));
+
+            if (isMatched) {
+                opt.hidden = false;
+                opt.disabled = false;
+                opt.style.display = '';
+                if (opt.selected) {
+                    selectedStillValid = true;
+                }
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+                opt.style.display = 'none';
+                if (opt.selected) {
+                    opt.selected = false;
+                }
+            }
+        }
+
+        if (!selectedStillValid) {
+            productSelect.value = '';
+            onProductChange();
+        }
+    }
+
+    function selectAllCategories(status) {
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        checkboxes.forEach(cb => cb.checked = status);
+        filterProductsByCategory();
+    }
+
+    function onProductChange() {
+        updateSizes();
+        updateProductPreview();
+        calcTotals();
+    }
+
     function updateSizes() {
         const select = document.getElementById('productSelect');
         const selectedOption = select.options[select.selectedIndex];
@@ -219,20 +329,21 @@
         sizeSelect.innerHTML = '<option value="">-- Choose Size --</option>';
         document.getElementById('stockNotice').innerText = '';
 
-        if (!selectedOption.value) {
-            priceInput.value = '';
-            calcTotals();
+        if (!selectedOption || !selectedOption.value) {
+            if (priceInput) priceInput.value = '';
+            onSizeChange();
             return;
         }
 
         const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-        priceInput.value = price.toFixed(2);
+        if (priceInput) priceInput.value = price.toFixed(2);
 
         const sizes = JSON.parse(selectedOption.getAttribute('data-sizes') || '[]');
         sizes.forEach(sz => {
             const opt = document.createElement('option');
             opt.value = sz.id;
             opt.setAttribute('data-stock', sz.stock);
+            opt.setAttribute('data-size', sz.size);
             opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
             if (sz.stock <= 0) {
                 opt.disabled = true;
@@ -241,7 +352,13 @@
             sizeSelect.appendChild(opt);
         });
 
-        calcTotals();
+        onSizeChange();
+    }
+
+    function onSizeChange() {
+        updateStockNotice();
+        validateQuantity();
+        updateProductPreview();
     }
 
     function updateStockNotice() {
@@ -257,13 +374,117 @@
         }
     }
 
+    function validateQuantity() {
+        const qtyInput = document.getElementById('qtyInput');
+        const sizeSelect = document.getElementById('sizeSelect');
+        const selectedOption = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
+        const qtyNotice = document.getElementById('qtyErrorNotice');
+
+        if (selectedOption && selectedOption.value) {
+            const maxStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+            qtyInput.max = maxStock;
+
+            let qty = parseInt(qtyInput.value) || 0;
+            if (maxStock > 0 && qty > maxStock) {
+                qtyInput.value = maxStock;
+                if (qtyNotice) {
+                    qtyNotice.innerText = `Quantity cannot exceed available stock of ${maxStock} pcs!`;
+                    qtyNotice.classList.remove('d-none');
+                }
+            } else if (qty < 1 && maxStock > 0) {
+                qtyInput.value = 1;
+                if (qtyNotice) qtyNotice.classList.add('d-none');
+            } else {
+                if (qtyNotice) qtyNotice.classList.add('d-none');
+            }
+        } else {
+            qtyInput.removeAttribute('max');
+            if (qtyNotice) qtyNotice.classList.add('d-none');
+        }
+
+        calcTotals();
+    }
+
+    function updateProductPreview() {
+        const productSelect = document.getElementById('productSelect');
+        const selectedProductOpt = productSelect.options[productSelect.selectedIndex];
+
+        const placeholder = document.getElementById('noProductSelectedPlaceholder');
+        const content = document.getElementById('productSelectedContent');
+        const imgElem = document.getElementById('previewImage');
+        const nameElem = document.getElementById('previewProductName');
+        const priceElem = document.getElementById('previewProductPrice');
+        const sizeStockElem = document.getElementById('previewSizeStockInfo');
+
+        if (selectedProductOpt && selectedProductOpt.value) {
+            const imageUrl = selectedProductOpt.getAttribute('data-image') || '';
+            const rawText = selectedProductOpt.text;
+            const prodName = rawText.split('(Price:')[0].trim();
+            const price = parseFloat(selectedProductOpt.getAttribute('data-price')) || 0;
+
+            imgElem.src = imageUrl;
+            nameElem.innerText = prodName;
+            priceElem.innerText = '₹' + price.toFixed(2);
+
+            const sizeSelect = document.getElementById('sizeSelect');
+            const selectedSizeOpt = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
+
+            if (selectedSizeOpt && selectedSizeOpt.value) {
+                const szName = selectedSizeOpt.getAttribute('data-size');
+                const stock = selectedSizeOpt.getAttribute('data-stock');
+                sizeStockElem.innerText = `Size: ${szName} | Stock: ${stock} pcs`;
+                sizeStockElem.className = "badge bg-success-subtle text-success border border-success px-3 py-2 mt-2";
+            } else {
+                sizeStockElem.innerText = `Please select a size`;
+                sizeStockElem.className = "badge bg-warning-subtle text-warning border border-warning px-3 py-2 mt-2";
+            }
+
+            placeholder.classList.add('d-none');
+            content.classList.remove('d-none');
+        } else {
+            placeholder.classList.remove('d-none');
+            content.classList.add('d-none');
+        }
+    }
+
     function calcTotals() {
-        const price = parseFloat(document.getElementById('priceInput').value) || 0;
-        const qty = parseInt(document.getElementById('qtyInput').value) || 1;
-        const shipping = parseFloat(document.getElementById('shippingInput').value) || 0;
+        const priceInput = document.getElementById('priceInput');
+        const qtyInput = document.getElementById('qtyInput');
+        const shippingInput = document.getElementById('shippingInput');
+
+        const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+        const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+        const shipping = parseFloat(shippingInput ? shippingInput.value : 0) || 0;
 
         const grandTotal = (price * qty) + shipping;
-        document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
+        const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+        if (grandTotalDisplay) {
+            grandTotalDisplay.innerText = '₹' + grandTotal.toFixed(2);
+        }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const sizeSelect = document.getElementById('sizeSelect');
+                const selectedOption = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
+                const qtyInput = document.getElementById('qtyInput');
+
+                if (selectedOption && selectedOption.value) {
+                    const maxStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+                    const qty = parseInt(qtyInput.value) || 0;
+
+                    if (qty > maxStock) {
+                        e.preventDefault();
+                        alert(`Selected quantity (${qty} pcs) exceeds available stock (${maxStock} pcs).`);
+                        qtyInput.value = maxStock;
+                        qtyInput.focus();
+                        return false;
+                    }
+                }
+            });
+        }
+    });
 </script>
 @endsection

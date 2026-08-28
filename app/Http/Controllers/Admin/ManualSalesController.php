@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -40,8 +41,9 @@ class ManualSalesController extends Controller
 
     public function create()
     {
-        $products = Product::where('status', 'active')->with(['sizes', 'images'])->get();
-        return view('admin.manual_sales.create', compact('products'));
+        $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
+        $products = Product::where('status', 'active')->with(['category', 'categories', 'sizes', 'images'])->get();
+        return view('admin.manual_sales.create', compact('products', 'categories'));
     }
 
     public function store(Request $request)
@@ -138,10 +140,11 @@ class ManualSalesController extends Controller
         }
 
         $order->load(['items.product', 'items.productSize']);
-        $products = Product::where('status', 'active')->with(['sizes', 'images'])->get();
+        $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
+        $products = Product::where('status', 'active')->with(['category', 'categories', 'sizes', 'images'])->get();
         $firstItem = $order->items->first();
 
-        return view('admin.manual_sales.edit', compact('order', 'products', 'firstItem'));
+        return view('admin.manual_sales.edit', compact('order', 'products', 'categories', 'firstItem'));
     }
 
     public function update(Request $request, Order $order)

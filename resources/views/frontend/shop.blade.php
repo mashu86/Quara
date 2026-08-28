@@ -1,6 +1,31 @@
 @extends('layouts.app')
 
-@section('title', 'Shop All - ' . $siteName . ' Fashion Store')
+@section('title', $seoTitle ?? ('Shop All Ladies Fashion - ' . $siteName))
+@section('meta_description', $seoDescription ?? ('Browse the complete collection of stylish western wear, Korean tops, and dresses at ' . $siteName . ' online shop.'))
+@section('canonical_url', $canonicalUrl ?? route('shop'))
+
+@section('json_ld')
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{{ route('home') }}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{{ $currentCategory ? $currentCategory->name : 'Shop' }}",
+      "item": "{{ $canonicalUrl ?? route('shop') }}"
+    }
+  ]
+}
+</script>
+@endsection
 
 @section('content')
 <div class="container py-4">
@@ -8,20 +33,27 @@
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Shop</li>
+            @if($currentCategory)
+                <li class="breadcrumb-item"><a href="{{ route('shop') }}" class="text-decoration-none text-muted">Shop</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ $currentCategory->name }}</li>
+            @else
+                <li class="breadcrumb-item active" aria-current="page">Shop</li>
+            @endif
         </ol>
     </nav>
 
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
         <div>
-            <h2 class="font-serif fw-bold display-6 mb-1">
-                @if(request()->filled('category'))
-                    {{ ucfirst(str_replace('-', ' ', request()->category)) }}
+            <h1 class="font-serif fw-bold display-6 mb-1 fs-2">
+                @if($currentCategory)
+                    {{ $currentCategory->name }}
+                @elseif(request()->filled('search'))
+                    Search Results for "{{ request()->search }}"
                 @else
                     ALL PRODUCTS
                 @endif
-            </h2>
-            <p class="text-muted small mb-0">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces</p>
+            </h1>
+            <p class="text-muted small mb-0">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces at Quara Wardrobe</p>
         </div>
 
         <!-- Sorting dropdown -->

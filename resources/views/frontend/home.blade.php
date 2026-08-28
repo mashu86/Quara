@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', $siteName . ' - Trendy & Affordable Ladies Wear')
+@section('title', $seoTitle ?? 'Quara Wardrobe | Online Fashion Store & Ladies Wear')
+@section('meta_description', $seoDescription ?? 'Shop elegant, trendy & affordable ladies fashion, western wear, Korean tops, and stylish dresses at Quara Wardrobe online store. Fast pan-India delivery.')
+@section('canonical_url', $canonicalUrl ?? route('home'))
 
 @section('styles')
 <style>
@@ -16,6 +18,9 @@
 @endsection
 
 @section('content')
+<!-- Accessible H1 for SEO -->
+<h1 class="visually-hidden">Quara Wardrobe — Online Fashion Store & Ladies Wear</h1>
+
 <!-- Dynamic Home Main Content Master Area -->
 @if($homeContent)
     <section class="qw-dynamic-home-content py-4 bg-white shadow-sm border-bottom">

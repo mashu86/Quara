@@ -3,13 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', $siteName . ' - Affordable & Trendy Ladies Western Wear')</title>
-    <meta name="description" content="@yield('meta_description', 'Shop elegant, trendy & affordable ladies fashion at ' . $siteName . '.')">
+    
+    <!-- Primary SEO Meta Tags -->
+    <title>@yield('title', config('seo.default_title'))</title>
+    <meta name="description" content="@yield('meta_description', config('seo.default_description'))">
+    <meta name="keywords" content="@yield('meta_keywords', config('seo.default_keywords'))">
+    <meta name="author" content="Quara Wardrobe">
+    <meta name="robots" content="@yield('meta_robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1')">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Canonical URL (Dynamically Configurable) -->
+    <link rel="canonical" href="@yield('canonical_url', url()->current())">
+
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:site_name" content="{{ $siteName ?? 'Quara Wardrobe' }}">
+    <meta property="og:type" content="@yield('og_type', 'website')">
+    <meta property="og:url" content="@yield('canonical_url', url()->current())">
+    <meta property="og:title" content="@yield('og_title', View::getSection('title') ?? config('seo.default_title'))">
+    <meta property="og:description" content="@yield('og_description', View::getSection('meta_description') ?? config('seo.default_description'))">
+    <meta property="og:image" content="@yield('og_image', $siteLogoUrl)">
+    <meta property="og:locale" content="{{ config('seo.locale', 'en_IN') }}">
+
+    <!-- Twitter / X Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="{{ config('seo.twitter_handle', '@quarawardrobe') }}">
+    <meta name="twitter:title" content="@yield('og_title', View::getSection('title') ?? config('seo.default_title'))">
+    <meta name="twitter:description" content="@yield('og_description', View::getSection('meta_description') ?? config('seo.default_description'))">
+    <meta name="twitter:image" content="@yield('og_image', $siteLogoUrl)">
 
     <!-- Favicon / Shop Icon -->
     <link rel="icon" href="{{ $siteFaviconUrl }}">
     <link rel="shortcut icon" href="{{ $siteFaviconUrl }}">
+
+    <!-- Global Brand & Website JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "{{ url('/') }}#organization",
+          "name": "{{ $siteName ?? 'Quara Wardrobe' }}",
+          "alternateName": ["Quara", "Quara Wardrobe", "Quara Waldrop", "Quara Online Shop", "Quara Store"],
+          "url": "{{ url('/') }}",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "{{ $siteLogoUrl }}"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "{{ $supportEmail }}",
+            "contactType": "customer service"
+          }
+        },
+        {
+          "@type": "OnlineStore",
+          "@id": "{{ url('/') }}#store",
+          "name": "{{ $siteName ?? 'Quara Wardrobe' }}",
+          "alternateName": ["Quara", "Quara Wardrobe", "Quara Waldrop", "Quara Online Store", "Quara Fashion Store"],
+          "url": "{{ url('/') }}",
+          "logo": "{{ $siteLogoUrl }}",
+          "description": "Quara Wardrobe is an online fashion store offering elegant, trendy, and affordable ladies western wear, Korean tops, and stylish dresses with pan-India delivery.",
+          "currenciesAccepted": "INR",
+          "priceRange": "₹"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "{{ url('/') }}#website",
+          "url": "{{ url('/') }}",
+          "name": "{{ $siteName ?? 'Quara Wardrobe' }}",
+          "alternateName": ["Quara", "Quara Wardrobe", "Quara Waldrop"],
+          "publisher": {
+            "@id": "{{ url('/') }}#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "{{ route('shop') }}?search={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+    @yield('json_ld')
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

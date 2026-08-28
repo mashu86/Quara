@@ -91,7 +91,31 @@ class ShopController extends Controller
         $categories = Category::where('status', 'active')->get();
         $allSizes = ProductSize::select('size')->distinct()->pluck('size');
 
-        return view('frontend.shop', compact('products', 'categories', 'allSizes'));
+        // Dynamic SEO Metadata & Canonical URL Handling
+        $currentCategory = null;
+        if ($request->filled('category')) {
+            $currentCategory = $categories->firstWhere('slug', $request->category);
+        }
+
+        if ($currentCategory) {
+            $seoTitle = $currentCategory->name . ' - Buy Women\'s Western Wear Online | Quara Wardrobe';
+            $seoDescription = 'Explore elegant and trendy ' . strtolower($currentCategory->name) . ' at Quara Wardrobe online shop. High fashion ladies wear with fast pan-India shipping.';
+            $canonicalUrl = route('category.products', $currentCategory->slug);
+        } else {
+            $seoTitle = 'Shop All Ladies Fashion & Western Wear | Quara Wardrobe';
+            $seoDescription = 'Browse the complete collection of stylish Korean tops, western dresses, and everyday ladies apparel at Quara Wardrobe online store.';
+            $canonicalUrl = route('shop');
+        }
+
+        return view('frontend.shop', compact(
+            'products',
+            'categories',
+            'allSizes',
+            'currentCategory',
+            'seoTitle',
+            'seoDescription',
+            'canonicalUrl'
+        ));
     }
 
     public function categoryProducts(Request $request, string $slug)

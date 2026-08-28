@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Track Order - ' . $siteName)
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="container py-4">

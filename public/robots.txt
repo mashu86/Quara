@@ -1,2 +1,11 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkout/*
+Disallow: /email-auth/*
+Disallow: /my-orders
+Disallow: /order-tracking
+
+Sitemap: https://quarawaldrop.shop/sitemap.xml

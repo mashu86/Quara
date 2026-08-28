@@ -19,15 +19,18 @@ use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordCo
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 
 /*
 |--------------------------------------------------------------------------
-| CUSTOMER FRONTEND ROUTES
+| CUSTOMER FRONTEND & SEO ROUTES
 |--------------------------------------------------------------------------
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/shop', [ShopController::class, 'index'])->name('shop');
 Route::get('/category/{slug}', [ShopController::class, 'categoryProducts'])->name('category.products');
 Route::get('/product/{slug}', [ProductDetailController::class, 'show'])->name('product.detail');

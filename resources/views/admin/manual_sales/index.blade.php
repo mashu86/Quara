@@ -152,9 +152,9 @@
                                 <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>
                             </td>
                             <td class="small text-muted">{{ $order->created_at->format('M d, Y h:i A') }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold">
-                                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                            <td class="text-end pe-3">
+                                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Offline Sale">
+                                    <i class="fa-solid fa-pen-to-square"></i>
                                 </a>
                             </td>
                         </tr>

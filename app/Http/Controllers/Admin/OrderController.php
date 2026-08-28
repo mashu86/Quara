@@ -59,7 +59,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['items.product', 'payment', 'notifications']);
+        $order->load(['items.product.images', 'payment', 'notifications']);
 
         // Mark unread notifications for this order as read
         Notification::where('order_id', $order->id)->where('is_read', false)->update(['is_read' => true]);

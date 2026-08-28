@@ -358,16 +358,20 @@
                                 @endif
                             </td>
                             <td class="small text-muted text-truncate" style="max-width: 180px;">{{ $expense->notes ?? '-' }}</td>
-                            <td class="text-end expense-action-cell">
-                                <div class="expense-action-group">
-                                    <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-2.5 py-1" onclick="showExpenseDetail({{ $expense->id }})" title="View Expense">
-                                        <i class="fa-solid fa-eye me-1 me-sm-0 me-md-1"></i><span class="d-none d-md-inline">View</span>
+                            <td class="text-end pe-3">
+                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" onclick="showExpenseDetail({{ $expense->id }})" title="View Expense">
+                                        <i class="fa-solid fa-eye"></i>
                                     </button>
-                                    <a href="{{ route('admin.expenses.edit', $expense->id) }}" class="btn btn-outline-warning btn-sm rounded-circle" title="Edit Expense"><i class="fa-solid fa-pen"></i></a>
-                                    <form action="{{ route('admin.expenses.destroy', $expense->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this expense record?')">
+                                    <a href="{{ route('admin.expenses.edit', $expense->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Expense">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <form action="{{ route('admin.expenses.destroy', $expense->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this expense record?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Expense"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Expense">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </form>
                                 </div>
                             </td>

@@ -168,15 +168,15 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-1">
-                                    <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle rounded-md-pill px-2 px-md-2.5 py-1 text-nowrap small fw-bold" title="WhatsApp Follow-up">
-                                        <i class="fa-brands fa-whatsapp me-0 me-md-1"></i><span class="d-none d-md-inline">WhatsApp</span>
+                                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-1.5">
+                                    <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
+                                        <i class="fa-brands fa-whatsapp fs-6"></i>
                                     </button>
-                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle rounded-md-pill px-2 px-md-3 py-1 text-nowrap small fw-semibold" title="View Details">
-                                        <i class="fa-solid fa-eye me-0 me-md-1"></i><span class="d-none d-md-inline">View</span>
+                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="View Details">
+                                        <i class="fa-solid fa-eye fs-6"></i>
                                     </a>
-                                    <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle rounded-md-pill px-2 px-md-3 py-1 text-nowrap small fw-bold" title="Print Invoice">
-                                        <i class="fa-solid fa-print me-0 me-md-1"></i><span class="d-none d-md-inline">Invoice</span>
+                                    <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
+                                        <i class="fa-solid fa-print fs-6"></i>
                                     </a>
                                 </div>
                             </td>

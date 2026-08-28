@@ -13,12 +13,12 @@
         </h4>
     </div>
     <div class="d-flex justify-content-between align-items-center gap-2">
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-success text-white rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-bold shadow-sm me-1" style="font-size: 0.78rem;" title="WhatsApp Follow-up">
-                <i class="fa-brands fa-whatsapp me-0 me-md-1"></i><span class="d-none d-md-inline">WhatsApp</span>
+        <div class="d-flex align-items-center gap-1.5">
+            <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
+                <i class="fa-brands fa-whatsapp fs-6"></i>
             </button>
-            <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-warning text-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-bold shadow-sm" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
-                <i class="fa-solid fa-print me-0 me-md-1"></i><span class="d-none d-md-inline">Invoice</span>
+            <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
+                <i class="fa-solid fa-print fs-6"></i>
             </a>
         </div>
         <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;">&larr; <span class="d-none d-sm-inline">Back to </span>Orders</a>
@@ -40,6 +40,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Product</th>
+                                <th>Photo</th>
                                 <th>Size</th>
                                 <th>Unit Price</th>
                                 <th>Qty</th>
@@ -48,8 +49,27 @@
                         </thead>
                         <tbody>
                             @foreach($order->items as $item)
+                                @php
+                                    $itemProduct = $item->product;
+                                    $itemImageUrl = $itemProduct ? $itemProduct->primary_image_url : \App\Models\Setting::logoUrl();
+                                    $itemName = $item['product_name'] ?? ($itemProduct ? $itemProduct->name : 'Product');
+                                @endphp
                                 <tr>
-                                    <td class="fw-bold text-dark">{{ $item['product_name'] }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark mb-0" style="font-size: 0.82rem;">{{ $itemName }}</div>
+                                        @if($itemProduct)
+                                            <a href="{{ route('admin.products.edit', $itemProduct->id) }}" target="_blank" class="text-muted small text-decoration-none" style="font-size: 0.7rem;">
+                                                Master Link <i class="fa-solid fa-arrow-up-right-from-square ms-0.5" style="font-size: 0.65rem;"></i>
+                                            </a>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <img src="{{ $itemImageUrl }}" alt="{{ $itemName }}" 
+                                             class="rounded-3 border shadow-sm item-thumb-img" 
+                                             style="width: 48px; height: 60px; object-fit: cover; cursor: pointer; transition: transform 0.2s ease;"
+                                             onclick="openImagePreviewModal('{{ addslashes($itemImageUrl) }}', '{{ addslashes($itemName) }}')"
+                                             title="Click to view large image">
+                                    </td>
                                     <td><span class="badge bg-dark" style="font-size: 0.7rem;">{{ $item['size'] }}</span></td>
                                     <td>₹{{ number_format($item['price'], 2) }}</td>
                                     <td>{{ $item['quantity'] }}</td>
@@ -59,17 +79,17 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="4" class="text-end fw-bold">Subtotal:</td>
+                                <td colspan="5" class="text-end fw-bold">Subtotal:</td>
                                 <td class="text-end fw-bold">₹{{ number_format($order->subtotal, 2) }}</td>
                             </tr>
                             @if($order->discount_amount > 0)
                                 <tr class="text-danger">
-                                    <td colspan="4" class="text-end fw-bold">Discount:</td>
+                                    <td colspan="5" class="text-end fw-bold">Discount:</td>
                                     <td class="text-end fw-bold">-₹{{ number_format($order->discount_amount, 2) }}</td>
                                 </tr>
                             @endif
                             <tr>
-                                <td colspan="4" class="text-end fw-bold" style="font-size: 0.85rem;">Grand Total:</td>
+                                <td colspan="5" class="text-end fw-bold" style="font-size: 0.85rem;">Grand Total:</td>
                                 <td class="text-end fw-bold text-warning" style="font-size: 0.88rem;">₹{{ number_format($order->grand_total, 2) }}</td>
                             </tr>
                         </tfoot>
@@ -292,4 +312,47 @@
 </div>
 
 @include('admin.orders.partials.whatsapp_modal')
+
+<!-- Large Product Image Preview Modal -->
+<div class="modal fade" id="productImagePreviewModal" tabindex="-1" aria-labelledby="productImagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                <h6 class="modal-title font-serif fw-bold text-truncate me-2 mb-0" id="productImagePreviewModalTitle">
+                    <i class="fa-solid fa-shirt text-warning me-2"></i> Product Photo
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 text-center bg-light">
+                <img id="productImagePreviewModalImg" src="" alt="Product Large View" class="img-fluid rounded-3 shadow-sm" style="max-height: 75vh; width: 100%; object-fit: contain;">
+            </div>
+            <div class="modal-footer bg-white py-2 px-4 border-top">
+                <button type="button" class="btn btn-dark rounded-pill px-4 btn-sm fw-bold ms-auto" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark me-1"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .item-thumb-img:hover {
+        transform: scale(1.08);
+        border-color: var(--qw-gold) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+<script>
+function openImagePreviewModal(imageUrl, title) {
+    var imgEl = document.getElementById('productImagePreviewModalImg');
+    var titleEl = document.getElementById('productImagePreviewModalTitle');
+    if (imgEl && titleEl) {
+        imgEl.src = imageUrl;
+        titleEl.innerHTML = '<i class="fa-solid fa-shirt text-warning me-2"></i> ' + title;
+        var modal = new bootstrap.Modal(document.getElementById('productImagePreviewModal'));
+        modal.show();
+    }
+}
+</script>
 @endsection

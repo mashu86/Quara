@@ -223,17 +223,17 @@
                                     {{ ucfirst($product->status) }}
                                 </span>
                             </td>
-                            <td class="text-end">
-                                <div class="d-flex align-items-center justify-content-end gap-1 gap-md-2">
-                                    <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark px-2 px-md-3" title="Edit Product">
-                                        <i class="fa-solid fa-pen-to-square"></i> <span class="d-none d-md-inline ms-1">Edit</span>
+                            <td class="text-end pe-3">
+                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
+                                    <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Product">
+                                        <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
 
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this product permanently?')">
+                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this product permanently?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2 px-md-3" title="Delete Product">
-                                            <i class="fa-solid fa-trash"></i> <span class="d-none d-md-inline ms-1">Delete</span>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Product">
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>
                                 </div>

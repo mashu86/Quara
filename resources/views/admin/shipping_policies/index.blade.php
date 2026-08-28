@@ -74,16 +74,16 @@
                                 @endif
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1 flex-nowrap">
-                                    <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Edit Policy">
-                                        <i class="fa-solid fa-pen-to-square"></i><span class="d-none d-sm-inline ms-1">Edit</span>
+                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
+                                    <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Policy">
+                                        <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
 
                                     <form action="{{ route('admin.shipping-policies.destroy', $policy->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this policy?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 px-2 py-1" style="font-size: 0.75rem;" title="Delete Policy">
-                                            <i class="fa-solid fa-trash"></i><span class="d-none d-sm-inline ms-1">Delete</span>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Policy">
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>
                                 </div>

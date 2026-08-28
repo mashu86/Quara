@@ -88,6 +88,8 @@ class AdminSettingsTest extends TestCase
         $this->assertNotSame('razorpay-secret-value', Setting::get('razorpay_secret'));
         Storage::disk('public')->assertExists(Setting::get('site_logo'));
         Storage::disk('public')->assertExists(Setting::get('site_favicon'));
+        $this->assertStringContainsString('/media/settings/branding/', Setting::logoUrl());
+        $this->assertStringContainsString('/media/settings/branding/', Setting::faviconUrl());
     }
 
     public function test_blank_password_keeps_the_existing_encrypted_password(): void

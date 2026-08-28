@@ -129,11 +129,16 @@
         <div class="card-body p-4">
             <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
                 <h6 class="fw-bold mb-0">Razorpay API Credentials</h6>
-                @if(str_starts_with(old('razorpay_key', $razorpayKey) ?? '', 'rzp_live_'))
-                    <span class="badge bg-success">LIVE MODE</span>
-                @else
-                    <span class="badge bg-warning text-dark">TEST MODE</span>
-                @endif
+                <div class="d-flex align-items-center gap-2">
+                    @if(str_starts_with(old('razorpay_key', $razorpayKey) ?? '', 'rzp_live_'))
+                        <span class="badge bg-success">LIVE MODE</span>
+                    @else
+                        <span class="badge bg-warning text-dark">TEST MODE</span>
+                    @endif
+                    <a href="{{ route('admin.payment-check.index') }}" class="btn btn-sm btn-outline-dark rounded-pill fw-bold">
+                        <i class="fa-solid fa-circle-check me-1"></i> Test Payment
+                    </a>
+                </div>
             </div>
 
             <div class="alert alert-warning border-0 rounded-3 small">

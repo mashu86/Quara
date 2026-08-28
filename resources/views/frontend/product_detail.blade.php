@@ -319,25 +319,26 @@
 
                         <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
                             @php
-                                $totalProductStock = $product->sizes->sum('stock');
+                                $totalProductStock = $product->total_stock;
                                 $firstInStockSelected = false;
                             @endphp
 
                             @forelse($product->sizes as $pSize)
                                 @php
-                                    $isAvailable = $pSize->stock > 0;
+                                    $effectiveStock = $product->is_out_of_stock ? 0 : $pSize->stock;
+                                    $isAvailable = $effectiveStock > 0;
                                     $shouldCheck = false;
                                     if ($isAvailable && !$firstInStockSelected) {
                                         $shouldCheck = true;
                                         $firstInStockSelected = true;
                                     }
                                 @endphp
-                                <input type="radio" class="btn-check" name="size" id="size_{{ $pSize->id }}" value="{{ $pSize->size }}" data-stock="{{ $pSize->stock }}" onchange="updateStockNotice(this)" {{ $shouldCheck ? 'checked' : '' }}>
+                                <input type="radio" class="btn-check" name="size" id="size_{{ $pSize->id }}" value="{{ $pSize->size }}" data-stock="{{ $effectiveStock }}" onchange="updateStockNotice(this)" {{ $shouldCheck ? 'checked' : '' }}>
                                 <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option" for="size_{{ $pSize->id }}">
                                     {{ $pSize->size }}
-                                    @if($pSize->stock > 0 && $pSize->stock <= 3)
-                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $pSize->stock }} left</span>
-                                    @elseif($pSize->stock <= 0)
+                                    @if($effectiveStock > 0 && $effectiveStock <= 3)
+                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $effectiveStock }} left</span>
+                                    @elseif($effectiveStock <= 0)
                                         <span class="badge bg-secondary text-white ms-1" style="font-size:0.65rem;">Out</span>
                                     @endif
                                 </label>

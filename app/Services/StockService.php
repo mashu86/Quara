@@ -20,6 +20,10 @@ class StockService
             return ['available' => false, 'message' => 'Product is currently unavailable.'];
         }
 
+        if ($product->is_out_of_stock) {
+            return ['available' => false, 'message' => 'Selected item is currently out of stock.', 'available_stock' => 0];
+        }
+
         if ($size) {
             $productSize = ProductSize::where('product_id', $productId)->where('size', $size)->first();
             if (!$productSize) {

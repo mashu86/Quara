@@ -154,6 +154,7 @@
                         <th>Discount</th>
                         <th>Selling Price</th>
                         <th>Size-wise Stock</th>
+                        <th>Out of Stock</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -203,6 +204,21 @@
                                 </div>
                             </td>
                             <td>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input out-of-stock-toggle" type="checkbox" role="switch"
+                                           id="outOfStockToggle_{{ $product->id }}"
+                                           data-product-id="{{ $product->id }}"
+                                           data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
+                                           {{ $product->is_out_of_stock ? 'checked' : '' }}
+                                           style="cursor: pointer; width: 2.3em; height: 1.2em;">
+                                    <label class="form-check-label small fw-bold ms-1 {{ $product->is_out_of_stock ? 'text-danger' : 'text-success' }}"
+                                           id="outOfStockLabel_{{ $product->id }}"
+                                           for="outOfStockToggle_{{ $product->id }}" style="cursor: pointer; font-size: 0.78rem;">
+                                        {{ $product->is_out_of_stock ? 'Out of Stock' : 'Normal Stock' }}
+                                    </label>
+                                </div>
+                            </td>
+                            <td>
                                 <span class="badge bg-{{ $product->status === 'active' ? 'success' : 'secondary' }}">
                                     {{ ucfirst($product->status) }}
                                 </span>
@@ -225,7 +241,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">No products found matching filters.</td>
+                            <td colspan="10" class="text-center py-4 text-muted">No products found matching filters.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -236,4 +252,50 @@
         {{ $products->links() }}
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.querySelectorAll('.out-of-stock-toggle').forEach(function(toggle) {
+    toggle.addEventListener('change', function() {
+        const productId = this.getAttribute('data-product-id');
+        const url = this.getAttribute('data-url');
+        const isChecked = this.checked;
+        const label = document.getElementById('outOfStockLabel_' + productId);
+
+        toggle.disabled = true;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ is_out_of_stock: isChecked })
+        })
+        .then(response => response.json())
+        .then(data => {
+            toggle.disabled = false;
+            if (data.success) {
+                if (data.is_out_of_stock) {
+                    label.textContent = 'Out of Stock';
+                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
+                } else {
+                    label.textContent = 'Normal Stock';
+                    label.className = 'form-check-label small fw-bold ms-1 text-success';
+                }
+            } else {
+                toggle.checked = !isChecked;
+                alert(data.message || 'Error updating stock status.');
+            }
+        })
+        .catch(err => {
+            toggle.disabled = false;
+            toggle.checked = !isChecked;
+            alert('Failed to connect to server. Please try again.');
+        });
+    });
+});
+</script>
 @endsection

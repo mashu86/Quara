@@ -46,12 +46,16 @@ class ProductController extends Controller
 
         if ($request->filled('stock_status')) {
             if ($request->stock_status === 'in_stock') {
-                $query->whereHas('sizes', function ($q) {
-                    $q->where('stock', '>', 0);
-                });
+                $query->where('is_out_of_stock', false)
+                    ->whereHas('sizes', function ($q) {
+                        $q->where('stock', '>', 0);
+                    });
             } elseif ($request->stock_status === 'out_of_stock') {
-                $query->whereDoesntHave('sizes', function ($q) {
-                    $q->where('stock', '>', 0);
+                $query->where(function ($q) {
+                    $q->where('is_out_of_stock', true)
+                      ->orWhereDoesntHave('sizes', function ($sq) {
+                          $sq->where('stock', '>', 0);
+                      });
                 });
             }
         }
@@ -73,6 +77,28 @@ class ProductController extends Controller
         return view('admin.products.index', compact('products', 'categories'));
     }
 
+    public function toggleOutOfStock(Request $request, Product $product)
+    {
+        if ($request->has('is_out_of_stock')) {
+            $product->is_out_of_stock = $request->boolean('is_out_of_stock');
+        } else {
+            $product->is_out_of_stock = !$product->is_out_of_stock;
+        }
+
+        $product->save();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_out_of_stock' => $product->is_out_of_stock,
+                'message' => $product->is_out_of_stock ? "Product marked as Out of Stock." : "Product restored to normal stock behavior.",
+            ]);
+        }
+
+        $statusMsg = $product->is_out_of_stock ? "Product marked as Out of Stock." : "Product restored to normal stock behavior.";
+        return back()->with('success', $statusMsg);
+    }
+
     public function create()
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
@@ -91,6 +117,7 @@ class ProductController extends Controller
             'discount_value' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
+            'is_out_of_stock' => 'nullable|boolean',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:3072',
@@ -109,6 +136,7 @@ class ProductController extends Controller
         }
 
         $validated['category_id'] = $categoryIds[0];
+        $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -181,6 +209,7 @@ class ProductController extends Controller
             'discount_value' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
+            'is_out_of_stock' => 'nullable|boolean',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:3072',
@@ -205,6 +234,7 @@ class ProductController extends Controller
         }
 
         $validated['category_id'] = $categoryIds[0];
+        $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;

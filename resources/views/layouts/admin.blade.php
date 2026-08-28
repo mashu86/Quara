@@ -323,6 +323,11 @@
                         <i class="fa-solid fa-gear me-2"></i> Master Settings
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.payment-check.index') }}" class="nav-link {{ request()->routeIs('admin.payment-check.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-credit-card me-2"></i> Razorpay Payment Check
+                    </a>
+                </li>
 
                 <li class="nav-heading">Site Content</li>
                 <li class="nav-item">

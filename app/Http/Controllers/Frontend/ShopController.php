@@ -52,20 +52,25 @@ class ShopController extends Controller
         // Size filter
         if ($request->filled('size')) {
             $sizeVal = $request->size;
-            $query->whereHas('sizes', function ($q) use ($sizeVal) {
-                $q->where('size', $sizeVal)->where('stock', '>', 0);
-            });
+            $query->where('is_out_of_stock', false)
+                ->whereHas('sizes', function ($q) use ($sizeVal) {
+                    $q->where('size', $sizeVal)->where('stock', '>', 0);
+                });
         }
 
         // Stock status filter
         if ($request->filled('stock')) {
             if ($request->stock === 'in_stock') {
-                $query->whereHas('sizes', function ($q) {
-                    $q->where('stock', '>', 0);
-                });
+                $query->where('is_out_of_stock', false)
+                    ->whereHas('sizes', function ($q) {
+                        $q->where('stock', '>', 0);
+                    });
             } elseif ($request->stock === 'out_of_stock') {
-                $query->whereDoesntHave('sizes', function ($q) {
-                    $q->where('stock', '>', 0);
+                $query->where(function ($q) {
+                    $q->where('is_out_of_stock', true)
+                      ->orWhereDoesntHave('sizes', function ($sq) {
+                          $sq->where('stock', '>', 0);
+                      });
                 });
             }
         }

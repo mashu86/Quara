@@ -17,6 +17,7 @@ use App\Http\Controllers\Frontend\ShopController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
+use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
@@ -92,6 +93,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Product Master
         Route::resource('products', AdminProductController::class);
+        Route::post('products/{product}/toggle-out-of-stock', [AdminProductController::class, 'toggleOutOfStock'])->name('products.toggle-out-of-stock');
         Route::post('products/{product}/add-stock-batch', [AdminProductController::class, 'addStockBatch'])->name('products.add-stock-batch');
         Route::post('product-images/{image}/set-primary', [AdminProductController::class, 'setPrimaryImage'])->name('product-images.set-primary');
         Route::delete('product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy');
@@ -128,6 +130,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Master Settings (branding, email and payment configuration)
         Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
+
+        // Razorpay credential and ₹1 checkout verification
+        Route::get('/payment_check', [AdminPaymentCheckController::class, 'index'])->name('payment-check.index');
+        Route::post('/payment_check/order', [AdminPaymentCheckController::class, 'createOrder'])->name('payment-check.order');
+        Route::post('/payment_check/verify', [AdminPaymentCheckController::class, 'verify'])->name('payment-check.verify');
 
         // Order Invoice Printable View
         Route::get('/orders/{order}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');

@@ -165,9 +165,20 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Status <span class="text-danger">*</span></label>
                         <select name="status" class="form-select rounded-3" required>
-                            <option value="active">Active (Visible on website)</option>
-                            <option value="inactive">Inactive (Hidden)</option>
+                            <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active (Visible on website)</option>
+                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive (Hidden)</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Out of Stock (Manual Override)</label>
+                        <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockCreateSwitch" value="1" {{ old('is_out_of_stock') ? 'checked' : '' }}>
+                            <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockCreateSwitch">
+                                Enable "Out of Stock" Override
+                            </label>
+                        </div>
+                        <div class="form-text small">When checked, the product will be treated as 0 stock and unpurchasable by customers while preserving existing inventory records.</div>
                     </div>
 
                     <hr>

@@ -22,6 +22,7 @@ class Product extends Model
         'final_price',
         'description',
         'status',
+        'is_out_of_stock',
         'delivery_charge_type',
         'weight_kg',
     ];
@@ -31,6 +32,7 @@ class Product extends Model
         'discount_value' => 'decimal:2',
         'final_price' => 'decimal:2',
         'weight_kg' => 'decimal:2',
+        'is_out_of_stock' => 'boolean',
     ];
 
     public function category(): BelongsTo
@@ -65,6 +67,9 @@ class Product extends Model
 
     public function getTotalStockAttribute(): int
     {
+        if ($this->is_out_of_stock) {
+            return 0;
+        }
         return (int) $this->sizes->sum('stock');
     }
 

@@ -38,7 +38,7 @@
     <!-- Global Brand & Website JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
-      "@@context": "https://schema.org",
+      "\u0040context": "https://schema.org",
       "@graph": [
         {
           "@type": "Organization",

@@ -7,7 +7,7 @@
 @section('json_ld')
 <script type="application/ld+json">
 {
-  "@@context": "https://schema.org",
+  "\u0040context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
     {

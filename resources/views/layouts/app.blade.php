@@ -251,14 +251,83 @@
             position: absolute;
             top: 12px;
             left: 12px;
-            background: linear-gradient(135deg, #111111, #333333);
-            color: #D4AF37;
-            font-size: 0.75rem;
+            background: #E53935;
+            color: #FFFFFF;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 50px;
-            border: 1px solid rgba(212, 175, 55, 0.4);
+            padding: 4px 10px;
+            border-radius: 50rem;
             z-index: 2;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3);
+        }
+
+        /* Interactive Tap / Pulse Animated Button */
+        .qw-tap-animated-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: linear-gradient(135deg, #111111 0%, #222222 100%);
+            color: var(--qw-gold) !important;
+            border: 1.5px solid var(--qw-gold);
+            border-radius: 50rem;
+            padding: 0.45rem 1.15rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+            cursor: pointer;
+        }
+
+        .qw-tap-animated-btn:hover {
+            background: var(--qw-gold);
+            color: #111111 !important;
+            border-color: var(--qw-gold);
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 22px rgba(212, 175, 55, 0.45);
+        }
+
+        .qw-tap-finger-icon {
+            font-size: 0.88rem;
+            display: inline-block;
+            animation: qwTapFinger 1.3s infinite ease-in-out;
+        }
+
+        @keyframes qwTapFinger {
+            0%, 100% { transform: scale(1) translateY(0) rotate(0deg); }
+            20% { transform: scale(0.82) translateY(2px) rotate(-12deg); }
+            45% { transform: scale(1.2) translateY(-2px) rotate(6deg); }
+            70% { transform: scale(0.95) translateY(1px) rotate(-2deg); }
+        }
+
+        .qw-tap-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--qw-gold);
+            display: inline-block;
+            position: relative;
+        }
+        .qw-tap-pulse-dot::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--qw-gold);
+            transform: translate(-50%, -50%);
+            animation: qwTapPulse 1.6s infinite ease-out;
+        }
+
+        @keyframes qwTapPulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+            75% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
 
         .qw-out-of-stock-overlay {

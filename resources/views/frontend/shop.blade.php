@@ -264,78 +264,29 @@
 
         <!-- Product Grid -->
         <div class="col-lg-9">
-            <div class="row g-4">
-                @forelse($products as $product)
-                    <div class="col-6 col-md-4">
-                        <div class="qw-product-card h-100 d-flex flex-column">
-                            @if($product->discount_type !== 'none' && $product->price > 0)
-                                @php
-                                    $discPct = round((($product->price - $product->final_price) / $product->price) * 100);
-                                @endphp
-                                <span class="qw-discount-badge">{{ $discPct }}% OFF</span>
-                            @endif
-
-                            <a href="{{ route('product.detail', $product->slug) }}">
-                                <div class="qw-product-img-wrapper">
-                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img" loading="lazy">
-                                    @if($product->total_stock <= 0)
-                                        <div class="qw-out-of-stock-overlay">
-                                            <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
-                                        </div>
-                                    @endif
-                                </div>
-                            </a>
-
-                            <div class="p-3 d-flex flex-column flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-muted small text-uppercase font-bold" style="font-size: 0.75rem;">{{ $product->category->name }}</span>
-                                    <button type="button" onclick="shareProductLink('{{ route('product.detail', $product->slug) }}', '{{ addslashes($product->name) }}')" class="btn btn-link text-muted p-0 border-0" title="Share Product">
-                                        <i class="fa-solid fa-share-nodes text-gold"></i>
-                                    </button>
-                                </div>
-                                <h6 class="font-serif fw-bold text-dark mb-2 text-truncate" title="{{ $product->name }}">
-                                    <a href="{{ route('product.detail', $product->slug) }}" class="text-dark text-decoration-none">{{ $product->name }}</a>
-                                </h6>
-
-                                <div class="mt-auto d-flex align-items-baseline gap-2 mb-2">
-                                    <span class="fs-5 fw-bold text-gold">₹{{ number_format($product->final_price, 2) }}</span>
-                                    @if($product->discount_type !== 'none' && $product->price > $product->final_price)
-                                        <span class="text-muted text-decoration-line-through small">₹{{ number_format($product->price, 2) }}</span>
-                                    @endif
-                                </div>
-
-                                <!-- Available Sizes -->
-                                <div class="mb-3">
-                                    @foreach($product->sizes as $pSize)
-                                        <span class="badge {{ $pSize->stock > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white opacity-75' }} small me-1">
-                                            {{ $pSize->size }}
-                                        </span>
-                                    @endforeach
-                                </div>
-
-                                <div class="d-grid">
-                                    @if($product->total_stock <= 0)
-                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75 qw-btn-card">OUT OF STOCK</a>
-                                    @else
-                                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm qw-btn-card">VIEW DETAILS</a>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="col-12 py-5 text-center bg-white rounded-4 border">
-                        <i class="fa-solid fa-magnifying-glass text-muted fs-1 mb-3"></i>
-                        <h5>No products found matching your criteria.</h5>
-                        <p class="text-muted small mb-3">Try adjusting your search terms or filters.</p>
-                        <a href="{{ route('shop') }}" class="btn btn-qw-gold rounded-pill px-4 btn-sm">RESET ALL FILTERS</a>
-                    </div>
-                @endforelse
+            <div class="row g-4" id="productGridContainer">
+                @include('frontend.partials.product_grid_items')
             </div>
 
-            <!-- Server-Side Pagination -->
-            <div class="d-flex justify-content-center mt-5">
-                {{ $products->links() }}
+            <!-- Modern Infinite Scroll Container -->
+            <div id="infiniteScrollContainer" class="mt-4 text-center">
+                <div id="infiniteScrollLoading" class="d-none py-3">
+                    <div class="spinner-border text-warning me-2" role="status" style="width: 2.2rem; height: 2.2rem; border-width: 3px; color: var(--qw-gold) !important;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="fw-bold text-dark small align-middle">Loading more products...</span>
+                </div>
+
+                @if($products->hasMorePages())
+                    <div id="infiniteScrollSentinel" class="py-2"></div>
+                    <button id="loadMoreBtn" type="button" onclick="fetchNextPage()" class="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold shadow-sm mb-3" style="font-size: 0.82rem;">
+                        <i class="fa-solid fa-arrow-down-short-wide me-1 text-gold"></i> Load More Products
+                    </button>
+                @endif
+
+                <div id="noMoreProductsNotice" class="{{ $products->hasMorePages() ? 'd-none' : '' }} text-muted small py-3 opacity-75">
+                    <i class="fa-solid fa-circle-check text-success me-1"></i> You have viewed all {{ $products->total() }} products!
+                </div>
             </div>
         </div>
     </div>
@@ -344,6 +295,84 @@
 
 @section('scripts')
 <script>
+    let currentPage = {{ $products->currentPage() }};
+    let hasMorePages = {{ $products->hasMorePages() ? 'true' : 'false' }};
+    let isLoading = false;
+    const shopUrl = "{{ url()->current() }}";
+
+    function fetchNextPage() {
+        if (!hasMorePages || isLoading) return;
+
+        isLoading = true;
+        const loadingEl = document.getElementById('infiniteScrollLoading');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const sentinelEl = document.getElementById('infiniteScrollSentinel');
+
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        if (loadMoreBtn) loadMoreBtn.classList.add('d-none');
+
+        // Build URL parameters preserving all current filter parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', currentPage + 1);
+
+        const fetchUrl = shopUrl + '?' + urlParams.toString();
+
+        fetch(fetchUrl, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.html) {
+                const grid = document.getElementById('productGridContainer');
+                grid.insertAdjacentHTML('beforeend', data.html);
+
+                currentPage = data.current_page;
+                hasMorePages = data.has_more;
+
+                // Update showing count text
+                const countTextEl = document.querySelector('.text-muted.small.mb-0');
+                if (countTextEl && data.count_text) {
+                    countTextEl.textContent = data.count_text;
+                }
+
+                if (!hasMorePages) {
+                    if (sentinelEl) sentinelEl.remove();
+                    if (loadMoreBtn) loadMoreBtn.remove();
+                    const notice = document.getElementById('noMoreProductsNotice');
+                    if (notice) {
+                        notice.classList.remove('d-none');
+                        notice.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i> You have viewed all ${data.total} products!`;
+                    }
+                } else {
+                    if (loadMoreBtn) loadMoreBtn.classList.remove('d-none');
+                }
+            }
+        })
+        .catch(err => console.error('Infinite scroll error:', err))
+        .finally(() => {
+            isLoading = false;
+            if (loadingEl) loadingEl.classList.add('d-none');
+        });
+    }
+
+    // IntersectionObserver to automatically fetch next page on scroll
+    document.addEventListener('DOMContentLoaded', function() {
+        const sentinel = document.getElementById('infiniteScrollSentinel');
+        if (sentinel && 'IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMorePages && !isLoading) {
+                    fetchNextPage();
+                }
+            }, {
+                rootMargin: '250px' // Trigger 250px before reaching bottom
+            });
+            observer.observe(sentinel);
+        }
+    });
+
     function shareProductLink(url, title) {
         if (navigator.share) {
             navigator.share({

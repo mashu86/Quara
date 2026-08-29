@@ -88,6 +88,26 @@ class ShopController extends Controller
         }
 
         $products = $query->paginate(12)->withQueryString();
+
+        // AJAX Infinite Scroll Response
+        if ($request->ajax() || $request->wantsJson()) {
+            $html = view('frontend.partials.product_grid_items', [
+                'products' => $products,
+                'isAjax' => true
+            ])->render();
+
+            return response()->json([
+                'success' => true,
+                'html' => $html,
+                'has_more' => $products->hasMorePages(),
+                'next_page' => $products->currentPage() + 1,
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+                'count_text' => 'Showing ' . ($products->firstItem() ?? 0) . '–' . ($products->lastItem() ?? 0) . ' of ' . $products->total() . ' trendy pieces at Quara Wardrobe',
+            ]);
+        }
+
         $categories = Category::where('status', 'active')->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
         $allSizes = ProductSize::select('size')->distinct()->pluck('size');
 

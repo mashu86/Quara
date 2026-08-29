@@ -59,7 +59,11 @@
                     <span class="text-gold text-uppercase fw-bold small">TRENDING NOW</span>
                     <h2 class="font-serif display-6 fw-bold mb-0 fs-3 fs-md-2">NEW ARRIVALS</h2>
                 </div>
-                <a href="{{ route('shop') }}" class="btn btn-qw-outline btn-sm rounded-pill px-3 py-2 mt-3 mt-md-0 fw-semibold" style="font-size: 0.8rem;">VIEW ALL PRODUCTS <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                <a href="{{ route('shop') }}" class="qw-tap-animated-btn mt-3 mt-md-0" title="View All Products">
+                    <i class="fa-solid fa-hand-pointer qw-tap-finger-icon"></i>
+                    <span>VIEW ALL PRODUCTS</span>
+                    <span class="qw-tap-pulse-dot ms-1"></span>
+                </a>
             </div>
 
             <div class="row g-4">
@@ -201,7 +205,11 @@
                     <span class="text-gold text-uppercase fw-bold small">TRENDING NOW</span>
                     <h2 class="font-serif display-6 fw-bold mb-0 fs-3 fs-md-2">NEW ARRIVALS</h2>
                 </div>
-                <a href="{{ route('shop') }}" class="btn btn-qw-outline btn-sm rounded-pill px-3 py-2 mt-3 mt-md-0 fw-semibold" style="font-size: 0.8rem;">VIEW ALL PRODUCTS <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                <a href="{{ route('shop') }}" class="qw-tap-animated-btn mt-3 mt-md-0" title="View All Products">
+                    <i class="fa-solid fa-hand-pointer qw-tap-finger-icon"></i>
+                    <span>VIEW ALL PRODUCTS</span>
+                    <span class="qw-tap-pulse-dot ms-1"></span>
+                </a>
             </div>
 
             <div class="row g-4">

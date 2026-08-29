@@ -40,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
             // Keep environment defaults available during installation or DB outages.
         }
 
-        $siteName = $settings['site_name'] ?? config('app.name', 'QUARA WALDROP');
+        $siteName = $settings['site_name'] ?? config('app.name', 'QUARA WARDROBE');
         $supportEmail = $settings['mail_from_address'] ?? config('mail.from.address');
         $siteLogoUrl = Setting::logoUrl($settings);
         $siteFaviconUrl = Setting::faviconUrl($settings);

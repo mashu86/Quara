@@ -19,7 +19,7 @@ class SettingController extends Controller
         return view('admin.settings.index', [
             'razorpayFeePercent' => $settings['razorpay_fee_percent'] ?? '2.00',
             'razorpayGstPercent' => $settings['razorpay_gst_percent'] ?? '18.00',
-            'siteName' => $settings['site_name'] ?? config('app.name', 'QUARA WALDROP'),
+            'siteName' => $settings['site_name'] ?? config('app.name', 'QUARA WARDROBE'),
             'logoUrl' => Setting::logoUrl($settings),
             'faviconUrl' => Setting::faviconUrl($settings),
             'mailHost' => $settings['mail_host'] ?? config('mail.mailers.smtp.host'),

@@ -108,7 +108,8 @@
 
 <script>
     let currentWaOrder = null;
-    const storeName = @js($siteName);
+    const rawStoreName = @js($siteName ?? 'QUARA WARDROBE');
+    const storeName = (rawStoreName && !rawStoreName.toUpperCase().includes('WAROBE') && !rawStoreName.toUpperCase().includes('WALDROP')) ? rawStoreName : 'QUARA WARDROBE';
     const storePhoneFormatted = @js($storePhoneFormatted);
     const storeWaLink = @js($storeWaLink);
     const dynamicSocialLinks = @js($socialLinksJs);

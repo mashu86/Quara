@@ -299,6 +299,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.order-operations.index') }}" class="nav-link {{ request()->routeIs('admin.order-operations.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-rotate-left me-2 text-warning"></i> Order Operations
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-bell me-2"></i> Notifications
                         @if(($unreadCount ?? 0) > 0)

@@ -40,6 +40,7 @@ class Order extends Model
         'order_source',
         'notes',
         'wa_thank_you_count',
+        'wa_pending_count',
         'wa_couriered_count',
         'razorpay_fee_percent',
         'razorpay_gst_percent',
@@ -145,5 +146,10 @@ class Order extends Model
         }
 
         return $prefix . $nextNum;
+    }
+
+    public function operations(): HasMany
+    {
+        return $this->hasMany(OrderOperation::class, 'order_id')->orderBy('id', 'desc');
     }
 }

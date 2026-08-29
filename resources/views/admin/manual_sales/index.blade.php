@@ -143,7 +143,21 @@
                             <td>{{ $order->customer_phone }}</td>
                             <td>
                                 @foreach($order->items as $item)
-                                    <div><span class="fw-bold">{{ $item->product_name }}</span> (Size: {{ $item->size }}) &times; {{ $item->quantity }}</div>
+                                    @php
+                                        $itemProd = $item->product;
+                                        $itemImg = $itemProd ? $itemProd->primary_image_url : \App\Models\Setting::logoUrl();
+                                    @endphp
+                                    <div class="d-flex align-items-center gap-2 my-1">
+                                        <img src="{{ $itemImg }}" alt="{{ $item->product_name }}" 
+                                             class="rounded border shadow-sm flex-shrink-0" 
+                                             style="width: 38px; height: 44px; object-fit: cover; cursor: pointer;" 
+                                             onclick="openImagePreviewModal('{{ addslashes($itemImg) }}', '{{ addslashes($item->product_name) }}')" 
+                                             title="Click to view image">
+                                        <div>
+                                            <span class="fw-bold text-dark">{{ $item->product_name }}</span> 
+                                            <div class="small text-muted">(Size: {{ $item->size }}) &times; {{ $item->quantity }}</div>
+                                        </div>
+                                    </div>
                                 @endforeach
                             </td>
                             <td class="fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</td>
@@ -153,9 +167,14 @@
                             </td>
                             <td class="small text-muted">{{ $order->created_at->format('M d, Y h:i A') }}</td>
                             <td class="text-end pe-3">
-                                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Offline Sale">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </a>
+                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
+                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Record Operation / Return">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </a>
+                                    <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Offline Sale">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -176,4 +195,34 @@
         </div>
     @endif
 </div>
+
+@section('scripts')
+<script>
+    function openImagePreviewModal(imageUrl, title) {
+        let modalEl = document.getElementById('imagePreviewModal');
+        if (!modalEl) {
+            const modalHtml = `
+                <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div class="modal-header bg-dark text-white py-2.5 px-3">
+                                <h5 class="modal-title fs-6 fw-bold text-truncate" id="imagePreviewModalTitle">Product Image Preview</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-3 text-center bg-light">
+                                <img id="imagePreviewModalImg" src="" alt="Product Large Image" class="img-fluid rounded-3 border shadow-sm" style="max-height: 80vh; object-fit: contain;">
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modalEl = document.getElementById('imagePreviewModal');
+        }
+        document.getElementById('imagePreviewModalImg').src = imageUrl;
+        document.getElementById('imagePreviewModalTitle').textContent = title || 'Product Image Preview';
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+</script>
+@endsection
 @endsection

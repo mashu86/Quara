@@ -129,6 +129,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/manual-sales/{order}/edit', [AdminManualSalesController::class, 'edit'])->name('manual-sales.edit');
         Route::put('/manual-sales/{order}', [AdminManualSalesController::class, 'update'])->name('manual-sales.update');
 
+        // Order Returns & Post-Order Operations Module
+        Route::get('/order-operations', [\App\Http\Controllers\Admin\OrderOperationController::class, 'index'])->name('order-operations.index');
+        Route::get('/orders/{order}/operation/create', [\App\Http\Controllers\Admin\OrderOperationController::class, 'create'])->name('order-operations.create');
+        Route::post('/orders/{order}/operation', [\App\Http\Controllers\Admin\OrderOperationController::class, 'store'])->name('order-operations.store');
+        Route::get('/order-operations/{operation}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'show'])->name('order-operations.show');
+        Route::get('/order-operations/{operation}/edit', [\App\Http\Controllers\Admin\OrderOperationController::class, 'edit'])->name('order-operations.edit');
+        Route::put('/order-operations/{operation}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'update'])->name('order-operations.update');
+        Route::post('/order-operations/{operation}/toggle-status', [\App\Http\Controllers\Admin\OrderOperationController::class, 'toggleStatus'])->name('order-operations.toggle-status');
+        Route::delete('/order-operations/{operation}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'destroy'])->name('order-operations.destroy');
+
         // Shipping Policy (Delivery Price Master)
         Route::resource('shipping-policies', \App\Http\Controllers\Admin\ShippingPolicyController::class);
 

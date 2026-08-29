@@ -244,10 +244,19 @@ class ExpenseController extends Controller
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        // Base Orders Query for paid/completed orders (excluding cancelled/refunded)
+        // Fetch order IDs with INACTIVE operations (dummy/test operations that exclude the order from financial reporting)
+        $inactiveOperationOrderIds = \App\Models\OrderOperation::where('status', 'inactive')
+            ->pluck('order_id')
+            ->toArray();
+
+        // Base Orders Query for paid/completed orders (excluding cancelled/refunded and orders marked INACTIVE by operations)
         $ordersQuery = Order::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled');
+
+        if (count($inactiveOperationOrderIds) > 0) {
+            $ordersQuery->whereNotIn('id', $inactiveOperationOrderIds);
+        }
 
         $totalSalesRevenue = (clone $ordersQuery)->sum('subtotal');
         $totalShippingRevenue = (clone $ordersQuery)->sum('shipping');
@@ -291,9 +300,24 @@ class ExpenseController extends Controller
             ->orderBy('expense_date', 'desc')
             ->get();
 
-        // Total Cost/Expenses = Product Cost + Delivery Shipping Cost + Razorpay Charges + Other Expenses
-        $totalExpenses = $totalProductCost + $totalShippingRevenue + $totalRazorpayCharges + $otherExpenses;
-        $netProfitLoss = $totalGrossRevenue - $totalExpenses;
+        // Fetch ACTIVE Order Operations in the selected date range
+        $activeOperationsQuery = \App\Models\OrderOperation::with(['order', 'product', 'orderItem', 'expenses'])
+            ->where('status', 'active')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        $activeOperationsList = (clone $activeOperationsQuery)->orderBy('created_at', 'desc')->get();
+        $totalOperationRefunds = (float) (clone $activeOperationsQuery)->sum('total_refund_amount');
+        $totalOperationExpenses = (float) (clone $activeOperationsQuery)->sum('additional_expense_total');
+        $totalOperationAdjustment = (float) (clone $activeOperationsQuery)->sum('total_financial_adjustment');
+
+        // Original P&L Base
+        $originalExpenses = $totalProductCost + $totalShippingRevenue + $totalRazorpayCharges + $otherExpenses;
+        $originalNetProfitLoss = $totalGrossRevenue - $originalExpenses;
+
+        // Adjusted P&L including ACTIVE Order Operations
+        $adjustedGrossRevenue = max(0, $totalGrossRevenue - $totalOperationRefunds);
+        $totalExpenses = $originalExpenses + $totalOperationExpenses;
+        $netProfitLoss = $totalGrossRevenue - $totalExpenses - $totalOperationRefunds;
         $isProfit = $netProfitLoss >= 0;
 
         return view('admin.expenses.profit_loss', compact(
@@ -310,6 +334,13 @@ class ExpenseController extends Controller
             'totalProductCost',
             'totalRazorpayCharges',
             'otherExpenses',
+            'originalExpenses',
+            'originalNetProfitLoss',
+            'activeOperationsList',
+            'totalOperationRefunds',
+            'totalOperationExpenses',
+            'totalOperationAdjustment',
+            'adjustedGrossRevenue',
             'totalExpenses',
             'expensesList',
             'netProfitLoss',
@@ -330,11 +361,19 @@ class ExpenseController extends Controller
         $feePct = (float) Setting::get('razorpay_fee_percent', 2.00);
         $gstPct = (float) Setting::get('razorpay_gst_percent', 18.00);
 
+        $inactiveOperationOrderIds = \App\Models\OrderOperation::where('status', 'inactive')
+            ->pluck('order_id')
+            ->toArray();
+
         $query = Order::where('payment_method', 'online')
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->orderBy('id', 'desc');
+
+        if (count($inactiveOperationOrderIds) > 0) {
+            $query->whereNotIn('id', $inactiveOperationOrderIds);
+        }
 
         // Recalculate if any record missing fee data
         $orders = $query->paginate(20)->withQueryString();
@@ -348,6 +387,10 @@ class ExpenseController extends Controller
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        if (count($inactiveOperationOrderIds) > 0) {
+            $summaryQuery->whereNotIn('id', $inactiveOperationOrderIds);
+        }
 
         $totalOnlineRevenue = $summaryQuery->sum('grand_total');
         $totalRazorpayBaseFee = $summaryQuery->sum('razorpay_base_fee');

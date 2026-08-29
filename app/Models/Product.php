@@ -66,6 +66,11 @@ class Product extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function orderOperations(): HasMany
+    {
+        return $this->hasMany(OrderOperation::class);
+    }
+
     public function getTotalStockAttribute(): int
     {
         if ($this->is_out_of_stock) {

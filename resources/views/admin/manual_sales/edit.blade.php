@@ -106,25 +106,36 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Select Product <span class="text-danger">*</span></label>
-                        <select name="product_id" id="productSelect" class="form-select rounded-3" required onchange="onProductChange()">
-                            <option value="">-- Choose Product --</option>
-                            @foreach($products as $prod)
-                                @php
-                                    $catIds = array_values(array_filter(array_unique(array_merge(
-                                        [$prod->category_id],
-                                        $prod->categories->pluck('id')->toArray()
-                                    ))));
-                                @endphp
-                                <option value="{{ $prod->id }}" 
-                                        {{ ($firstItem && $firstItem->product_id == $prod->id) ? 'selected' : '' }}
-                                        data-price="{{ $prod->final_price }}"
-                                        data-image="{{ $prod->primary_image_url }}"
-                                        data-categories='@json($catIds)'
-                                        data-sizes='@json($prod->sizes)'>
-                                    {{ $prod->name }} (Price: ₹{{ number_format($prod->final_price, 2) }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="d-flex align-items-center gap-2">
+                            <div id="productInlineThumbContainer" class="d-none flex-shrink-0">
+                                <img id="productInlineThumb" src="" alt="Selected Product" 
+                                     class="rounded-3 border shadow-sm" 
+                                     style="width: 52px; height: 60px; object-fit: cover; cursor: pointer; transition: transform 0.2s ease;" 
+                                     onclick="openInlineProductModal()" 
+                                     title="Click to view large preview">
+                            </div>
+                            <div class="flex-grow-1">
+                                <select name="product_id" id="productSelect" class="form-select rounded-3" required onchange="onProductChange()">
+                                    <option value="">-- Choose Product --</option>
+                                    @foreach($products as $prod)
+                                        @php
+                                            $catIds = array_values(array_filter(array_unique(array_merge(
+                                                [$prod->category_id],
+                                                $prod->categories->pluck('id')->toArray()
+                                            ))));
+                                        @endphp
+                                        <option value="{{ $prod->id }}" 
+                                                {{ ($firstItem && $firstItem->product_id == $prod->id) ? 'selected' : '' }}
+                                                data-price="{{ $prod->final_price }}"
+                                                data-image="{{ $prod->primary_image_url }}"
+                                                data-categories='@json($catIds)'
+                                                data-sizes='@json($prod->sizes)'>
+                                            {{ $prod->name }} (Price: ₹{{ number_format($prod->final_price, 2) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -418,11 +429,19 @@
         const priceElem = document.getElementById('previewProductPrice');
         const sizeStockElem = document.getElementById('previewSizeStockInfo');
 
+        const inlineContainer = document.getElementById('productInlineThumbContainer');
+        const inlineImg = document.getElementById('productInlineThumb');
+
         if (selectedProductOpt && selectedProductOpt.value) {
             const imageUrl = selectedProductOpt.getAttribute('data-image') || '';
             const rawText = selectedProductOpt.text;
             const prodName = rawText.split('(Price:')[0].trim();
             const price = parseFloat(selectedProductOpt.getAttribute('data-price')) || 0;
+
+            if (inlineContainer && inlineImg) {
+                inlineImg.src = imageUrl;
+                inlineContainer.classList.remove('d-none');
+            }
 
             imgElem.src = imageUrl;
             nameElem.innerText = prodName;
@@ -444,9 +463,48 @@
             placeholder.classList.add('d-none');
             content.classList.remove('d-none');
         } else {
+            if (inlineContainer) {
+                inlineContainer.classList.add('d-none');
+            }
             placeholder.classList.remove('d-none');
             content.classList.add('d-none');
         }
+    }
+
+    function openInlineProductModal() {
+        const inlineImg = document.getElementById('productInlineThumb');
+        const productSelect = document.getElementById('productSelect');
+        const selectedOpt = productSelect.options[productSelect.selectedIndex];
+        const name = selectedOpt ? selectedOpt.text.split('(Price:')[0].trim() : 'Product Image';
+        if (inlineImg && inlineImg.src) {
+            openImagePreviewModal(inlineImg.src, name);
+        }
+    }
+
+    function openImagePreviewModal(imageUrl, title) {
+        let modalEl = document.getElementById('imagePreviewModal');
+        if (!modalEl) {
+            const modalHtml = `
+                <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div class="modal-header bg-dark text-white py-2.5 px-3">
+                                <h5 class="modal-title fs-6 fw-bold text-truncate" id="imagePreviewModalTitle">Product Image Preview</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-3 text-center bg-light">
+                                <img id="imagePreviewModalImg" src="" alt="Product Large Image" class="img-fluid rounded-3 border shadow-sm" style="max-height: 80vh; object-fit: contain;">
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modalEl = document.getElementById('imagePreviewModal');
+        }
+        document.getElementById('imagePreviewModalImg').src = imageUrl;
+        document.getElementById('imagePreviewModalTitle').textContent = title || 'Product Image Preview';
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
     }
 
     function calcTotals() {

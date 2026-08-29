@@ -168,8 +168,18 @@ class OrderController extends Controller
     public function incrementWaCount(Request $request, Order $order)
     {
         $type = $request->input('type', 'thank_you');
+
+        if ($request->filled('courier_partner') || $request->filled('tracking_number')) {
+            $order->update([
+                'courier_partner' => $request->input('courier_partner') ?: $order->courier_partner,
+                'tracking_number' => $request->input('tracking_number') ?: $order->tracking_number,
+            ]);
+        }
+
         if ($type === 'couriered') {
             $order->increment('wa_couriered_count');
+        } elseif ($type === 'pending') {
+            $order->increment('wa_pending_count');
         } else {
             $order->increment('wa_thank_you_count');
         }
@@ -179,6 +189,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'wa_thank_you_count' => $order->wa_thank_you_count,
+            'wa_pending_count' => $order->wa_pending_count,
             'wa_couriered_count' => $order->wa_couriered_count,
         ]);
     }

@@ -216,6 +216,79 @@
     </div>
 </div>
 
+<!-- Active Order Operations Adjustments Section -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 border-start border-4 border-warning">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center table-card-header">
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-rotate-left text-warning me-1.5"></i> Active Order Operations Adjustments
+        </h5>
+        <span class="badge bg-success rounded-pill px-2.5 px-md-3">{{ $activeOperationsList->count() }} Active Adjustments</span>
+    </div>
+    <div class="card-body p-3 p-md-4">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border">
+                    <span class="text-muted small fw-bold d-block">Total Customer Refunds</span>
+                    <h4 class="fw-bold text-danger mb-0">₹{{ number_format($totalOperationRefunds, 2) }}</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border">
+                    <span class="text-muted small fw-bold d-block">Additional Operation Expenses</span>
+                    <h4 class="fw-bold text-danger mb-0">₹{{ number_format($totalOperationExpenses, 2) }}</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-warning-subtle rounded-3 border border-warning">
+                    <span class="text-dark small fw-bold d-block">Net Operation Adjustment to P&L</span>
+                    <h4 class="fw-bold text-danger mb-0">-₹{{ number_format($totalOperationAdjustment, 2) }}</h4>
+                </div>
+            </div>
+        </div>
+
+        @if($activeOperationsList->count() > 0)
+            <div class="table-responsive">
+                <table class="table align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Order #</th>
+                            <th>Operation Type</th>
+                            <th>Stock Restored</th>
+                            <th>Refund Issued</th>
+                            <th>Extra Expenses</th>
+                            <th>Total Adjustment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($activeOperationsList as $op)
+                            <tr>
+                                <td>{{ $op->created_at->format('M d, Y') }}</td>
+                                <td>
+                                    <a href="{{ route('admin.orders.show', $op->order_id) }}" class="fw-bold text-warning text-decoration-none">
+                                        {{ $op->order ? $op->order->order_number : '#' . $op->order_id }}
+                                    </a>
+                                </td>
+                                <td class="fw-semibold">{{ $op->operation_type_label }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $op->is_product_restored ? 'success' : 'secondary' }}" style="font-size: 0.65rem;">
+                                        {{ $op->is_product_restored ? 'Yes' : 'No' }}
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-danger">₹{{ number_format($op->total_refund_amount, 2) }}</td>
+                                <td class="fw-bold text-danger">₹{{ number_format($op->additional_expense_total, 2) }}</td>
+                                <td class="fw-bold text-danger">-₹{{ number_format($op->total_financial_adjustment, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="text-muted small">No ACTIVE order operations recorded for this financial period. INACTIVE test operations are excluded from P&L calculations.</div>
+        @endif
+    </div>
+</div>
+
 <!-- Itemized Recorded Expenses Table -->
 <div class="card border-0 rounded-4 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center table-card-header">

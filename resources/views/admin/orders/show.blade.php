@@ -17,6 +17,9 @@
             <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
                 <i class="fa-brands fa-whatsapp fs-6"></i>
             </button>
+            <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="Record Operation / Return">
+                <i class="fa-solid fa-rotate-left fs-6"></i>
+            </a>
             <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
                 <i class="fa-solid fa-print fs-6"></i>
             </a>
@@ -268,19 +271,11 @@
                     </div>
                 @endif
                 @if($order->razorpay_order_id)
-                    <div class="pt-2">
+                    <div class="mt-1">
                         <span class="text-muted font-monospace" style="font-size: 0.72rem;">Razorpay Order ID:</span>
                         <div class="font-monospace text-dark fw-bold" style="font-size: 0.75rem;">{{ $order->razorpay_order_id }}</div>
                     </div>
                 @endif
-
-                @if($order->payment_method === 'online' || $order->razorpay_total_charge > 0)
-                    @php
-                        if ($order->razorpay_total_charge <= 0) {
-                            $order->calculateRazorpayCharge();
-                        }
-                    @endphp
-                    <div class="border-top pt-3 mt-3 bg-light p-2.5 rounded-3">
                         <span class="fw-bold text-dark d-block mb-2" style="font-size: 0.76rem;">
                             <i class="fa-solid fa-calculator text-warning me-1"></i> Razorpay Fee Breakdown
                         </span>
@@ -305,6 +300,45 @@
                             <span>₹{{ number_format($order->razorpay_net_amount, 2) }}</span>
                         </div>
                     </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Order Operations History Card -->
+        <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4 mt-3">
+            <div class="card-header bg-white py-2.5 py-sm-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;"><i class="fa-solid fa-rotate-left me-2 text-warning"></i> Order Operations History</h6>
+                <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2.5 py-1" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                    + Add Operation
+                </a>
+            </div>
+            <div class="card-body p-3 p-sm-4" style="font-size: 0.78rem;">
+                @if($order->operations->count() > 0)
+                    @foreach($order->operations as $op)
+                        <div class="p-2.5 bg-light rounded-3 border mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-{{ $op->status === 'active' ? 'success' : 'secondary' }} text-uppercase" style="font-size: 0.65rem;">
+                                    {{ $op->status }}
+                                </span>
+                                <span class="text-muted" style="font-size: 0.68rem;">{{ $op->created_at->format('M d, Y h:i A') }}</span>
+                            </div>
+                            <div class="fw-bold text-dark" style="font-size: 0.8rem;">{{ $op->operation_type_label }}</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">
+                                Restored Stock: <strong>{{ $op->is_product_restored ? 'Yes' : 'No' }}</strong> | Money Refunded: <strong>{{ $op->is_money_refunded ? '₹' . number_format($op->total_refund_amount, 2) : 'No' }}</strong>
+                            </div>
+                            @if($op->additional_expense_total > 0)
+                                <div class="text-muted" style="font-size: 0.72rem;">Extra Expense: ₹{{ number_format($op->additional_expense_total, 2) }}</div>
+                            @endif
+                            <div class="d-flex justify-content-between align-items-center mt-2 border-top pt-1">
+                                <span class="fw-bold text-{{ $op->status === 'active' ? 'danger' : 'muted' }}" style="font-size: 0.75rem;">
+                                    P&L Impact: {{ $op->status === 'active' ? '-₹' . number_format($op->total_financial_adjustment, 2) : '₹0.00 (Excluded)' }}
+                                </span>
+                                <a href="{{ route('admin.order-operations.show', $op->id) }}" class="text-decoration-none fw-semibold text-dark small" style="font-size: 0.7rem;">View Details &rarr;</a>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-muted text-center py-3">No operations recorded for this order yet.</div>
                 @endif
             </div>
         </div>

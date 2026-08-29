@@ -38,6 +38,13 @@
             font-size: 0.78rem !important;
         }
     }
+    .category-order-item, .product-order-item {
+        cursor: grab;
+        user-select: none;
+    }
+    .category-order-item:active, .product-order-item:active {
+        cursor: grabbing;
+    }
     .category-grid-card, .product-grid-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -350,12 +357,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 1. Initialize Sortable for Categories Grid
+    // 1. Initialize Sortable for Categories Grid (Whole Card Draggable)
     const elCategories = document.getElementById('sortableCategories');
     if (elCategories) {
         new Sortable(elCategories, {
-            handle: '.drag-handle',
             animation: 150,
+            touchStartThreshold: 3,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
@@ -394,12 +401,12 @@ document.addEventListener('DOMContentLoaded', function() {
         saveCategoryOrder(true);
     });
 
-    // 2. Initialize Sortable for Products Grid
+    // 2. Initialize Sortable for Products Grid (Whole Card Draggable)
     const elProducts = document.getElementById('sortableProducts');
     if (elProducts) {
         new Sortable(elProducts, {
-            handle: '.drag-handle',
             animation: 150,
+            touchStartThreshold: 3,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',

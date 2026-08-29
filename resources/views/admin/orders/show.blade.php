@@ -276,6 +276,14 @@
                         <div class="font-monospace text-dark fw-bold" style="font-size: 0.75rem;">{{ $order->razorpay_order_id }}</div>
                     </div>
                 @endif
+
+                @if($order->payment_method === 'online' || $order->razorpay_total_charge > 0)
+                    @php
+                        if ($order->razorpay_total_charge <= 0) {
+                            $order->calculateRazorpayCharge();
+                        }
+                    @endphp
+                    <div class="border-top pt-3 mt-3 bg-light p-2.5 rounded-3">
                         <span class="fw-bold text-dark d-block mb-2" style="font-size: 0.76rem;">
                             <i class="fa-solid fa-calculator text-warning me-1"></i> Razorpay Fee Breakdown
                         </span>

@@ -273,7 +273,7 @@
                         @foreach($product->images as $img)
                             <div class="col-6 position-relative">
                                 <div class="border rounded-3 overflow-hidden p-1 text-center bg-light">
-                                    <img src="{{ filter_var($img->image_path, FILTER_VALIDATE_URL) ? $img->image_path : asset($img->image_path) }}" class="img-fluid rounded mb-2" style="height: 120px; object-fit: cover; width: 100%;">
+                                    <img src="{{ $img->image_url }}" class="img-fluid rounded mb-2" style="height: 120px; object-fit: cover; width: 100%;">
 
                                     <div class="d-flex justify-content-between align-items-center">
                                         @if($img->is_primary)

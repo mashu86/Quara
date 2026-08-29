@@ -82,18 +82,32 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="5" class="text-end fw-bold">Subtotal:</td>
-                                <td class="text-end fw-bold">₹{{ number_format($order->subtotal, 2) }}</td>
+                                <td colspan="5" class="text-end fw-bold">Items Subtotal:</td>
+                                <td class="text-end fw-bold">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</td>
                             </tr>
-                            @if($order->discount_amount > 0)
+                            @php
+                                $discVal = (float)($order->discount_amount ?: $order->discount);
+                                $shipVal = (float)($order->shipping_charge ?: $order->shipping);
+                            @endphp
+                            @if($discVal > 0)
                                 <tr class="text-danger">
-                                    <td colspan="5" class="text-end fw-bold">Discount:</td>
-                                    <td class="text-end fw-bold">-₹{{ number_format($order->discount_amount, 2) }}</td>
+                                    <td colspan="5" class="text-end fw-bold">Discount / Offer:</td>
+                                    <td class="text-end fw-bold">-₹{{ number_format($discVal, 2) }}</td>
                                 </tr>
                             @endif
                             <tr>
+                                <td colspan="5" class="text-end fw-bold">Delivery / Shipping Charge:</td>
+                                <td class="text-end fw-bold text-dark">
+                                    @if($shipVal > 0)
+                                        +₹{{ number_format($shipVal, 2) }}
+                                    @else
+                                        <span class="badge bg-success small">FREE</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr class="border-top border-2">
                                 <td colspan="5" class="text-end fw-bold" style="font-size: 0.85rem;">Grand Total:</td>
-                                <td class="text-end fw-bold text-warning" style="font-size: 0.88rem;">₹{{ number_format($order->grand_total, 2) }}</td>
+                                <td class="text-end fw-bold text-warning fs-6" style="font-size: 0.88rem;">₹{{ number_format($order->grand_total, 2) }}</td>
                             </tr>
                         </tfoot>
                     </table>

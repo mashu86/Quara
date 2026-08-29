@@ -26,8 +26,9 @@
                     </div>
                 </div>
 
-                <button id="rzp-button" class="btn btn-qw-gold btn-lg rounded-pill w-100 shadow">
-                    PAY NOW WITH RAZORPAY (₹{{ number_format($order->grand_total, 2) }})
+                <button id="rzp-button" class="btn btn-qw-gold rounded-pill w-100 shadow-sm py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem; letter-spacing: 0.3px;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>PAY NOW WITH RAZORPAY (₹{{ number_format($order->grand_total, 2) }})</span>
                 </button>
 
                 <!-- Hidden Verification Form -->

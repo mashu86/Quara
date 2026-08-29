@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\OrderCancelledMail;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\SocialMedia;
 use App\Services\StockService;
 use Exception;
 use Illuminate\Http\Request;
@@ -147,7 +148,12 @@ class OrderController extends Controller
     public function invoice(Order $order)
     {
         $order->load(['items.product', 'payment']);
-        return view('admin.orders.invoice', compact('order'));
+        $whatsappObj = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
+        $whatsappPhone = ($whatsappObj && $whatsappObj->phone_number) 
+            ? (($whatsappObj->country_code ? $whatsappObj->country_code . ' ' : '') . $whatsappObj->phone_number) 
+            : '+91 8078037591';
+
+        return view('admin.orders.invoice', compact('order', 'whatsappObj', 'whatsappPhone'));
     }
 
     public function sendFollowupEmail(Request $request, Order $order)

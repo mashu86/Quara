@@ -127,9 +127,9 @@
     <!-- Header -->
     <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <div class="brand-logo-text mb-1">{{ $siteName }}</div>
+            <div class="brand-logo-text mb-1">Quara Wardrobe</div>
             <p class="mb-0 small text-light opacity-75">Modest & Affordable Ladies Fashion</p>
-            <p class="mb-0 small text-light opacity-75">Naduvil, Kannur, Kerala - 670582 | Ph: +91 98765 43210</p>
+            <p class="mb-0 small text-light opacity-75">Naduvil, Kannur, Kerala - 670582 | Ph / WA: {{ $whatsappPhone ?? '+91 8078037591' }}</p>
         </div>
         <div class="text-end">
             <h2 class="fw-bold mb-1 text-warning">INVOICE</h2>
@@ -221,20 +221,25 @@
         <div class="row justify-content-end">
             <div class="col-md-6 col-lg-5">
                 <div class="bg-light p-3 rounded-3">
+                    @php
+                        $invSubtotal = $order->subtotal ?: $order->items->sum('subtotal');
+                        $invDiscount = (float)($order->discount_amount ?: $order->discount);
+                        $invShipping = (float)($order->shipping_charge ?: $order->shipping);
+                    @endphp
                     <div class="d-flex justify-content-between mb-2 small">
-                        <span class="text-muted">Subtotal:</span>
-                        <span class="fw-bold">₹{{ number_format($order->subtotal, 2) }}</span>
+                        <span class="text-muted">Items Subtotal:</span>
+                        <span class="fw-bold">₹{{ number_format($invSubtotal, 2) }}</span>
                     </div>
-                    @if($order->discount > 0)
-                        <div class="d-flex justify-content-between mb-2 small text-success">
+                    @if($invDiscount > 0)
+                        <div class="d-flex justify-content-between mb-2 small text-danger">
                             <span>Discount / Savings:</span>
-                            <span class="fw-bold">- ₹{{ number_format($order->discount, 2) }}</span>
+                            <span class="fw-bold">- ₹{{ number_format($invDiscount, 2) }}</span>
                         </div>
                     @endif
                     <div class="d-flex justify-content-between mb-2 small">
-                        <span class="text-muted">Shipping & Handing:</span>
+                        <span class="text-muted">Delivery & Shipping Charge:</span>
                         <span class="fw-bold">
-                            {{ $order->shipping > 0 ? '₹' . number_format($order->shipping, 2) : 'FREE' }}
+                            {{ $invShipping > 0 ? '₹' . number_format($invShipping, 2) : 'FREE' }}
                         </span>
                     </div>
                     <hr class="my-2">
@@ -248,8 +253,8 @@
 
         <!-- Footer -->
         <div class="text-center mt-5 pt-4 border-top">
-            <p class="mb-1 fw-bold text-dark">Thank you for shopping with {{ $siteName }}!</p>
-            <p class="mb-0 text-muted small">For any support or query regarding this order, please email {{ $supportEmail }} or WhatsApp us.</p>
+            <p class="mb-1 fw-bold text-dark">Thank you for shopping with Quara Wardrobe!</p>
+            <p class="mb-0 text-muted small">For any support or query regarding this order, please contact us via WhatsApp: {{ $whatsappPhone ?? '+91 8078037591' }}</p>
         </div>
     </div>
 </div>

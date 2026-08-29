@@ -13,7 +13,7 @@
         </h4>
     </div>
     <div class="d-flex justify-content-between align-items-center gap-2">
-        <div class="d-flex align-items-center gap-1.5">
+        <div class="d-flex align-items-center gap-2" style="gap: 8px;">
             <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
                 <i class="fa-brands fa-whatsapp fs-6"></i>
             </button>

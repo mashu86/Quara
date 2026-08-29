@@ -121,7 +121,7 @@
 <style>
     @media (max-width: 768px) {
         .orders-table th, .orders-table td { font-size: 0.73rem !important; padding: 0.5rem 0.35rem !important; }
-        .orders-table .btn { font-size: 0.68rem !important; padding: 0.25rem 0.45rem !important; }
+        .orders-table .btn:not(.rounded-circle) { font-size: 0.68rem !important; padding: 0.25rem 0.45rem !important; }
         .orders-table .badge { font-size: 0.63rem !important; padding: 0.2em 0.45em !important; }
     }
 </style>
@@ -168,7 +168,7 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-1.5">
+                                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-2" style="gap: 8px;">
                                     <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
                                         <i class="fa-brands fa-whatsapp fs-6"></i>
                                     </button>

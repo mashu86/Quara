@@ -23,7 +23,63 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['items', 'payment']);
+        // 1. Base Query for Valid Real Sales (Excluding test phone 9544832975 and INACTIVE operations)
+        $inactiveOrderIds = \App\Models\OrderOperation::where('status', 'inactive')->pluck('order_id')->toArray();
+
+        $baseSalesQuery = Order::query()
+            ->whereNotIn('id', $inactiveOrderIds)
+            ->where('order_status', '!=', 'cancelled');
+
+        if (!$request->boolean('include_test_orders')) {
+            $baseSalesQuery->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+        }
+
+        // Today's Sales Stats
+        $todayQuery = (clone $baseSalesQuery)->whereDate('created_at', now()->today());
+        $todaySalesAmount = (float) $todayQuery->sum('grand_total');
+        $todayOrdersCount = (int) $todayQuery->count();
+        $todayProductsCount = (int) \App\Models\OrderItem::whereIn('order_id', (clone $todayQuery)->pluck('id'))->sum('quantity');
+
+        // Date Filter Logic for Selected Period / Month
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $periodLabel = 'This Month (' . now()->format('F Y') . ')';
+
+        $periodQuery = (clone $baseSalesQuery);
+
+        if ($startDate && $endDate) {
+            $periodQuery->whereDate('created_at', '>=', $startDate)
+                        ->whereDate('created_at', '<=', $endDate);
+            $periodLabel = \Carbon\Carbon::parse($startDate)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($endDate)->format('d M Y');
+        } elseif ($startDate) {
+            $periodQuery->whereDate('created_at', '>=', $startDate);
+            $periodLabel = 'From ' . \Carbon\Carbon::parse($startDate)->format('d M Y');
+        } elseif ($endDate) {
+            $periodQuery->whereDate('created_at', '<=', $endDate);
+            $periodLabel = 'Until ' . \Carbon\Carbon::parse($endDate)->format('d M Y');
+        } else {
+            // Default: Current Month
+            $periodQuery->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year);
+        }
+
+        $periodSalesAmount = (float) $periodQuery->sum('grand_total');
+        $periodOrdersCount = (int) $periodQuery->count();
+        $periodProductsCount = (int) \App\Models\OrderItem::whereIn('order_id', (clone $periodQuery)->pluck('id'))->sum('quantity');
+
+        // 2. Listing Orders Query
+        $query = Order::with(['items', 'payment'])
+            ->whereNotIn('id', $inactiveOrderIds);
+
+        if (!$request->boolean('include_test_orders')) {
+            $query->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -38,11 +94,23 @@ class OrderController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
-        if ($request->filled('order_status')) {
-            $query->where('order_status', $request->order_status);
+        if ($request->filled('status') || $request->filled('order_status')) {
+            $status = $request->status ?: $request->order_status;
+            $query->where('order_status', $status);
         }
 
-        if ($request->filled('date')) {
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        if ($startDate && $endDate) {
+            $query->whereDate('created_at', '>=', $startDate)
+                  ->whereDate('created_at', '<=', $endDate);
+        } elseif ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        } elseif ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        } elseif ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
         }
 
@@ -55,7 +123,18 @@ class OrderController extends Controller
 
         $orders = $query->paginate(15)->withQueryString();
 
-        return view('admin.orders.index', compact('orders'));
+        return view('admin.orders.index', compact(
+            'orders',
+            'todaySalesAmount',
+            'todayOrdersCount',
+            'todayProductsCount',
+            'periodSalesAmount',
+            'periodOrdersCount',
+            'periodProductsCount',
+            'periodLabel',
+            'startDate',
+            'endDate'
+        ));
     }
 
     public function show(Order $order)

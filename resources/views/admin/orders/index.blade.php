@@ -1,20 +1,103 @@
 @extends('layouts.admin')
 
-@section('title', 'Order Management - ' . $siteName . ' Admin')
+@section('title', 'Order Management & Sales Master - ' . $siteName . ' Admin')
 
 @section('content')
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1 fs-4 fs-sm-3">Order Management</h3>
-        <p class="text-muted small mb-0">Track, update, filter and fulfill customer orders</p>
+        <h3 class="fw-bold mb-1 fs-4 fs-sm-3">
+            <i class="fa-solid fa-cart-shopping text-warning me-2"></i> Order Management & Sales Master
+        </h3>
+        <p class="text-muted small mb-0">Live sales reporting, date-wise analytics & order fulfillment control</p>
     </div>
 </div>
 
 @php
     $activeOrderFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('status') ? 1 : 0)
-        + (request()->filled('payment_method') ? 1 : 0);
+        + (request()->filled('payment_method') ? 1 : 0)
+        + (request()->filled('start_date') ? 1 : 0)
+        + (request()->filled('end_date') ? 1 : 0);
 @endphp
+
+<!-- SALES ANALYTICS KPI SUMMARY CARDS -->
+<div class="row g-3 mb-4">
+    <!-- Today Sales Card -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card border-0 rounded-4 shadow-sm text-white h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #111111 0%, #2b2b2b 100%);">
+            <div class="card-body p-3.5 p-sm-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-warning text-uppercase font-mono fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-calendar-day me-1"></i> Today's Real Sales
+                    </span>
+                    <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 small fw-bold">{{ $todayOrdersCount }} Orders</span>
+                </div>
+                <div class="d-flex align-items-baseline justify-content-between">
+                    <div>
+                        <h3 class="fw-bold mb-0 text-warning display-6 fs-3 fs-md-2">₹{{ number_format($todaySalesAmount, 2) }}</h3>
+                        <div class="small text-light opacity-90 mt-1" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-box-open text-warning me-1"></i> <strong>{{ $todayProductsCount }}</strong> Products Sold Today
+                        </div>
+                    </div>
+                    <div class="bg-warning bg-opacity-20 p-3 rounded-circle text-warning fs-3 d-none d-sm-block">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly / Selected Period Sales Card -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-warning h-100">
+            <div class="card-body p-3.5 p-sm-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted text-uppercase fw-bold small text-truncate" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-calendar-week text-warning me-1"></i> {{ $periodLabel }}
+                    </span>
+                    <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 small fw-bold">{{ $periodOrdersCount }} Orders</span>
+                </div>
+                <div class="d-flex align-items-baseline justify-content-between">
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark display-6 fs-3 fs-md-2">₹{{ number_format($periodSalesAmount, 2) }}</h3>
+                        <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-boxes-packing text-warning me-1"></i> <strong>{{ $periodProductsCount }}</strong> Products Sold in Period
+                        </div>
+                    </div>
+                    <div class="bg-light p-3 rounded-circle text-dark fs-3 d-none d-sm-block">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range & Quick Filter Card -->
+    <div class="col-12 col-xl-4">
+        <div class="card border-0 rounded-4 shadow-sm bg-light h-100">
+            <div class="card-body p-3 p-sm-3.5 d-flex flex-column justify-content-center">
+                <form action="{{ route('admin.orders.index') }}" method="GET" class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold mb-1" style="font-size: 0.72rem;">Start Date</label>
+                        <input type="date" name="start_date" class="form-control form-control-sm rounded-3" value="{{ request('start_date') }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold mb-1" style="font-size: 0.72rem;">End Date</label>
+                        <input type="date" name="end_date" class="form-control form-control-sm rounded-3" value="{{ request('end_date') }}">
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-dark btn-sm rounded-pill flex-grow-1 fw-bold" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-filter me-1 text-warning"></i> Filter Date Range
+                        </button>
+                        @if(request()->filled('start_date') || request()->filled('end_date'))
+                            <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="font-size: 0.78rem;" title="Reset Date Filter">Reset</a>
+                        @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
 <div class="d-lg-none mb-3">
@@ -37,13 +120,15 @@
 <!-- Desktop Search & Filters (d-none d-lg-block) -->
 <div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body p-3 p-sm-4">
-        <form action="{{ route('admin.orders.index') }}" method="GET" class="row g-3">
-            <div class="col-12 col-md-4">
-                <input type="text" name="search" class="form-control rounded-3" placeholder="Search Order #, Name, Phone..." value="{{ request()->search }}">
+        <form action="{{ route('admin.orders.index') }}" method="GET" class="row g-3 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold text-muted mb-1">Search</label>
+                <input type="text" name="search" class="form-control rounded-3" placeholder="Order #, Name, Phone..." value="{{ request()->search }}">
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-2">
+                <label class="form-label small fw-bold text-muted mb-1">Order Status</label>
                 <select name="status" class="form-select rounded-3">
-                    <option value="">All Order Statuses</option>
+                    <option value="">All Statuses</option>
                     <option value="pending" {{ request()->status === 'pending' ? 'selected' : '' }}>Pending</option>
                     <option value="confirmed" {{ request()->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                     <option value="processing" {{ request()->status === 'processing' ? 'selected' : '' }}>Processing</option>
@@ -53,17 +138,40 @@
                     <option value="cancelled" {{ request()->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-2">
+                <label class="form-label small fw-bold text-muted mb-1">Payment Method</label>
                 <select name="payment_method" class="form-select rounded-3">
-                    <option value="">All Payment Methods</option>
-                    <option value="cod" {{ request()->payment_method === 'cod' ? 'selected' : '' }}>Cash on Delivery (COD)</option>
+                    <option value="">All Methods</option>
+                    <option value="cod" {{ request()->payment_method === 'cod' ? 'selected' : '' }}>COD (Cash on Delivery)</option>
                     <option value="online" {{ request()->payment_method === 'online' ? 'selected' : '' }}>Razorpay Online</option>
+                    <option value="offline_sale" {{ request()->payment_method === 'offline_sale' ? 'selected' : '' }}>Offline Sale</option>
                 </select>
             </div>
-            <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-dark w-100 rounded-pill fw-semibold py-2 shadow-sm">
-                    <i class="fa-solid fa-filter me-1"></i> Filter
+            <div class="col-12 col-sm-6 col-md-2">
+                <label class="form-label small fw-bold text-muted mb-1">Payment Status</label>
+                <select name="payment_status" class="form-select rounded-3">
+                    <option value="">All Payment Statuses</option>
+                    <option value="paid" {{ request()->payment_status === 'paid' ? 'selected' : '' }}>Paid</option>
+                    <option value="pending" {{ request()->payment_status === 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="failed" {{ request()->payment_status === 'failed' ? 'selected' : '' }}>Failed</option>
+                    <option value="refunded" {{ request()->payment_status === 'refunded' ? 'selected' : '' }}>Refunded</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark rounded-pill fw-semibold py-2 shadow-sm flex-grow-1">
+                    <i class="fa-solid fa-filter me-1 text-warning"></i> Apply Filters
                 </button>
+                @if($activeOrderFilterCount > 0)
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill px-3 py-2" title="Reset All Filters">Reset</a>
+                @endif
+            </div>
+            <div class="col-12 mt-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="include_test_orders" value="1" id="includeTestOrdersSwitch" onchange="this.form.submit()" {{ request()->boolean('include_test_orders') ? 'checked' : '' }}>
+                    <label class="form-check-label small text-muted" for="includeTestOrdersSwitch">
+                        Include Razorpay Test Orders (Phone: 9544832975)
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -85,6 +193,16 @@
                         <label class="form-label fw-semibold text-dark">Search Order # / Customer / Phone</label>
                         <input type="text" name="search" class="form-control rounded-3" placeholder="Search Order #, Name, Phone..." value="{{ request()->search }}">
                     </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-dark">Start Date</label>
+                            <input type="date" name="start_date" class="form-control rounded-3" value="{{ request('start_date') }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-dark">End Date</label>
+                            <input type="date" name="end_date" class="form-control rounded-3" value="{{ request('end_date') }}">
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Order Status</label>
                         <select name="status" class="form-select rounded-3">
@@ -104,7 +222,16 @@
                             <option value="">All Payment Methods</option>
                             <option value="cod" {{ request()->payment_method === 'cod' ? 'selected' : '' }}>Cash on Delivery (COD)</option>
                             <option value="online" {{ request()->payment_method === 'online' ? 'selected' : '' }}>Razorpay Online</option>
+                            <option value="offline_sale" {{ request()->payment_method === 'offline_sale' ? 'selected' : '' }}>Offline Sale</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="include_test_orders" value="1" id="includeTestOrdersSwitchMobile" {{ request()->boolean('include_test_orders') ? 'checked' : '' }}>
+                            <label class="form-check-label small text-muted" for="includeTestOrdersSwitchMobile">
+                                Include Razorpay Test Orders (9544832975)
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
@@ -128,6 +255,16 @@
 
 <!-- Table -->
 <div class="card border-0 rounded-4 shadow-sm">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark font-serif fs-6 fs-md-5">
+            <i class="fa-solid fa-list-check text-warning me-2"></i> Orders List ({{ $orders->total() }})
+        </h5>
+        @if(!request()->boolean('include_test_orders'))
+            <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">
+                <i class="fa-solid fa-user-check text-success me-1"></i> Real Sales Only (Excl. 9544832975)
+            </span>
+        @endif
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table orders-table align-middle mb-0">
@@ -136,6 +273,7 @@
                         <th class="ps-3">Order #</th>
                         <th>Customer</th>
                         <th>Date</th>
+                        <th>Items</th>
                         <th>Payment</th>
                         <th>Total</th>
                         <th>Order Status</th>
@@ -156,7 +294,18 @@
                             </td>
                             <td class="small">{{ $order->created_at->format('M d, Y') }}<br><span class="text-muted">{{ $order->created_at->format('h:i A') }}</span></td>
                             <td>
-                                <span class="badge bg-light text-dark border text-uppercase me-1">{{ $order->payment_method }}</span>
+                                <span class="badge bg-light text-dark border small fw-bold">
+                                    {{ $order->items->sum('quantity') }} Pcs
+                                </span>
+                            </td>
+                            <td>
+                                @if($order->payment_method === 'offline_sale')
+                                    <span class="badge bg-purple text-white text-uppercase me-1" style="background-color: #6f42c1;">OFFLINE</span>
+                                @elseif($order->payment_method === 'online')
+                                    <span class="badge bg-info text-dark text-uppercase me-1">ONLINE</span>
+                                @else
+                                    <span class="badge bg-light text-dark border text-uppercase me-1">{{ $order->payment_method }}</span>
+                                @endif
                                 <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }} text-capitalize">
                                     {{ $order->payment_status }}
                                 </span>
@@ -186,7 +335,10 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">No orders found matching criteria.</td>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-box-open fs-1 text-muted mb-2 d-block"></i>
+                                No real sales orders found for the selected date / filters.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

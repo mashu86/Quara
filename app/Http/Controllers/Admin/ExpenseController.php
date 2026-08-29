@@ -249,10 +249,14 @@ class ExpenseController extends Controller
             ->pluck('order_id')
             ->toArray();
 
-        // Base Orders Query for paid/completed orders (excluding cancelled/refunded and orders marked INACTIVE by operations)
+        // Base Orders Query for paid/completed orders (excluding cancelled/refunded, INACTIVE operations, and test phone 9544832975)
         $ordersQuery = Order::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->whereIn('payment_status', ['paid', 'completed'])
-            ->where('order_status', '!=', 'cancelled');
+            ->where('order_status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
 
         if (count($inactiveOperationOrderIds) > 0) {
             $ordersQuery->whereNotIn('id', $inactiveOperationOrderIds);
@@ -368,6 +372,10 @@ class ExpenseController extends Controller
         $query = Order::where('payment_method', 'online')
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            })
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->orderBy('id', 'desc');
 

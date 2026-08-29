@@ -95,56 +95,125 @@
 </div>
 
 <div class="row g-4">
-    <!-- Prominent New Orders Section -->
+    <!-- Prominent New Orders Section with Tabs -->
     <div class="col-12">
         <div class="card border-0 rounded-4 shadow-sm">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-                <h5 class="fw-bold mb-0 text-dark admin-dash-card-title"><i class="fa-solid fa-bell text-warning me-2"></i> Recent / New Orders</h5>
-                <a href="{{ route('admin.orders.index') }}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem;">View All &rarr;</a>
+            <div class="card-header bg-white py-3 border-bottom">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                    <ul class="nav nav-pills card-header-pills fw-bold" id="dashOrdersTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill px-3 py-1.5 small" id="real-orders-tab" data-bs-toggle="tab" data-bs-target="#real-orders-content" type="button" role="tab">
+                                <i class="fa-solid fa-cart-shopping me-1 text-warning"></i> Real Sales Orders ({{ $recentOrders->count() }})
+                            </button>
+                        </li>
+                        @if($dummyOrders->count() > 0)
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill px-3 py-1.5 small text-muted" id="dummy-orders-tab" data-bs-toggle="tab" data-bs-target="#dummy-orders-content" type="button" role="tab">
+                                    <i class="fa-solid fa-vial me-1"></i> Dummy / Test Purchases ({{ $dummyOrders->count() }})
+                                </button>
+                            </li>
+                        @endif
+                    </ul>
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem;">View All Orders &rarr;</a>
+                </div>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0 admin-dash-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Order #</th>
-                                <th>Customer</th>
-                                <th>Method</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($recentOrders as $order)
-                                <tr>
-                                    <td>
-                                        <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
-                                            {{ $order->order_number }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
-                                        <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
-                                    </td>
-                                    <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
-                                    <td class="fw-bold">₹{{ number_format($order->grand_total, 2) }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize" style="font-size: 0.72rem;">
-                                            {{ $order->order_status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark btn-sm rounded-pill py-0 px-2" style="font-size: 0.74rem;">Manage</a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">No orders received yet.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="tab-content" id="dashOrdersTabContent">
+                    <!-- Real Orders Tab -->
+                    <div class="tab-pane fade show active" id="real-orders-content" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0 admin-dash-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Method</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($recentOrders as $order)
+                                        <tr>
+                                            <td>
+                                                <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
+                                                    {{ $order->order_number }}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
+                                                <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
+                                            </td>
+                                            <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
+                                            <td class="fw-bold">₹{{ number_format($order->grand_total, 2) }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize" style="font-size: 0.72rem;">
+                                                    {{ $order->order_status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark btn-sm rounded-pill py-0 px-2" style="font-size: 0.74rem;">Manage</a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">No real customer orders received yet.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Dummy / Test Orders Tab -->
+                    @if($dummyOrders->count() > 0)
+                        <div class="tab-pane fade" id="dummy-orders-content" role="tabpanel">
+                            <div class="p-2.5 bg-light border-bottom text-muted small px-3">
+                                <i class="fa-solid fa-info-circle text-info me-1"></i> These orders were created for Razorpay test checkout / admin testing (Phone: 9544832975). They are excluded from live Sales & P&L.
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0 admin-dash-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Test Customer / Phone</th>
+                                            <th>Method</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($dummyOrders as $order)
+                                            <tr class="table-warning bg-opacity-10">
+                                                <td>
+                                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-dark text-decoration-none">
+                                                        {{ $order->order_number }}
+                                                    </a>
+                                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">TEST ORDER</span>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
+                                                    <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
+                                                </td>
+                                                <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
+                                                <td class="fw-bold text-muted">₹{{ number_format($order->grand_total, 2) }}</td>
+                                                <td>
+                                                    <span class="badge bg-secondary text-capitalize" style="font-size: 0.72rem;">
+                                                        {{ $order->order_status }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-secondary btn-sm rounded-pill py-0 px-2" style="font-size: 0.74rem;">View Test</a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

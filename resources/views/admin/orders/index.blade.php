@@ -28,19 +28,19 @@
             <div class="card-body p-3.5 p-sm-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-warning text-uppercase font-mono fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-calendar-day me-1"></i> Today's Real Sales
+                        <i class="fa-solid fa-calendar-day me-1"></i> Today Sale
                     </span>
                     <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 small fw-bold">{{ $todayOrdersCount }} Orders</span>
                 </div>
-                <div class="d-flex align-items-baseline justify-content-between">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h3 class="fw-bold mb-0 text-warning display-6 fs-3 fs-md-2">₹{{ number_format($todaySalesAmount, 2) }}</h3>
                         <div class="small text-light opacity-90 mt-1" style="font-size: 0.78rem;">
                             <i class="fa-solid fa-box-open text-warning me-1"></i> <strong>{{ $todayProductsCount }}</strong> Products Sold Today
                         </div>
                     </div>
-                    <div class="bg-warning bg-opacity-20 p-3 rounded-circle text-warning fs-3 d-none d-sm-block">
-                        <i class="fa-solid fa-chart-line"></i>
+                    <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-20 rounded-3 text-warning flex-shrink-0" style="width: 44px; height: 44px;">
+                        <i class="fa-solid fa-chart-line fs-5"></i>
                     </div>
                 </div>
             </div>
@@ -57,15 +57,15 @@
                     </span>
                     <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 small fw-bold">{{ $periodOrdersCount }} Orders</span>
                 </div>
-                <div class="d-flex align-items-baseline justify-content-between">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h3 class="fw-bold mb-0 text-dark display-6 fs-3 fs-md-2">₹{{ number_format($periodSalesAmount, 2) }}</h3>
                         <div class="small text-muted mt-1" style="font-size: 0.78rem;">
                             <i class="fa-solid fa-boxes-packing text-warning me-1"></i> <strong>{{ $periodProductsCount }}</strong> Products Sold in Period
                         </div>
                     </div>
-                    <div class="bg-light p-3 rounded-circle text-dark fs-3 d-none d-sm-block">
-                        <i class="fa-solid fa-bag-shopping"></i>
+                    <div class="d-flex align-items-center justify-content-center bg-light border rounded-3 text-dark flex-shrink-0" style="width: 44px; height: 44px;">
+                        <i class="fa-solid fa-bag-shopping fs-5"></i>
                     </div>
                 </div>
             </div>

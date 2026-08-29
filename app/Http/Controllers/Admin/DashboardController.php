@@ -17,13 +17,30 @@ class DashboardController extends Controller
         $activeProducts = Product::where('status', 'active')->count();
         $totalCategories = Category::count();
 
-        $totalOrders = Order::count();
-        $pendingOrders = Order::where('order_status', 'pending')->count();
-        $processingOrders = Order::whereIn('order_status', ['confirmed', 'processing', 'packed'])->count();
-        $completedOrders = Order::where('order_status', 'delivered')->count();
-        $cancelledOrders = Order::where('order_status', 'cancelled')->count();
+        $inactiveOrderIds = \App\Models\OrderOperation::where('status', 'inactive')->pluck('order_id')->toArray();
 
-        $totalSales = Order::where('payment_status', 'paid')->sum('grand_total');
+        // Real Orders Base Query (Excludes INACTIVE operations & test phone 9544832975)
+        $realOrdersQuery = Order::query()
+            ->whereNotIn('id', $inactiveOrderIds)
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+
+        // Dummy / Test Orders Base Query
+        $dummyOrdersQuery = Order::query()
+            ->where(function ($q) use ($inactiveOrderIds) {
+                $q->whereIn('id', $inactiveOrderIds)
+                  ->orWhere('customer_phone', 'LIKE', '%9544832975%');
+            });
+
+        $totalOrders = (clone $realOrdersQuery)->count();
+        $pendingOrders = (clone $realOrdersQuery)->where('order_status', 'pending')->count();
+        $processingOrders = (clone $realOrdersQuery)->whereIn('order_status', ['confirmed', 'processing', 'packed'])->count();
+        $completedOrders = (clone $realOrdersQuery)->where('order_status', 'delivered')->count();
+        $cancelledOrders = (clone $realOrdersQuery)->where('order_status', 'cancelled')->count();
+
+        $totalSales = (clone $realOrdersQuery)->where('payment_status', 'paid')->sum('grand_total');
 
         // Low stock products (size stock <= 3)
         $lowStockSizes = ProductSize::with('product')
@@ -36,9 +53,12 @@ class DashboardController extends Controller
             ->where('stock', 0)
             ->get();
 
-        // Prominent New Orders listing (newest first)
-        $newOrders = Order::orderBy('id', 'desc')->take(10)->get();
+        // Real Orders listing
+        $newOrders = (clone $realOrdersQuery)->orderBy('id', 'desc')->take(10)->get();
         $recentOrders = $newOrders;
+
+        // Dummy / Test Orders listing for separate tab
+        $dummyOrders = (clone $dummyOrdersQuery)->orderBy('id', 'desc')->take(10)->get();
 
         $unreadNotifications = Notification::where('is_read', false)->orderBy('id', 'desc')->get();
 
@@ -56,6 +76,7 @@ class DashboardController extends Controller
             'outOfStockSizes',
             'newOrders',
             'recentOrders',
+            'dummyOrders',
             'unreadNotifications'
         ));
     }

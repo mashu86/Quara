@@ -21,9 +21,29 @@ class ProductDetailController extends Controller
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->active()
-            ->with(['category', 'images'])
+            ->where('is_out_of_stock', false)
+            ->whereHas('sizes', function ($q) {
+                $q->where('stock', '>', 0);
+            })
+            ->with(['category', 'images', 'sizes'])
             ->take(4)
             ->get();
+
+        // If fewer than 4 items in same category, grab other active in-stock products
+        if ($relatedProducts->count() < 4) {
+            $excludeIds = $relatedProducts->pluck('id')->push($product->id)->toArray();
+            $moreProducts = Product::whereNotIn('id', $excludeIds)
+                ->active()
+                ->where('is_out_of_stock', false)
+                ->whereHas('sizes', function ($q) {
+                    $q->where('stock', '>', 0);
+                })
+                ->with(['category', 'images', 'sizes'])
+                ->take(4 - $relatedProducts->count())
+                ->get();
+
+            $relatedProducts = $relatedProducts->merge($moreProducts);
+        }
 
         $whatsapp = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
 

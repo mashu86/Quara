@@ -10,7 +10,7 @@
         <div class="row g-3">
             @foreach($categories as $category)
                 <div class="col-6 col-md-4 col-lg-3">
-                    <a href="{{ route('home', ['category' => $category->slug]) }}" class="text-decoration-none">
+                    <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                         <div class="qw-category-card">
                             @if($category->background_image)
                                 <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">

@@ -493,24 +493,21 @@
             <h3 class="font-serif fw-bold mb-4">YOU MAY ALSO LIKE</h3>
             <div class="row g-4 product-related-grid">
                 @foreach($relatedProducts as $relProduct)
-                    <div class="col-6 col-md-3">
-                        <div class="qw-product-card h-100">
-                            <a href="{{ route('product.detail', $relProduct->slug) }}">
-                                <div class="qw-product-img-wrapper">
-                                    <img src="{{ $relProduct->primary_image_url }}" alt="{{ $relProduct->name }}" class="qw-product-img">
-                                    @if($relProduct->total_stock <= 0)
-                                        <div class="qw-out-of-stock-overlay">
-                                            <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
-                                        </div>
-                                    @endif
+                    @if($relProduct->total_stock > 0 && !$relProduct->is_out_of_stock)
+                        <div class="col-6 col-md-3">
+                            <div class="qw-product-card h-100">
+                                <a href="{{ route('product.detail', $relProduct->slug) }}">
+                                    <div class="qw-product-img-wrapper">
+                                        <img src="{{ $relProduct->primary_image_url }}" alt="{{ $relProduct->name }}" class="qw-product-img">
+                                    </div>
+                                </a>
+                                <div class="p-3 product-related-card-body">
+                                    <h6 class="font-serif fw-bold text-dark text-truncate mb-1">{{ $relProduct->name }}</h6>
+                                    <span class="fs-6 fw-bold text-gold">₹{{ number_format($relProduct->final_price, 2) }}</span>
                                 </div>
-                            </a>
-                            <div class="p-3 product-related-card-body">
-                                <h6 class="font-serif fw-bold text-dark text-truncate mb-1">{{ $relProduct->name }}</h6>
-                                <span class="fs-6 fw-bold text-gold">₹{{ number_format($relProduct->final_price, 2) }}</span>
                             </div>
                         </div>
-                    </div>
+                    @endif
                 @endforeach
             </div>
         </div>

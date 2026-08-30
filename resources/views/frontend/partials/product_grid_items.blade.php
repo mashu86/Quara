@@ -64,7 +64,7 @@
             <i class="fa-solid fa-magnifying-glass text-muted fs-1 mb-3"></i>
             <h5>No products found matching your criteria.</h5>
             <p class="text-muted small mb-3">Try adjusting your search terms or filters.</p>
-            <a href="{{ route('shop') }}" class="btn btn-qw-gold rounded-pill px-4 btn-sm">RESET ALL FILTERS</a>
+            <a href="{{ url()->current() }}" class="btn btn-qw-gold rounded-pill px-4 btn-sm">RESET ALL FILTERS</a>
         </div>
     @endif
 @endforelse

@@ -15,6 +15,7 @@ use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\ProductDetailController;
 use App\Http\Controllers\Frontend\ShopController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
+use App\Http\Controllers\Admin\IncomeController as AdminIncomeController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
@@ -144,6 +145,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Expenses & Profit/Loss Financial Management
         Route::resource('expenses', AdminExpenseController::class);
+        Route::resource('incomes', AdminIncomeController::class);
+        Route::post('incomes/{income}/toggle-status', [AdminIncomeController::class, 'toggleStatus'])->name('incomes.toggle-status');
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
         Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
 

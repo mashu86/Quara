@@ -314,14 +314,22 @@ class ExpenseController extends Controller
         $totalOperationExpenses = (float) (clone $activeOperationsQuery)->sum('additional_expense_total');
         $totalOperationAdjustment = (float) (clone $activeOperationsQuery)->sum('total_financial_adjustment');
 
+        // Fetch ACTIVE Incomes (Wholesale & Manual Additional Incomes) in the selected date range
+        $activeIncomesQuery = \App\Models\Income::where('status', 'active')
+            ->whereBetween('income_date', [$startDate, $endDate]);
+
+        $activeIncomesList = (clone $activeIncomesQuery)->orderBy('income_date', 'desc')->get();
+        $totalAdditionalIncome = (float) (clone $activeIncomesQuery)->sum('total_income_amount');
+
         // Original P&L Base
         $originalExpenses = $totalProductCost + $totalShippingRevenue + $totalRazorpayCharges + $otherExpenses;
-        $originalNetProfitLoss = $totalGrossRevenue - $originalExpenses;
+        $originalNetProfitLoss = ($totalGrossRevenue + $totalAdditionalIncome) - $originalExpenses;
 
-        // Adjusted P&L including ACTIVE Order Operations
-        $adjustedGrossRevenue = max(0, $totalGrossRevenue - $totalOperationRefunds);
+        // Adjusted P&L including ACTIVE Order Operations & Active Incomes
+        $totalCombinedRevenue = $totalGrossRevenue + $totalAdditionalIncome;
+        $adjustedGrossRevenue = max(0, $totalCombinedRevenue - $totalOperationRefunds);
         $totalExpenses = $originalExpenses + $totalOperationExpenses;
-        $netProfitLoss = $totalGrossRevenue - $totalExpenses - $totalOperationRefunds;
+        $netProfitLoss = $totalCombinedRevenue - $totalExpenses - $totalOperationRefunds;
         $isProfit = $netProfitLoss >= 0;
 
         return view('admin.expenses.profit_loss', compact(
@@ -347,6 +355,9 @@ class ExpenseController extends Controller
             'adjustedGrossRevenue',
             'totalExpenses',
             'expensesList',
+            'activeIncomesList',
+            'totalAdditionalIncome',
+            'totalCombinedRevenue',
             'netProfitLoss',
             'isProfit',
             'feePct',

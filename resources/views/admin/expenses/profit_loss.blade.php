@@ -162,10 +162,18 @@
             </div>
             <div class="card-body p-3.5 p-md-4 breakdown-card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted small fw-bold breakdown-main-title">Total Sales (Gross Revenue)</span>
-                    <h3 class="fw-bold text-success mb-0 breakdown-main-amount">₹{{ number_format($totalGrossRevenue, 2) }}</h3>
+                    <span class="text-muted small fw-bold breakdown-main-title">Total Combined Revenue</span>
+                    <h3 class="fw-bold text-success mb-0 breakdown-main-amount">₹{{ number_format($totalCombinedRevenue, 2) }}</h3>
                 </div>
                 <hr class="my-2">
+                <div class="d-flex justify-content-between breakdown-line-item mb-2">
+                    <span class="text-dark"><i class="fa-solid fa-cart-shopping text-dark me-1"></i> Orders Gross Revenue:</span>
+                    <span class="fw-bold text-dark">₹{{ number_format($totalGrossRevenue, 2) }}</span>
+                </div>
+                <div class="d-flex justify-content-between breakdown-line-item mb-2">
+                    <span class="text-dark"><i class="fa-solid fa-hand-holding-dollar text-success me-1"></i> Active Additional Incomes:</span>
+                    <span class="fw-bold text-success">₹{{ number_format($totalAdditionalIncome, 2) }} <small class="text-muted">({{ $activeIncomesList->count() }})</small></span>
+                </div>
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
                     <span class="text-dark"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> COD Sales:</span>
                     <span class="fw-bold text-dark">₹{{ number_format($codSalesRevenue, 2) }} <small class="text-muted">({{ $codOrdersCount }})</small></span>
@@ -286,6 +294,48 @@
         @else
             <div class="text-muted small">No ACTIVE order operations recorded for this financial period. INACTIVE test operations are excluded from P&L calculations.</div>
         @endif
+    </div>
+</div>
+
+<!-- Active Additional Incomes (Wholesale / Manual) Table -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 border-start border-4 border-success">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center table-card-header">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-hand-holding-dollar text-success me-1.5"></i> Active Additional Incomes in Period</h5>
+        <span class="badge bg-success rounded-pill px-2.5 px-md-3">{{ $activeIncomesList->count() }} Incomes</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Income Name</th>
+                        <th>Type</th>
+                        <th>Price / Unit</th>
+                        <th>Pieces</th>
+                        <th>Total Amount</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($activeIncomesList as $inc)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($inc->income_date)->format('M d, Y') }}</td>
+                            <td class="fw-semibold">{{ $inc->income_name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ $inc->type_label }}</span></td>
+                            <td class="fw-semibold">₹{{ number_format($inc->income_price, 2) }}</td>
+                            <td>{{ $inc->type === 'wholesale_selling' ? $inc->selling_pieces . ' pcs' : '-' }}</td>
+                            <td class="fw-bold text-success">₹{{ number_format($inc->total_income_amount, 2) }}</td>
+                            <td class="small text-muted">{{ $inc->notes ?? '-' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No active additional incomes recorded for this date range.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -314,6 +314,11 @@
 
                 <li class="nav-heading">Accounts & Financials</li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.incomes.index') }}" class="nav-link {{ request()->routeIs('admin.incomes.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-hand-holding-dollar me-2 text-success"></i> Additional Incomes
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.expenses.index') }}" class="nav-link {{ request()->routeIs('admin.expenses.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-wallet me-2"></i> Expenses
                     </a>

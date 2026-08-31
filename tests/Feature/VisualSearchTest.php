@@ -46,6 +46,12 @@ class VisualSearchTest extends TestCase
             $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
+
+        Schema::create('category_product', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('category_id');
+            $table->foreignId('product_id');
+        });
     }
 
     public function test_it_returns_catalog_images_for_browser_visual_verification_without_an_ai_key(): void

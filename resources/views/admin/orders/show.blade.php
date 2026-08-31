@@ -17,6 +17,9 @@
             <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
                 <i class="fa-brands fa-whatsapp fs-6"></i>
             </button>
+            <a href="{{ route('admin.orders.edit', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="Edit Order Details">
+                <i class="fa-solid fa-pen-to-square fs-6"></i>
+            </a>
             <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="Record Operation / Return">
                 <i class="fa-solid fa-rotate-left fs-6"></i>
             </a>
@@ -265,8 +268,11 @@
 
         <!-- Payment Info Card -->
         <div class="card border-0 rounded-4 shadow-sm">
-            <div class="card-header bg-white py-2.5 py-sm-3 border-bottom">
+            <div class="card-header bg-white py-2.5 py-sm-3 border-bottom d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;"><i class="fa-solid fa-credit-card me-2 text-warning"></i> Payment Details</h6>
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2.5 py-1" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" data-bs-toggle="modal" data-bs-target="#editPaymentDetailsModal">
+                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit Payment
+                </button>
             </div>
             <div class="card-body p-3 p-sm-4" style="font-size: 0.78rem;">
                 <div class="d-flex justify-content-between mb-2">
@@ -398,6 +404,76 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     }
 </style>
+
+<!-- Edit Payment Details Modal -->
+<div class="modal fade" id="editPaymentDetailsModal" tabindex="-1" aria-labelledby="editPaymentDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="editPaymentDetailsModalLabel">
+                    <i class="fa-solid fa-credit-card text-warning me-2"></i> Edit Payment Details (#{{ $order->order_number }})
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.orders.update-payment-details', $order->id) }}" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-3" style="font-size: 0.76rem;">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        Use this option to fix payment status issues (e.g. money received in Razorpay but status showing Pending on website).
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Payment Status</label>
+                        <select name="payment_status" class="form-select rounded-3">
+                            <option value="pending" {{ $order->payment_status === 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="paid" {{ $order->payment_status === 'paid' ? 'selected' : '' }}>Paid</option>
+                            <option value="failed" {{ $order->payment_status === 'failed' ? 'selected' : '' }}>Failed</option>
+                            <option value="refunded" {{ $order->payment_status === 'refunded' ? 'selected' : '' }}>Refunded</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Payment Method</label>
+                        <select name="payment_method" class="form-select rounded-3">
+                            <option value="online" {{ $order->payment_method === 'online' ? 'selected' : '' }}>Razorpay Online</option>
+                            <option value="cod" {{ $order->payment_method === 'cod' ? 'selected' : '' }}>Cash on Delivery (COD)</option>
+                            <option value="offline_sale" {{ $order->payment_method === 'offline_sale' ? 'selected' : '' }}>Offline Sale</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Razorpay Payment ID (Optional)</label>
+                        <input type="text" name="razorpay_payment_id" class="form-control rounded-3" placeholder="e.g. pay_Pxxxxxxxxx" value="{{ old('razorpay_payment_id', $order->razorpay_payment_id ?? optional($order->payment)->razorpay_payment_id) }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Razorpay Order ID (Optional)</label>
+                        <input type="text" name="razorpay_order_id" class="form-control rounded-3" placeholder="e.g. order_Pxxxxxxxxx" value="{{ old('razorpay_order_id', $order->razorpay_order_id ?? optional($order->payment)->razorpay_order_id) }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Transaction / Ref ID (Optional)</label>
+                        <input type="text" name="transaction_id" class="form-control rounded-3" placeholder="e.g. TXN123456" value="{{ old('transaction_id', optional($order->payment)->transaction_id) }}">
+                    </div>
+
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="auto_confirm_order" value="1" id="autoConfirmOrderSwitch" {{ $order->order_status === 'pending' ? 'checked' : '' }}>
+                        <label class="form-check-label small fw-semibold text-dark" for="autoConfirmOrderSwitch">
+                            Auto-update Order Status to "Confirmed" (if currently Pending)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-check me-1"></i> Update Payment Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 function openImagePreviewModal(imageUrl, title) {

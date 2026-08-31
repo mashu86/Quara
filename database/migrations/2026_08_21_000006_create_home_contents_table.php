@@ -21,7 +21,11 @@ return new class extends Migration
         });
 
         // Add binary BLOB column using raw DB statement for binary image storage support
-        DB::statement("ALTER TABLE home_contents ADD image_blob LONGBLOB NULL AFTER image_mime");
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("ALTER TABLE home_contents ADD COLUMN image_blob BLOB NULL");
+        } else {
+            DB::statement("ALTER TABLE home_contents ADD image_blob LONGBLOB NULL AFTER image_mime");
+        }
     }
 
     public function down(): void

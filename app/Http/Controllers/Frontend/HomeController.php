@@ -89,7 +89,9 @@ class HomeController extends Controller
             }
         }
 
-        // Sorting
+        // Sorting: Always show In-Stock products first, Sold Out products last
+        $query->inStockFirst();
+
         $sort = $request->get('sort', 'newest');
         if ($sort === 'price_low') {
             $query->orderBy('final_price', 'asc');

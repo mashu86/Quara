@@ -118,7 +118,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Orders & Manual Offline Sales Management
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{order}/edit', [AdminOrderController::class, 'edit'])->name('orders.edit');
+        Route::put('/orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
         Route::post('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::post('/orders/{order}/payment-details', [AdminOrderController::class, 'updatePaymentDetails'])->name('orders.update-payment-details');
         Route::post('/orders/{order}/courier-dispatch', [AdminOrderController::class, 'updateCourierDispatch'])->name('orders.update-courier-dispatch');
         Route::post('/orders/{order}/toggle-cancellation-lock', [AdminOrderController::class, 'toggleCancellationLock'])->name('orders.toggle-cancellation-lock');
         Route::post('/orders/{order}/send-followup-email', [AdminOrderController::class, 'sendFollowupEmail'])->name('orders.send-followup-email');

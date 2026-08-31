@@ -28,7 +28,8 @@ class OrderController extends Controller
 
         $baseSalesQuery = Order::query()
             ->whereNotIn('id', $inactiveOrderIds)
-            ->where('order_status', '!=', 'cancelled');
+            ->where('order_status', '!=', 'cancelled')
+            ->where('payment_status', 'paid');
 
         if (!$request->boolean('include_test_orders')) {
             $baseSalesQuery->where(function ($q) {
@@ -71,7 +72,7 @@ class OrderController extends Controller
         $periodProductsCount = (int) \App\Models\OrderItem::whereIn('order_id', (clone $periodQuery)->pluck('id'))->sum('quantity');
 
         // 2. Listing Orders Query
-        $query = Order::with(['items', 'payment'])
+        $query = Order::with(['items', 'payment', 'operations'])
             ->whereNotIn('id', $inactiveOrderIds);
 
         if (!$request->boolean('include_test_orders')) {
@@ -96,7 +97,17 @@ class OrderController extends Controller
 
         if ($request->filled('status') || $request->filled('order_status')) {
             $status = $request->status ?: $request->order_status;
-            $query->where('order_status', $status);
+            if (in_array($status, ['returned', 'has_return'])) {
+                $query->whereHas('operations', function ($opQ) {
+                    $opQ->where('status', 'active');
+                });
+            } elseif (in_array($status, ['pay_pending', 'payment_pending'])) {
+                $query->where('payment_status', 'pending');
+            } elseif (in_array($status, ['paid', 'payment_paid'])) {
+                $query->where('payment_status', 'paid');
+            } else {
+                $query->where('order_status', $status);
+            }
         }
 
         if ($request->filled('payment_method')) {
@@ -121,7 +132,40 @@ class OrderController extends Controller
             $query->orderBy('id', 'desc');
         }
 
+        $countBase = Order::query()->whereNotIn('id', $inactiveOrderIds);
+        if (!$request->boolean('include_test_orders')) {
+            $countBase->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+        }
+        $statusCounts = [
+            'all' => (clone $countBase)->count(),
+            'pending' => (clone $countBase)->where('order_status', 'pending')->count(),
+            'confirmed' => (clone $countBase)->where('order_status', 'confirmed')->count(),
+            'processing' => (clone $countBase)->where('order_status', 'processing')->count(),
+            'packed' => (clone $countBase)->where('order_status', 'packed')->count(),
+            'shipped' => (clone $countBase)->where('order_status', 'shipped')->count(),
+            'delivered' => (clone $countBase)->where('order_status', 'delivered')->count(),
+            'cancelled' => (clone $countBase)->where('order_status', 'cancelled')->count(),
+            'returned' => (clone $countBase)->whereHas('operations', function ($opQ) {
+                $opQ->where('status', 'active');
+            })->count(),
+            'payment_pending' => (clone $countBase)->where('payment_status', 'pending')->count(),
+            'paid' => (clone $countBase)->where('payment_status', 'paid')->count(),
+        ];
+
         $orders = $query->paginate(15)->withQueryString();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'desktop_html' => view('admin.orders.partials.desktop_rows', compact('orders'))->render(),
+                'mobile_html' => view('admin.orders.partials.mobile_cards', compact('orders'))->render(),
+                'next_page_url' => $orders->nextPageUrl(),
+                'has_more' => $orders->hasMorePages(),
+                'total' => $orders->total(),
+            ]);
+        }
 
         return view('admin.orders.index', compact(
             'orders',
@@ -133,7 +177,8 @@ class OrderController extends Controller
             'periodProductsCount',
             'periodLabel',
             'startDate',
-            'endDate'
+            'endDate',
+            'statusCounts'
         ));
     }
 
@@ -145,6 +190,77 @@ class OrderController extends Controller
         Notification::where('order_id', $order->id)->where('is_read', false)->update(['is_read' => true]);
 
         return view('admin.orders.show', compact('order'));
+    }
+
+    public function edit(Order $order)
+    {
+        $order->load(['items.product.images', 'payment', 'operations']);
+
+        return view('admin.orders.edit', compact('order'));
+    }
+
+    public function update(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_email' => 'nullable|email|max:255',
+            'house_building' => 'required|string|max:255',
+            'street' => 'required|string|max:255',
+            'area' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'state' => 'required|string|max:255',
+            'pin_code' => 'required|string|max:20',
+            'order_status' => 'required|in:pending,confirmed,processing,packed,shipped,delivered,cancelled',
+            'payment_status' => 'required|in:pending,paid,failed,refunded',
+            'payment_method' => 'required|in:cod,online,offline_sale',
+            'is_cancellation_disabled' => 'nullable|boolean',
+            'is_dispatched_to_courier' => 'nullable|boolean',
+            'courier_partner' => 'nullable|string|max:255',
+            'tracking_number' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        $prevOrderStatus = $order->order_status;
+        $newOrderStatus = $validated['order_status'];
+
+        // Enforce Cancellation Restriction: If order cancellation is locked by admin
+        if ($order->is_cancellation_disabled && $newOrderStatus === 'cancelled') {
+            return back()->withErrors(['order_status' => "This order (#{$order->order_number}) is locked and CANNOT be cancelled."])->withInput();
+        }
+
+        // Stock restoration if cancelled
+        if ($newOrderStatus === 'cancelled' && $prevOrderStatus !== 'cancelled') {
+            $items = $order->items->map(function ($item) {
+                return [
+                    'product_id' => $item->product_id,
+                    'size' => $item->size,
+                    'quantity' => $item->quantity,
+                ];
+            })->toArray();
+
+            $this->stockService->restoreStockForOrderItems($items, "Order #{$order->order_number} Cancelled by Admin");
+
+            if ($order->customer_email) {
+                try {
+                    Mail::to($order->customer_email)->send(new OrderCancelledMail($order));
+                } catch (Exception $e) {
+                    \Log::error('Order Cancelled Email Error: ' . $e->getMessage());
+                }
+            }
+        }
+
+        $validated['is_cancellation_disabled'] = $request->has('is_cancellation_disabled');
+        $isDispatched = $request->has('is_dispatched_to_courier');
+        $validated['is_dispatched_to_courier'] = $isDispatched;
+        if ($isDispatched && !$order->dispatched_at) {
+            $validated['dispatched_at'] = now();
+        }
+
+        $order->update($validated);
+
+        return redirect()->route('admin.orders.show', $order->id)->with('success', "Order #{$order->order_number} updated successfully!");
     }
 
     public function updateStatus(Request $request, Order $order)
@@ -277,5 +393,55 @@ class OrderController extends Controller
             'wa_pending_count' => $order->wa_pending_count,
             'wa_couriered_count' => $order->wa_couriered_count,
         ]);
+    }
+
+    public function updatePaymentDetails(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'payment_status' => 'required|in:pending,paid,failed,refunded',
+            'payment_method' => 'required|in:cod,online,offline_sale',
+            'razorpay_payment_id' => 'nullable|string|max:255',
+            'razorpay_order_id' => 'nullable|string|max:255',
+            'transaction_id' => 'nullable|string|max:255',
+            'auto_confirm_order' => 'nullable|boolean',
+        ]);
+
+        // Update order level payment status and method
+        $order->payment_status = $validated['payment_status'];
+        $order->payment_method = $validated['payment_method'];
+
+        // Auto confirm order if payment is marked as paid and order is currently pending
+        if ($validated['payment_status'] === 'paid' && ($request->boolean('auto_confirm_order') || $order->order_status === 'pending')) {
+            if ($order->order_status !== 'cancelled') {
+                $order->order_status = 'confirmed';
+            }
+        }
+
+        $order->save();
+
+        // Create or update associated Payment model
+        $payment = \App\Models\Payment::firstOrNew(['order_id' => $order->id]);
+        $payment->payment_method = $validated['payment_method'];
+        $payment->status = $validated['payment_status'];
+        $payment->amount = $payment->amount ?: $order->grand_total;
+
+        if (!empty($validated['razorpay_payment_id'])) {
+            $payment->razorpay_payment_id = $validated['razorpay_payment_id'];
+        }
+        if (!empty($validated['razorpay_order_id'])) {
+            $payment->razorpay_order_id = $validated['razorpay_order_id'];
+        }
+        if (!empty($validated['transaction_id'])) {
+            $payment->transaction_id = $validated['transaction_id'];
+        }
+
+        $payment->save();
+
+        // Recalculate Razorpay charges if paid or online
+        if ($validated['payment_status'] === 'paid' || $validated['payment_method'] === 'online' || !empty($validated['razorpay_payment_id'])) {
+            $order->calculateRazorpayCharge();
+        }
+
+        return back()->with('success', "Order #{$order->order_number} payment details updated successfully!");
     }
 }

@@ -91,6 +91,17 @@ class Product extends Model
             });
     }
 
+    public function scopeInStockFirst($query)
+    {
+        return $query->orderByRaw("
+            CASE 
+                WHEN is_out_of_stock = 1 THEN 1 
+                WHEN (SELECT COALESCE(SUM(stock), 0) FROM product_sizes WHERE product_sizes.product_id = products.id) <= 0 THEN 1 
+                ELSE 0 
+            END ASC
+        ");
+    }
+
     public function getPrimaryImageUrlAttribute(): string
     {
         $primary = $this->images->first();

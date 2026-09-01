@@ -326,9 +326,9 @@
 <!-- Expenses Table -->
 <div class="card border-0 rounded-4 shadow-sm mb-4">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" id="expenses-scroll-container" style="max-height: 75vh; overflow-y: auto;">
             <table class="table align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th>Date</th>
                         <th>Expense Title</th>
@@ -339,43 +339,9 @@
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="expenses-tbody">
                     @forelse($expenses as $expense)
-                        <tr>
-                            <td class="fw-bold text-dark">{{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}</td>
-                            <td class="fw-semibold">
-                                {{ $expense->title ?? $expense->expense_name }}
-                            </td>
-                            <td><span class="badge bg-light text-dark border">{{ $expense->category ?? 'General' }}</span></td>
-                            <td class="fw-bold text-danger">₹{{ number_format($expense->amount, 2) }}</td>
-                            <td>
-                                @if($expense->receipt_image)
-                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-primary fw-semibold" onclick="showExpenseDetail({{ $expense->id }})">
-                                        <i class="fa-solid fa-file-invoice text-success me-1"></i> View Bill
-                                    </button>
-                                @else
-                                    <span class="text-muted extra-small">No Receipt</span>
-                                @endif
-                            </td>
-                            <td class="small text-muted text-truncate" style="max-width: 180px;">{{ $expense->notes ?? '-' }}</td>
-                            <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" onclick="showExpenseDetail({{ $expense->id }})" title="View Expense">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </button>
-                                    <a href="{{ route('admin.expenses.edit', $expense->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Expense">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-                                    <form action="{{ route('admin.expenses.destroy', $expense->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this expense record?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Expense">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
+                        @include('admin.expenses.partials.desktop_rows', ['expenses' => collect([$expense])])
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
@@ -388,11 +354,15 @@
             </table>
         </div>
     </div>
-    @if($expenses->hasPages())
-        <div class="card-footer bg-white py-3">
-            {{ $expenses->links() }}
+    <div class="card-footer bg-white py-2 text-center border-top">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+            Loading more expense records...
         </div>
-    @endif
+        <div id="infinite-scroll-end" class="{{ $expenses->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $expenses->total() }} expense records loaded
+        </div>
+    </div>
 </div>
 
 <!-- EXPENSE DETAILS MODAL -->
@@ -517,9 +487,75 @@ function showExpenseDetail(expenseId) {
         } else {
             modalBody.innerHTML = `<div class="alert alert-danger mb-0">Failed to load expense details.</div>`;
         }
-    })
-    .catch(err => {
-        modalBody.innerHTML = `<div class="alert alert-danger mb-0">An error occurred while loading details.</div>`;
+    document.addEventListener('DOMContentLoaded', function () {
+        let nextPageUrl = @json($expenses->nextPageUrl());
+        let hasMore = @json($expenses->hasMorePages());
+        let isLoading = false;
+
+        const scrollContainer = document.getElementById('expenses-scroll-container');
+        const tbody = document.getElementById('expenses-tbody');
+        const loadingSpinner = document.getElementById('infinite-scroll-loading');
+        const endNotice = document.getElementById('infinite-scroll-end');
+
+        function checkAndLoadMore() {
+            if (isLoading || !hasMore || !nextPageUrl) return;
+
+            let shouldLoad = false;
+
+            if (scrollContainer && scrollContainer.offsetParent !== null) {
+                const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+                if (scrollBottom < 150) {
+                    shouldLoad = true;
+                }
+            }
+
+            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+            if (windowScrollBottom < 300) {
+                shouldLoad = true;
+            }
+
+            if (shouldLoad) {
+                fetchNextPage();
+            }
+        }
+
+        function fetchNextPage() {
+            isLoading = true;
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if (endNotice) endNotice.classList.add('d-none');
+
+            fetch(nextPageUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.desktop_html && tbody) {
+                    tbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                nextPageUrl = data.next_page_url;
+                hasMore = data.has_more;
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+                if (!hasMore && endNotice) {
+                    endNotice.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching more expense records:', err);
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            });
+        }
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', checkAndLoadMore);
+        }
+        window.addEventListener('scroll', checkAndLoadMore);
     });
 }
 </script>

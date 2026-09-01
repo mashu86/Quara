@@ -7,6 +7,17 @@
             @if($order->notifications && $order->notifications->where('is_read', false)->count() > 0)
                 <span class="badge bg-danger text-white ms-1 align-middle" style="font-size: 0.58rem; padding: 0.2em 0.4em;" title="Unread Order Notification">NEW</span>
             @endif
+            <div class="mt-1">
+                @if($order->order_source === 'manual' || $order->payment_method === 'offline_sale')
+                    <span class="badge bg-dark text-warning border border-warning" style="font-size: 0.62rem;" title="Recorded manually in offline sales">
+                        <i class="fa-solid fa-user-pen me-1"></i> MANUAL SALE
+                    </span>
+                @else
+                    <span class="badge bg-primary text-white" style="font-size: 0.62rem;" title="Purchased online via website">
+                        <i class="fa-solid fa-globe me-1"></i> WEBSITE SALE
+                    </span>
+                @endif
+            </div>
         </td>
         <td>
             <div class="fw-bold text-dark">{{ $order->customer_name }}</div>
@@ -19,16 +30,25 @@
             </span>
         </td>
         <td>
-            @if($order->payment_method === 'offline_sale')
-                <span class="badge bg-purple text-white text-uppercase me-1" style="background-color: #6f42c1;">OFFLINE</span>
-            @elseif($order->payment_method === 'online')
-                <span class="badge bg-info text-dark text-uppercase me-1">ONLINE</span>
-            @else
-                <span class="badge bg-light text-dark border text-uppercase me-1">{{ $order->payment_method }}</span>
-            @endif
-            <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }} text-capitalize">
-                {{ $order->payment_status }}
-            </span>
+            <div class="mb-1">
+                @if($order->order_source === 'manual' || $order->payment_method === 'offline_sale')
+                    <span class="badge bg-dark text-warning border border-warning" style="font-size: 0.65rem;" title="Recorded manually in offline sales">
+                        <i class="fa-solid fa-user-pen me-1"></i> MANUAL
+                    </span>
+                @else
+                    <span class="badge bg-primary text-white" style="font-size: 0.65rem;" title="Purchased online via website">
+                        <i class="fa-solid fa-globe me-1"></i> WEBSITE
+                    </span>
+                @endif
+            </div>
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.62rem;">
+                    {{ str_replace('_', ' ', $order->payment_method) }}
+                </span>
+                <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }} text-capitalize" style="font-size: 0.62rem;">
+                    {{ $order->payment_status }}
+                </span>
+            </div>
         </td>
         <td class="fw-bold">₹{{ number_format($order->grand_total, 2) }}</td>
         <td>

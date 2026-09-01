@@ -27,7 +27,7 @@
                 <i class="fa-solid fa-print fs-6"></i>
             </a>
         </div>
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;">&larr; <span class="d-none d-sm-inline">Back to </span>Orders</a>
+        <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;">&larr; <span class="d-none d-sm-inline">Back to </span>My Sales</a>
     </div>
     <div class="text-muted mt-1.5" style="font-size: 0.75rem;">Placed on {{ $order->created_at->format('F d, Y at h:i A') }}</div>
 </div>
@@ -275,6 +275,18 @@
                 </button>
             </div>
             <div class="card-body p-3 p-sm-4" style="font-size: 0.78rem;">
+                <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                    <span class="text-muted">Purchase Channel / Source:</span>
+                    @if($order->order_source === 'manual' || $order->payment_method === 'offline_sale')
+                        <span class="badge bg-dark text-warning border border-warning" style="font-size: 0.7rem;">
+                            <i class="fa-solid fa-user-pen me-1"></i> Manual Offline Sale
+                        </span>
+                    @else
+                        <span class="badge bg-primary text-white" style="font-size: 0.7rem;">
+                            <i class="fa-solid fa-globe me-1"></i> Website Purchase
+                        </span>
+                    @endif
+                </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Payment Method:</span>
                     <span class="fw-bold text-uppercase">{{ $order->payment_method }}</span>

@@ -287,7 +287,7 @@
                 <li class="nav-heading">Orders & Offline Sales</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-receipt me-2"></i> Website Orders
+                        <i class="fa-solid fa-receipt me-2"></i> My Sales
                         @if(($unreadOrderCount ?? 0) > 0)
                             <span class="badge bg-danger text-white ms-auto fw-bold">{{ $unreadOrderCount }}</span>
                         @endif

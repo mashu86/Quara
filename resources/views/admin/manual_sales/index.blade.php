@@ -121,9 +121,9 @@
 <!-- Table -->
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" id="manual-sales-scroll-container" style="max-height: 75vh; overflow-y: auto;">
             <table class="table align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th>Order #</th>
                         <th>Customer</th>
@@ -135,51 +135,12 @@
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="manual-sales-tbody">
                     @forelse($manualOrders as $order)
-                        <tr>
-                            <td class="fw-bold text-warning">{{ $order->order_number }}</td>
-                            <td class="fw-semibold">{{ $order->customer_name }}</td>
-                            <td>{{ $order->customer_phone }}</td>
-                            <td>
-                                @foreach($order->items as $item)
-                                    @php
-                                        $itemProd = $item->product;
-                                        $itemImg = $itemProd ? $itemProd->primary_image_url : \App\Models\Setting::logoUrl();
-                                    @endphp
-                                    <div class="d-flex align-items-center gap-2 my-1">
-                                        <img src="{{ $itemImg }}" alt="{{ $item->product_name }}" 
-                                             class="rounded border shadow-sm flex-shrink-0" 
-                                             style="width: 38px; height: 44px; object-fit: cover; cursor: pointer;" 
-                                             onclick="openImagePreviewModal('{{ addslashes($itemImg) }}', '{{ addslashes($item->product_name) }}')" 
-                                             title="Click to view image">
-                                        <div>
-                                            <span class="fw-bold text-dark">{{ $item->product_name }}</span> 
-                                            <div class="small text-muted">(Size: {{ $item->size }}) &times; {{ $item->quantity }}</div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </td>
-                            <td class="fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</td>
-                            <td>
-                                <span class="badge bg-uppercase bg-{{ $order->payment_method === 'cash' ? 'success' : 'info' }} me-1">{{ $order->payment_method }}</span>
-                                <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>
-                            </td>
-                            <td class="small text-muted">{{ $order->created_at->format('M d, Y h:i A') }}</td>
-                            <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Record Operation / Return">
-                                        <i class="fa-solid fa-rotate-left"></i>
-                                    </a>
-                                    <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Offline Sale">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
+                        @include('admin.manual_sales.partials.desktop_rows', ['manualOrders' => collect([$order])])
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="fa-solid fa-receipt fs-2 mb-2 d-block text-warning"></i>
                                 No manual offline sales recorded yet. Click "Record New Offline Sale" to add one.
                             </td>
@@ -189,11 +150,15 @@
             </table>
         </div>
     </div>
-    @if($manualOrders->hasPages())
-        <div class="card-footer bg-white py-3">
-            {{ $manualOrders->links() }}
+    <div class="card-footer bg-white py-2 text-center border-top">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+            Loading more offline sales...
         </div>
-    @endif
+        <div id="infinite-scroll-end" class="{{ $manualOrders->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $manualOrders->total() }} offline sales loaded
+        </div>
+    </div>
 </div>
 
 @section('scripts')
@@ -223,6 +188,77 @@
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        let nextPageUrl = @json($manualOrders->nextPageUrl());
+        let hasMore = @json($manualOrders->hasMorePages());
+        let isLoading = false;
+
+        const scrollContainer = document.getElementById('manual-sales-scroll-container');
+        const tbody = document.getElementById('manual-sales-tbody');
+        const loadingSpinner = document.getElementById('infinite-scroll-loading');
+        const endNotice = document.getElementById('infinite-scroll-end');
+
+        function checkAndLoadMore() {
+            if (isLoading || !hasMore || !nextPageUrl) return;
+
+            let shouldLoad = false;
+
+            if (scrollContainer && scrollContainer.offsetParent !== null) {
+                const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+                if (scrollBottom < 150) {
+                    shouldLoad = true;
+                }
+            }
+
+            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+            if (windowScrollBottom < 300) {
+                shouldLoad = true;
+            }
+
+            if (shouldLoad) {
+                fetchNextPage();
+            }
+        }
+
+        function fetchNextPage() {
+            isLoading = true;
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if (endNotice) endNotice.classList.add('d-none');
+
+            fetch(nextPageUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.desktop_html && tbody) {
+                    tbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                nextPageUrl = data.next_page_url;
+                hasMore = data.has_more;
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+                if (!hasMore && endNotice) {
+                    endNotice.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching more offline sales:', err);
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            });
+        }
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', checkAndLoadMore);
+        }
+        window.addEventListener('scroll', checkAndLoadMore);
+    });
 </script>
 @endsection
 @endsection

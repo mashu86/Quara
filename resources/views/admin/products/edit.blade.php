@@ -39,6 +39,9 @@
         font-size: 0.8rem !important;
         padding: 0.3rem 0.5rem !important;
     }
+    .size-stock-header-title {
+        font-size: 0.8rem !important;
+    }
 }
 </style>
 
@@ -140,39 +143,55 @@
 
             <!-- Size-wise Stock Adjustment -->
             <div class="card border-0 rounded-4 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Size & Stock Management</h5>
-                        <button type="button" class="btn btn-warning btn-sm rounded-pill font-bold" data-bs-toggle="modal" data-bs-target="#addStockBatchModal">
-                            <i class="fa-solid fa-calendar-plus me-1"></i> + Add New Stock (Date-Wise)
-                        </button>
+                <div class="card-body p-3 p-sm-4">
+                    <div class="border-bottom pb-2 mb-3">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                            <h5 class="fw-bold mb-0 size-stock-header-title"><i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Size & Stock Management</h5>
+                            <button type="button" class="btn btn-warning btn-sm fw-bold rounded-3 w-100 w-sm-auto shadow-sm" data-bs-toggle="modal" data-bs-target="#addStockBatchModal" style="font-size: 0.8rem;">
+                                <i class="fa-solid fa-calendar-plus me-1"></i> + Add New Stock (Date-Wise)
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-bold text-uppercase">Existing Size Stocks</label>
+                        <label class="form-label small fw-bold text-uppercase d-block mb-2">
+                            Existing Sizes & Measurements (Inches)
+                        </label>
                         @foreach($product->sizes as $pSize)
-                            <div class="row g-2 mb-2 align-items-center">
-                                <div class="col-4">
-                                    <input type="text"
-                                           name="existing_sizes[{{ $pSize->id }}]"
-                                           class="form-control rounded-3"
-                                           value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
-                                           placeholder="Size name"
-                                           aria-label="Size name"
-                                           maxlength="50"
-                                           required>
-                                    @error('existing_sizes.' . $pSize->id)
-                                        <div class="text-danger small mt-1">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-5">
-                                    <input type="number" name="existing_stocks[{{ $pSize->id }}]" class="form-control rounded-3" value="{{ old('existing_stocks.' . $pSize->id, $pSize->stock) }}" min="0" required>
-                                    @error('existing_stocks.' . $pSize->id)
-                                        <div class="text-danger small mt-1">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-3">
-                                    <span class="badge bg-dark rounded-pill px-3">Current: {{ $pSize->stock }} pcs</span>
+                            <div class="p-3 border rounded-3 bg-light mb-2">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label small fw-bold mb-1">Size Label *</label>
+                                        <input type="text"
+                                               name="existing_sizes[{{ $pSize->id }}]"
+                                               class="form-control form-control-sm rounded-3"
+                                               value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
+                                               placeholder="e.g. L / XL"
+                                               maxlength="50"
+                                               required>
+                                        @error('existing_sizes.' . $pSize->id)
+                                            <div class="text-danger small mt-1">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
+                                        <input type="number" name="existing_stocks[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_stocks.' . $pSize->id, $pSize->stock) }}" min="0" required>
+                                        @error('existing_stocks.' . $pSize->id)
+                                            <div class="text-danger small mt-1">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label small text-muted mb-1">Chest (inch)</label>
+                                        <input type="text" name="existing_chests[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_chests.' . $pSize->id, $pSize->chest) }}" placeholder="e.g. 40&quot;">
+                                    </div>
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label small text-muted mb-1">Waist (inch)</label>
+                                        <input type="text" name="existing_waists[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_waists.' . $pSize->id, $pSize->waist) }}" placeholder="e.g. 34&quot;">
+                                    </div>
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label small text-muted mb-1">Length (inch)</label>
+                                        <input type="text" name="existing_lengths[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_lengths.' . $pSize->id, $pSize->length) }}" placeholder="e.g. 42&quot;">
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -267,34 +286,50 @@
             <!-- Product Gallery Management -->
             <div class="card border-0 rounded-4 shadow-sm">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2">Product Gallery</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <div>
+                            <h5 class="fw-bold mb-0">Product Gallery</h5>
+                            <span class="text-muted small" style="font-size: 0.73rem;">Only 1 image can be Primary. Click "Make Primary" to switch.</span>
+                        </div>
+                        <span class="badge bg-light text-dark border fw-bold" style="font-size: 0.72rem;">{{ $product->images->count() }} {{ Str::plural('Image', $product->images->count()) }}</span>
+                    </div>
 
-                    <div class="row g-2 mb-3">
-                        @foreach($product->images as $img)
-                            <div class="col-6 position-relative">
-                                <div class="border rounded-3 overflow-hidden p-1 text-center bg-light">
-                                    <img src="{{ $img->image_url }}" class="img-fluid rounded mb-2" style="height: 120px; object-fit: cover; width: 100%;">
+                    @if($product->images->isEmpty())
+                        <div class="alert alert-warning py-2 px-3 small text-center mb-3">No gallery images uploaded yet.</div>
+                    @else
+                        <div class="row g-2 mb-3">
+                            @foreach($product->images as $img)
+                                <div class="col-6">
+                                    <div class="border rounded-3 overflow-hidden p-1.5 text-center position-relative {{ $img->is_primary ? 'bg-warning bg-opacity-10 border-warning shadow-sm' : 'bg-light' }}">
+                                        <img src="{{ $img->image_url }}" class="img-fluid rounded mb-2" style="height: 115px; object-fit: cover; width: 100%;">
 
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        @if($img->is_primary)
-                                            <span class="badge bg-warning text-dark small">Primary</span>
-                                        @else
-                                            <form action="{{ route('admin.product-images.set-primary', $img->id) }}" method="POST" class="d-inline">
+                                        <div class="d-flex justify-content-between align-items-center px-1">
+                                            @if($img->is_primary || $product->images->count() === 1)
+                                                <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.68rem;" title="Main primary image">
+                                                    <i class="fa-solid fa-star me-1"></i> PRIMARY
+                                                </span>
+                                            @else
+                                                <form action="{{ route('admin.product-images.set-primary', $img->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-2 fw-bold text-dark" style="font-size: 0.65rem;" title="Make this the primary display image">
+                                                        <i class="fa-regular fa-star me-1"></i> Make Primary
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            <form action="{{ route('admin.product-images.destroy', $img->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this image permanently?')">
                                                 @csrf
-                                                <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none small">Make Primary</button>
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link text-danger btn-sm p-0 ms-1" title="Delete Image">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
                                             </form>
-                                        @endif
-
-                                        <form action="{{ route('admin.product-images.destroy', $img->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this image?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-link text-danger btn-sm p-0"><i class="fa-solid fa-trash"></i></button>
-                                        </form>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <!-- Upload New Images -->
                     <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
@@ -420,16 +455,35 @@
     function addNewSizeRow() {
         const container = document.getElementById('newSizesContainer');
         const div = document.createElement('div');
-        div.className = 'row g-2 mb-2 align-items-center';
+        div.className = 'p-3 border rounded-3 bg-white mb-2 shadow-sm position-relative';
         div.innerHTML = `
-            <div class="col-5">
-                <input type="text" name="new_sizes[]" class="form-control rounded-3" placeholder="New Size (e.g. XL)" required>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-warning text-dark fw-bold small">New Size Row</span>
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" onclick="this.closest('.p-3').remove()">
+                    <i class="fa-solid fa-xmark me-1"></i> Remove
+                </button>
             </div>
-            <div class="col-5">
-                <input type="number" name="new_stocks[]" class="form-control rounded-3" placeholder="Stock Qty" value="5" min="0" required>
-            </div>
-            <div class="col-2">
-                <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-3" onclick="this.closest('.row').remove()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="row g-2 align-items-center">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold mb-1">Size Label *</label>
+                    <input type="text" name="new_sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
+                    <input type="number" name="new_stocks[]" class="form-control form-control-sm rounded-3" value="5" min="0" required>
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
+                    <input type="text" name="new_chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
+                    <input type="text" name="new_waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Length (inch)</label>
+                    <input type="text" name="new_lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                </div>
             </div>
         `;
         container.appendChild(div);

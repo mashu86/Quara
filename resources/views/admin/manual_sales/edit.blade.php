@@ -23,12 +23,6 @@
             font-size: 0.92rem !important;
             margin-bottom: 0.75rem !important;
         }
-        .card-body h5 i {
-            font-size: 0.9rem !important;
-        }
-        .card-body h6 {
-            font-size: 0.82rem !important;
-        }
         .form-label {
             font-size: 0.78rem !important;
             margin-bottom: 0.25rem !important;
@@ -37,23 +31,22 @@
             font-size: 0.78rem !important;
             padding: 0.4rem 0.65rem !important;
         }
-        .form-text {
-            font-size: 0.7rem !important;
-        }
-        .grand-total-box {
-            padding: 0.65rem 0.85rem !important;
-            margin-top: 1rem !important;
-        }
-        .grand-total-label {
-            font-size: 0.78rem !important;
-        }
-        .grand-total-amount {
-            font-size: 1.25rem !important;
-        }
         .submit-sale-btn {
             padding: 0.65rem 1rem !important;
             font-size: 0.82rem !important;
             margin-top: 1rem !important;
+        }
+        .add-product-btn {
+            padding: 0.35rem 0.65rem !important;
+            font-size: 0.76rem !important;
+            border-radius: 8px !important;
+        }
+        .remove-item-btn {
+            padding: 0.15rem 0.45rem !important;
+            font-size: 0.72rem !important;
+        }
+        .product-item-card {
+            padding: 0.75rem !important;
         }
     }
 </style>
@@ -61,33 +54,39 @@
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
     <div>
         <h3 class="fw-bold mb-1 page-header-title">Edit Offline Sale #{{ $order->order_number }}</h3>
-        <p class="text-muted small mb-0 page-header-subtitle">Update customer details, pricing, stock or payment status.</p>
+        <p class="text-muted small mb-0 page-header-subtitle">Update customer details, items, pricing, or payment status.</p>
     </div>
     <a href="{{ route('admin.manual-sales.index') }}" class="btn btn-outline-dark rounded-3 px-2.5 px-md-3 py-1.5 py-md-2 fw-bold shadow-sm back-offline-btn" title="Back to Offline Sales">
         &larr;<span class="d-none d-md-inline"> Back to Offline Sales</span>
     </a>
 </div>
 
-<form action="{{ route('admin.manual-sales.update', $order->id) }}" method="POST">
+<form action="{{ route('admin.manual-sales.update', $order->id) }}" method="POST" id="manualSaleForm">
     @csrf
     @method('PUT')
     <div class="row g-4">
-        <!-- Left Side: Category, Product Selection & Pricing -->
+        <!-- Left Side: Product Selection & Pricing -->
         <div class="col-lg-7">
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-shirt text-warning me-2"></i> Product & Size</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-boxes-packing text-warning me-2"></i> Select Products & Sizes</h5>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="hideOutOfStockSwitch" onchange="filterProductsByCategory()">
+                            <label class="form-check-label small text-muted fw-semibold" for="hideOutOfStockSwitch">Hide Out of Stock</label>
+                        </div>
+                    </div>
 
                     <!-- Category Filter Checkboxes -->
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label fw-bold mb-0">Filter by Category (Select Multiple)</label>
+                            <label class="form-label fw-bold mb-0">Filter Products by Category</label>
                             <div>
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none me-2 fw-semibold" onclick="selectAllCategories(true)">Select All</button>
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted fw-semibold" onclick="selectAllCategories(false)">Clear All</button>
                             </div>
                         </div>
-                        <div class="p-3 border rounded-3 bg-light" style="max-height: 140px; overflow-y: auto;">
+                        <div class="p-3 border rounded-3 bg-light" style="max-height: 130px; overflow-y: auto;">
                             <div class="row g-2">
                                 @foreach($categories as $cat)
                                     <div class="col-6 col-sm-4">
@@ -101,81 +100,41 @@
                                 @endforeach
                             </div>
                         </div>
-                        <div class="form-text small text-muted">If no category is selected, products from all categories will be shown.</div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Select Product <span class="text-danger">*</span></label>
-                        <div class="d-flex align-items-center gap-2">
-                            <div id="productInlineThumbContainer" class="d-none flex-shrink-0">
-                                <img id="productInlineThumb" src="" alt="Selected Product" 
-                                     class="rounded-3 border shadow-sm" 
-                                     style="width: 52px; height: 60px; object-fit: cover; cursor: pointer; transition: transform 0.2s ease;" 
-                                     onclick="openInlineProductModal()" 
-                                     title="Click to view large preview">
+                    <!-- Dynamic Product Items Container -->
+                    <div id="productItemsContainer">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+
+                    <!-- Add Another Product Button -->
+                    <div class="mb-3 mb-md-4">
+                        <button type="button" class="btn btn-outline-warning text-dark fw-bold border-2 w-100 py-2 py-md-2.5 rounded-3 shadow-sm add-product-btn" onclick="addProductRow()" style="border-style: dashed !important;">
+                            <i class="fa-solid fa-plus me-1"></i> ADD ANOTHER PRODUCT
+                        </button>
+                    </div>
+
+                    <!-- Order Summary & Common Delivery Charge -->
+                    <div class="p-3 bg-light rounded-4 border">
+                        <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-calculator text-warning me-2"></i> Order Pricing Summary</h6>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Common Delivery Charge (₹)</label>
+                                <input type="number" step="0.01" name="delivery_charge" id="deliveryChargeInput" class="form-control rounded-3" value="{{ old('delivery_charge', $order->shipping) }}" min="0" oninput="calcTotals()">
+                                <div class="form-text small text-muted">Order-wide shipping fee (Leave 0.00 for counter sales).</div>
                             </div>
-                            <div class="flex-grow-1">
-                                <select name="product_id" id="productSelect" class="form-select rounded-3" required onchange="onProductChange()">
-                                    <option value="">-- Choose Product --</option>
-                                    @foreach($products as $prod)
-                                        @php
-                                            $catIds = array_values(array_filter(array_unique(array_merge(
-                                                [$prod->category_id],
-                                                $prod->categories->pluck('id')->toArray()
-                                            ))));
-                                        @endphp
-                                        <option value="{{ $prod->id }}" 
-                                                {{ ($firstItem && $firstItem->product_id == $prod->id) ? 'selected' : '' }}
-                                                data-price="{{ $prod->final_price }}"
-                                                data-image="{{ $prod->primary_image_url }}"
-                                                data-categories='@json($catIds)'
-                                                data-sizes='@json($prod->sizes)'>
-                                            {{ $prod->name }} (Price: ₹{{ number_format($prod->final_price, 2) }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                            <div class="col-md-6 text-end">
+                                <div class="small text-muted mb-1">Items Subtotal: <strong id="subtotalDisplay" class="text-dark">₹0.00</strong></div>
+                                <div class="small text-muted mb-1">Delivery Charge: <strong id="deliveryDisplay" class="text-dark">₹0.00</strong></div>
+                                <div class="fw-bold text-dark fs-6 mt-2">Grand Total Amount:</div>
+                                <div class="fs-2 fw-bold text-warning" id="grandTotalDisplay">₹0.00</div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Select Size <span class="text-danger">*</span></label>
-                            <select name="product_size_id" id="sizeSelect" class="form-select rounded-3" required onchange="onSizeChange()">
-                                <option value="">-- Select Product First --</option>
-                            </select>
-                            <div class="form-text small fw-bold text-success" id="stockNotice"></div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Quantity (pcs) <span class="text-danger">*</span></label>
-                            <input type="number" name="quantity" id="qtyInput" class="form-control rounded-3" value="{{ old('quantity', $firstItem->quantity ?? 1) }}" min="1" required oninput="validateQuantity()">
-                            <div class="form-text small fw-bold text-danger d-none" id="qtyErrorNotice"></div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Unit Price (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="unit_price" id="priceInput" class="form-control rounded-3" value="{{ old('unit_price', $firstItem->unit_price ?? 0.00) }}" placeholder="0.00" required oninput="calcTotals()">
-                            <div class="form-text small">Override price or discount for this manual sale.</div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Delivery Charge (₹)</label>
-                            <input type="number" step="0.01" name="delivery_charge" id="shippingInput" class="form-control rounded-3" value="{{ old('delivery_charge', $order->shipping ?? 0.00) }}" min="0" oninput="calcTotals()">
-                            <div class="form-text small">Delivery fee if applicable.</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center grand-total-box">
-                        <span class="fw-bold text-dark fs-6 grand-total-label">Grand Total Amount:</span>
-                        <span class="fs-3 fw-bold text-warning grand-total-amount" id="grandTotalDisplay">₹{{ number_format($order->grand_total, 2) }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Payment & Notes -->
+            <!-- Payment Details Card -->
             <div class="card border-0 rounded-4 shadow-sm">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-credit-card text-warning me-2"></i> Payment Details</h5>
@@ -184,17 +143,17 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Payment Method <span class="text-danger">*</span></label>
                             <select name="payment_method" class="form-select rounded-3" required>
-                                <option value="upi" {{ $order->payment_method === 'upi' ? 'selected' : '' }}>UPI (GPay/PhonePe/Paytm)</option>
-                                <option value="bank_transfer" {{ $order->payment_method === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer / Card</option>
-                                <option value="cash" {{ $order->payment_method === 'cash' ? 'selected' : '' }}>Cash Payment</option>
+                                <option value="upi" {{ old('payment_method', $order->payment_method) === 'upi' ? 'selected' : '' }}>UPI (GPay/PhonePe/Paytm)</option>
+                                <option value="bank_transfer" {{ old('payment_method', $order->payment_method) === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer / Card</option>
+                                <option value="cash" {{ old('payment_method', $order->payment_method) === 'cash' ? 'selected' : '' }}>Cash Payment</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Payment Status <span class="text-danger">*</span></label>
                             <select name="payment_status" class="form-select rounded-3" required>
-                                <option value="paid" {{ $order->payment_status === 'paid' ? 'selected' : '' }}>Paid (Fully Received)</option>
-                                <option value="pending" {{ $order->payment_status === 'pending' ? 'selected' : '' }}>Pending (Pay Later)</option>
+                                <option value="paid" {{ old('payment_status', $order->payment_status) === 'paid' ? 'selected' : '' }}>Paid (Fully Received)</option>
+                                <option value="pending" {{ old('payment_status', $order->payment_status) === 'pending' ? 'selected' : '' }}>Pending (Pay Later)</option>
                             </select>
                         </div>
 
@@ -207,26 +166,18 @@
             </div>
         </div>
 
-        <!-- Right Side: Product Image Confirmation & Customer Details -->
+        <!-- Right Side: Order Summary & Customer Details -->
         <div class="col-lg-5">
-            <!-- Product Confirmation Image Preview Card -->
-            <div class="card border-0 rounded-4 shadow-sm mb-4" id="productPreviewCard">
-                <div class="card-body p-4 text-center">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2 text-start">
-                        <i class="fa-solid fa-image text-warning me-2"></i> Product Confirmation
+            <!-- Selected Items Summary Card -->
+            <div class="card border-0 rounded-4 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">
+                        <i class="fa-solid fa-receipt text-warning me-2"></i> Selected Items (<span id="summaryItemCount">0</span>)
                     </h5>
-                    <div id="productPreviewContainer">
-                        <div class="p-4 bg-light rounded-3 text-muted" id="noProductSelectedPlaceholder">
-                            <i class="fa-solid fa-box-open fa-3x mb-2 text-secondary opacity-50"></i>
-                            <p class="mb-0 small fw-bold">Select a product to view its image & details for confirmation.</p>
-                        </div>
-                        <div id="productSelectedContent" class="d-none">
-                            <div class="position-relative mb-3 mx-auto" style="max-width: 250px;">
-                                <img id="previewImage" src="" alt="Product Image" class="img-fluid rounded-3 border shadow-sm" style="max-height: 220px; object-fit: contain; width: 100%;">
-                            </div>
-                            <h6 id="previewProductName" class="fw-bold text-dark mb-1"></h6>
-                            <div class="text-warning fw-bold fs-5 mb-1" id="previewProductPrice"></div>
-                            <div id="previewSizeStockInfo" class="badge bg-light text-dark border px-3 py-2 mt-1"></div>
+                    <div id="orderItemsSummaryList">
+                        <div class="p-3 bg-light rounded-3 text-muted text-center" id="emptySummaryPlaceholder">
+                            <i class="fa-solid fa-basket-shopping fa-2x mb-2 text-secondary opacity-50"></i>
+                            <p class="mb-0 small fw-bold">No products selected yet.</p>
                         </div>
                     </div>
                 </div>
@@ -239,37 +190,37 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Customer Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name', $order->customer_name) }}" required>
+                        <input type="text" name="customer_name" class="form-control rounded-3" placeholder="e.g. Anjali Nair" value="{{ old('customer_name', $order->customer_name) }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mobile Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_phone" class="form-control rounded-3" value="{{ old('customer_phone', $order->customer_phone) }}" required>
+                        <input type="text" name="customer_phone" class="form-control rounded-3" placeholder="e.g. 9876543210" value="{{ old('customer_phone', $order->customer_phone) }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email Address (Optional)</label>
-                        <input type="email" name="customer_email" class="form-control rounded-3" value="{{ old('customer_email', $order->customer_email) }}">
+                        <input type="email" name="customer_email" class="form-control rounded-3" placeholder="customer@gmail.com" value="{{ old('customer_email', $order->customer_email) }}">
                     </div>
 
                     <hr>
 
-                    <h6 class="fw-bold mb-2">Delivery Address (Optional)</h6>
+                    <h6 class="fw-bold mb-2">Delivery Address (Optional for shipped orders)</h6>
                     <div class="row g-2">
                         <div class="col-12">
-                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" value="{{ old('house_building', $order->house_building) }}" placeholder="House / Building Name">
+                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" placeholder="House / Building Name" value="{{ old('house_building', $order->house_building) }}">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="street" class="form-control rounded-3 mb-2" value="{{ old('street', $order->street) }}" placeholder="Street / Area">
+                            <input type="text" name="street" class="form-control rounded-3 mb-2" placeholder="Street / Area" value="{{ old('street', $order->street) }}">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="city" class="form-control rounded-3 mb-2" value="{{ old('city', $order->city) }}" placeholder="City / Town">
+                            <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town" value="{{ old('city', $order->city) }}">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="district" class="form-control rounded-3 mb-2" value="{{ old('district', $order->district) }}" placeholder="District">
+                            <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District" value="{{ old('district', $order->district) }}">
                         </div>
                         <div class="col-6">
-                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" value="{{ old('pin_code', $order->pin_code) }}" placeholder="PIN Code">
+                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code" value="{{ old('pin_code', $order->pin_code) }}">
                         </div>
                     </div>
 
@@ -283,44 +234,385 @@
 
 @section('scripts')
 <script>
-    const selectedSizeId = "{{ $firstItem ? $firstItem->product_size_id : '' }}";
+    // Global Products Array from Laravel
+    const productsData = [
+        @foreach($products as $prod)
+            @php
+                $catIds = array_values(array_filter(array_unique(array_merge(
+                    [$prod->category_id],
+                    $prod->categories->pluck('id')->toArray()
+                ))));
+                $totalStock = $prod->is_out_of_stock ? 0 : (int) $prod->sizes->sum('stock');
+                $isOut = $totalStock <= 0;
+            @endphp
+            {
+                id: {{ $prod->id }},
+                name: @json($prod->name),
+                price: {{ (float) $prod->final_price }},
+                image: @json($prod->primary_image_url),
+                categories: @json($catIds),
+                sizes: @json($prod->sizes),
+                isOut: {{ $isOut ? 'true' : 'false' }}
+            },
+        @endforeach
+    ];
+
+    // Existing items from this order
+    const existingItems = [
+        @foreach($order->items as $item)
+            {
+                productId: {{ $item->product_id }},
+                productSizeId: {{ $item->product_size_id ?? 0 }},
+                quantity: {{ $item->quantity }},
+                unitPrice: {{ (float) $item->unit_price }}
+            },
+        @endforeach
+    ];
+
+    let rowIndexCounter = 0;
+
+    function buildProductOptionsHtml(selectedProdId = null) {
+        let html = '';
+        productsData.forEach(prod => {
+            const isSelected = (selectedProdId && parseInt(selectedProdId) === prod.id);
+            const outText = prod.isOut ? ' - ⚠️ [OUT OF STOCK]' : '';
+            const disabledAttr = (prod.isOut && !isSelected) ? 'disabled' : '';
+            const selectedAttr = isSelected ? 'selected' : '';
+            html += `<option value="${prod.id}" data-price="${prod.price}" data-image="${prod.image}" data-categories='${JSON.stringify(prod.categories)}' data-out-of-stock="${prod.isOut ? '1' : '0'}" ${disabledAttr} ${selectedAttr}>${prod.name} (Price: ₹${prod.price.toFixed(2)})${outText}</option>`;
+        });
+        return html;
+    }
+
+    function addProductRow(initialData = null) {
+        const container = document.getElementById('productItemsContainer');
+        const index = rowIndexCounter++;
+
+        const selectedProdId = initialData ? initialData.productId : null;
+
+        const cardHtml = `
+            <div class="product-item-card border rounded-3 p-3 mb-3 bg-white position-relative shadow-sm" data-index="${index}">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <span class="badge bg-warning text-dark fw-bold px-2.5 py-1.5 fs-7 item-badge">
+                        <i class="fa-solid fa-box me-1"></i> Product #${container.children.length + 1}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 fw-bold remove-item-btn" onclick="removeProductRow(this)" title="Remove item">
+                        <i class="fa-solid fa-trash me-1"></i> Remove Item
+                    </button>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold small mb-1">Select Product <span class="text-danger">*</span></label>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="product-inline-thumb-container d-none flex-shrink-0">
+                                <img class="product-inline-thumb rounded-3 border shadow-sm" src="" alt="Thumb" style="width: 48px; height: 55px; object-fit: cover; cursor: pointer;" onclick="openRowThumbModal(this)">
+                            </div>
+                            <div class="flex-grow-1">
+                                <select class="form-select rounded-3 product-select" required onchange="onRowProductChange(this)">
+                                    <option value="">-- Choose Product --</option>
+                                    ${buildProductOptionsHtml(selectedProdId)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small mb-1">Select Size <span class="text-danger">*</span></label>
+                        <select name="items[${index}][product_size_id]" class="form-select rounded-3 size-select" required onchange="onRowSizeChange(this)">
+                            <option value="">-- Select Product First --</option>
+                        </select>
+                        <div class="form-text small fw-bold text-success stock-notice"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small mb-1">Quantity (pcs) <span class="text-danger">*</span></label>
+                        <input type="number" name="items[${index}][quantity]" class="form-control rounded-3 qty-input" value="${initialData ? initialData.quantity : 1}" min="1" required oninput="onRowQtyChange(this)">
+                        <div class="form-text small fw-bold text-danger d-none qty-error-notice"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small mb-1">Unit Price (₹) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="items[${index}][unit_price]" class="form-control rounded-3 price-input" value="${initialData ? initialData.unitPrice.toFixed(2) : ''}" placeholder="0.00" required oninput="calcTotals()">
+                    </div>
+
+                    <div class="col-md-6 d-flex align-items-end justify-content-end">
+                        <div class="text-end">
+                            <span class="small text-muted">Item Subtotal:</span>
+                            <div class="fs-5 fw-bold text-warning item-subtotal-display">₹0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', cardHtml);
+        const newCard = container.lastElementChild;
+        const prodSelect = newCard.querySelector('.product-select');
+
+        if (initialData) {
+            onRowProductChange(prodSelect, initialData.productSizeId);
+        }
+
+        filterProductsByCategory();
+        updateRemoveButtons();
+        updateAllRowsStockNotices();
+    }
+
+    function removeProductRow(btn) {
+        const card = btn.closest('.product-item-card');
+        if (card) {
+            card.remove();
+            updateItemBadges();
+            updateRemoveButtons();
+            filterProductsByCategory();
+            updateAllRowsStockNotices();
+        }
+    }
+
+    function updateItemBadges() {
+        const cards = document.querySelectorAll('.product-item-card');
+        cards.forEach((card, idx) => {
+            const badge = card.querySelector('.item-badge');
+            if (badge) {
+                badge.innerHTML = `<i class="fa-solid fa-box me-1"></i> Product #${idx + 1}`;
+            }
+        });
+    }
+
+    function updateRemoveButtons() {
+        const cards = document.querySelectorAll('.product-item-card');
+        cards.forEach(card => {
+            const removeBtn = card.querySelector('.remove-item-btn');
+            if (removeBtn) {
+                removeBtn.style.display = cards.length > 1 ? 'inline-block' : 'none';
+            }
+        });
+    }
+
+    function getSelectedProductIdsInOtherRows(currentCard) {
+        const selectedIds = [];
+        const cards = document.querySelectorAll('.product-item-card');
+        cards.forEach(c => {
+            if (c !== currentCard) {
+                const prodSelect = c.querySelector('.product-select');
+                if (prodSelect && prodSelect.value) {
+                    selectedIds.push(parseInt(prodSelect.value));
+                }
+            }
+        });
+        return selectedIds;
+    }
+
+    function getAllocatedQtyForSizeInOtherRows(currentCard, sizeId) {
+        let allocated = 0;
+        const cards = document.querySelectorAll('.product-item-card');
+        cards.forEach(c => {
+            if (c !== currentCard) {
+                const sizeSelect = c.querySelector('.size-select');
+                const qtyInput = c.querySelector('.qty-input');
+                if (sizeSelect && sizeSelect.value && parseInt(sizeSelect.value) === parseInt(sizeId)) {
+                    allocated += (parseInt(qtyInput ? qtyInput.value : 0) || 0);
+                }
+            }
+        });
+        return allocated;
+    }
+
+    function updateAllRowsStockNotices() {
+        const cards = document.querySelectorAll('.product-item-card');
+        cards.forEach(card => {
+            const prodSelect = card.querySelector('.product-select');
+            const sizeSelect = card.querySelector('.size-select');
+            const qtyInput = card.querySelector('.qty-input');
+            const stockNotice = card.querySelector('.stock-notice');
+            const qtyNotice = card.querySelector('.qty-error-notice');
+
+            const prodId = parseInt(prodSelect ? prodSelect.value : 0);
+            if (!prodId) return;
+
+            const prod = productsData.find(p => p.id === prodId);
+            if (!prod) return;
+
+            const currentSelectedSizeId = parseInt(sizeSelect ? sizeSelect.value : 0);
+
+            Array.from(sizeSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                const szId = parseInt(opt.value);
+                const szObj = prod.sizes.find(s => s.id === szId);
+                if (!szObj) return;
+
+                const actualStock = szObj.stock;
+                const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, szId);
+                const effectiveStock = Math.max(0, actualStock - allocatedOther);
+
+                if (effectiveStock <= 0 && szId !== currentSelectedSizeId) {
+                    opt.disabled = true;
+                    opt.innerText = `Size: ${szObj.size} (0 pcs left - ⚠️ Fully selected in another row)`;
+                } else if (effectiveStock <= 0 && szId === currentSelectedSizeId && actualStock > 0) {
+                    opt.disabled = false;
+                    opt.innerText = `Size: ${szObj.size} (Stock: ${actualStock} pcs - Fully allocated on form)`;
+                } else {
+                    opt.disabled = (actualStock <= 0);
+                    const allocMsg = allocatedOther > 0 ? ` (${allocatedOther} in other row)` : '';
+                    opt.innerText = `Size: ${szObj.size} (Available: ${effectiveStock} pcs${allocMsg})`;
+                }
+            });
+
+            if (currentSelectedSizeId) {
+                const szObj = prod.sizes.find(s => s.id === currentSelectedSizeId);
+                if (szObj) {
+                    const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, currentSelectedSizeId);
+                    const remainingStock = Math.max(0, szObj.stock - allocatedOther);
+
+                    if (allocatedOther > 0) {
+                        stockNotice.innerText = `Available Stock: ${remainingStock} pcs (${allocatedOther} allocated in another row)`;
+                    } else {
+                        stockNotice.innerText = `Available Stock: ${szObj.stock} pcs`;
+                    }
+
+                    if (qtyInput) {
+                        qtyInput.max = remainingStock;
+                        let curQty = parseInt(qtyInput.value) || 0;
+                        if (remainingStock > 0 && curQty > remainingStock) {
+                            qtyInput.value = remainingStock;
+                            if (qtyNotice) {
+                                qtyNotice.innerText = `Quantity adjusted to remaining stock of ${remainingStock} pcs!`;
+                                qtyNotice.classList.remove('d-none');
+                            }
+                        } else if (remainingStock === 0 && szObj.stock > 0) {
+                            if (qtyNotice) {
+                                qtyNotice.innerText = `This size is already fully allocated in another row!`;
+                                qtyNotice.classList.remove('d-none');
+                            }
+                        } else {
+                            if (qtyNotice) qtyNotice.classList.add('d-none');
+                        }
+                    }
+                }
+            }
+        });
+
+        calcTotals();
+    }
+
+    function onRowProductChange(selectElem, targetSizeId = null) {
+        const card = selectElem.closest('.product-item-card');
+        const prodId = parseInt(selectElem.value);
+        const sizeSelect = card.querySelector('.size-select');
+        const priceInput = card.querySelector('.price-input');
+        const thumbContainer = card.querySelector('.product-inline-thumb-container');
+        const thumbImg = card.querySelector('.product-inline-thumb');
+
+        sizeSelect.innerHTML = '<option value="">-- Choose Size --</option>';
+        card.querySelector('.stock-notice').innerText = '';
+
+        const prod = productsData.find(p => p.id === prodId);
+        if (!prod) {
+            if (priceInput && !priceInput.value) priceInput.value = '';
+            if (thumbContainer) thumbContainer.classList.add('d-none');
+            onRowSizeChange(sizeSelect);
+            filterProductsByCategory();
+            return;
+        }
+
+        if (priceInput && !priceInput.value) priceInput.value = prod.price.toFixed(2);
+        if (thumbContainer && thumbImg) {
+            thumbImg.src = prod.image;
+            thumbContainer.classList.remove('d-none');
+        }
+
+        prod.sizes.forEach(sz => {
+            const opt = document.createElement('option');
+            opt.value = sz.id;
+            opt.setAttribute('data-stock', sz.stock);
+            opt.setAttribute('data-size', sz.size);
+            opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
+
+            if (targetSizeId && parseInt(targetSizeId) === sz.id) {
+                opt.selected = true;
+            }
+
+            if (sz.stock <= 0 && !opt.selected) {
+                opt.disabled = true;
+                opt.innerText += ' - OUT OF STOCK';
+            }
+            sizeSelect.appendChild(opt);
+        });
+
+        onRowSizeChange(sizeSelect);
+        filterProductsByCategory();
+    }
+
+    function onRowSizeChange(sizeSelectElem) {
+        updateAllRowsStockNotices();
+    }
+
+    function onRowQtyChange(qtyInputElem) {
+        updateAllRowsStockNotices();
+    }
 
     function filterProductsByCategory() {
         const checkboxes = document.querySelectorAll('.category-checkbox:checked');
         const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const hideOutOfStockSwitch = document.getElementById('hideOutOfStockSwitch');
+        const hideOutOfStock = hideOutOfStockSwitch ? hideOutOfStockSwitch.checked : false;
 
-        const productSelect = document.getElementById('productSelect');
-        const options = productSelect.options;
-        let selectedStillValid = false;
+        const productSelects = document.querySelectorAll('.product-select');
+        productSelects.forEach(selectElem => {
+            const currentCard = selectElem.closest('.product-item-card');
+            const otherSelectedProdIds = getSelectedProductIdsInOtherRows(currentCard);
+            const currentProdId = parseInt(selectElem.value || 0);
 
-        for (let i = 0; i < options.length; i++) {
-            const opt = options[i];
-            if (!opt.value) continue;
+            const options = selectElem.options;
+            let selectedStillValid = false;
 
-            const catIds = JSON.parse(opt.getAttribute('data-categories') || '[]');
-            const isMatched = (selectedCatIds.length === 0) || catIds.some(id => selectedCatIds.includes(parseInt(id)));
+            for (let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                if (!opt.value) continue;
 
-            if (isMatched) {
-                opt.hidden = false;
-                opt.disabled = false;
-                opt.style.display = '';
-                if (opt.selected) {
-                    selectedStillValid = true;
-                }
-            } else {
-                opt.hidden = true;
-                opt.disabled = true;
-                opt.style.display = 'none';
-                if (opt.selected) {
-                    opt.selected = false;
+                const prodId = parseInt(opt.value);
+                const catIds = JSON.parse(opt.getAttribute('data-categories') || '[]');
+                const isMatchedCategory = (selectedCatIds.length === 0) || catIds.some(id => selectedCatIds.includes(parseInt(id)));
+                const isOut = opt.getAttribute('data-out-of-stock') === '1';
+                const isSelectedInOtherRow = otherSelectedProdIds.includes(prodId);
+
+                const prodObj = productsData.find(p => p.id === prodId);
+                const baseName = prodObj ? prodObj.name : '';
+                const priceText = prodObj ? `(Price: ₹${prodObj.price.toFixed(2)})` : '';
+
+                if (isSelectedInOtherRow && prodId !== currentProdId) {
+                    // Hide & disable products already selected in another row
+                    opt.disabled = true;
+                    opt.hidden = true;
+                    opt.style.display = 'none';
+                    opt.innerText = `${baseName} ${priceText} - ⚠️ [Already Selected in Another Row]`;
+                } else if (isOut) {
+                    // Out of stock
+                    opt.disabled = (prodId !== currentProdId);
+                    opt.hidden = hideOutOfStock && (prodId !== currentProdId);
+                    opt.style.display = opt.hidden ? 'none' : '';
+                    opt.innerText = `${baseName} ${priceText} - ⚠️ [OUT OF STOCK]`;
+                    if (opt.selected && (!hideOutOfStock || !isOut)) selectedStillValid = true;
+                } else if (!isMatchedCategory) {
+                    // Filtered out by category
+                    opt.disabled = (prodId !== currentProdId);
+                    opt.hidden = true;
+                    opt.style.display = 'none';
+                } else {
+                    // Normal available product
+                    opt.disabled = false;
+                    opt.hidden = false;
+                    opt.style.display = '';
+                    opt.innerText = `${baseName} ${priceText}`;
+                    if (opt.selected) selectedStillValid = true;
                 }
             }
-        }
 
-        if (!selectedStillValid) {
-            productSelect.value = '';
-            onProductChange();
-        }
+            if (!selectedStillValid && selectElem.value && otherSelectedProdIds.includes(parseInt(selectElem.value))) {
+                selectElem.value = '';
+                onRowProductChange(selectElem);
+            }
+        });
     }
 
     function selectAllCategories(status) {
@@ -329,155 +621,81 @@
         filterProductsByCategory();
     }
 
-    function onProductChange() {
-        updateSizes();
-        updateProductPreview();
-        calcTotals();
-    }
+    function calcTotals() {
+        const cards = document.querySelectorAll('.product-item-card');
+        let totalSubtotal = 0;
+        let summaryHtml = '';
+        let validItemCount = 0;
 
-    function updateSizes() {
-        const select = document.getElementById('productSelect');
-        const selectedOption = select.options[select.selectedIndex];
-        const sizeSelect = document.getElementById('sizeSelect');
+        cards.forEach((card, idx) => {
+            const prodSelect = card.querySelector('.product-select');
+            const sizeSelect = card.querySelector('.size-select');
+            const priceInput = card.querySelector('.price-input');
+            const qtyInput = card.querySelector('.qty-input');
+            const subtotalDisplay = card.querySelector('.item-subtotal-display');
 
-        sizeSelect.innerHTML = '<option value="">-- Choose Size --</option>';
-        document.getElementById('stockNotice').innerText = '';
+            const prodId = parseInt(prodSelect ? prodSelect.value : 0);
+            const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+            const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+            const itemSubtotal = price * qty;
 
-        if (!selectedOption || !selectedOption.value) {
-            onSizeChange();
-            return;
-        }
-
-        const sizes = JSON.parse(selectedOption.getAttribute('data-sizes') || '[]');
-        sizes.forEach(sz => {
-            const opt = document.createElement('option');
-            opt.value = sz.id;
-            opt.setAttribute('data-stock', sz.stock);
-            opt.setAttribute('data-size', sz.size);
-            if (sz.id == selectedSizeId) {
-                opt.selected = true;
+            if (subtotalDisplay) {
+                subtotalDisplay.innerText = '₹' + itemSubtotal.toFixed(2);
             }
-            opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
-            if (sz.stock <= 0 && sz.id != selectedSizeId) {
-                opt.disabled = true;
-                opt.innerText += ' - OUT OF STOCK';
+
+            if (prodId) {
+                const prod = productsData.find(p => p.id === prodId);
+                const sizeOpt = sizeSelect && sizeSelect.selectedIndex > -1 ? sizeSelect.options[sizeSelect.selectedIndex] : null;
+                const sizeName = sizeOpt && sizeOpt.value ? sizeOpt.getAttribute('data-size') : 'Size Pending';
+
+                totalSubtotal += itemSubtotal;
+                validItemCount++;
+
+                summaryHtml += `
+                    <div class="d-flex align-items-center gap-2 p-2 border-bottom">
+                        <img src="${prod ? prod.image : ''}" class="rounded border" style="width: 40px; height: 48px; object-fit: cover;">
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="small fw-bold text-dark text-truncate">${prod ? prod.name : 'Product'}</div>
+                            <div class="small text-muted">Size: ${sizeName} | Qty: ${qty} x ₹${price.toFixed(2)}</div>
+                        </div>
+                        <div class="fw-bold text-dark fs-7">₹${itemSubtotal.toFixed(2)}</div>
+                    </div>
+                `;
             }
-            sizeSelect.appendChild(opt);
         });
 
-        onSizeChange();
-    }
+        const deliveryInput = document.getElementById('deliveryChargeInput');
+        const shipping = parseFloat(deliveryInput ? deliveryInput.value : 0) || 0;
+        const grandTotal = totalSubtotal + shipping;
 
-    function onSizeChange() {
-        updateStockNotice();
-        validateQuantity();
-        updateProductPreview();
-    }
+        document.getElementById('subtotalDisplay').innerText = '₹' + totalSubtotal.toFixed(2);
+        document.getElementById('deliveryDisplay').innerText = '₹' + shipping.toFixed(2);
+        document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
 
-    function updateStockNotice() {
-        const sizeSelect = document.getElementById('sizeSelect');
-        const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
-        const notice = document.getElementById('stockNotice');
+        document.getElementById('summaryItemCount').innerText = validItemCount;
 
-        if (selectedOption && selectedOption.value) {
-            const stock = selectedOption.getAttribute('data-stock');
-            notice.innerText = `Available Stock: ${stock} pcs`;
-        } else {
-            notice.innerText = '';
-        }
-    }
-
-    function validateQuantity() {
-        const qtyInput = document.getElementById('qtyInput');
-        const sizeSelect = document.getElementById('sizeSelect');
-        const selectedOption = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
-        const qtyNotice = document.getElementById('qtyErrorNotice');
-
-        if (selectedOption && selectedOption.value) {
-            const maxStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
-            qtyInput.max = maxStock;
-
-            let qty = parseInt(qtyInput.value) || 0;
-            if (maxStock > 0 && qty > maxStock) {
-                qtyInput.value = maxStock;
-                if (qtyNotice) {
-                    qtyNotice.innerText = `Quantity cannot exceed available stock of ${maxStock} pcs!`;
-                    qtyNotice.classList.remove('d-none');
-                }
-            } else if (qty < 1 && maxStock > 0) {
-                qtyInput.value = 1;
-                if (qtyNotice) qtyNotice.classList.add('d-none');
+        const summaryContainer = document.getElementById('orderItemsSummaryList');
+        if (summaryContainer) {
+            if (validItemCount > 0) {
+                summaryContainer.innerHTML = summaryHtml;
             } else {
-                if (qtyNotice) qtyNotice.classList.add('d-none');
+                summaryContainer.innerHTML = `
+                    <div class="p-3 bg-light rounded-3 text-muted text-center" id="emptySummaryPlaceholder">
+                        <i class="fa-solid fa-basket-shopping fa-2x mb-2 text-secondary opacity-50"></i>
+                        <p class="mb-0 small fw-bold">No products selected yet.</p>
+                    </div>
+                `;
             }
-        } else {
-            qtyInput.removeAttribute('max');
-            if (qtyNotice) qtyNotice.classList.add('d-none');
-        }
-
-        calcTotals();
-    }
-
-    function updateProductPreview() {
-        const productSelect = document.getElementById('productSelect');
-        const selectedProductOpt = productSelect.options[productSelect.selectedIndex];
-
-        const placeholder = document.getElementById('noProductSelectedPlaceholder');
-        const content = document.getElementById('productSelectedContent');
-        const imgElem = document.getElementById('previewImage');
-        const nameElem = document.getElementById('previewProductName');
-        const priceElem = document.getElementById('previewProductPrice');
-        const sizeStockElem = document.getElementById('previewSizeStockInfo');
-
-        const inlineContainer = document.getElementById('productInlineThumbContainer');
-        const inlineImg = document.getElementById('productInlineThumb');
-
-        if (selectedProductOpt && selectedProductOpt.value) {
-            const imageUrl = selectedProductOpt.getAttribute('data-image') || '';
-            const rawText = selectedProductOpt.text;
-            const prodName = rawText.split('(Price:')[0].trim();
-            const price = parseFloat(selectedProductOpt.getAttribute('data-price')) || 0;
-
-            if (inlineContainer && inlineImg) {
-                inlineImg.src = imageUrl;
-                inlineContainer.classList.remove('d-none');
-            }
-
-            imgElem.src = imageUrl;
-            nameElem.innerText = prodName;
-            priceElem.innerText = '₹' + price.toFixed(2);
-
-            const sizeSelect = document.getElementById('sizeSelect');
-            const selectedSizeOpt = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
-
-            if (selectedSizeOpt && selectedSizeOpt.value) {
-                const szName = selectedSizeOpt.getAttribute('data-size');
-                const stock = selectedSizeOpt.getAttribute('data-stock');
-                sizeStockElem.innerText = `Size: ${szName} | Stock: ${stock} pcs`;
-                sizeStockElem.className = "badge bg-success-subtle text-success border border-success px-3 py-2 mt-2";
-            } else {
-                sizeStockElem.innerText = `Please select a size`;
-                sizeStockElem.className = "badge bg-warning-subtle text-warning border border-warning px-3 py-2 mt-2";
-            }
-
-            placeholder.classList.add('d-none');
-            content.classList.remove('d-none');
-        } else {
-            if (inlineContainer) {
-                inlineContainer.classList.add('d-none');
-            }
-            placeholder.classList.remove('d-none');
-            content.classList.add('d-none');
         }
     }
 
-    function openInlineProductModal() {
-        const inlineImg = document.getElementById('productInlineThumb');
-        const productSelect = document.getElementById('productSelect');
-        const selectedOpt = productSelect.options[productSelect.selectedIndex];
-        const name = selectedOpt ? selectedOpt.text.split('(Price:')[0].trim() : 'Product Image';
-        if (inlineImg && inlineImg.src) {
-            openImagePreviewModal(inlineImg.src, name);
+    function openRowThumbModal(imgElem) {
+        const card = imgElem.closest('.product-item-card');
+        const selectElem = card.querySelector('.product-select');
+        const prodId = parseInt(selectElem ? selectElem.value : 0);
+        const prod = productsData.find(p => p.id === prodId);
+        if (prod && prod.image) {
+            openImagePreviewModal(prod.image, prod.name);
         }
     }
 
@@ -507,41 +725,69 @@
         modal.show();
     }
 
-    function calcTotals() {
-        const priceInput = document.getElementById('priceInput');
-        const qtyInput = document.getElementById('qtyInput');
-        const shippingInput = document.getElementById('shippingInput');
-
-        const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
-        const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
-        const shipping = parseFloat(shippingInput ? shippingInput.value : 0) || 0;
-
-        const grandTotal = (price * qty) + shipping;
-        const grandTotalDisplay = document.getElementById('grandTotalDisplay');
-        if (grandTotalDisplay) {
-            grandTotalDisplay.innerText = '₹' + grandTotal.toFixed(2);
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        updateSizes();
+        // Initialize existing items for edit
+        if (existingItems && existingItems.length > 0) {
+            existingItems.forEach(itemData => {
+                addProductRow(itemData);
+            });
+        } else {
+            addProductRow();
+        }
 
-        const form = document.querySelector('form');
+        const form = document.getElementById('manualSaleForm');
         if (form) {
             form.addEventListener('submit', function(e) {
-                const sizeSelect = document.getElementById('sizeSelect');
-                const selectedOption = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
-                const qtyInput = document.getElementById('qtyInput');
+                const cards = document.querySelectorAll('.product-item-card');
+                let hasError = false;
 
-                if (selectedOption && selectedOption.value) {
-                    const maxStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
-                    const qty = parseInt(qtyInput.value) || 0;
+                const totalRequestedPerSize = {};
 
-                    if (qty > maxStock) {
+                cards.forEach(card => {
+                    const qtyInput = card.querySelector('.qty-input');
+                    const prodSelect = card.querySelector('.product-select');
+                    const sizeSelect = card.querySelector('.size-select');
+
+                    if (!prodSelect || !prodSelect.value) {
+                        hasError = true;
+                        alert('Please select a product for all rows.');
+                        return;
+                    }
+
+                    if (!sizeSelect || !sizeSelect.value) {
+                        hasError = true;
+                        alert('Please select a size for all selected products.');
+                        return;
+                    }
+
+                    const szId = parseInt(sizeSelect.value);
+                    const qty = parseInt(qtyInput ? qtyInput.value : 0) || 0;
+                    totalRequestedPerSize[szId] = (totalRequestedPerSize[szId] ?? 0) + qty;
+                });
+
+                if (hasError) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                for (const [szId, totalQty] of Object.entries(totalRequestedPerSize)) {
+                    let actualStock = 0;
+                    let prodName = '';
+                    let sizeName = '';
+
+                    for (const prod of productsData) {
+                        const szObj = prod.sizes.find(s => s.id === parseInt(szId));
+                        if (szObj) {
+                            actualStock = szObj.stock;
+                            prodName = prod.name;
+                            sizeName = szObj.size;
+                            break;
+                        }
+                    }
+
+                    if (totalQty > actualStock) {
                         e.preventDefault();
-                        alert(`Selected quantity (${qty} pcs) exceeds available stock (${maxStock} pcs).`);
-                        qtyInput.value = maxStock;
-                        qtyInput.focus();
+                        alert(`Total requested quantity (${totalQty} pcs) across rows exceeds available stock (${actualStock} pcs) for ${prodName} (Size ${sizeName}).`);
                         return false;
                     }
                 }

@@ -1,12 +1,12 @@
 @extends('layouts.admin')
 
-@section('title', 'Order Management & Sales Master - ' . $siteName . ' Admin')
+@section('title', 'My Sales - ' . $siteName . ' Admin')
 
 @section('content')
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 mb-md-4">
     <div>
         <h3 class="fw-bold mb-1 fs-5 fs-sm-3">
-            <i class="fa-solid fa-cart-shopping text-warning me-2"></i> Order Management & Sales Master
+            <i class="fa-solid fa-receipt text-warning me-2"></i> My Sales
         </h3>
         <p class="text-muted small mb-0 d-none d-sm-block">Live sales reporting, date-wise analytics & order fulfillment control</p>
     </div>
@@ -16,6 +16,7 @@
     $activeOrderFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('status') ? 1 : 0)
         + (request()->filled('payment_method') ? 1 : 0)
+        + (request()->filled('sale_channel') ? 1 : 0)
         + (request()->filled('start_date') ? 1 : 0)
         + (request()->filled('end_date') ? 1 : 0);
 @endphp
@@ -136,6 +137,16 @@
             </div>
             <div class="col-12 col-sm-4 col-xl-2">
                 <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="fa-solid fa-cart-flatbed text-warning me-1"></i> Sale Source
+                </label>
+                <select name="sale_channel" class="form-select rounded-3">
+                    <option value="">All Channels</option>
+                    <option value="website" {{ request()->sale_channel === 'website' ? 'selected' : '' }}>🌐 Website Sales</option>
+                    <option value="manual" {{ request()->sale_channel === 'manual' ? 'selected' : '' }}>📝 Manual / Offline Sales</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-4 col-xl-2">
+                <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-wallet text-warning me-1"></i> Payment Method
                 </label>
                 <select name="payment_method" class="form-select rounded-3">
@@ -223,6 +234,16 @@
                             <option value="delivered" {{ request()->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
                             <option value="cancelled" {{ request()->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                             <option value="returned" {{ request()->status === 'returned' || request()->status === 'has_return' ? 'selected' : '' }}>Returned / Operations ({{ $statusCounts['returned'] ?? 0 }})</option>
+                        </select>
+                    </div>
+                    <div class="mb-2.5">
+                        <label class="form-label fw-semibold text-dark small mb-1">
+                            <i class="fa-solid fa-cart-flatbed text-warning me-1"></i> Sale Source
+                        </label>
+                        <select name="sale_channel" class="form-select form-select-sm rounded-3">
+                            <option value="">All Sale Channels</option>
+                            <option value="website" {{ request()->sale_channel === 'website' ? 'selected' : '' }}>🌐 Website Sales</option>
+                            <option value="manual" {{ request()->sale_channel === 'manual' ? 'selected' : '' }}>📝 Manual / Offline Sales</option>
                         </select>
                     </div>
                     <div class="mb-2.5">

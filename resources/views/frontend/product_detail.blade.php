@@ -383,8 +383,19 @@
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
 
                     <div class="mb-4 product-size-section">
-                        <label class="form-label font-bold text-uppercase d-flex justify-content-between product-size-heading">
-                            <span>Select Size <span class="text-danger">*</span></span>
+                        @php
+                            $hasMeasurements = $product->sizes->contains(fn($sz) => !empty($sz->chest) || !empty($sz->waist) || !empty($sz->length));
+                        @endphp
+
+                        <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading">
+                            <span>
+                                Select Size <span class="text-danger">*</span>
+                                @if($hasMeasurements)
+                                    <button type="button" class="btn btn-link btn-sm text-warning p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#sizeChartModal" style="font-size: 0.78rem;">
+                                        <i class="fa-solid fa-ruler text-warning me-1"></i> Size Chart (inch)
+                                    </button>
+                                @endif
+                            </span>
                             <span id="stockStatusNotice" class="text-muted fw-normal small">Select size to check availability</span>
                         </label>
 
@@ -404,19 +415,57 @@
                                         $firstInStockSelected = true;
                                     }
                                 @endphp
-                                <input type="radio" class="btn-check" name="size" id="size_{{ $pSize->id }}" value="{{ $pSize->size }}" data-stock="{{ $effectiveStock }}" onchange="updateStockNotice(this)" {{ $shouldCheck ? 'checked' : '' }}>
-                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option" for="size_{{ $pSize->id }}">
-                                    {{ $pSize->size }}
-                                    @if($effectiveStock > 0 && $effectiveStock <= 3)
-                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $effectiveStock }} left</span>
-                                    @elseif($effectiveStock <= 0)
-                                        <span class="badge bg-secondary text-white ms-1" style="font-size:0.65rem;">Out</span>
+                                <input type="radio"
+                                       class="btn-check"
+                                       name="size"
+                                       id="size_{{ $pSize->id }}"
+                                       value="{{ $pSize->size }}"
+                                       data-stock="{{ $effectiveStock }}"
+                                       data-chest="{{ $pSize->chest }}"
+                                       data-waist="{{ $pSize->waist }}"
+                                       data-length="{{ $pSize->length }}"
+                                       onchange="updateStockNotice(this)"
+                                       {{ $shouldCheck ? 'checked' : '' }}>
+                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option text-center" for="size_{{ $pSize->id }}">
+                                    <div>
+                                        <span>{{ $pSize->size }}</span>
+                                        @if($effectiveStock > 0 && $effectiveStock <= 3)
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $effectiveStock }} left</span>
+                                        @elseif($effectiveStock <= 0)
+                                            <span class="badge bg-secondary text-white ms-1" style="font-size:0.65rem;">Out</span>
+                                        @endif
+                                    </div>
+                                    @php
+                                        $mParts = [];
+                                        if(!empty($pSize->chest)) $mParts[] = 'Chest: ' . $pSize->chest . '"';
+                                        if(!empty($pSize->waist)) $mParts[] = 'Waist: ' . $pSize->waist . '"';
+                                        if(!empty($pSize->length)) $mParts[] = 'Length: ' . $pSize->length . '"';
+                                    @endphp
+                                    @if(count($mParts) > 0)
+                                        <div class="small fw-normal mt-0.5 text-muted" style="font-size: 0.68rem; line-height: 1.2;">
+                                            {{ implode(' • ', $mParts) }}
+                                        </div>
                                     @endif
                                 </label>
                             @empty
                                 <div class="alert alert-warning py-2 px-3 small">No size options available.</div>
                             @endforelse
                         </div>
+
+                        <!-- Dynamic Size Measurement Display Box (Inches) -->
+                        <div id="sizeMeasurementBox" class="mt-2.5 p-3 bg-light border rounded-3 small d-none">
+                            <div class="fw-bold text-dark mb-1.5 d-flex align-items-center" style="font-size: 0.8rem;">
+                                <i class="fa-solid fa-ruler-horizontal text-warning me-1.5"></i>
+                                <span>Selected Size <strong id="selectedSizeNameText" class="text-warning fs-6"></strong> Fit Details:</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 text-secondary mb-2" id="selectedSizeMeasurementsBadges"></div>
+                        </div>
+
+                        @if($hasMeasurements)
+                            <div class="form-text small fw-bold text-dark mt-2" style="font-size: 0.74rem;">
+                                <i class="fa-solid fa-ruler me-1 text-warning"></i> <span>Note: All product & body measurements above are in Inches (in).</span>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Quantity Selector -->
@@ -512,6 +561,54 @@
             </div>
         </div>
     @endif
+    <!-- Size Chart Modal (Inches) -->
+    @if($hasMeasurements)
+        <div class="modal fade" id="sizeChartModal" tabindex="-1" aria-labelledby="sizeChartModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header bg-dark text-white py-2.5 px-3">
+                        <h5 class="modal-title fs-6 fw-bold" id="sizeChartModalLabel">
+                            <i class="fa-solid fa-ruler-combined text-warning me-2"></i> Size Chart & Fit Guide (Inches)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-3 p-sm-4 bg-light">
+                        <p class="small text-muted mb-3">All body & garment measurements below are specified in inches (in) for accurate fitting.</p>
+                        <div class="table-responsive rounded-3 border bg-white shadow-sm">
+                            <table class="table table-striped align-middle text-center small mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Size</th>
+                                        <th>Chest (in)</th>
+                                        <th>Waist (in)</th>
+                                        <th>Length (in)</th>
+                                        <th>Stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($product->sizes as $sz)
+                                        <tr>
+                                            <td class="fw-bold text-dark fs-6">{{ $sz->size }}</td>
+                                            <td>{{ $sz->chest ? $sz->chest . '"' : '-' }}</td>
+                                            <td>{{ $sz->waist ? $sz->waist . '"' : '-' }}</td>
+                                            <td>{{ $sz->length ? $sz->length . '"' : '-' }}</td>
+                                            <td>
+                                                @if($sz->stock > 0)
+                                                    <span class="badge bg-success">In Stock</span>
+                                                @else
+                                                    <span class="badge bg-secondary">Out</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
 
@@ -534,6 +631,28 @@
             input.value = 1;
             notice.className = 'text-danger fw-semibold small';
             notice.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> This size is out of stock';
+        }
+
+        // Handle Size Measurements Display (Chest, Waist, Length in Inches)
+        const chest = elem.getAttribute('data-chest');
+        const waist = elem.getAttribute('data-waist');
+        const length = elem.getAttribute('data-length');
+        const sizeName = elem.value;
+
+        const mBox = document.getElementById('sizeMeasurementBox');
+        const mText = document.getElementById('selectedSizeNameText');
+        const mBadges = document.getElementById('selectedSizeMeasurementsBadges');
+
+        if (mBox && mBadges && (chest || waist || length)) {
+            mText.innerText = sizeName;
+            let badgesHtml = '';
+            if (chest) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Chest: <strong class="text-warning">${chest}"</strong></span>`;
+            if (waist) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Waist: <strong class="text-warning">${waist}"</strong></span>`;
+            if (length) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Length: <strong class="text-warning">${length}"</strong></span>`;
+            mBadges.innerHTML = badgesHtml;
+            mBox.classList.remove('d-none');
+        } else if (mBox) {
+            mBox.classList.add('d-none');
         }
     }
 

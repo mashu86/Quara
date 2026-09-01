@@ -71,8 +71,19 @@ class ProductController extends Controller
             $query->orderBy('id', 'desc');
         }
 
-        $products = $query->paginate(10)->withQueryString();
+        $products = $query->paginate(15)->withQueryString();
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $desktopHtml = view('admin.products.partials.desktop_rows', compact('products'))->render();
+
+            return response()->json([
+                'desktop_html' => $desktopHtml,
+                'next_page_url' => $products->nextPageUrl(),
+                'has_more' => $products->hasMorePages(),
+                'total' => $products->total(),
+            ]);
+        }
 
         return view('admin.products.index', compact('products', 'categories'));
     }
@@ -146,7 +157,11 @@ class ProductController extends Controller
             $product = Product::create($validated);
             $product->categories()->sync($categoryIds);
 
-            // Handle Sizes and Stock
+            // Handle Sizes, Stock and Measurements (Chest, Waist, Length)
+            $chests = $request->input('chests', []);
+            $waists = $request->input('waists', []);
+            $lengths = $request->input('lengths', []);
+
             foreach ($validated['sizes'] as $index => $sizeName) {
                 if (!empty($sizeName)) {
                     $stockQty = max(0, (int) ($validated['stocks'][$index] ?? 0));
@@ -154,6 +169,9 @@ class ProductController extends Controller
                         'product_id' => $product->id,
                         'size' => trim($sizeName),
                         'stock' => $stockQty,
+                        'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
+                        'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
+                        'length' => !empty($lengths[$index]) ? trim($lengths[$index]) : null,
                     ]);
 
                     if ($stockQty > 0) {
@@ -193,6 +211,17 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements']);
+
+        // Auto-ensure single primary image if images exist
+        if ($product->images->isNotEmpty()) {
+            $hasPrimary = $product->images->contains('is_primary', true);
+            if (!$hasPrimary) {
+                $firstImg = $product->images->first();
+                $firstImg->update(['is_primary' => true]);
+                $product->load('images');
+            }
+        }
+
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -245,10 +274,14 @@ class ProductController extends Controller
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 
-            // Update existing size names and stock for this product only.
+            // Update existing size names, stock & measurements
             $existingSizes = $validated['existing_sizes'] ?? [];
             $existingStocks = $validated['existing_stocks'] ?? [];
-            $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks)));
+            $existingChests = $request->input('existing_chests', []);
+            $existingWaists = $request->input('existing_waists', []);
+            $existingLengths = $request->input('existing_lengths', []);
+
+            $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks), array_keys($existingChests)));
 
             $productSizes = ProductSize::where('product_id', $product->id)
                 ->whereIn('id', $requestedSizeIds)
@@ -261,11 +294,32 @@ class ProductController extends Controller
                     continue;
                 }
 
+                $updateData = [];
+
                 if (array_key_exists($sizeId, $existingSizes)) {
                     $newSizeName = trim($existingSizes[$sizeId]);
                     if ($pSize->size !== $newSizeName) {
-                        $pSize->update(['size' => $newSizeName]);
+                        $updateData['size'] = $newSizeName;
                     }
+                }
+
+                if (array_key_exists($sizeId, $existingChests)) {
+                    $cVal = !empty($existingChests[$sizeId]) ? trim($existingChests[$sizeId]) : null;
+                    if ($pSize->chest !== $cVal) $updateData['chest'] = $cVal;
+                }
+
+                if (array_key_exists($sizeId, $existingWaists)) {
+                    $wVal = !empty($existingWaists[$sizeId]) ? trim($existingWaists[$sizeId]) : null;
+                    if ($pSize->waist !== $wVal) $updateData['waist'] = $wVal;
+                }
+
+                if (array_key_exists($sizeId, $existingLengths)) {
+                    $lVal = !empty($existingLengths[$sizeId]) ? trim($existingLengths[$sizeId]) : null;
+                    if ($pSize->length !== $lVal) $updateData['length'] = $lVal;
+                }
+
+                if (!empty($updateData)) {
+                    $pSize->update($updateData);
                 }
 
                 if (array_key_exists($sizeId, $existingStocks)) {
@@ -278,6 +332,10 @@ class ProductController extends Controller
 
             // Add new sizes
             if ($request->has('new_sizes')) {
+                $newChests = $request->input('new_chests', []);
+                $newWaists = $request->input('new_waists', []);
+                $newLengths = $request->input('new_lengths', []);
+
                 foreach ($request->new_sizes as $i => $nSize) {
                     if (!empty($nSize)) {
                         $nStock = max(0, (int)($request->new_stocks[$i] ?? 0));
@@ -285,6 +343,9 @@ class ProductController extends Controller
                             'product_id' => $product->id,
                             'size' => trim($nSize),
                             'stock' => $nStock,
+                            'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
+                            'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
+                            'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
                         ]);
                         if ($nStock > 0) {
                             $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);
@@ -343,7 +404,14 @@ class ProductController extends Controller
         ProductImage::where('product_id', $image->product_id)->update(['is_primary' => false]);
         $image->update(['is_primary' => true]);
 
-        return back()->with('success', 'Primary image updated.');
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Primary display image updated successfully.'
+            ]);
+        }
+
+        return back()->with('success', 'Primary display image updated successfully.');
     }
 
     public function deleteImage(ProductImage $image)

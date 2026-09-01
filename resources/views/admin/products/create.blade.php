@@ -39,6 +39,9 @@
         font-size: 0.8rem !important;
         padding: 0.3rem 0.5rem !important;
     }
+    .size-stock-header-title {
+        font-size: 0.8rem !important;
+    }
 }
 </style>
 
@@ -134,21 +137,46 @@
             <!-- Size-wise Stock Section -->
             <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
                 <div class="card-body p-3 p-md-4 admin-prod-card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Size & Stock Management</h5>
-                        <button type="button" class="btn btn-outline-dark btn-sm  py-1 px-2.5" style="font-size: 0.78rem;" onclick="addSizeRow()"><i class="fa-solid fa-plus me-1"></i></button>
+                    <div class="border-bottom pb-2 mb-3">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                            <h5 class="fw-bold mb-0 size-stock-header-title">
+                                <i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Size & Stock Management
+                            </h5>
+                            <button type="button" class="btn btn-warning btn-sm fw-bold rounded-3 w-100 w-sm-auto shadow-sm" onclick="addSizeRow()" style="font-size: 0.8rem;">
+                                <i class="fa-solid fa-plus me-1"></i> Add Size Row
+                            </button>
+                        </div>
                     </div>
 
                     <div id="sizeRowsContainer">
-                        <div class="row g-2 mb-2 align-items-center size-row">
-                            <div class="col-5">
-                                <input type="text" name="sizes[]" class="form-control rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="Free Size" required>
+                        <div class="p-3 border rounded-3 bg-light mb-2 size-row">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-dark text-white fw-bold small">Size #1</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" onclick="removeSizeRow(this)">
+                                    <i class="fa-solid fa-xmark me-1"></i> Remove
+                                </button>
                             </div>
-                            <div class="col-5">
-                                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Initial Stock Qty" value="1" min="0" required>
-                            </div>
-                            <div class="col-2">
-                                <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-3" onclick="removeSizeRow(this)"><i class="fa-solid fa-xmark"></i></button>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-bold mb-1">Size Label *</label>
+                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="Free Size" required>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
+                                    <input type="number" name="stocks[]" class="form-control form-control-sm rounded-3" placeholder="Initial Stock Qty" value="1" min="0" required>
+                                </div>
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
+                                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 38&quot;">
+                                </div>
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
+                                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 34&quot;">
+                                </div>
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label small text-muted mb-1">Length (inch)</label>
+                                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -273,17 +301,37 @@
 
     function addSizeRow() {
         const container = document.getElementById('sizeRowsContainer');
+        const count = container.querySelectorAll('.size-row').length + 1;
         const div = document.createElement('div');
-        div.className = 'row g-2 mb-2 align-items-center size-row';
+        div.className = 'p-3 border rounded-3 bg-light mb-2 size-row';
         div.innerHTML = `
-            <div class="col-5">
-                <input type="text" name="sizes[]" class="form-control rounded-3" placeholder="Size (e.g. S, M, L)" required>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-dark text-white fw-bold small">Size #${count}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" onclick="removeSizeRow(this)">
+                    <i class="fa-solid fa-xmark me-1"></i> Remove
+                </button>
             </div>
-            <div class="col-5">
-                <input type="number" name="stocks[]" class="form-control rounded-3" placeholder="Stock Qty" value="1" min="0" required>
-            </div>
-            <div class="col-2">
-                <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-3" onclick="removeSizeRow(this)"><i class="fa-solid fa-xmark"></i></button>
+            <div class="row g-2 align-items-center">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold mb-1">Size Label *</label>
+                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
+                    <input type="number" name="stocks[]" class="form-control form-control-sm rounded-3" value="1" min="0" required>
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
+                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
+                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label small text-muted mb-1">Length (inch)</label>
+                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                </div>
             </div>
         `;
         container.appendChild(div);

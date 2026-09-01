@@ -128,9 +128,9 @@
 <!-- Orders & Operations Table -->
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" id="order-ops-scroll-container" style="max-height: 75vh; overflow-y: auto;">
             <table class="table op-table align-middle mb-0">
-                <thead class="table-dark">
+                <thead class="table-dark sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th class="ps-3">Order ID</th>
                         <th>Customer</th>
@@ -142,118 +142,9 @@
                         <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="order-ops-tbody">
                     @forelse($orders as $order)
-                        @php
-                            $firstItem = $order->items->first();
-                            $prod = $firstItem ? $firstItem->product : null;
-                            $imageUrl = $prod ? $prod->primary_image_url : \App\Models\Setting::logoUrl();
-                            $prodName = $firstItem ? $firstItem->product_name : 'N/A';
-                            $sizeName = $firstItem ? $firstItem->size : '';
-                            $opsCount = $order->operations->count();
-                            $activeOpsCount = $order->operations->where('status', 'active')->count();
-                        @endphp
-                        <tr>
-                            <td class="ps-3">
-                                <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
-                                    {{ $order->order_number }}
-                                </a>
-                                <div class="small text-muted" style="font-size: 0.7rem;">{{ $order->created_at->format('M d, Y') }}</div>
-                            </td>
-                            <td>
-                                <div class="fw-bold text-dark">{{ $order->customer_name }}</div>
-                                <div class="small text-muted" style="font-size: 0.7rem;"><i class="fa-solid fa-phone me-1"></i>{{ $order->customer_phone }}</div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <img src="{{ $imageUrl }}" alt="{{ $prodName }}" 
-                                         class="rounded border shadow-sm flex-shrink-0 op-prod-img" 
-                                         style="width: 36px; height: 44px; object-fit: cover; cursor: pointer;" 
-                                         onclick="openImagePreviewModal('{{ addslashes($imageUrl) }}', '{{ addslashes($prodName) }}')" 
-                                         title="Click to view image">
-                                    <div class="overflow-hidden">
-                                        <div class="fw-bold text-dark text-truncate" style="max-width: 160px;">{{ $prodName }}</div>
-                                        @if($sizeName)
-                                            <span class="badge bg-secondary" style="font-size: 0.63rem;">Size: {{ $sizeName }}</span>
-                                        @endif
-                                        @if($order->items->count() > 1)
-                                            <span class="badge bg-light text-dark border" style="font-size: 0.63rem;">+{{ $order->items->count() - 1 }} item(s)</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="fw-semibold">{{ $firstItem ? $firstItem->quantity : 1 }}</td>
-                            <td>
-                                <div class="fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</div>
-                                <div class="small text-muted" style="font-size: 0.68rem;">Delivery: ₹{{ number_format($order->shipping, 2) }}</div>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize">
-                                    {{ $order->order_status }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($opsCount > 0)
-                                    <div>
-                                        @foreach($order->operations as $op)
-                                            <div class="mb-1 text-nowrap">
-                                                <span class="badge bg-{{ $op->status === 'active' ? 'success' : 'secondary' }} text-uppercase" style="font-size: 0.62rem;">
-                                                    {{ $op->status }}
-                                                </span>
-                                                <span class="fw-semibold ms-1" style="font-size: 0.72rem;">{{ $op->operation_type_label }}</span>
-                                                @if($op->total_financial_adjustment > 0 && $op->status === 'active')
-                                                    <span class="text-danger fw-bold ms-1" style="font-size: 0.7rem;">(-₹{{ number_format($op->total_financial_adjustment, 2) }})</span>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <span class="badge bg-light text-muted border">No Operations</span>
-                                @endif
-                            </td>
-                            <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" 
-                                       class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2.5 py-1 shadow-sm d-inline-flex align-items-center gap-1" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Record Operation for this Order">
-                                        <i class="fa-solid fa-rotate-left"></i> <span class="d-none d-sm-inline">Operation</span>
-                                    </a>
-                                    @if($opsCount === 1)
-                                        @php $singleOp = $order->operations->first(); @endphp
-                                        <a href="{{ route('admin.order-operations.show', $singleOp->id) }}" 
-                                           class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px;" title="View Operation Details">
-                                            <i class="fa-solid fa-eye" style="font-size: 0.7rem;"></i>
-                                        </a>
-                                        <a href="{{ route('admin.order-operations.edit', $singleOp->id) }}" 
-                                           class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px;" title="Edit Operation">
-                                            <i class="fa-solid fa-pen-to-square" style="font-size: 0.7rem;"></i>
-                                        </a>
-                                    @elseif($opsCount > 1)
-                                        <div class="dropdown d-inline-block">
-                                            <button class="btn btn-sm btn-outline-dark dropdown-toggle rounded-pill px-2.5 py-1 fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.72rem;">
-                                                Ops ({{ $opsCount }})
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2" style="min-width: 220px; font-size: 0.78rem;">
-                                                <li class="dropdown-header text-uppercase fw-bold text-dark border-bottom pb-1 mb-1" style="font-size: 0.68rem;">Recorded Operations</li>
-                                                @foreach($order->operations as $op)
-                                                    <li class="mb-1">
-                                                        <div class="d-flex justify-content-between align-items-center p-1.5 rounded bg-light">
-                                                            <div class="pe-2 text-truncate" style="max-width: 130px;">
-                                                                <span class="badge bg-{{ $op->status === 'active' ? 'success' : 'secondary' }}" style="font-size: 0.6rem;">{{ strtoupper($op->status) }}</span>
-                                                                <div class="fw-bold text-dark text-truncate" title="{{ $op->operation_type_label }}">{{ $op->operation_type_label }}</div>
-                                                            </div>
-                                                            <div class="d-flex gap-1">
-                                                                <a href="{{ route('admin.order-operations.show', $op->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" title="View"><i class="fa-solid fa-eye" style="font-size: 0.65rem;"></i></a>
-                                                                <a href="{{ route('admin.order-operations.edit', $op->id) }}" class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" title="Edit"><i class="fa-solid fa-pen-to-square" style="font-size: 0.65rem;"></i></a>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
+                        @include('admin.order_operations.partials.desktop_rows', ['orders' => collect([$order])])
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-5 text-muted">No orders matching criteria found.</td>
@@ -263,11 +154,15 @@
             </table>
         </div>
     </div>
-    @if($orders->hasPages())
-        <div class="card-footer bg-white py-3">
-            {{ $orders->links() }}
+    <div class="card-footer bg-white py-2 text-center border-top">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+            Loading more operations...
         </div>
-    @endif
+        <div id="infinite-scroll-end" class="{{ $orders->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $orders->total() }} records loaded
+        </div>
+    </div>
 </div>
 
 <!-- Image Preview Modal -->
@@ -296,5 +191,76 @@
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        let nextPageUrl = @json($orders->nextPageUrl());
+        let hasMore = @json($orders->hasMorePages());
+        let isLoading = false;
+
+        const scrollContainer = document.getElementById('order-ops-scroll-container');
+        const tbody = document.getElementById('order-ops-tbody');
+        const loadingSpinner = document.getElementById('infinite-scroll-loading');
+        const endNotice = document.getElementById('infinite-scroll-end');
+
+        function checkAndLoadMore() {
+            if (isLoading || !hasMore || !nextPageUrl) return;
+
+            let shouldLoad = false;
+
+            if (scrollContainer && scrollContainer.offsetParent !== null) {
+                const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+                if (scrollBottom < 150) {
+                    shouldLoad = true;
+                }
+            }
+
+            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+            if (windowScrollBottom < 300) {
+                shouldLoad = true;
+            }
+
+            if (shouldLoad) {
+                fetchNextPage();
+            }
+        }
+
+        function fetchNextPage() {
+            isLoading = true;
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if (endNotice) endNotice.classList.add('d-none');
+
+            fetch(nextPageUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.desktop_html && tbody) {
+                    tbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                nextPageUrl = data.next_page_url;
+                hasMore = data.has_more;
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+                if (!hasMore && endNotice) {
+                    endNotice.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching more order operations:', err);
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            });
+        }
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', checkAndLoadMore);
+        }
+        window.addEventListener('scroll', checkAndLoadMore);
+    });
 </script>
 @endsection

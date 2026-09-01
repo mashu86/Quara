@@ -38,9 +38,9 @@
                 </div>
 
                 <!-- Available Sizes -->
-                <div class="mb-3">
+                <div class="mb-3 d-flex flex-wrap gap-1 align-items-center">
                     @foreach($product->sizes as $pSize)
-                        <span class="badge {{ $pSize->stock > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white opacity-75' }} small me-1">
+                        <span class="badge {{ $pSize->stock > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white opacity-75' }} px-2 py-1" style="font-size: 0.72rem;">
                             {{ $pSize->size }}
                         </span>
                     @endforeach

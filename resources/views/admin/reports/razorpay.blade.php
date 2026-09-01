@@ -134,9 +134,9 @@
         <span class="badge bg-dark rounded-pill px-2.5 px-md-3">{{ $orders->total() }} Orders</span>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" id="razorpay-scroll-container" style="max-height: 75vh; overflow-y: auto;">
             <table class="table align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th>Date</th>
                         <th>Order ID</th>
@@ -149,33 +149,9 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="razorpay-tbody">
                     @forelse($orders as $order)
-                        <tr>
-                            <td>
-                                <span class="fw-semibold">{{ $order->created_at->format('M d, Y') }}</span>
-                                <small class="d-block text-muted">{{ $order->created_at->format('h:i A') }}</small>
-                            </td>
-                            <td>
-                                <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-gold text-decoration-none">
-                                    {{ $order->order_number }}
-                                </a>
-                            </td>
-                            <td>
-                                <span class="fw-semibold text-dark">{{ $order->customer_name }}</span>
-                                <small class="d-block text-muted">{{ $order->customer_phone }}</small>
-                            </td>
-                            <td class="fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</td>
-                            <td class="text-secondary">₹{{ number_format($order->razorpay_base_fee, 2) }}</td>
-                            <td class="text-muted">₹{{ number_format($order->razorpay_gst_fee, 2) }}</td>
-                            <td class="fw-bold text-danger">₹{{ number_format($order->razorpay_total_charge, 2) }}</td>
-                            <td class="fw-bold text-success">₹{{ number_format($order->razorpay_net_amount, 2) }}</td>
-                            <td>
-                                <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-light btn-sm rounded-pill border">
-                                    <i class="fa-solid fa-eye me-1"></i> Details
-                                </a>
-                            </td>
-                        </tr>
+                        @include('admin.reports.partials.razorpay_rows', ['orders' => collect([$order])])
                     @empty
                         <tr>
                             <td colspan="9" class="text-center py-5 text-muted">No online paid orders found in this date range.</td>
@@ -185,10 +161,89 @@
             </table>
         </div>
     </div>
-    @if($orders->hasPages())
-        <div class="card-footer bg-white py-3">
-            {{ $orders->links() }}
+    <div class="card-footer bg-white py-2 text-center border-top">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+            Loading more online orders...
         </div>
-    @endif
+        <div id="infinite-scroll-end" class="{{ $orders->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $orders->total() }} records loaded
+        </div>
+    </div>
 </div>
+
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let nextPageUrl = @json($orders->nextPageUrl());
+        let hasMore = @json($orders->hasMorePages());
+        let isLoading = false;
+
+        const scrollContainer = document.getElementById('razorpay-scroll-container');
+        const tbody = document.getElementById('razorpay-tbody');
+        const loadingSpinner = document.getElementById('infinite-scroll-loading');
+        const endNotice = document.getElementById('infinite-scroll-end');
+
+        function checkAndLoadMore() {
+            if (isLoading || !hasMore || !nextPageUrl) return;
+
+            let shouldLoad = false;
+
+            if (scrollContainer && scrollContainer.offsetParent !== null) {
+                const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+                if (scrollBottom < 150) {
+                    shouldLoad = true;
+                }
+            }
+
+            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+            if (windowScrollBottom < 300) {
+                shouldLoad = true;
+            }
+
+            if (shouldLoad) {
+                fetchNextPage();
+            }
+        }
+
+        function fetchNextPage() {
+            isLoading = true;
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if (endNotice) endNotice.classList.add('d-none');
+
+            fetch(nextPageUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.desktop_html && tbody) {
+                    tbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                nextPageUrl = data.next_page_url;
+                hasMore = data.has_more;
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+                if (!hasMore && endNotice) {
+                    endNotice.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching more Razorpay records:', err);
+                isLoading = false;
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            });
+        }
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', checkAndLoadMore);
+        }
+        window.addEventListener('scroll', checkAndLoadMore);
+    });
+</script>
+@endsection
 @endsection

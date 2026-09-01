@@ -77,6 +77,17 @@ class IncomeController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        if ($request->ajax() || $request->wantsJson()) {
+            $desktopHtml = view('admin.incomes.partials.desktop_rows', compact('incomes'))->render();
+
+            return response()->json([
+                'desktop_html' => $desktopHtml,
+                'next_page_url' => $incomes->nextPageUrl(),
+                'has_more' => $incomes->hasMorePages(),
+                'total' => $incomes->total(),
+            ]);
+        }
+
         return view('admin.incomes.index', compact(
             'incomes',
             'todayIncome',

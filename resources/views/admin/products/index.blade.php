@@ -16,13 +16,13 @@
         <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Product Master</h4>
         <p class="text-muted small mb-0 d-none d-sm-block">Manage product inventory, pricing, discounts and variants</p>
     </div>
-    <div class="d-flex align-items-center gap-1.5 gap-sm-2">
-        <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1 text-nowrap" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
+    <div class="d-flex align-items-center">
+        <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-2 me-sm-3" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
             <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Product</span>
         </a>
 
         <!-- Mobile Filter Icon Button (d-lg-none) -->
-        <button type="button" class="btn btn-dark rounded-3 btn-sm px-2.5 py-1 position-relative d-lg-none" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#productFilterModal" title="Filter Products">
+        <button type="button" class="btn btn-dark rounded-3 btn-sm px-2.5 py-1.5 position-relative d-lg-none shadow-sm" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#productFilterModal" title="Filter Products">
             <i class="fa-solid fa-sliders text-warning"></i>
             @if($activeFilterCount > 0)
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size: 0.62rem;">{{ $activeFilterCount }}</span>
@@ -30,7 +30,7 @@
         </button>
 
         @if($activeFilterCount > 0)
-            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 btn-sm px-2 py-1 d-lg-none" style="font-size: 0.78rem;" title="Clear Filters">
+            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 btn-sm px-2 py-1.5 d-lg-none ms-2" style="font-size: 0.78rem;" title="Clear Filters">
                 <i class="fa-solid fa-rotate-left"></i>
             </a>
         @endif
@@ -143,9 +143,9 @@
 <!-- Table -->
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" id="products-table-scroll-container" style="max-height: 75vh; overflow-y: auto;">
             <table class="table align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th>Image</th>
                         <th>Product Details</th>
@@ -159,86 +159,9 @@
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="products-desktop-tbody">
                     @forelse($products as $product)
-                        @php $totalStock = $product->sizes->sum('stock'); @endphp
-                        <tr>
-                            <td>
-                                <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="rounded-3 border" style="width: 55px; height: 70px; object-fit: cover;">
-                            </td>
-                            <td>
-                                <h6 class="fw-bold text-dark mb-0">{{ $product->name }}</h6>
-                                <span class="text-muted small">Slug: {{ $product->slug }}</span>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-1" style="max-width: 160px;">
-                                    @php
-                                        $cats = $product->categories->isNotEmpty() ? $product->categories : collect([$product->category])->filter();
-                                    @endphp
-                                    @foreach($cats as $cat)
-                                        <span class="badge bg-light text-dark border">{{ $cat->name }}</span>
-                                    @endforeach
-                                </div>
-                            </td>
-                            <td>₹{{ number_format($product->price, 2) }}</td>
-                            <td>
-                                @if($product->discount_type === 'fixed')
-                                    <span class="badge bg-danger">₹{{ number_format($product->discount_value, 2) }} OFF</span>
-                                @elseif($product->discount_type === 'percentage')
-                                    <span class="badge bg-danger">{{ (int)$product->discount_value }}% OFF</span>
-                                @else
-                                    <span class="text-muted small">None</span>
-                                @endif
-                            </td>
-                            <td class="fw-bold text-gold fs-6">₹{{ number_format($product->final_price, 2) }}</td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-1" style="max-width: 180px;">
-                                    @foreach($product->sizes as $pSize)
-                                        <span class="badge {{ $pSize->stock > 0 ? 'bg-dark' : 'bg-danger' }}" title="Size {{ $pSize->size }}">
-                                            {{ $pSize->size }}: {{ $pSize->stock }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                                <div class="small fw-bold mt-1 {{ $totalStock > 0 ? 'text-success' : 'text-danger' }}">
-                                    Total: {{ $totalStock }} pcs
-                                </div>
-                            </td>
-                            <td>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input out-of-stock-toggle" type="checkbox" role="switch"
-                                           id="outOfStockToggle_{{ $product->id }}"
-                                           data-product-id="{{ $product->id }}"
-                                           data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
-                                           {{ $product->is_out_of_stock ? 'checked' : '' }}
-                                           style="cursor: pointer; width: 2.3em; height: 1.2em;">
-                                    <label class="form-check-label small fw-bold ms-1 {{ $product->is_out_of_stock ? 'text-danger' : 'text-success' }}"
-                                           id="outOfStockLabel_{{ $product->id }}"
-                                           for="outOfStockToggle_{{ $product->id }}" style="cursor: pointer; font-size: 0.78rem;">
-                                        {{ $product->is_out_of_stock ? 'Out of Stock' : 'Normal Stock' }}
-                                    </label>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ $product->status === 'active' ? 'success' : 'secondary' }}">
-                                    {{ ucfirst($product->status) }}
-                                </span>
-                            </td>
-                            <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                                    <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Product">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this product permanently?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Product">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
+                        @include('admin.products.partials.desktop_rows', ['products' => collect([$product])])
                     @empty
                         <tr>
                             <td colspan="10" class="text-center py-4 text-muted">No products found matching filters.</td>
@@ -248,54 +171,140 @@
             </table>
         </div>
     </div>
-    <div class="card-footer bg-white py-3">
-        {{ $products->links() }}
+    <div class="card-footer bg-white py-2 text-center border-top">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+            Loading more products...
+        </div>
+        <div id="infinite-scroll-end" class="{{ $products->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $products->total() }} products loaded
+        </div>
     </div>
 </div>
 @endsection
 
 @section('scripts')
 <script>
-document.querySelectorAll('.out-of-stock-toggle').forEach(function(toggle) {
-    toggle.addEventListener('change', function() {
-        const productId = this.getAttribute('data-product-id');
-        const url = this.getAttribute('data-url');
-        const isChecked = this.checked;
-        const label = document.getElementById('outOfStockLabel_' + productId);
+document.addEventListener('DOMContentLoaded', function () {
+    let nextPageUrl = @json($products->nextPageUrl());
+    let hasMore = @json($products->hasMorePages());
+    let isLoading = false;
 
-        toggle.disabled = true;
+    const desktopContainer = document.getElementById('products-table-scroll-container');
+    const desktopTbody = document.getElementById('products-desktop-tbody');
+    const loadingSpinner = document.getElementById('infinite-scroll-loading');
+    const endNotice = document.getElementById('infinite-scroll-end');
 
-        fetch(url, {
-            method: 'POST',
+    function checkAndLoadMore() {
+        if (isLoading || !hasMore || !nextPageUrl) return;
+
+        let shouldLoad = false;
+
+        if (desktopContainer && desktopContainer.offsetParent !== null) {
+            const scrollBottom = desktopContainer.scrollHeight - desktopContainer.scrollTop - desktopContainer.clientHeight;
+            if (scrollBottom < 150) {
+                shouldLoad = true;
+            }
+        }
+
+        const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+        if (windowScrollBottom < 300) {
+            shouldLoad = true;
+        }
+
+        if (shouldLoad) {
+            fetchNextPage();
+        }
+    }
+
+    function fetchNextPage() {
+        isLoading = true;
+        if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+        if (endNotice) endNotice.classList.add('d-none');
+
+        fetch(nextPageUrl, {
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
-            },
-            body: JSON.stringify({ is_out_of_stock: isChecked })
+            }
         })
         .then(response => response.json())
         .then(data => {
-            toggle.disabled = false;
-            if (data.success) {
-                if (data.is_out_of_stock) {
-                    label.textContent = 'Out of Stock';
-                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
-                } else {
-                    label.textContent = 'Normal Stock';
-                    label.className = 'form-check-label small fw-bold ms-1 text-success';
-                }
-            } else {
-                toggle.checked = !isChecked;
-                alert(data.message || 'Error updating stock status.');
+            if (data.desktop_html && desktopTbody) {
+                desktopTbody.insertAdjacentHTML('beforeend', data.desktop_html);
             }
+
+            nextPageUrl = data.next_page_url;
+            hasMore = data.has_more;
+            isLoading = false;
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+            if (!hasMore && endNotice) {
+                endNotice.classList.remove('d-none');
+            }
+
+            initOutOfStockToggles();
         })
         .catch(err => {
-            toggle.disabled = false;
-            toggle.checked = !isChecked;
-            alert('Failed to connect to server. Please try again.');
+            console.error('Error fetching more products:', err);
+            isLoading = false;
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
         });
-    });
+    }
+
+    if (desktopContainer) {
+        desktopContainer.addEventListener('scroll', checkAndLoadMore);
+    }
+    window.addEventListener('scroll', checkAndLoadMore);
+
+    function initOutOfStockToggles() {
+        document.querySelectorAll('.out-of-stock-toggle').forEach(function(toggle) {
+            if (toggle.dataset.bound === 'true') return;
+            toggle.dataset.bound = 'true';
+
+            toggle.addEventListener('change', function() {
+                const productId = this.getAttribute('data-product-id');
+                const url = this.getAttribute('data-url');
+                const isChecked = this.checked;
+                const label = document.getElementById('outOfStockLabel_' + productId);
+
+                toggle.disabled = true;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ is_out_of_stock: isChecked })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    toggle.disabled = false;
+                    if (data.success) {
+                        if (data.is_out_of_stock) {
+                            label.textContent = 'Out of Stock';
+                            label.className = 'form-check-label small fw-bold ms-1 text-danger';
+                        } else {
+                            label.textContent = 'Normal Stock';
+                            label.className = 'form-check-label small fw-bold ms-1 text-success';
+                        }
+                    } else {
+                        toggle.checked = !isChecked;
+                        alert(data.message || 'Error updating stock status.');
+                    }
+                })
+                .catch(err => {
+                    toggle.disabled = false;
+                    toggle.checked = !isChecked;
+                    alert('Failed to connect to server. Please try again.');
+                });
+            });
+        });
+    }
+
+    initOutOfStockToggles();
 });
 </script>
 @endsection

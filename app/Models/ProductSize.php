@@ -15,6 +15,9 @@ class ProductSize extends Model
         'product_id',
         'size',
         'stock',
+        'chest',
+        'waist',
+        'length',
     ];
 
     public function product(): BelongsTo

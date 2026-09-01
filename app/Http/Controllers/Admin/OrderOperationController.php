@@ -58,6 +58,17 @@ class OrderOperationController extends Controller
 
         $orders = $query->paginate(15)->withQueryString();
 
+        if ($request->ajax() || $request->wantsJson()) {
+            $desktopHtml = view('admin.order_operations.partials.desktop_rows', compact('orders'))->render();
+
+            return response()->json([
+                'desktop_html' => $desktopHtml,
+                'next_page_url' => $orders->nextPageUrl(),
+                'has_more' => $orders->hasMorePages(),
+                'total' => $orders->total(),
+            ]);
+        }
+
         return view('admin.order_operations.index', compact(
             'orders',
             'search',

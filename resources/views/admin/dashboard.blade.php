@@ -102,14 +102,14 @@
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
                     <ul class="nav nav-pills card-header-pills fw-bold" id="dashOrdersTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active rounded-pill px-3 py-1.5 small" id="real-orders-tab" data-bs-toggle="tab" data-bs-target="#real-orders-content" type="button" role="tab">
-                                <i class="fa-solid fa-cart-shopping me-1 text-warning"></i> Real Sales Orders ({{ $recentOrders->count() }})
+                            <button class="nav-link active rounded-pill px-2.5 px-sm-3 py-1 fw-bold" id="real-orders-tab" data-bs-toggle="tab" data-bs-target="#real-orders-content" type="button" role="tab" style="font-size: 0.76rem;">
+                                <i class="fa-solid fa-cart-shopping me-1 text-warning"></i> My Orders ({{ $recentOrders->count() }})
                             </button>
                         </li>
                         @if($dummyOrders->count() > 0)
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link rounded-pill px-3 py-1.5 small text-muted" id="dummy-orders-tab" data-bs-toggle="tab" data-bs-target="#dummy-orders-content" type="button" role="tab">
-                                    <i class="fa-solid fa-vial me-1"></i> Dummy / Test Purchases ({{ $dummyOrders->count() }})
+                                <button class="nav-link rounded-pill px-2.5 px-sm-3 py-1 fw-bold text-muted" id="dummy-orders-tab" data-bs-toggle="tab" data-bs-target="#dummy-orders-content" type="button" role="tab" style="font-size: 0.76rem;">
+                                    <i class="fa-solid fa-vial me-1"></i> Dummy Orders ({{ $dummyOrders->count() }})
                                 </button>
                             </li>
                         @endif
@@ -126,6 +126,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Order #</th>
+                                        <th>Date & Time</th>
                                         <th>Customer</th>
                                         <th>Method</th>
                                         <th>Total</th>
@@ -140,12 +141,22 @@
                                                 <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
                                                     {{ $order->order_number }}
                                                 </a>
+                                                @if($order->order_source === 'manual' || $order->payment_method === 'offline_sale')
+                                                    <span class="badge bg-dark text-warning border border-warning ms-1" style="font-size: 0.62rem;">MANUAL</span>
+                                                @else
+                                                    <span class="badge bg-primary text-white ms-1" style="font-size: 0.62rem;">WEBSITE</span>
+                                                @endif
+                                            </td>
+                                            <small class="d-none"></small>
+                                            <td class="small text-nowrap">
+                                                <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->created_at->format('M d, Y') }}</div>
+                                                <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->created_at->format('h:i A') }}</div>
                                             </td>
                                             <td>
                                                 <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
                                                 <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
                                             </td>
-                                            <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
+                                            <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ str_replace('_', ' ', $order->payment_method) }}</span></td>
                                             <td class="fw-bold">₹{{ number_format($order->grand_total, 2) }}</td>
                                             <td>
                                                 <span class="badge bg-{{ $order->order_status === 'delivered' ? 'success' : ($order->order_status === 'cancelled' ? 'danger' : 'warning') }} text-capitalize" style="font-size: 0.72rem;">
@@ -158,7 +169,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">No real customer orders received yet.</td>
+                                            <td colspan="7" class="text-center py-4 text-muted">No real customer orders received yet.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -177,6 +188,7 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>Order #</th>
+                                            <th>Date & Time</th>
                                             <th>Test Customer / Phone</th>
                                             <th>Method</th>
                                             <th>Total</th>
@@ -193,11 +205,15 @@
                                                     </a>
                                                     <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">TEST ORDER</span>
                                                 </td>
+                                                <td class="small text-nowrap">
+                                                    <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->created_at->format('M d, Y') }}</div>
+                                                    <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->created_at->format('h:i A') }}</div>
+                                                </td>
                                                 <td>
                                                     <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
                                                     <div class="small text-muted" style="font-size: 0.75rem;">{{ $order->customer_phone }}</div>
                                                 </td>
-                                                <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ $order->payment_method }}</span></td>
+                                                <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ str_replace('_', ' ', $order->payment_method) }}</span></td>
                                                 <td class="fw-bold text-muted">₹{{ number_format($order->grand_total, 2) }}</td>
                                                 <td>
                                                     <span class="badge bg-secondary text-capitalize" style="font-size: 0.72rem;">

@@ -114,6 +114,22 @@ class OrderController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
 
+        if ($request->filled('sale_channel')) {
+            if ($request->sale_channel === 'manual') {
+                $query->where(function ($q) {
+                    $q->where('order_source', 'manual')
+                      ->orWhere('payment_method', 'offline_sale');
+                });
+            } elseif ($request->sale_channel === 'website') {
+                $query->where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->where('order_source', '!=', 'manual')
+                           ->orWhereNull('order_source');
+                    })->where('payment_method', '!=', 'offline_sale');
+                });
+            }
+        }
+
         if ($startDate && $endDate) {
             $query->whereDate('created_at', '>=', $startDate)
                   ->whereDate('created_at', '<=', $endDate);

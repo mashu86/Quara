@@ -52,6 +52,17 @@ class ExpenseController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        if ($request->ajax() || $request->wantsJson()) {
+            $desktopHtml = view('admin.expenses.partials.desktop_rows', compact('expenses'))->render();
+
+            return response()->json([
+                'desktop_html' => $desktopHtml,
+                'next_page_url' => $expenses->nextPageUrl(),
+                'has_more' => $expenses->hasMorePages(),
+                'total' => $expenses->total(),
+            ]);
+        }
+
         return view('admin.expenses.index', compact(
             'expenses',
             'totalExpenses',
@@ -416,6 +427,17 @@ class ExpenseController extends Controller
         $totalRazorpayGstFee = $summaryQuery->sum('razorpay_gst_fee');
         $totalRazorpayCharges = $summaryQuery->sum('razorpay_total_charge');
         $totalNetReceived = $summaryQuery->sum('razorpay_net_amount');
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $desktopHtml = view('admin.reports.partials.razorpay_rows', compact('orders'))->render();
+
+            return response()->json([
+                'desktop_html' => $desktopHtml,
+                'next_page_url' => $orders->nextPageUrl(),
+                'has_more' => $orders->hasMorePages(),
+                'total' => $orders->total(),
+            ]);
+        }
 
         return view('admin.reports.razorpay', compact(
             'orders',

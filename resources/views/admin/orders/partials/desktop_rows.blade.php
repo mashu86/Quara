@@ -4,6 +4,9 @@
             <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
                 {{ $order->order_number }}
             </a>
+            @if($order->notifications && $order->notifications->where('is_read', false)->count() > 0)
+                <span class="badge bg-danger text-white ms-1 align-middle" style="font-size: 0.58rem; padding: 0.2em 0.4em;" title="Unread Order Notification">NEW</span>
+            @endif
         </td>
         <td>
             <div class="fw-bold text-dark">{{ $order->customer_name }}</div>

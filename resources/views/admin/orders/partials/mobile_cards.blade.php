@@ -6,6 +6,9 @@
                 <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none" style="font-size: 0.8rem;">
                     {{ $order->order_number }}
                 </a>
+                @if($order->notifications && $order->notifications->where('is_read', false)->count() > 0)
+                    <span class="badge bg-danger text-white ms-1 align-middle" style="font-size: 0.55rem; padding: 0.15em 0.35em;" title="Unread Order Notification">NEW</span>
+                @endif
                 <div class="text-muted" style="font-size: 0.68rem;">
                     <i class="fa-regular fa-clock me-1"></i>{{ $order->created_at->format('M d, Y • h:i A') }}
                 </div>

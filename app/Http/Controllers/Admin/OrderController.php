@@ -72,7 +72,7 @@ class OrderController extends Controller
         $periodProductsCount = (int) \App\Models\OrderItem::whereIn('order_id', (clone $periodQuery)->pluck('id'))->sum('quantity');
 
         // 2. Listing Orders Query
-        $query = Order::with(['items', 'payment', 'operations'])
+        $query = Order::with(['items', 'payment', 'operations', 'notifications'])
             ->whereNotIn('id', $inactiveOrderIds);
 
         if (!$request->boolean('include_test_orders')) {
@@ -194,7 +194,10 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
-        $order->load(['items.product.images', 'payment', 'operations']);
+        $order->load(['items.product.images', 'payment', 'operations', 'notifications']);
+
+        // Mark unread notifications for this order as read
+        Notification::where('order_id', $order->id)->where('is_read', false)->update(['is_read' => true]);
 
         return view('admin.orders.edit', compact('order'));
     }
@@ -418,6 +421,9 @@ class OrderController extends Controller
         }
 
         $order->save();
+
+        // Mark unread notifications for this order as read
+        Notification::where('order_id', $order->id)->where('is_read', false)->update(['is_read' => true]);
 
         // Create or update associated Payment model
         $payment = \App\Models\Payment::firstOrNew(['order_id' => $order->id]);

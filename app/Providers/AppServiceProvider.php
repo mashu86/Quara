@@ -90,10 +90,11 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.admin', function ($view) {
             $pendingCount = Order::where('order_status', 'pending')->count();
+            $unreadOrderCount = Notification::where('is_read', false)->whereNotNull('order_id')->count();
             $unreadCount = Notification::where('is_read', false)->count();
             $recentNotifications = Notification::with('order')->orderBy('id', 'desc')->take(5)->get();
 
-            $view->with(compact('pendingCount', 'unreadCount', 'recentNotifications'));
+            $view->with(compact('pendingCount', 'unreadOrderCount', 'unreadCount', 'recentNotifications'));
         });
     }
 }

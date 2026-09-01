@@ -288,8 +288,8 @@
                 <li class="nav-item">
                     <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-receipt me-2"></i> Website Orders
-                        @if(($pendingCount ?? 0) > 0)
-                            <span class="badge bg-warning text-dark ms-auto fw-bold">{{ $pendingCount }}</span>
+                        @if(($unreadOrderCount ?? 0) > 0)
+                            <span class="badge bg-danger text-white ms-auto fw-bold">{{ $unreadOrderCount }}</span>
                         @endif
                     </a>
                 </li>

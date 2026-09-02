@@ -324,6 +324,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.contractual-posts.index') }}" class="nav-link {{ request()->routeIs('admin.contractual-posts.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-envelopes-bulk me-2 text-warning"></i> Contractual Post
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.reports.profit-loss') }}" class="nav-link {{ request()->routeIs('admin.reports.profit-loss') ? 'active' : '' }}">
                         <i class="fa-solid fa-chart-pie me-2"></i> Profit & Loss Report
                     </a>

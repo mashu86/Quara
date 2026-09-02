@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckContro
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
 use App\Http\Controllers\Frontend\SitemapController;
+use App\Http\Controllers\Admin\ContractualPostController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 
@@ -152,6 +153,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('incomes/{income}/toggle-status', [AdminIncomeController::class, 'toggleStatus'])->name('incomes.toggle-status');
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
         Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
+
+        // Contractual Post & India Post Wallet Management
+        Route::get('/contractual-posts', [ContractualPostController::class, 'index'])->name('contractual-posts.index');
+        Route::post('/contractual-posts/recharge', [ContractualPostController::class, 'storeRecharge'])->name('contractual-posts.recharge.store');
+        Route::put('/contractual-posts/recharge/{recharge}', [ContractualPostController::class, 'updateRecharge'])->name('contractual-posts.recharge.update');
+        Route::delete('/contractual-posts/recharge/{recharge}', [ContractualPostController::class, 'destroyRecharge'])->name('contractual-posts.recharge.destroy');
+        Route::post('/contractual-posts/courier', [ContractualPostController::class, 'storeCourier'])->name('contractual-posts.courier.store');
+        Route::put('/contractual-posts/courier/{courier}', [ContractualPostController::class, 'updateCourier'])->name('contractual-posts.courier.update');
+        Route::delete('/contractual-posts/courier/{courier}', [ContractualPostController::class, 'destroyCourier'])->name('contractual-posts.courier.destroy');
 
         // Master Settings (branding, email and payment configuration)
         Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');

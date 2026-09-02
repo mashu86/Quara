@@ -104,6 +104,72 @@
     </div>
 </div>
 
+<!-- OVERALL BUSINESS PROFIT & LOSS (ALL-TIME TOTAL) BANNER -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+    <div class="card-body p-3.5 p-md-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-50">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-warning bg-opacity-20 p-2 text-warning d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <i class="fa-solid fa-briefcase fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-white pnl-header-title">Overall Business Status (All-Time Total)</h5>
+                    <span class="text-white-50 small pnl-header-subtitle">Cumulative financial performance from day 1 to present</span>
+                </div>
+            </div>
+            <div>
+                @if($allTimeIsProfit)
+                    <span class="badge bg-success fs-6 px-3 py-2 rounded-pill fw-bold shadow-sm">
+                        <i class="fa-solid fa-circle-check me-1"></i> OVERALL BUSINESS: PROFIT
+                    </span>
+                @else
+                    <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill fw-bold shadow-sm">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> OVERALL BUSINESS: LOSS
+                    </span>
+                @endif
+            </div>
+        </div>
+
+        <div class="row g-3 align-items-center">
+            <div class="col-12 col-md-5">
+                <span class="text-uppercase tracking-wider fw-bold small text-white-50 d-block pnl-banner-period">Mothathil Total Business P&L</span>
+                <h2 class="display-6 fw-bold mb-1 {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }} pnl-banner-amount">
+                    {{ $allTimeIsProfit ? 'OVERALL PROFIT: ₹' : 'OVERALL LOSS: -₹' }}{{ number_format(abs($allTimeNetProfitLoss), 2) }}
+                </h2>
+                <p class="mb-0 text-white-50 small pnl-banner-text">
+                    @if($allTimeIsProfit)
+                        <i class="fa-solid fa-arrow-trend-up text-success me-1"></i> Overall, the business is currently running in net <strong>PROFIT</strong> of ₹{{ number_format($allTimeNetProfitLoss, 2) }}.
+                    @else
+                        <i class="fa-solid fa-arrow-trend-down text-danger me-1"></i> Overall, the business is currently running in net <strong>LOSS</strong> of -₹{{ number_format(abs($allTimeNetProfitLoss), 2) }}.
+                    @endif
+                </p>
+            </div>
+            <div class="col-12 col-md-7">
+                <div class="row g-2">
+                    <div class="col-6 col-sm-4">
+                        <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
+                            <span class="text-white-50 small d-block mb-1">Total Revenue</span>
+                            <span class="fw-bold fs-6 text-success">₹{{ number_format($allTimeCombinedRevenue, 2) }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
+                            <span class="text-white-50 small d-block mb-1">Total Expenses</span>
+                            <span class="fw-bold fs-6 text-danger">₹{{ number_format($allTimeTotalExpenses, 2) }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
+                            <span class="text-white-50 small d-block mb-1">Total Refunds</span>
+                            <span class="fw-bold fs-6 text-warning">₹{{ number_format($allTimeOperationRefunds, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Date Filter Card -->
 <div class="card border-0 rounded-4 shadow-sm mb-4">
     <div class="card-body p-3 filter-card-body">

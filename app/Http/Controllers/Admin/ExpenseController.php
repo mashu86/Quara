@@ -343,6 +343,45 @@ class ExpenseController extends Controller
         $netProfitLoss = $totalCombinedRevenue - $totalExpenses - $totalOperationRefunds;
         $isProfit = $netProfitLoss >= 0;
 
+        // ALL-TIME (Overall Business) Profit & Loss Calculation
+        $allTimeOrdersQuery = Order::whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+
+        if (count($inactiveOperationOrderIds) > 0) {
+            $allTimeOrdersQuery->whereNotIn('id', $inactiveOperationOrderIds);
+        }
+
+        $allTimeGrossRevenue = (clone $allTimeOrdersQuery)->sum('grand_total');
+        $allTimeShippingRevenue = (clone $allTimeOrdersQuery)->sum('shipping');
+        $allTimePaidOrderIds = (clone $allTimeOrdersQuery)->pluck('id');
+
+        $allTimeProductCost = 0.00;
+        if (Schema::hasColumn('products', 'cost_price') && count($allTimePaidOrderIds) > 0) {
+            $allTimeProductCost = DB::table('order_items')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereIn('order_items.order_id', $allTimePaidOrderIds)
+                ->sum(DB::raw('COALESCE(products.cost_price, 0) * order_items.quantity'));
+        }
+
+        $allTimeRazorpayCharges = (clone $allTimeOrdersQuery)->where('payment_method', 'online')->sum('razorpay_total_charge');
+        $allTimeOtherExpenses = (float) Expense::sum('amount');
+
+        $allTimeActiveOps = \App\Models\OrderOperation::where('status', 'active');
+        $allTimeOperationRefunds = (float) (clone $allTimeActiveOps)->sum('total_refund_amount');
+        $allTimeOperationExpenses = (float) (clone $allTimeActiveOps)->sum('additional_expense_total');
+
+        $allTimeActiveIncomes = \App\Models\Income::where('status', 'active');
+        $allTimeAdditionalIncome = (float) (clone $allTimeActiveIncomes)->sum('total_income_amount');
+
+        $allTimeCombinedRevenue = $allTimeGrossRevenue + $allTimeAdditionalIncome;
+        $allTimeTotalExpenses = $allTimeProductCost + $allTimeShippingRevenue + $allTimeRazorpayCharges + $allTimeOtherExpenses + $allTimeOperationExpenses;
+        $allTimeNetProfitLoss = $allTimeCombinedRevenue - $allTimeTotalExpenses - $allTimeOperationRefunds;
+        $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
+
         return view('admin.expenses.profit_loss', compact(
             'startDate',
             'endDate',
@@ -371,6 +410,15 @@ class ExpenseController extends Controller
             'totalCombinedRevenue',
             'netProfitLoss',
             'isProfit',
+            'allTimeCombinedRevenue',
+            'allTimeTotalExpenses',
+            'allTimeOperationRefunds',
+            'allTimeNetProfitLoss',
+            'allTimeIsProfit',
+            'allTimeGrossRevenue',
+            'allTimeAdditionalIncome',
+            'allTimeProductCost',
+            'allTimeOtherExpenses',
             'feePct',
             'gstPct'
         ));

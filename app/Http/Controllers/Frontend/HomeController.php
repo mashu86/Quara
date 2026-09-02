@@ -132,6 +132,7 @@ class HomeController extends Controller
         }
 
         $displayOrderBy = Setting::get('default_display_order_by', 'category');
+        $categoryDisplayStyle = Setting::get('category_display_style', 'grid');
 
         $seoTitle = 'Quara Wardrobe | Online Fashion Store & Ladies Wear';
         $seoDescription = 'Shop elegant, trendy & affordable ladies fashion, western wear, Korean tops, and stylish dresses at Quara Wardrobe online store. Fast pan-India delivery.';
@@ -144,6 +145,7 @@ class HomeController extends Controller
             'allSizes',
             'currentCategory',
             'displayOrderBy',
+            'categoryDisplayStyle',
             'seoTitle',
             'seoDescription',
             'canonicalUrl'

@@ -98,28 +98,31 @@
     <!-- Alert / Toast Container -->
     <div id="ajaxAlertContainer"></div>
 
-    <!-- SECTION 1: DEFAULT ORDER PREFERENCE -->
+    <!-- SECTION 1: DEFAULT ORDER & LAYOUT PREFERENCE -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white border-bottom py-3 px-4">
             <h5 class="font-serif fw-bold mb-0 text-dark fs-6 fs-md-5">
-                <i class="fa-solid fa-sliders text-gold me-2"></i> 1. Default Client Display Preference
+                <i class="fa-solid fa-sliders text-gold me-2"></i> 1. Default Client Display & Layout Preferences
             </h5>
-            <small class="text-muted">Choose what customer sees first on the home page as default.</small>
+            <small class="text-muted">Choose section ordering and category presentation mode on the customer home page.</small>
         </div>
         <div class="card-body p-3 p-md-4">
             <form id="preferenceForm" action="{{ route('admin.display-order.update-preference') }}" method="POST">
                 @csrf
-                <div class="row g-3">
+                <!-- Sub-Section A: Section Order -->
+                <h6 class="font-serif fw-bold text-dark mb-2">A. Main Page Section Order</h6>
+                <p class="small text-muted mb-3" style="font-size: 0.76rem;">Select which component appears at the top of the main home page.</p>
+                <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="w-100 h-100 mb-0">
-                            <input type="radio" name="default_display_order_by" value="category" class="d-none preference-radio" {{ $defaultOrderBy === 'category' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 p-md-4 h-100 {{ $defaultOrderBy === 'category' ? 'active' : '' }}" id="prefCardCategory">
+                            <input type="radio" name="default_display_order_by" value="category" class="d-none preference-radio-order" {{ ($defaultOrderBy ?? 'category') === 'category' ? 'checked' : '' }}>
+                            <div class="preference-card p-3 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'category' ? 'active' : '' }}" id="prefCardCategory">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="bg-warning text-dark rounded-circle p-2.5 p-md-3 fs-5 fs-md-4 flex-shrink-0" style="background-color: var(--qw-gold) !important;">
                                         <i class="fa-solid fa-layer-group"></i>
                                     </div>
                                     <div>
-                                        <h6 class="fw-bold text-dark mb-1 small">Order Based On: Category</h6>
+                                        <h6 class="fw-bold text-dark mb-1 small"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Category, 2nd Products</h6>
                                         <p class="small text-muted mb-0" style="font-size: 0.74rem;">Client website displays Categories first on home page, followed by Trending Products.</p>
                                     </div>
                                 </div>
@@ -129,14 +132,14 @@
 
                     <div class="col-md-6">
                         <label class="w-100 h-100 mb-0">
-                            <input type="radio" name="default_display_order_by" value="product" class="d-none preference-radio" {{ $defaultOrderBy === 'product' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 p-md-4 h-100 {{ $defaultOrderBy === 'product' ? 'active' : '' }}" id="prefCardProduct">
+                            <input type="radio" name="default_display_order_by" value="product" class="d-none preference-radio-order" {{ ($defaultOrderBy ?? 'category') === 'product' ? 'checked' : '' }}>
+                            <div class="preference-card p-3 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'product' ? 'active' : '' }}" id="prefCardProduct">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="bg-dark text-white rounded-circle p-2.5 p-md-3 fs-5 fs-md-4 flex-shrink-0">
                                         <i class="fa-solid fa-shirt text-warning"></i>
                                     </div>
                                     <div>
-                                        <h6 class="fw-bold text-dark mb-1 small">Order Based On: Product</h6>
+                                        <h6 class="fw-bold text-dark mb-1 small"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Products, 2nd Category</h6>
                                         <p class="small text-muted mb-0" style="font-size: 0.74rem;">Client website displays Trending Products first on home page, followed by Shop Categories.</p>
                                     </div>
                                 </div>
@@ -145,9 +148,61 @@
                     </div>
                 </div>
 
+                <hr class="my-4">
+
+                <!-- Sub-Section B: Category Layout Style -->
+                <h6 class="font-serif fw-bold text-dark mb-2">B. Category Display Layout Style</h6>
+                <p class="small text-muted mb-3" style="font-size: 0.76rem;">Choose how categories are formatted and presented to customers on the home page.</p>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="w-100 h-100 mb-0">
+                            <input type="radio" name="category_display_style" value="grid" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'checked' : '' }}>
+                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'active' : '' }}" id="styleCardGrid">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="bg-secondary text-white rounded-circle p-2 fs-6 flex-shrink-0">
+                                        <i class="fa-solid fa-table-cells-large"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 small">Grid Cards View</h6>
+                                </div>
+                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Normal 2-column (mobile) & 4-column (desktop) responsive category cards.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="w-100 h-100 mb-0">
+                            <input type="radio" name="category_display_style" value="drawer" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'checked' : '' }}>
+                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'active' : '' }}" id="styleCardDrawer">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="bg-dark text-warning rounded-circle p-2 fs-6 flex-shrink-0">
+                                        <i class="fa-solid fa-sidebar"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 small">Right Drawer Panel</h6>
+                                </div>
+                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Displays a compact icon button on home page that opens a slick right-side drawer listing categories.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="w-100 h-100 mb-0">
+                            <input type="radio" name="category_display_style" value="horizontal_scroll" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'checked' : '' }}>
+                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'active' : '' }}" id="styleCardScroll">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="bg-primary text-white rounded-circle p-2 fs-6 flex-shrink-0">
+                                        <i class="fa-solid fa-arrows-left-right"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 small">Horizontal Scroll</h6>
+                                </div>
+                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Displays all categories in a linear single-row horizontal slider with smooth left/right scrolling.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="mt-3 text-end">
-                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark btn-sm py-2" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" id="savePrefBtn">
-                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preference
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark btn-sm py-2 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" id="savePrefBtn">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preferences
                     </button>
                 </div>
             </form>
@@ -303,22 +358,36 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Preference Radio Styling & AJAX Save
-    const radios = document.querySelectorAll('.preference-radio');
-    radios.forEach(radio => {
+    // Section Order Radios Styling
+    const orderRadios = document.querySelectorAll('.preference-radio-order');
+    orderRadios.forEach(radio => {
         radio.addEventListener('change', function() {
-            document.querySelectorAll('.preference-card').forEach(card => card.classList.remove('active'));
-            if (this.value === 'category') {
-                document.getElementById('prefCardCategory').classList.add('active');
-            } else {
-                document.getElementById('prefCardProduct').classList.add('active');
-            }
+            document.querySelectorAll('.preference-radio-order').forEach(r => {
+                const card = r.closest('label').querySelector('.preference-card');
+                if (card) card.classList.remove('active');
+            });
+            const activeCard = this.closest('label').querySelector('.preference-card');
+            if (activeCard) activeCard.classList.add('active');
+        });
+    });
+
+    // Category Style Radios Styling
+    const styleRadios = document.querySelectorAll('.preference-radio-style');
+    styleRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('.preference-radio-style').forEach(r => {
+                const card = r.closest('label').querySelector('.preference-card');
+                if (card) card.classList.remove('active');
+            });
+            const activeCard = this.closest('label').querySelector('.preference-card');
+            if (activeCard) activeCard.classList.add('active');
         });
     });
 
     document.getElementById('preferenceForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const selectedPref = document.querySelector('input[name="default_display_order_by"]:checked').value;
+        const selectedPref = document.querySelector('input[name="default_display_order_by"]:checked')?.value || 'category';
+        const selectedStyle = document.querySelector('input[name="category_display_style"]:checked')?.value || 'grid';
         const submitBtn = document.getElementById('savePrefBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
@@ -330,22 +399,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ default_display_order_by: selectedPref })
+            body: JSON.stringify({
+                default_display_order_by: selectedPref,
+                category_display_style: selectedStyle
+            })
         })
         .then(res => res.json())
         .then(data => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preference';
+            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preferences';
             if (data.success) {
                 showAlert('success', data.message);
             } else {
-                showAlert('danger', 'Failed to update preference.');
+                showAlert('danger', 'Failed to update preferences.');
             }
         })
         .catch(err => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preference';
-            showAlert('danger', 'Server error while saving preference.');
+            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Display Preferences';
+            showAlert('danger', 'Server error while saving preferences.');
         });
     });
 

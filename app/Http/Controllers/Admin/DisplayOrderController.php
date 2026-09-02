@@ -25,17 +25,22 @@ class DisplayOrderController extends Controller
             ->get();
 
         $defaultOrderBy = Setting::get('default_display_order_by', 'category');
+        $categoryDisplayStyle = Setting::get('category_display_style', 'grid');
 
-        return view('admin.display_order.index', compact('categories', 'products', 'defaultOrderBy'));
+        return view('admin.display_order.index', compact('categories', 'products', 'defaultOrderBy', 'categoryDisplayStyle'));
     }
 
     public function updatePreference(Request $request)
     {
         $validated = $request->validate([
             'default_display_order_by' => ['required', 'in:category,product'],
+            'category_display_style' => ['nullable', 'in:grid,drawer,horizontal_scroll'],
         ]);
 
         Setting::set('default_display_order_by', $validated['default_display_order_by'], 'general');
+        if (isset($validated['category_display_style'])) {
+            Setting::set('category_display_style', $validated['category_display_style'], 'general');
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([

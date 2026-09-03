@@ -284,7 +284,7 @@
 <body>
 
     <!-- Mobile Sidebar Backdrop Overlay -->
-    <div class="sidebar-overlay d-lg-none" id="sidebarOverlay"></div>
+    <div class="sidebar-overlay d-lg-none" id="sidebarOverlay" onclick="window.closeAdminSidebar()"></div>
 
     <!-- Admin Sidebar -->
     <aside class="admin-sidebar" id="adminSidebar">
@@ -292,7 +292,7 @@
             <a href="{{ route('admin.dashboard') }}">
                 <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" style="max-height: 42px; max-width: 190px; object-fit: contain;">
             </a>
-            <button type="button" class="btn text-white p-1 d-lg-none border-0 shadow-none fs-5" id="sidebarCloseBtn" title="Close Menu">
+            <button type="button" class="btn text-white p-1 d-lg-none border-0 shadow-none fs-5" id="sidebarCloseBtn" onclick="window.closeAdminSidebar()" title="Close Menu">
                 <i class="fa-solid fa-xmark text-warning"></i>
             </button>
         </div>

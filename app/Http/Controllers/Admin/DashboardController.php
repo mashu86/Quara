@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Expense;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductSize;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        $todayStr = Carbon::now('Asia/Kolkata')->toDateString();
+
         $totalProducts = Product::count();
         $activeProducts = Product::where('status', 'active')->count();
         $totalCategories = Category::count();
@@ -41,6 +45,19 @@ class DashboardController extends Controller
         $cancelledOrders = (clone $realOrdersQuery)->where('order_status', 'cancelled')->count();
 
         $totalSales = (clone $realOrdersQuery)->where('payment_status', 'paid')->sum('grand_total');
+
+        // Today Metrics Calculations (Asia/Kolkata Timezone)
+        $todaySales = (clone $realOrdersQuery)
+            ->where('payment_status', 'paid')
+            ->where(function ($q) use ($todayStr) {
+                $q->whereDate('created_at', $todayStr)
+                  ->orWhereDate('sale_date', $todayStr);
+            })
+            ->sum('grand_total');
+
+        $todayExpenses = Expense::whereDate('expense_date', $todayStr)->sum('amount');
+        $todayOrdersCount = (clone $realOrdersQuery)->whereDate('created_at', $todayStr)->count();
+        $todayBookingsCount = Product::where('is_out_of_stock', 1)->count();
 
         // Low stock products (size stock <= 3)
         $lowStockSizes = ProductSize::with('product')
@@ -72,6 +89,10 @@ class DashboardController extends Controller
             'completedOrders',
             'cancelledOrders',
             'totalSales',
+            'todaySales',
+            'todayExpenses',
+            'todayOrdersCount',
+            'todayBookingsCount',
             'lowStockSizes',
             'outOfStockSizes',
             'newOrders',

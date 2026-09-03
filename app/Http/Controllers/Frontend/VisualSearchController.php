@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\VisualEmbeddingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -16,13 +17,15 @@ class VisualSearchController extends Controller
 
     private const AI_BATCH_SIZE = 12;
 
-    public function search(Request $request): JsonResponse
+    public function search(Request $request, VisualEmbeddingService $embeddingService): JsonResponse
     {
         $request->validate([
             'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
 
         try {
+            $tempPath = $request->file('image')->getRealPath();
+
             $products = Product::active()
                 ->with(['category', 'images'])
                 ->get();
@@ -40,7 +43,7 @@ class VisualSearchController extends Controller
 
             if ($apiKey !== '') {
                 $aiResult = $this->matchCatalogWithVision(
-                    $request->file('image')->getRealPath(),
+                    $tempPath,
                     $products,
                     $apiKey
                 );
@@ -57,8 +60,27 @@ class VisualSearchController extends Controller
                 }
             }
 
+            // Perform vector similarity search using catalog stored embeddings
+            $vectorMatches = $embeddingService->searchSimilarProducts($tempPath, self::MAX_RESULTS, 52.0);
+
+            if (! empty($vectorMatches)) {
+                $formattedVectorProducts = array_map(function ($item) {
+                    return array_merge($this->formatProduct($item['product']), [
+                        'match_score' => (int) $item['score'],
+                    ]);
+                }, $vectorMatches);
+
+                return response()->json([
+                    'success' => true,
+                    'matching_mode' => 'vector_embedding',
+                    'client_visual_verification' => false,
+                    'total_matches' => count($formattedVectorProducts),
+                    'products' => $formattedVectorProducts,
+                ]);
+            }
+
             // The browser compares the uploaded photo with these actual product
-            // images. This works even when GD/Imagick or an AI key is unavailable.
+            // images if database vector matches fall below threshold.
             return response()->json([
                 'success' => true,
                 'matching_mode' => 'browser_visual',

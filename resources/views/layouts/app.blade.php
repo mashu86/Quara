@@ -125,6 +125,22 @@
             font-family: 'Playfair Display', Georgia, serif;
         }
 
+        /* Global Mobile Headings Scaling */
+        @media (max-width: 576px) {
+            h1, .h1 { font-size: 1.35rem !important; }
+            h2, .h2 { font-size: 1.22rem !important; }
+            h3, .h3 { font-size: 1.12rem !important; }
+            h4, .h4 { font-size: 1.0rem !important; }
+            h5, .h5 { font-size: 0.90rem !important; }
+            h6, .h6 { font-size: 0.82rem !important; }
+            .display-1 { font-size: 2.1rem !important; }
+            .display-2 { font-size: 1.9rem !important; }
+            .display-3 { font-size: 1.7rem !important; }
+            .display-4 { font-size: 1.5rem !important; }
+            .display-5 { font-size: 1.3rem !important; }
+            .display-6 { font-size: 1.15rem !important; }
+        }
+
         /* Gold accents */
         .text-gold { color: var(--qw-gold) !important; }
         .bg-gold { background-color: var(--qw-gold) !important; color: #fff; }
@@ -456,11 +472,9 @@
                 </a>
 
                 <div class="d-flex align-items-center d-lg-none ms-auto me-2 gap-1">
-                    {{-- Search by Photo button intentionally hidden.
-                    <button type="button" class="btn btn-link text-gold p-2" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="Search by Photo / Screenshot">
+                    <button type="button" class="btn btn-link text-gold p-2" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="Visual Search / Search by Photo">
                         <i class="fa-solid fa-camera fs-5"></i>
                     </button>
-                    --}}
                     <a href="#" class="btn btn-link text-dark p-2" data-bs-toggle="modal" data-bs-target="#searchModal">
                         <i class="fa-solid fa-magnifying-glass fs-5"></i>
                     </a>
@@ -506,11 +520,9 @@
                             <i class="fa-solid fa-magnifying-glass text-dark"></i>
                         </button>
 
-                        {{-- Search by Photo button intentionally hidden.
                         <button type="button" class="btn rounded-pill px-3 py-2 btn-sm fw-bold shadow-sm d-flex align-items-center gap-1 border-0 text-white" data-bs-toggle="modal" data-bs-target="#imageSearchModal" style="background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);">
-                            <i class="fa-solid fa-camera me-1"></i> Search by Photo
+                            <i class="fa-solid fa-camera me-1"></i> Visual Search
                         </button>
-                        --}}
 
                         <a href="{{ route('cart.index') }}" class="btn btn-outline-dark rounded-pill px-3 position-relative d-flex align-items-center gap-2">
                             <i class="fa-solid fa-bag-shopping text-gold"></i>

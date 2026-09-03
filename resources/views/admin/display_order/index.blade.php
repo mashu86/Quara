@@ -37,6 +37,18 @@
         .order-card-title {
             font-size: 0.78rem !important;
         }
+        .pref-title {
+            font-size: 0.68rem !important;
+            line-height: 1.15 !important;
+        }
+        .pref-desc {
+            font-size: 0.60rem !important;
+            line-height: 1.1 !important;
+        }
+        .preference-card {
+            padding: 8px 6px !important;
+            border-radius: 10px !important;
+        }
     }
     .category-order-item, .product-order-item {
         cursor: grab;
@@ -112,35 +124,35 @@
                 <!-- Sub-Section A: Section Order -->
                 <h6 class="font-serif fw-bold text-dark mb-2">A. Main Page Section Order</h6>
                 <p class="small text-muted mb-3" style="font-size: 0.76rem;">Select which component appears at the top of the main home page.</p>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
+                <div class="row g-2 g-md-3 mb-4">
+                    <div class="col-6 col-md-6">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="default_display_order_by" value="category" class="d-none preference-radio-order" {{ ($defaultOrderBy ?? 'category') === 'category' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'category' ? 'active' : '' }}" id="prefCardCategory">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-warning text-dark rounded-circle p-2.5 p-md-3 fs-5 fs-md-4 flex-shrink-0" style="background-color: var(--qw-gold) !important;">
+                            <div class="preference-card p-2 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'category' ? 'active' : '' }}" id="prefCardCategory">
+                                <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="bg-warning text-dark rounded-circle p-2 p-md-3 fs-5 fs-md-4 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="background-color: var(--qw-gold) !important; width: 40px; height: 40px;">
                                         <i class="fa-solid fa-layer-group"></i>
                                     </div>
                                     <div>
-                                        <h6 class="fw-bold text-dark mb-1 small"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Category, 2nd Products</h6>
-                                        <p class="small text-muted mb-0" style="font-size: 0.74rem;">Client website displays Categories first on home page, followed by Trending Products.</p>
+                                        <h6 class="fw-bold text-dark mb-1 pref-title"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Category, 2nd Products</h6>
+                                        <p class="small text-muted mb-0 pref-desc">Categories first, then Trending Products.</p>
                                     </div>
                                 </div>
                             </div>
                         </label>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-6 col-md-6">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="default_display_order_by" value="product" class="d-none preference-radio-order" {{ ($defaultOrderBy ?? 'category') === 'product' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'product' ? 'active' : '' }}" id="prefCardProduct">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-dark text-white rounded-circle p-2.5 p-md-3 fs-5 fs-md-4 flex-shrink-0">
+                            <div class="preference-card p-2 p-md-4 h-100 {{ ($defaultOrderBy ?? 'category') === 'product' ? 'active' : '' }}" id="prefCardProduct">
+                                <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="bg-dark text-white rounded-circle p-2 p-md-3 fs-5 fs-md-4 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                         <i class="fa-solid fa-shirt text-warning"></i>
                                     </div>
                                     <div>
-                                        <h6 class="fw-bold text-dark mb-1 small"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Products, 2nd Category</h6>
-                                        <p class="small text-muted mb-0" style="font-size: 0.74rem;">Client website displays Trending Products first on home page, followed by Shop Categories.</p>
+                                        <h6 class="fw-bold text-dark mb-1 pref-title"><i class="fa-solid fa-circle-check text-success me-1 d-none active-check"></i> 1st Products, 2nd Category</h6>
+                                        <p class="small text-muted mb-0 pref-desc">Products first, then Shop Categories.</p>
                                     </div>
                                 </div>
                             </div>
@@ -153,48 +165,48 @@
                 <!-- Sub-Section B: Category Layout Style -->
                 <h6 class="font-serif fw-bold text-dark mb-2">B. Category Display Layout Style</h6>
                 <p class="small text-muted mb-3" style="font-size: 0.76rem;">Choose how categories are formatted and presented to customers on the home page.</p>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                <div class="row g-1 g-md-3 mb-4">
+                    <div class="col-4 col-md-4">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="grid" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'active' : '' }}" id="styleCardGrid">
-                                <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-secondary text-white rounded-circle p-2 fs-6 flex-shrink-0">
+                            <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'active' : '' }}" id="styleCardGrid">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="bg-secondary text-white rounded-circle p-2 fs-6 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                                         <i class="fa-solid fa-table-cells-large"></i>
                                     </div>
-                                    <h6 class="fw-bold text-dark mb-0 small">Grid Cards View</h6>
+                                    <h6 class="fw-bold text-dark mb-0 pref-title">Grid View</h6>
                                 </div>
-                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Normal 2-column (mobile) & 4-column (desktop) responsive category cards.</p>
+                                <p class="small text-muted mb-0 pref-desc">Normal responsive grid cards.</p>
                             </div>
                         </label>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-4 col-md-4">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="drawer" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'active' : '' }}" id="styleCardDrawer">
-                                <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-dark text-warning rounded-circle p-2 fs-6 flex-shrink-0">
+                            <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'active' : '' }}" id="styleCardDrawer">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="bg-dark text-warning rounded-circle p-2 fs-6 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                                         <i class="fa-solid fa-sidebar"></i>
                                     </div>
-                                    <h6 class="fw-bold text-dark mb-0 small">Right Drawer Panel</h6>
+                                    <h6 class="fw-bold text-dark mb-0 pref-title">Right Drawer</h6>
                                 </div>
-                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Displays a compact icon button on home page that opens a slick right-side drawer listing categories.</p>
+                                <p class="small text-muted mb-0 pref-desc">Right-side drawer panel.</p>
                             </div>
                         </label>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-4 col-md-4">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="horizontal_scroll" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'checked' : '' }}>
-                            <div class="preference-card p-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'active' : '' }}" id="styleCardScroll">
-                                <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-primary text-white rounded-circle p-2 fs-6 flex-shrink-0">
+                            <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'active' : '' }}" id="styleCardScroll">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="bg-primary text-white rounded-circle p-2 fs-6 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                                         <i class="fa-solid fa-arrows-left-right"></i>
                                     </div>
-                                    <h6 class="fw-bold text-dark mb-0 small">Horizontal Scroll</h6>
+                                    <h6 class="fw-bold text-dark mb-0 pref-title">Horizontal Scroll</h6>
                                 </div>
-                                <p class="small text-muted mb-0" style="font-size: 0.72rem;">Displays all categories in a linear single-row horizontal slider with smooth left/right scrolling.</p>
+                                <p class="small text-muted mb-0 pref-desc">Linear single-row slider.</p>
                             </div>
                         </label>
                     </div>

@@ -39,12 +39,12 @@
 
 <!-- Desktop Search & Filters (d-none d-lg-block) -->
 <div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
-    <div class="card-body">
-        <form action="{{ route('admin.products.index') }}" method="GET" class="row g-3">
-            <div class="col-md-3">
+    <div class="card-body py-3">
+        <form action="{{ route('admin.products.index') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-lg-3">
                 <input type="text" name="search" class="form-control rounded-3" placeholder="Search product name..." value="{{ request()->search }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-2">
                 <select name="category_id" class="form-select rounded-3">
                     <option value="">All Categories</option>
                     @foreach($categories as $cat)
@@ -52,14 +52,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
-                <select name="status" class="form-select rounded-3">
-                    <option value="">All Statuses</option>
-                    <option value="active" {{ request()->status === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request()->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
-            </div>
-            <div class="col-md-2">
+            <div class="col-lg-2">
                 <select name="stock_status" class="form-select rounded-3">
                     <option value="">All Products</option>
                     <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
@@ -67,13 +60,23 @@
                     <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>0 Stock Available</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <select name="sort" class="form-select rounded-3" onchange="this.form.submit()">
+            <div class="col-lg-2">
+                <select name="sort" class="form-select rounded-3">
                     <option value="newest" {{ request()->sort === 'newest' ? 'selected' : '' }}>Newest</option>
                     <option value="oldest" {{ request()->sort === 'oldest' ? 'selected' : '' }}>Oldest</option>
                     <option value="price_low" {{ request()->sort === 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
                     <option value="price_high" {{ request()->sort === 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
                 </select>
+            </div>
+            <div class="col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark rounded-3 flex-grow-1 fw-bold text-nowrap d-flex align-items-center justify-content-center gap-1">
+                    <i class="fa-solid fa-sliders text-warning"></i> Apply Filter
+                </button>
+                @if(count(request()->all()) > 0)
+                    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 text-nowrap d-flex align-items-center justify-content-center px-3" title="Clear Filters">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset
+                    </a>
+                @endif
             </div>
         </form>
     </div>

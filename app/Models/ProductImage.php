@@ -22,6 +22,26 @@ class ProductImage extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function embedding(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ProductImageEmbedding::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (ProductImage $productImage) {
+            try {
+                app(\App\Services\VisualEmbeddingService::class)->storeOrUpdateEmbedding($productImage);
+            } catch (\Throwable $e) {
+                // Silently handle transient files
+            }
+        });
+
+        static::deleted(function (ProductImage $productImage) {
+            ProductImageEmbedding::where('product_image_id', $productImage->id)->delete();
+        });
+    }
+
     public function getImageUrlAttribute(): string
     {
         if (empty($this->image_path)) {

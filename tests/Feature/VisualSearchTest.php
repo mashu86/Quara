@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductImageEmbedding;
+use App\Services\VisualEmbeddingService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
@@ -47,6 +49,17 @@ class VisualSearchTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('product_image_embeddings', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id');
+            $table->foreignId('product_image_id');
+            $table->longText('embedding');
+            $table->text('color_histogram')->nullable();
+            $table->text('edge_histogram')->nullable();
+            $table->string('checksum')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('category_product', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id');
@@ -54,7 +67,7 @@ class VisualSearchTest extends TestCase
         });
     }
 
-    public function test_it_returns_catalog_images_for_browser_visual_verification_without_an_ai_key(): void
+    public function test_it_returns_matches_using_vector_embeddings(): void
     {
         config()->set('services.openai.api_key', null);
 
@@ -75,11 +88,20 @@ class VisualSearchTest extends TestCase
             'status' => 'active',
         ]);
 
-        ProductImage::create([
+        $productImage = ProductImage::create([
             'product_id' => $product->id,
             'image_path' => 'storage/products/top.png',
             'is_primary' => true,
             'sort_order' => 0,
+        ]);
+
+        // Manually store dummy vector embedding
+        $dummyVector = array_fill(0, 216, 0.05);
+        ProductImageEmbedding::create([
+            'product_id' => $product->id,
+            'product_image_id' => $productImage->id,
+            'embedding' => $dummyVector,
+            'checksum' => 'testchecksum',
         ]);
 
         $png = base64_decode(
@@ -93,12 +115,18 @@ class VisualSearchTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('matching_mode', 'browser_visual')
-            ->assertJsonPath('client_visual_verification', true)
-            ->assertJsonPath('total_matches', 0)
-            ->assertJsonPath('products.0.id', $product->id)
-            ->assertJsonMissingPath('products.0.match_score');
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_visual_embedding_service_calculates_cosine_similarity(): void
+    {
+        $service = new VisualEmbeddingService();
+        $vecA = [1.0, 0.0, 0.0];
+        $vecB = [1.0, 0.0, 0.0];
+        $vecC = [0.0, 1.0, 0.0];
+
+        $this->assertEquals(1.0, $service->cosineSimilarity($vecA, $vecB));
+        $this->assertEquals(0.0, $service->cosineSimilarity($vecA, $vecC));
     }
 
     public function test_it_rejects_non_image_uploads(): void

@@ -66,6 +66,18 @@
             font-family: 'Playfair Display', Georgia, serif;
         }
 
+        /* Global Mobile Headings Scaling (Force h1, h2, h3, h4 to render small as h5 size on mobile) */
+        @media (max-width: 576px) {
+            h1, .h1, h2, .h2, h3, .h3, h4, .h4 { font-size: 0.95rem !important; line-height: 1.25 !important; }
+            h5, .h5 { font-size: 0.90rem !important; }
+            h6, .h6 { font-size: 0.82rem !important; }
+            .fs-1, .fs-2, .fs-3, .fs-4 { font-size: 0.95rem !important; }
+            .display-1, .display-2, .display-3, .display-4, .display-5, .display-6 { font-size: 1.0rem !important; }
+            .card-header h1, .card-header h2, .card-header h3, .card-header h4, .card-header h5, .card-header h6 {
+                font-size: 0.88rem !important;
+            }
+        }
+
         /* Sidebar Styling */
         .admin-sidebar {
             width: 260px;

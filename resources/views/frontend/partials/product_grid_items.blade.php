@@ -1,5 +1,5 @@
 @forelse($products as $product)
-    <div class="col-6 col-md-4 product-item-col animate__animated animate__fadeIn">
+    <div class="col-6 col-md-4 col-lg-3 product-item-col animate__animated animate__fadeIn">
         <div class="qw-product-card h-100 d-flex flex-column">
             @if($product->discount_type !== 'none' && $product->price > 0)
                 @php

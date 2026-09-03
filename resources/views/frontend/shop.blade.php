@@ -80,18 +80,31 @@
         + (request()->filled('stock') ? 1 : 0);
 @endphp
 
-    <!-- Universal Filter Button Bar (Mobile & Desktop) -->
-    <div class="mt-3 mb-4">
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-dark rounded-pill px-3 py-2 flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#shopFilterModal">
-                <i class="fa-solid fa-sliders text-warning"></i>
-                <span class="fw-semibold">Filter & Search</span>
+    <style>
+        .filter-trigger-btn {
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .filter-trigger-btn {
+                width: auto !important;
+            }
+        }
+    </style>
+
+    <!-- Universal Filter Button Bar (Right-aligned on Desktop, White & Gold style) -->
+    <div class="d-flex justify-content-end mt-3 mb-4">
+        <div class="d-flex gap-2 w-100 justify-content-end align-items-center">
+            <button type="button" class="btn rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2 filter-trigger-btn"
+                    data-bs-toggle="modal" data-bs-target="#shopFilterModal"
+                    style="background-color: #ffffff; border: 2px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease;">
+                <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 1.05rem;"></i>
+                <span class="fw-bold" style="color: #D4AF37; letter-spacing: 0.3px;">Filter & Search</span>
                 @if($activeShopFilterCount > 0)
-                    <span class="badge bg-warning text-dark rounded-pill">{{ $activeShopFilterCount }}</span>
+                    <span class="badge rounded-pill text-white ms-1" style="background-color: #D4AF37;">{{ $activeShopFilterCount }}</span>
                 @endif
             </button>
             @if($activeShopFilterCount > 0)
-                <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Clear Filters">
+                <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center" title="Clear Filters" style="border-color: #ddd;">
                     <i class="fa-solid fa-rotate-left"></i>
                 </a>
             @endif

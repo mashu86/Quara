@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -89,24 +90,24 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'category' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
-            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
+            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
         ]);
 
         $imagePaths = [];
         if ($request->hasFile('receipt_images')) {
             foreach ($request->file('receipt_images') as $file) {
                 if ($file && $file->isValid()) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('uploads/expenses'), $filename);
-                    $imagePaths[] = 'uploads/expenses/' . $filename;
+                    $savedPath = ImageOptimizerService::optimizeAndStore($file, 'expenses', 'public');
+                    $imagePaths[] = 'storage/' . $savedPath;
                 }
             }
         } elseif ($request->hasFile('receipt_image')) {
             $file = $request->file('receipt_image');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/expenses'), $filename);
-            $imagePaths[] = 'uploads/expenses/' . $filename;
+            if ($file && $file->isValid()) {
+                $savedPath = ImageOptimizerService::optimizeAndStore($file, 'expenses', 'public');
+                $imagePaths[] = 'storage/' . $savedPath;
+            }
         }
 
         $receiptValue = null;
@@ -169,8 +170,8 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'category' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
-            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'receipt_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
+            'receipt_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
         ]);
 
         $existingImages = $expense->receipt_images;
@@ -204,16 +205,16 @@ class ExpenseController extends Controller
         if ($request->hasFile('receipt_images')) {
             foreach ($request->file('receipt_images') as $file) {
                 if ($file && $file->isValid()) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('uploads/expenses'), $filename);
-                    $newImagePaths[] = 'uploads/expenses/' . $filename;
+                    $savedPath = ImageOptimizerService::optimizeAndStore($file, 'expenses', 'public');
+                    $newImagePaths[] = 'storage/' . $savedPath;
                 }
             }
         } elseif ($request->hasFile('receipt_image')) {
             $file = $request->file('receipt_image');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/expenses'), $filename);
-            $newImagePaths[] = 'uploads/expenses/' . $filename;
+            if ($file && $file->isValid()) {
+                $savedPath = ImageOptimizerService::optimizeAndStore($file, 'expenses', 'public');
+                $newImagePaths[] = 'storage/' . $savedPath;
+            }
         }
 
         $finalImages = array_merge($existingImages, $newImagePaths);

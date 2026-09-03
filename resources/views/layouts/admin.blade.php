@@ -586,8 +586,10 @@
         function handleAdminFormSubmit(form) {
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn && !submitBtn.disabled) {
-                submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> UPLOADING & SAVING... PLEASE WAIT...';
+                setTimeout(function() {
+                    submitBtn.disabled = true;
+                }, 10);
             }
             return true;
         }

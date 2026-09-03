@@ -37,6 +37,11 @@ class SocialMediaController extends Controller
         return redirect()->route('admin.social-media.index')->with('success', 'Social media entry added successfully!');
     }
 
+    public function show(SocialMedia $socialMedia)
+    {
+        return redirect()->route('admin.social-media.edit', $socialMedia);
+    }
+
     public function edit(SocialMedia $socialMedia)
     {
         return view('admin.social_media.edit', compact('socialMedia'));

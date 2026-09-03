@@ -31,6 +31,11 @@ class ShippingPolicyController extends Controller
         return redirect()->route('admin.shipping-policies.index')->with('success', 'Shipping policy created successfully!');
     }
 
+    public function show(ShippingPolicy $shippingPolicy)
+    {
+        return redirect()->route('admin.shipping-policies.edit', $shippingPolicy);
+    }
+
     public function edit(ShippingPolicy $shippingPolicy)
     {
         return view('admin.shipping_policies.edit', compact('shippingPolicy'));

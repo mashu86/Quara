@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -45,7 +46,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
-            'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
+            'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
             'status' => 'required|in:active,inactive',
         ]);
@@ -53,13 +54,18 @@ class CategoryController extends Controller
         $validated['slug'] = Str::slug($validated['name']);
 
         if ($request->hasFile('background_image')) {
-            $path = $request->file('background_image')->store('categories', 'public');
+            $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
             $validated['background_image'] = 'storage/' . $path;
         }
 
         Category::create($validated);
 
         return redirect()->route('admin.categories.index')->with('success', 'Category created successfully!');
+    }
+
+    public function show(Category $category)
+    {
+        return redirect()->route('admin.categories.edit', $category);
     }
 
     public function edit(Category $category)
@@ -71,7 +77,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
-            'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
+            'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
             'status' => 'required|in:active,inactive',
         ]);
@@ -83,7 +89,7 @@ class CategoryController extends Controller
                 $oldPath = str_replace('storage/', '', $category->background_image);
                 Storage::disk('public')->delete($oldPath);
             }
-            $path = $request->file('background_image')->store('categories', 'public');
+            $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
             $validated['background_image'] = 'storage/' . $path;
         }
 

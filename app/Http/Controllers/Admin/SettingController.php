@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
@@ -37,8 +38,8 @@ class SettingController extends Controller
     {
         $validated = $request->validate([
             'site_name' => ['required', 'string', 'max:100'],
-            'site_logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
-            'site_favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,webp', 'max:1024'],
+            'site_logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:12288'],
+            'site_favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,webp', 'max:4096'],
             'mail_host' => ['required', 'string', 'max:255'],
             'mail_port' => ['required', 'integer', 'min:1', 'max:65535'],
             'mail_password' => ['nullable', 'string', 'max:1000'],
@@ -66,11 +67,11 @@ class SettingController extends Controller
         Setting::set('site_name', $validated['site_name'], 'branding');
 
         if ($request->hasFile('site_logo')) {
-            $this->replaceBrandAsset('site_logo', $request->file('site_logo')->store('settings/branding', 'public'));
+            $this->replaceBrandAsset('site_logo', ImageOptimizerService::optimizeAndStore($request->file('site_logo'), 'settings/branding', 'public'));
         }
 
         if ($request->hasFile('site_favicon')) {
-            $this->replaceBrandAsset('site_favicon', $request->file('site_favicon')->store('settings/branding', 'public'));
+            $this->replaceBrandAsset('site_favicon', ImageOptimizerService::optimizeAndStore($request->file('site_favicon'), 'settings/branding', 'public'));
         }
 
         foreach (['mail_host', 'mail_port', 'mail_encryption', 'mail_from_address', 'mail_from_name'] as $key) {

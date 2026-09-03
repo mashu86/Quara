@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HomeContent;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
 
 class HomeContentController extends Controller
@@ -27,13 +28,19 @@ class HomeContentController extends Controller
             'custom_css' => 'nullable|string',
             'image_position' => 'required|in:top,middle,bottom',
             'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:12288',
         ]);
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $validated['image_mime'] = $file->getMimeType();
-            $validated['image_blob'] = file_get_contents($file->getRealPath());
+            $optimizedBinary = ImageOptimizerService::optimizeBinary($file, 1920, 1080, 85);
+            if ($optimizedBinary !== null) {
+                $validated['image_mime'] = function_exists('imagewebp') ? 'image/webp' : ($file->getMimeType() ?: 'image/jpeg');
+                $validated['image_blob'] = $optimizedBinary;
+            } else {
+                $validated['image_mime'] = $file->getMimeType();
+                $validated['image_blob'] = file_get_contents($file->getRealPath());
+            }
         }
 
         if ($validated['status'] === 'active') {
@@ -58,13 +65,19 @@ class HomeContentController extends Controller
             'custom_css' => 'nullable|string',
             'image_position' => 'required|in:top,middle,bottom',
             'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:12288',
         ]);
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $validated['image_mime'] = $file->getMimeType();
-            $validated['image_blob'] = file_get_contents($file->getRealPath());
+            $optimizedBinary = ImageOptimizerService::optimizeBinary($file, 1920, 1080, 85);
+            if ($optimizedBinary !== null) {
+                $validated['image_mime'] = function_exists('imagewebp') ? 'image/webp' : ($file->getMimeType() ?: 'image/jpeg');
+                $validated['image_blob'] = $optimizedBinary;
+            } else {
+                $validated['image_mime'] = $file->getMimeType();
+                $validated['image_blob'] = file_get_contents($file->getRealPath());
+            }
         }
 
         if ($validated['status'] === 'active') {

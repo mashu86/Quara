@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
+use App\Services\ImageOptimizerService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -131,8 +132,8 @@ class ProductController extends Controller
             'is_out_of_stock' => 'nullable|boolean',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
-            'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:3072',
-            'sub_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:3072',
+            'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
+            'sub_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'sizes' => 'required|array',
             'stocks' => 'required|array',
         ]);
@@ -186,7 +187,7 @@ class ProductController extends Controller
             }
 
             // Handle Images
-            $mainPath = $request->file('main_image')->store('products', 'public');
+            $mainPath = ImageOptimizerService::optimizeAndStore($request->file('main_image'), 'products', 'public');
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => 'storage/' . $mainPath,
@@ -195,7 +196,7 @@ class ProductController extends Controller
             ]);
 
             foreach ($request->file('sub_images', []) as $i => $imageFile) {
-                $path = $imageFile->store('products', 'public');
+                $path = ImageOptimizerService::optimizeAndStore($imageFile, 'products', 'public');
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_path' => 'storage/' . $path,
@@ -206,6 +207,11 @@ class ProductController extends Controller
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product created successfully!');
+    }
+
+    public function show(Product $product)
+    {
+        return redirect()->route('admin.products.edit', $product);
     }
 
     public function edit(Product $product)
@@ -241,7 +247,7 @@ class ProductController extends Controller
             'is_out_of_stock' => 'nullable|boolean',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
-            'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:3072',
+            'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'existing_sizes' => 'nullable|array',
             'existing_sizes.*' => 'required|string|max:50',
             'existing_stocks' => 'nullable|array',
@@ -323,33 +329,41 @@ class ProductController extends Controller
                 }
 
                 if (array_key_exists($sizeId, $existingStocks)) {
-                    $newStock = (int) $existingStocks[$sizeId];
-                    if ($pSize->stock !== $newStock) {
-                        $this->stockService->adjustStock($pSize->id, $newStock, $reason, auth()->user()->name);
+                    $newStock = max(0, (int) $existingStocks[$sizeId]);
+                    $oldStock = (int) $pSize->stock;
+                    $diff = $newStock - $oldStock;
+
+                    if ($diff !== 0) {
+                        $this->stockService->adjustStock(
+                            $pSize->id,
+                            $diff,
+                            $reason,
+                            auth()->user()->name
+                        );
                     }
                 }
             }
 
-            // Add new sizes
-            if ($request->has('new_sizes')) {
-                $newChests = $request->input('new_chests', []);
-                $newWaists = $request->input('new_waists', []);
-                $newLengths = $request->input('new_lengths', []);
+            // Create new sizes
+            $newSizes = $validated['new_sizes'] ?? [];
+            $newStocks = $validated['new_stocks'] ?? [];
+            $newChests = $request->input('new_chests', []);
+            $newWaists = $request->input('new_waists', []);
+            $newLengths = $request->input('new_lengths', []);
 
-                foreach ($request->new_sizes as $i => $nSize) {
-                    if (!empty($nSize)) {
-                        $nStock = max(0, (int)($request->new_stocks[$i] ?? 0));
-                        $pSize = ProductSize::create([
-                            'product_id' => $product->id,
-                            'size' => trim($nSize),
-                            'stock' => $nStock,
-                            'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
-                            'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
-                            'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
-                        ]);
-                        if ($nStock > 0) {
-                            $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);
-                        }
+            foreach ($newSizes as $i => $nSize) {
+                if (!empty($nSize)) {
+                    $nStock = max(0, (int) ($newStocks[$i] ?? 0));
+                    $pSize = ProductSize::create([
+                        'product_id' => $product->id,
+                        'size' => trim($nSize),
+                        'stock' => $nStock,
+                        'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
+                        'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
+                        'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
+                    ]);
+                    if ($nStock > 0) {
+                        $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);
                     }
                 }
             }
@@ -360,7 +374,7 @@ class ProductController extends Controller
                 $hasPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->exists();
 
                 foreach ($request->file('new_images') as $i => $imageFile) {
-                    $path = $imageFile->store('products', 'public');
+                    $path = ImageOptimizerService::optimizeAndStore($imageFile, 'products', 'public');
                     ProductImage::create([
                         'product_id' => $product->id,
                         'image_path' => 'storage/' . $path,

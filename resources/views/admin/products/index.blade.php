@@ -61,9 +61,10 @@
             </div>
             <div class="col-md-2">
                 <select name="stock_status" class="form-select rounded-3">
-                    <option value="">All Stock</option>
-                    <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>In Stock</option>
-                    <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+                    <option value="">All Products</option>
+                    <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
+                    <option value="reserved" {{ request()->stock_status === 'reserved' ? 'selected' : '' }}>🔒 Booked Products</option>
+                    <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>0 Stock Available</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -114,9 +115,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Stock Availability</label>
                         <select name="stock_status" class="form-select rounded-3">
-                            <option value="">All Stock</option>
-                            <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>In Stock</option>
-                            <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+                            <option value="">All Products</option>
+                            <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
+                            <option value="reserved" {{ request()->stock_status === 'reserved' ? 'selected' : '' }}>🔒 Booked Products</option>
+                            <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>0 Stock Available</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -154,7 +156,7 @@
                         <th>Discount</th>
                         <th>Selling Price</th>
                         <th>Size-wise Stock</th>
-                        <th>Out of Stock</th>
+                        <th>Booked Stock</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -181,48 +183,77 @@
         </div>
     </div>
 </div>
+
+<!-- Toggle Booked Details Modal -->
+<div class="modal fade" id="toggleBookedModal" tabindex="-1" aria-labelledby="toggleBookedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title font-serif fw-bold" id="toggleBookedModalLabel">
+                    <i class="fa-solid fa-user-tag text-warning me-2"></i> Mark Product as Booked
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="cancelBookedModal()"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Enter customer details below for quick tracking.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Booked By (Customer Name / Instagram Handle / Phone)</label>
+                    <input type="text" id="modalBookedByInput" class="form-control rounded-3" placeholder="e.g. Anjali (@anjali_insta / 9876543210)">
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 py-2.5">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal" onclick="cancelBookedModal()">Cancel</button>
+                <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold px-4" id="saveBookedModalBtn" onclick="submitBookedModal()" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                    <i class="fa-solid fa-check me-1"></i> Save & Mark Booked
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    let nextPageUrl = @json($products->nextPageUrl());
-    let hasMore = @json($products->hasMorePages());
-    let isLoading = false;
-
+document.addEventListener('DOMContentLoaded', function() {
     const desktopContainer = document.getElementById('products-table-scroll-container');
-    const desktopTbody = document.getElementById('products-desktop-tbody');
+    const mobileContainer = document.getElementById('products-mobile-cards-container');
     const loadingSpinner = document.getElementById('infinite-scroll-loading');
-    const endNotice = document.getElementById('infinite-scroll-end');
+    const noMoreNotice = document.getElementById('infinite-scroll-end');
+    
+    let currentPage = 1;
+    let hasMorePages = {{ $products->hasMorePages() ? 'true' : 'false' }};
+    let isLoading = false;
+    let currentBookedToggle = null;
+    let bookedModalInstance = null;
 
     function checkAndLoadMore() {
-        if (isLoading || !hasMore || !nextPageUrl) return;
+        if (isLoading || !hasMorePages) return;
 
-        let shouldLoad = false;
+        let isNearBottom = false;
 
-        if (desktopContainer && desktopContainer.offsetParent !== null) {
-            const scrollBottom = desktopContainer.scrollHeight - desktopContainer.scrollTop - desktopContainer.clientHeight;
-            if (scrollBottom < 150) {
-                shouldLoad = true;
-            }
+        if (window.innerWidth >= 992 && desktopContainer) {
+            const scrollBottom = desktopContainer.scrollTop + desktopContainer.clientHeight;
+            const scrollHeight = desktopContainer.scrollHeight;
+            isNearBottom = (scrollHeight - scrollBottom) < 150;
+        } else {
+            const windowScrollBottom = window.innerHeight + window.scrollY;
+            const docHeight = document.documentElement.scrollHeight;
+            isNearBottom = (docHeight - windowScrollBottom) < 250;
         }
 
-        const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-        if (windowScrollBottom < 300) {
-            shouldLoad = true;
-        }
-
-        if (shouldLoad) {
-            fetchNextPage();
+        if (isNearBottom) {
+            loadNextProductsPage();
         }
     }
 
-    function fetchNextPage() {
+    function loadNextProductsPage() {
         isLoading = true;
         if (loadingSpinner) loadingSpinner.classList.remove('d-none');
-        if (endNotice) endNotice.classList.add('d-none');
 
-        fetch(nextPageUrl, {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', currentPage + 1);
+
+        fetch(`${window.location.pathname}?${urlParams.toString()}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -230,20 +261,24 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.desktop_html && desktopTbody) {
-                desktopTbody.insertAdjacentHTML('beforeend', data.desktop_html);
-            }
-
-            nextPageUrl = data.next_page_url;
-            hasMore = data.has_more;
             isLoading = false;
             if (loadingSpinner) loadingSpinner.classList.add('d-none');
 
-            if (!hasMore && endNotice) {
-                endNotice.classList.remove('d-none');
-            }
+            if (data.desktop_html) {
+                currentPage++;
+                hasMorePages = data.has_more;
 
-            initOutOfStockToggles();
+                const desktopTbody = document.getElementById('products-desktop-tbody');
+                if (desktopTbody) {
+                    desktopTbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                initOutOfStockToggles();
+
+                if (!hasMorePages && noMoreNotice) {
+                    noMoreNotice.classList.remove('d-none');
+                }
+            }
         })
         .catch(err => {
             console.error('Error fetching more products:', err);
@@ -264,45 +299,132 @@ document.addEventListener('DOMContentLoaded', function () {
 
             toggle.addEventListener('change', function() {
                 const productId = this.getAttribute('data-product-id');
+                const productName = this.getAttribute('data-product-name') || 'Product';
+                const currentBookedBy = this.getAttribute('data-booked-by') || '';
                 const url = this.getAttribute('data-url');
                 const isChecked = this.checked;
-                const label = document.getElementById('outOfStockLabel_' + productId);
 
-                toggle.disabled = true;
+                if (isChecked) {
+                    // Revert checked state until user submits modal
+                    this.checked = false;
+                    currentBookedToggle = this;
 
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ is_out_of_stock: isChecked })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    toggle.disabled = false;
-                    if (data.success) {
-                        if (data.is_out_of_stock) {
-                            label.textContent = 'Out of Stock';
-                            label.className = 'form-check-label small fw-bold ms-1 text-danger';
-                        } else {
-                            label.textContent = 'Normal Stock';
-                            label.className = 'form-check-label small fw-bold ms-1 text-success';
-                        }
-                    } else {
-                        toggle.checked = !isChecked;
-                        alert(data.message || 'Error updating stock status.');
+                    const productNameElem = document.getElementById('bookedModalProductName');
+                    const bookedInputElem = document.getElementById('modalBookedByInput');
+                    if (productNameElem) productNameElem.textContent = productName;
+                    if (bookedInputElem) bookedInputElem.value = currentBookedBy;
+
+                    const modalElem = document.getElementById('toggleBookedModal');
+                    if (modalElem) {
+                        bookedModalInstance = new bootstrap.Modal(modalElem);
+                        bookedModalInstance.show();
+                        setTimeout(() => { if (bookedInputElem) bookedInputElem.focus(); }, 400);
                     }
-                })
-                .catch(err => {
-                    toggle.disabled = false;
-                    toggle.checked = !isChecked;
-                    alert('Failed to connect to server. Please try again.');
-                });
+                } else {
+                    // Un-booking product directly via toggle OFF
+                    toggle.disabled = true;
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ is_out_of_stock: false, booked_by: '' })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        toggle.disabled = false;
+                        if (data.success) {
+                            toggle.checked = false;
+                            toggle.setAttribute('data-booked-by', '');
+                            const label = document.getElementById('outOfStockLabel_' + productId);
+                            if (label) {
+                                label.textContent = 'Available';
+                                label.className = 'form-check-label small fw-bold ms-1 text-success';
+                            }
+                            const displayDiv = document.getElementById('bookedByDisplay_' + productId);
+                            if (displayDiv) displayDiv.classList.add('d-none');
+                        } else {
+                            toggle.checked = true;
+                            alert(data.message || 'Error updating stock status.');
+                        }
+                    })
+                    .catch(err => {
+                        toggle.disabled = false;
+                        toggle.checked = true;
+                        alert('Failed to connect to server.');
+                    });
+                }
             });
         });
     }
+
+    window.submitBookedModal = function() {
+        if (!currentBookedToggle) return;
+        const toggle = currentBookedToggle;
+        const productId = toggle.getAttribute('data-product-id');
+        const url = toggle.getAttribute('data-url');
+        const bookedByVal = document.getElementById('modalBookedByInput').value.trim();
+
+        toggle.disabled = true;
+        const saveBtn = document.getElementById('saveBookedModalBtn');
+        if (saveBtn) saveBtn.disabled = true;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ is_out_of_stock: true, booked_by: bookedByVal })
+        })
+        .then(res => res.json())
+        .then(data => {
+            toggle.disabled = false;
+            if (saveBtn) saveBtn.disabled = false;
+
+            if (data.success) {
+                toggle.checked = true;
+                toggle.setAttribute('data-booked-by', data.booked_by || '');
+
+                const label = document.getElementById('outOfStockLabel_' + productId);
+                if (label) {
+                    label.textContent = '🔒 Booked';
+                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
+                }
+
+                const displayDiv = document.getElementById('bookedByDisplay_' + productId);
+                const textSpan = document.getElementById('bookedByText_' + productId);
+                if (displayDiv && textSpan) {
+                    if (data.booked_by) {
+                        textSpan.textContent = data.booked_by;
+                        displayDiv.classList.remove('d-none');
+                    } else {
+                        displayDiv.classList.add('d-none');
+                    }
+                }
+
+                if (bookedModalInstance) bookedModalInstance.hide();
+                currentBookedToggle = null;
+            } else {
+                alert(data.message || 'Error updating booked status.');
+            }
+        })
+        .catch(err => {
+            toggle.disabled = false;
+            if (saveBtn) saveBtn.disabled = false;
+            alert('Failed to connect to server.');
+        });
+    };
+
+    window.cancelBookedModal = function() {
+        if (currentBookedToggle) {
+            currentBookedToggle.checked = false;
+            currentBookedToggle = null;
+        }
+    };
 
     initOutOfStockToggles();
 });

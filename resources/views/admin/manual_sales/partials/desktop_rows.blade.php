@@ -27,7 +27,9 @@
             <span class="badge bg-uppercase bg-{{ $order->payment_method === 'cash' ? 'success' : 'info' }} me-1">{{ $order->payment_method }}</span>
             <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>
         </td>
-        <td class="small text-muted">{{ $order->created_at->format('M d, Y h:i A') }}</td>
+        <td class="small text-muted" title="Recorded: {{ $order->created_at->format('M d, Y h:i A') }}">
+            <i class="fa-regular fa-calendar-check me-1 text-warning"></i>{{ ($order->sale_date ?? $order->created_at)->format('M d, Y') }}
+        </td>
         <td class="text-end pe-3">
             <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
                 <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Record Operation / Return">

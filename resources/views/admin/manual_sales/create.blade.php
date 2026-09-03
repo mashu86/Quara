@@ -64,31 +64,40 @@
 <form action="{{ route('admin.manual-sales.store') }}" method="POST" id="manualSaleForm">
     @csrf
     <div class="row g-4">
-        <!-- Left Side: Product Selection & Pricing -->
-        <div class="col-lg-7">
-            <div class="card border-0 rounded-4 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+        <!-- TOP: Select Products & Sizes (FULL WIDTH - col-12) -->
+        <div class="col-12">
+            <div class="card border-0 rounded-4 shadow-sm">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
                         <h5 class="fw-bold mb-0"><i class="fa-solid fa-boxes-packing text-warning me-2"></i> Select Products & Sizes</h5>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="hideOutOfStockSwitch" onchange="filterProductsByCategory()">
-                            <label class="form-check-label small text-muted fw-semibold" for="hideOutOfStockSwitch">Hide Out of Stock</label>
+                        
+                        <!-- 2 Clean Filter Pills: Available vs Booked -->
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Stock Filter">
+                            <input type="radio" class="btn-check" name="stock_filter_type" id="filterAvailable" value="available" checked onchange="filterProductsByCategory()">
+                            <label class="btn btn-outline-success fw-bold px-3 py-1.5 rounded-start-pill" for="filterAvailable">
+                                🟢 Available Products
+                            </label>
+
+                            <input type="radio" class="btn-check" name="stock_filter_type" id="filterBooked" value="booked" onchange="filterProductsByCategory()">
+                            <label class="btn btn-outline-warning text-dark fw-bold px-3 py-1.5 rounded-end-pill" for="filterBooked">
+                                🔒 Booked Products
+                            </label>
                         </div>
                     </div>
 
                     <!-- Category Filter Checkboxes -->
-                    <div class="mb-4">
+                    <div class="mb-3 mb-md-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label fw-bold mb-0">Filter Products by Category</label>
+                            <label class="form-label fw-bold mb-0 small">Filter Products by Category</label>
                             <div>
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none me-2 fw-semibold" onclick="selectAllCategories(true)">Select All</button>
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted fw-semibold" onclick="selectAllCategories(false)">Clear All</button>
                             </div>
                         </div>
-                        <div class="p-3 border rounded-3 bg-light" style="max-height: 130px; overflow-y: auto;">
+                        <div class="p-2.5 border rounded-3 bg-light" style="max-height: 110px; overflow-y: auto;">
                             <div class="row g-2">
                                 @foreach($categories as $cat)
-                                    <div class="col-6 col-sm-4">
+                                    <div class="col-6 col-sm-4 col-md-3">
                                         <div class="form-check">
                                             <input class="form-check-input category-checkbox" type="checkbox" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="filterProductsByCategory()">
                                             <label class="form-check-label text-truncate w-100 small fw-medium" for="cat_{{ $cat->id }}" title="{{ $cat->name }}">
@@ -132,13 +141,21 @@
                     </div>
                 </div>
             </div>
+        </div>
 
+        <!-- BOTTOM LEFT: Payment Details & Selected Items Summary (col-lg-6) -->
+        <div class="col-lg-6">
             <!-- Payment Details Card -->
-            <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-credit-card text-warning me-2"></i> Payment Details</h5>
+                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-credit-card text-warning me-2"></i> Payment & Sale Details</h5>
 
                     <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Sale Date <span class="text-danger">*</span></label>
+                            <input type="date" name="sale_date" class="form-control rounded-3" value="{{ old('sale_date', date('Y-m-d')) }}" required>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Payment Method <span class="text-danger">*</span></label>
                             <select name="payment_method" class="form-select rounded-3" required>
@@ -148,7 +165,7 @@
                             </select>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label fw-bold">Payment Status <span class="text-danger">*</span></label>
                             <select name="payment_status" class="form-select rounded-3" required>
                                 <option value="paid">Paid (Fully Received)</option>
@@ -163,26 +180,25 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Side: Order Summary & Customer Details -->
-        <div class="col-lg-5">
             <!-- Selected Items Order Summary Card -->
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">
-                        <i class="fa-solid fa-receipt text-warning me-2"></i> Selected Items (<span id="summaryItemCount">0</span>)
+                        <i class="fa-solid fa-receipt text-warning me-2"></i> Selected Items Summary (<span id="summaryItemCount">0</span>)
                     </h5>
                     <div id="orderItemsSummaryList">
                         <div class="p-3 bg-light rounded-3 text-muted text-center" id="emptySummaryPlaceholder">
                             <i class="fa-solid fa-basket-shopping fa-2x mb-2 text-secondary opacity-50"></i>
-                            <p class="mb-0 small fw-bold">No products selected yet. Select products on the left to build the order.</p>
+                            <p class="mb-0 small fw-bold">No products selected yet. Select products above to build the order.</p>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Customer Details Card -->
+        <!-- BOTTOM RIGHT: Customer Details & Submit Button (col-lg-6) -->
+        <div class="col-lg-6">
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-user text-warning me-2"></i> Customer Details</h5>
@@ -223,7 +239,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm submit-sale-btn">RECORD MANUAL SALE</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm submit-sale-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">RECORD MANUAL SALE</button>
                 </div>
             </div>
         </div>
@@ -241,8 +257,8 @@
                     [$prod->category_id],
                     $prod->categories->pluck('id')->toArray()
                 ))));
-                $totalStock = $prod->is_out_of_stock ? 0 : (int) $prod->sizes->sum('stock');
-                $isOut = $totalStock <= 0;
+                $physicalStock = (int) $prod->sizes->sum('stock');
+                $isOut = (bool) $prod->is_out_of_stock;
             @endphp
             {
                 id: {{ $prod->id }},
@@ -251,7 +267,9 @@
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
                 sizes: @json($prod->sizes),
-                isOut: {{ $isOut ? 'true' : 'false' }}
+                isOut: {{ $isOut ? 'true' : 'false' }},
+                bookedBy: @json($prod->booked_by),
+                physicalStock: {{ $physicalStock }}
             },
         @endforeach
     ];
@@ -261,9 +279,17 @@
     function buildProductOptionsHtml() {
         let html = '';
         productsData.forEach(prod => {
-            const outText = prod.isOut ? ' - ⚠️ [OUT OF STOCK]' : '';
-            const disabledAttr = prod.isOut ? 'disabled' : '';
-            html += `<option value="${prod.id}" data-price="${prod.price}" data-image="${prod.image}" data-categories='${JSON.stringify(prod.categories)}' data-out-of-stock="${prod.isOut ? '1' : '0'}" ${disabledAttr}>${prod.name} (Price: ₹${prod.price.toFixed(2)})${outText}</option>`;
+            let labelSuffix = '';
+            let disabledAttr = '';
+            
+            if (prod.isOut && prod.physicalStock > 0) {
+                let bookedInfo = prod.bookedBy ? `: ${prod.bookedBy}` : '';
+                labelSuffix = ` - 🔒 [BOOKED${bookedInfo}] (Stock: ${prod.physicalStock} pcs)`;
+            } else if (prod.physicalStock <= 0) {
+                labelSuffix = ' - ⚠️ [0 STOCK AVAILABLE]';
+                disabledAttr = 'disabled';
+            }
+            html += `<option value="${prod.id}" data-price="${prod.price}" data-image="${prod.image}" data-categories='${JSON.stringify(prod.categories)}' data-out-of-stock="${prod.isOut ? '1' : '0'}" data-physical-stock="${prod.physicalStock}" ${disabledAttr}>${prod.name} (Price: ₹${prod.price.toFixed(2)})${labelSuffix}</option>`;
         });
         return html;
     }
@@ -525,8 +551,8 @@
     function filterProductsByCategory() {
         const checkboxes = document.querySelectorAll('.category-checkbox:checked');
         const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        const hideOutOfStockSwitch = document.getElementById('hideOutOfStockSwitch');
-        const hideOutOfStock = hideOutOfStockSwitch ? hideOutOfStockSwitch.checked : false;
+        const filterBookedRadio = document.getElementById('filterBooked');
+        const isBookedFilter = filterBookedRadio ? filterBookedRadio.checked : false;
 
         const productSelects = document.querySelectorAll('.product-select');
         productSelects.forEach(selectElem => {
@@ -545,11 +571,19 @@
                 const catIds = JSON.parse(opt.getAttribute('data-categories') || '[]');
                 const isMatchedCategory = (selectedCatIds.length === 0) || catIds.some(id => selectedCatIds.includes(parseInt(id)));
                 const isOut = opt.getAttribute('data-out-of-stock') === '1';
+                const physicalStock = parseInt(opt.getAttribute('data-physical-stock') || '0');
                 const isSelectedInOtherRow = otherSelectedProdIds.includes(prodId);
 
                 const prodObj = productsData.find(p => p.id === prodId);
                 const baseName = prodObj ? prodObj.name : '';
                 const priceText = prodObj ? `(Price: ₹${prodObj.price.toFixed(2)})` : '';
+                let labelSuffix = '';
+                if (isOut && physicalStock > 0) {
+                    let bookedInfo = (prodObj && prodObj.bookedBy) ? `: ${prodObj.bookedBy}` : '';
+                    labelSuffix = ` - 🔒 [BOOKED${bookedInfo}] (Stock: ${physicalStock} pcs)`;
+                } else if (physicalStock <= 0) {
+                    labelSuffix = ' - ⚠️ [0 STOCK AVAILABLE]';
+                }
 
                 if (isSelectedInOtherRow && prodId !== currentProdId) {
                     // Hide & disable products already selected in another row
@@ -557,24 +591,33 @@
                     opt.hidden = true;
                     opt.style.display = 'none';
                     opt.innerText = `${baseName} ${priceText} - ⚠️ [Already Selected in Another Row]`;
-                } else if (isOut) {
-                    // Out of stock
+                } else if (physicalStock <= 0 && prodId !== currentProdId) {
+                    // Always hide 0 physical stock products unless currently selected
+                    opt.disabled = true;
+                    opt.hidden = true;
+                    opt.style.display = 'none';
+                    opt.innerText = `${baseName} ${priceText} - ⚠️ [0 STOCK AVAILABLE]`;
+                } else if (isBookedFilter && (!isOut || physicalStock <= 0)) {
+                    // Show only Booked products with stock > 0 when Booked filter is active
                     opt.disabled = (prodId !== currentProdId);
-                    opt.hidden = hideOutOfStock && (prodId !== currentProdId);
-                    opt.style.display = opt.hidden ? 'none' : '';
-                    opt.innerText = `${baseName} ${priceText} - ⚠️ [OUT OF STOCK]`;
-                    if (opt.selected && !isOut) selectedStillValid = true;
+                    opt.hidden = true;
+                    opt.style.display = 'none';
+                } else if (!isBookedFilter && isOut) {
+                    // Hide Booked products when Available filter is active
+                    opt.disabled = (prodId !== currentProdId);
+                    opt.hidden = true;
+                    opt.style.display = 'none';
                 } else if (!isMatchedCategory) {
                     // Filtered out by category
                     opt.disabled = (prodId !== currentProdId);
                     opt.hidden = true;
                     opt.style.display = 'none';
                 } else {
-                    // Normal available product
+                    // Available matching product
                     opt.disabled = false;
                     opt.hidden = false;
                     opt.style.display = '';
-                    opt.innerText = `${baseName} ${priceText}`;
+                    opt.innerText = `${baseName} ${priceText}${labelSuffix}`;
                     if (opt.selected) selectedStillValid = true;
                 }
             }

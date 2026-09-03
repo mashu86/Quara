@@ -91,6 +91,7 @@ class ManualSalesController extends Controller
             'delivery_charge' => 'nullable|numeric|min:0',
             'payment_method' => 'required|in:cash,upi,bank_transfer',
             'payment_status' => 'required|in:paid,pending',
+            'sale_date' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);
 
@@ -109,6 +110,7 @@ class ManualSalesController extends Controller
 
         $calculatedSubtotal = 0;
         $orderItemsData = [];
+        $affectedProducts = [];
         foreach ($validated['items'] as $item) {
             $pSize = ProductSize::with('product')->findOrFail($item['product_size_id']);
             $product = $pSize->product;
@@ -124,13 +126,15 @@ class ManualSalesController extends Controller
                 'quantity' => $qty,
                 'subtotal' => $itemSubtotal,
             ];
+            $affectedProducts[$product->id] = $product;
         }
 
         $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
         $grandTotal = $calculatedSubtotal + $shipping;
         $orderNumber = 'QW-MAN-' . strtoupper(str_shuffle(substr(uniqid(), -5)));
+        $saleDate = !empty($validated['sale_date']) ? \Carbon\Carbon::parse($validated['sale_date']) : now();
 
-        DB::transaction(function () use ($validated, $orderItemsData, $calculatedSubtotal, $shipping, $grandTotal, $orderNumber) {
+        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $shipping, $grandTotal, $orderNumber, $saleDate) {
             $order = Order::create([
                 'user_id' => null,
                 'order_number' => $orderNumber,
@@ -152,6 +156,7 @@ class ManualSalesController extends Controller
                 'payment_status' => $validated['payment_status'],
                 'order_status' => 'delivered',
                 'order_source' => 'manual',
+                'sale_date' => $saleDate,
                 'notes' => '[Manual Sale Entry] ' . ($validated['notes'] ?? ''),
             ]);
 
@@ -175,6 +180,16 @@ class ManualSalesController extends Controller
                     'Manual Offline Sale (' . $orderNumber . ')',
                     auth()->user()->name
                 );
+            }
+
+            // Unblock reserved/out_of_stock status if product was previously reserved and is now sold
+            foreach ($affectedProducts as $prod) {
+                if ($prod->is_out_of_stock) {
+                    $prod->update([
+                        'is_out_of_stock' => false,
+                        'booked_by' => null,
+                    ]);
+                }
             }
         });
 
@@ -232,13 +247,15 @@ class ManualSalesController extends Controller
             'delivery_charge' => 'nullable|numeric|min:0',
             'payment_method' => 'required|in:cash,upi,bank_transfer',
             'payment_status' => 'required|in:paid,pending',
+            'sale_date' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);
 
         $oldItems = $order->items;
+        $saleDate = !empty($validated['sale_date']) ? \Carbon\Carbon::parse($validated['sale_date']) : ($order->sale_date ?? $order->created_at);
 
         try {
-            DB::transaction(function () use ($order, $oldItems, $validated) {
+            DB::transaction(function () use ($order, $oldItems, $validated, $saleDate) {
                 foreach ($oldItems as $oldItem) {
                     if ($oldItem->product_size_id) {
                         $pSize = ProductSize::find($oldItem->product_size_id);
@@ -269,6 +286,7 @@ class ManualSalesController extends Controller
                 $order->items()->delete();
 
                 $calculatedSubtotal = 0;
+                $affectedProducts = [];
                 foreach ($validated['items'] as $item) {
                     $pSize = ProductSize::with('product')->findOrFail($item['product_size_id']);
                     $product = $pSize->product;
@@ -296,6 +314,17 @@ class ManualSalesController extends Controller
                         "Manual Sale Edit (#{$order->order_number})",
                         auth()->user()->name
                     );
+
+                    $affectedProducts[$product->id] = $product;
+                }
+
+                foreach ($affectedProducts as $prod) {
+                    if ($prod->is_out_of_stock) {
+                        $prod->update([
+                        'is_out_of_stock' => false,
+                        'booked_by' => null,
+                    ]);
+                    }
                 }
 
                 $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
@@ -317,6 +346,7 @@ class ManualSalesController extends Controller
                     'grand_total' => $grandTotal,
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $validated['payment_status'],
+                    'sale_date' => $saleDate,
                     'notes' => $validated['notes'] ?? $order->notes,
                 ]);
             });

@@ -58,6 +58,8 @@ class ProductController extends Controller
                           $sq->where('stock', '>', 0);
                       });
                 });
+            } elseif ($request->stock_status === 'reserved') {
+                $query->where('is_out_of_stock', true);
             }
         }
 
@@ -97,17 +99,24 @@ class ProductController extends Controller
             $product->is_out_of_stock = !$product->is_out_of_stock;
         }
 
+        if ($request->has('booked_by')) {
+            $product->booked_by = $request->input('booked_by');
+        } elseif (!$product->is_out_of_stock) {
+            $product->booked_by = null;
+        }
+
         $product->save();
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'is_out_of_stock' => $product->is_out_of_stock,
-                'message' => $product->is_out_of_stock ? "Product marked as Out of Stock." : "Product restored to normal stock behavior.",
+                'booked_by' => $product->booked_by,
+                'message' => $product->is_out_of_stock ? "Product marked as Booked." : "Product restored to normal stock behavior.",
             ]);
         }
 
-        $statusMsg = $product->is_out_of_stock ? "Product marked as Out of Stock." : "Product restored to normal stock behavior.";
+        $statusMsg = $product->is_out_of_stock ? "Product marked as Booked." : "Product restored to normal stock behavior.";
         return back()->with('success', $statusMsg);
     }
 
@@ -132,6 +141,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
+            'booked_by' => 'nullable|string|max:255',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -151,6 +161,7 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
+        $validated['booked_by'] = $validated['is_out_of_stock'] ? ($request->input('booked_by') ?: null) : null;
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -253,6 +264,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
+            'booked_by' => 'nullable|string|max:255',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -278,6 +290,7 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
+        $validated['booked_by'] = $validated['is_out_of_stock'] ? ($request->input('booked_by') ?: null) : null;
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;

@@ -38,6 +38,7 @@ class Order extends Model
         'tracking_number',
         'dispatched_at',
         'order_source',
+        'sale_date',
         'notes',
         'wa_thank_you_count',
         'wa_pending_count',
@@ -64,6 +65,7 @@ class Order extends Model
         'is_cancellation_disabled' => 'boolean',
         'is_dispatched_to_courier' => 'boolean',
         'dispatched_at' => 'datetime',
+        'sale_date' => 'datetime',
     ];
 
     /**

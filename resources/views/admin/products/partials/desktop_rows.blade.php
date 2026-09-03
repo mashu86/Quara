@@ -46,14 +46,19 @@
                 <input class="form-check-input out-of-stock-toggle" type="checkbox" role="switch"
                        id="outOfStockToggle_{{ $product->id }}"
                        data-product-id="{{ $product->id }}"
+                       data-product-name="{{ $product->name }}"
+                       data-booked-by="{{ $product->booked_by }}"
                        data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
                        {{ $product->is_out_of_stock ? 'checked' : '' }}
                        style="cursor: pointer; width: 2.3em; height: 1.2em;">
                 <label class="form-check-label small fw-bold ms-1 {{ $product->is_out_of_stock ? 'text-danger' : 'text-success' }}"
                        id="outOfStockLabel_{{ $product->id }}"
                        for="outOfStockToggle_{{ $product->id }}" style="cursor: pointer; font-size: 0.78rem;">
-                    {{ $product->is_out_of_stock ? 'Out of Stock' : 'Normal Stock' }}
+                    {{ $product->is_out_of_stock ? '🔒 Booked' : 'Available' }}
                 </label>
+            </div>
+            <div class="small text-muted fw-semibold mt-1 {{ ($product->is_out_of_stock && !empty($product->booked_by)) ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="bookedByDisplay_{{ $product->id }}">
+                <i class="fa-solid fa-user-tag text-warning me-1"></i>Booked by: <span class="text-dark" id="bookedByText_{{ $product->id }}">{{ $product->booked_by }}</span>
             </div>
         </td>
         <td>

@@ -199,14 +199,20 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Out of Stock (Manual Override)</label>
-                        <div class="form-check form-switch p-2 bg-light rounded-3 border">
-                            <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockCreateSwitch" value="1" {{ old('is_out_of_stock') ? 'checked' : '' }}>
+                        <label class="form-label fw-bold small">🔒 Booked Product (Client Out of Stock)</label>
+                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockCreateSwitch" value="1" {{ old('is_out_of_stock') ? 'checked' : '' }} onchange="toggleBookedByContainer(this)">
                             <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockCreateSwitch">
-                                Enable "Out of Stock" Override
+                                🔒 Mark as Booked Product
                             </label>
                         </div>
-                        <div class="form-text small">When checked, the product will be treated as 0 stock and unpurchasable by customers while preserving existing inventory records.</div>
+                        
+                        <div id="bookedByCreateContainer" class="{{ old('is_out_of_stock') ? '' : 'd-none' }} mb-2">
+                            <label class="form-label fw-bold small">Booked By (Customer Name / Instagram Handle)</label>
+                            <input type="text" name="booked_by" class="form-control rounded-3" placeholder="e.g. Anjali (@anjali_insta / 9876543210)" value="{{ old('booked_by') }}">
+                        </div>
+
+                        <div class="form-text small">When checked, this product is marked as <strong>Booked</strong> on Admin side and shows as <strong>"Out of Stock"</strong> to website clients so no online customer can buy it.</div>
                     </div>
 
                     <hr>
@@ -499,6 +505,17 @@
         const checkboxes = document.querySelectorAll('.category-checkbox');
         checkboxes.forEach(cb => cb.checked = false);
         updateCategorySelectionDisplay();
+    }
+
+    function toggleBookedByContainer(switchElem) {
+        const container = document.getElementById('bookedByCreateContainer');
+        if (container) {
+            if (switchElem.checked) {
+                container.classList.remove('d-none');
+            } else {
+                container.classList.add('d-none');
+            }
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {

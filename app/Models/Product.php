@@ -23,6 +23,7 @@ class Product extends Model
         'description',
         'status',
         'is_out_of_stock',
+        'booked_by',
         'delivery_charge_type',
         'weight_kg',
         'sort_order',

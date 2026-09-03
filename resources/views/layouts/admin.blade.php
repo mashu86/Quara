@@ -643,6 +643,7 @@
                     }
                 }
             });
+        });
         // Globally prevent mouse wheel scrolling & touchpad micro-pan from changing number input values project-wide
         document.addEventListener('wheel', function (e) {
             if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {

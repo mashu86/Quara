@@ -611,6 +611,20 @@
                     }
                 }
             });
+        // Globally prevent mouse wheel scrolling & touchpad micro-pan from changing number input values project-wide
+        document.addEventListener('wheel', function (e) {
+            if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                e.preventDefault();
+                e.target.blur();
+            }
+        }, { passive: false });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                }
+            }
         });
     </script>
     @if($errors->has('old_password') || $errors->has('new_password'))

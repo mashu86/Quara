@@ -111,15 +111,17 @@ class ProductController extends Controller
         return back()->with('success', $statusMsg);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        return view('admin.products.create', compact('categories'));
+        $retainedCategoryIds = (array) $request->input('category_ids', []);
+        return view('admin.products.create', compact('categories', 'retainedCategoryIds'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'action' => 'nullable|string|in:save_and_add_another,save_and_close',
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'category_id' => 'nullable|exists:categories,id',
@@ -205,6 +207,12 @@ class ProductController extends Controller
                 ]);
             }
         });
+
+        $action = $request->input('action', 'save_and_close');
+        if ($action === 'save_and_add_another') {
+            return redirect()->route('admin.products.create', ['category_ids' => $categoryIds])
+                ->with('success', 'Product "' . $validated['name'] . '" saved successfully! Ready to add your next product.');
+        }
 
         return redirect()->route('admin.products.index')->with('success', 'Product created successfully!');
     }

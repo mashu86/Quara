@@ -109,7 +109,7 @@
 
                         <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="price" id="priceInput" class="form-control rounded-3" value="{{ old('price', $product->price) }}" required oninput="calcDiscount()">
+                            <input type="text" inputmode="decimal" name="price" id="priceInput" class="form-control rounded-3" value="{{ old('price', $product->price) }}" required oninput="calcDiscount()" autocomplete="off">
                         </div>
 
                         <div class="col-md-6" id="discountTypeCol">
@@ -123,7 +123,7 @@
 
                         <div class="col-md-4 d-none" id="discountValueContainer">
                             <label class="form-label fw-bold">Discount Value</label>
-                            <input type="number" step="0.01" name="discount_value" id="discountValueInput" class="form-control rounded-3" value="{{ old('discount_value', $product->discount_value) }}" oninput="calcDiscount()">
+                            <input type="text" inputmode="decimal" name="discount_value" id="discountValueInput" class="form-control rounded-3" value="{{ old('discount_value', $product->discount_value) }}" oninput="calcDiscount()" autocomplete="off">
                         </div>
 
                         <div class="col-12">
@@ -175,7 +175,7 @@
                                     </div>
                                     <div class="col-6 col-md-3">
                                         <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
-                                        <input type="number" name="existing_stocks[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_stocks.' . $pSize->id, $pSize->stock) }}" min="0" required>
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" name="existing_stocks[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_stocks.' . $pSize->id, $pSize->stock) }}" required>
                                         @error('existing_stocks.' . $pSize->id)
                                             <div class="text-danger small mt-1">{{ $message }}</div>
                                         @enderror
@@ -278,7 +278,9 @@
                         <div class="form-text small">When checked, the product will be treated as 0 stock and unpurchasable by customers while preserving existing inventory records.</div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 shadow-sm mb-4">UPDATE PRODUCT</button>
+                    <button type="submit" class="btn btn-warning rounded-3 fw-bold w-100 py-2.5 shadow-sm border-0 mb-4" style="font-size: 0.85rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> UPDATE PRODUCT DETAILS
+                    </button>
                 </div>
             </div>
 </form>
@@ -400,7 +402,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Quantity to Add (pcs)</label>
-                            <input type="number" name="quantity_to_add" class="form-control rounded-3" value="10" min="1" required>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" name="quantity_to_add" class="form-control rounded-3" value="10" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Batch Reference / Reason Note</label>
@@ -470,7 +472,7 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
-                    <input type="number" name="new_stocks[]" class="form-control form-control-sm rounded-3" value="5" min="0" required>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="new_stocks[]" class="form-control form-control-sm rounded-3" value="5" required>
                 </div>
                 <div class="col-4 col-md-2">
                     <label class="form-label small text-muted mb-1">Chest (inch)</label>

@@ -82,7 +82,7 @@
                                         <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted small" onclick="clearCategorySelection()">Clear All</button>
                                     </div>
                                     <div id="categoryListContainer" style="max-height: 230px; overflow-y: auto;">
-                                        @php $oldCategoryIds = old('category_ids', old('category_id') ? [old('category_id')] : []); @endphp
+                                        @php $oldCategoryIds = old('category_ids', old('category_id') ? [old('category_id')] : ($retainedCategoryIds ?? request('category_ids', []))); @endphp
                                         @foreach($categories as $cat)
                                             <label class="category-item d-flex align-items-center gap-2 py-2 px-2 rounded cursor-pointer user-select-none" style="cursor: pointer; transition: background 0.15s ease-in-out;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
                                                 <input class="form-check-input category-checkbox m-0 flex-shrink-0" type="checkbox" name="category_ids[]" value="{{ $cat->id }}" id="cat_cb_{{ $cat->id }}" onchange="updateCategorySelectionDisplay()" {{ in_array($cat->id, (array)$oldCategoryIds) ? 'checked' : '' }} style="width: 18px; height: 18px; cursor: pointer;">
@@ -102,7 +102,7 @@
 
                         <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="price" id="priceInput" class="form-control rounded-3" placeholder="999.00" value="{{ old('price') }}" required oninput="calcDiscount()">
+                            <input type="text" inputmode="decimal" name="price" id="priceInput" class="form-control rounded-3" placeholder="999.00" value="{{ old('price') }}" required oninput="calcDiscount()" autocomplete="off">
                         </div>
 
                         <div class="col-md-6" id="discountTypeCol">
@@ -116,7 +116,7 @@
 
                         <div class="col-md-4 d-none" id="discountValueContainer">
                             <label class="form-label fw-bold">Discount Value</label>
-                            <input type="number" step="0.01" name="discount_value" id="discountValueInput" class="form-control rounded-3" placeholder="0.00" value="{{ old('discount_value', 0) }}" oninput="calcDiscount()">
+                            <input type="text" inputmode="decimal" name="discount_value" id="discountValueInput" class="form-control rounded-3" placeholder="0.00" value="{{ old('discount_value', 0) }}" oninput="calcDiscount()" autocomplete="off">
                         </div>
 
                         <div class="col-12">
@@ -163,7 +163,7 @@
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
-                                    <input type="number" name="stocks[]" class="form-control form-control-sm rounded-3" placeholder="Initial Stock Qty" value="1" min="0" required>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="stocks[]" class="form-control form-control-sm rounded-3" placeholder="Initial Stock Qty" value="1" required>
                                 </div>
                                 <div class="col-4 col-md-2">
                                     <label class="form-label small text-muted mb-1">Chest (inch)</label>
@@ -256,7 +256,16 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-2.5 py-md-3 btn-submit-product shadow-sm mt-3">SAVE & PUBLISH PRODUCT</button>
+                    <div class="d-flex flex-column gap-3 mt-4 pt-3 border-top">
+                        <button type="submit" name="action" value="save_and_add_another" class="btn btn-dark rounded-3 fw-bold w-100 py-2.5 px-3 shadow-sm border-0 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem; letter-spacing: 0.2px;" title="Save current product and immediately open a new form to add the next product">
+                            <i class="fa-solid fa-plus-circle text-warning fs-6"></i>
+                            <span>SAVE & ADD NEXT PRODUCT</span>
+                        </button>
+                        <button type="submit" name="action" value="save_and_close" class="btn btn-warning rounded-3 fw-bold w-100 py-2.5 px-3 shadow-sm border-0 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem; letter-spacing: 0.2px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Save current product and return to Products List">
+                            <i class="fa-solid fa-circle-check fs-6 text-dark"></i>
+                            <span>SAVE & FINISH</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -318,7 +327,7 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
-                    <input type="number" name="stocks[]" class="form-control form-control-sm rounded-3" value="1" min="0" required>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="stocks[]" class="form-control form-control-sm rounded-3" value="1" required>
                 </div>
                 <div class="col-4 col-md-2">
                     <label class="form-label small text-muted mb-1">Chest (inch)</label>

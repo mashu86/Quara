@@ -15,6 +15,37 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
+    <script>
+        window.openAdminSidebar = function() {
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.add('show');
+            if (overlay) overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeAdminSidebar = function() {
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.remove('show');
+            if (overlay) overlay.classList.remove('show');
+            document.body.style.overflow = '';
+        };
+
+        window.toggleAdminSidebar = function(e) {
+            if (e) {
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+            }
+            const sidebar = document.getElementById('adminSidebar');
+            if (sidebar && sidebar.classList.contains('show')) {
+                window.closeAdminSidebar();
+            } else {
+                window.openAdminSidebar();
+            }
+        };
+    </script>
+
     <style>
         :root {
             --qw-gold: #D4AF37;
@@ -146,10 +177,22 @@
             font-size: 1.4rem;
         }
 
-        @media (max-width: 991px) {
-            .admin-sidebar { margin-left: -260px; z-index: 1040; }
-            .admin-sidebar.show { margin-left: 0; }
-            .admin-main { margin-left: 0; }
+        @media (max-width: 991.98px) {
+            .admin-sidebar { 
+                margin-left: -260px !important; 
+                z-index: 1050 !important; 
+                transition: margin-left 0.3s ease-in-out !important;
+            }
+            .admin-sidebar.show { 
+                margin-left: 0 !important; 
+                box-shadow: 6px 0 25px rgba(0, 0, 0, 0.4) !important;
+            }
+            .admin-main { 
+                margin-left: 0 !important; 
+            }
+            .sidebar-overlay {
+                z-index: 1045 !important;
+            }
         }
 
         .sidebar-overlay {
@@ -388,8 +431,8 @@
     <div class="admin-main">
         <!-- Topbar -->
         <header class="admin-topbar d-flex justify-content-between align-items-center">
-            <button class="btn btn-light d-lg-none" type="button" id="sidebarToggle">
-                <i class="fa-solid fa-bars"></i>
+            <button class="btn btn-light d-lg-none border shadow-sm px-2.5 py-1.5" type="button" id="sidebarToggle" onclick="toggleAdminSidebar(event)" aria-label="Toggle Sidebar Navigation">
+                <i class="fa-solid fa-bars fs-5 text-dark"></i>
             </button>
 
             <h5 class="mb-0 font-bold d-none d-sm-block">{{ $siteName }} <span class="badge bg-dark ms-2 fw-normal">Admin Panel</span></h5>
@@ -553,35 +596,23 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const adminSidebar = document.getElementById('adminSidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-        function openAdminSidebar() {
-            adminSidebar?.classList.add('show');
-            sidebarOverlay?.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAdminSidebar() {
-            adminSidebar?.classList.remove('show');
-            sidebarOverlay?.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        sidebarToggle?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (adminSidebar?.classList.contains('show')) {
-                closeAdminSidebar();
-            } else {
-                openAdminSidebar();
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function(e) {
+                    window.toggleAdminSidebar(e);
+                });
+            }
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', window.closeAdminSidebar);
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', window.closeAdminSidebar);
             }
         });
-
-        sidebarCloseBtn?.addEventListener('click', closeAdminSidebar);
-        sidebarOverlay?.addEventListener('click', closeAdminSidebar);
 
         function handleAdminFormSubmit(form) {
             const submitBtn = form.querySelector('button[type="submit"]');

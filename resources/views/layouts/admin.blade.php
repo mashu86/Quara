@@ -20,7 +20,10 @@
             const sidebar = document.getElementById('adminSidebar');
             const overlay = document.getElementById('sidebarOverlay');
             if (sidebar) sidebar.classList.add('show');
-            if (overlay) overlay.classList.add('show');
+            if (overlay) {
+                overlay.style.display = 'block';
+                setTimeout(function() { overlay.classList.add('show'); }, 10);
+            }
             document.body.style.overflow = 'hidden';
         };
 
@@ -28,7 +31,14 @@
             const sidebar = document.getElementById('adminSidebar');
             const overlay = document.getElementById('sidebarOverlay');
             if (sidebar) sidebar.classList.remove('show');
-            if (overlay) overlay.classList.remove('show');
+            if (overlay) {
+                overlay.classList.remove('show');
+                setTimeout(function() {
+                    if (overlay && !overlay.classList.contains('show')) {
+                        overlay.style.display = 'none';
+                    }
+                }, 300);
+            }
             document.body.style.overflow = '';
         };
 
@@ -443,7 +453,7 @@
     <div class="admin-main">
         <!-- Topbar -->
         <header class="admin-topbar d-flex justify-content-between align-items-center">
-            <button class="btn btn-light d-lg-none border shadow-sm px-2.5 py-1.5" type="button" id="sidebarToggle" onclick="toggleAdminSidebar(event)" aria-label="Toggle Sidebar Navigation">
+            <button class="btn btn-light d-lg-none border shadow-sm px-2.5 py-1.5" type="button" id="sidebarToggle" aria-label="Toggle Sidebar Navigation">
                 <i class="fa-solid fa-bars fs-5 text-dark"></i>
             </button>
 

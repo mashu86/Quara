@@ -153,8 +153,9 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Sale Date <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">Sale Date (DD-MM-YYYY) <span class="text-danger">*</span></label>
                             <input type="date" name="sale_date" class="form-control rounded-3" value="{{ old('sale_date', $order->sale_date ? $order->sale_date->format('Y-m-d') : $order->created_at->format('Y-m-d')) }}" required>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem;"><i class="fa-solid fa-circle-info text-warning me-1"></i> Date when the sale actually took place (Format: DD-MM-YYYY).</small>
                         </div>
 
                         <div class="col-md-6">

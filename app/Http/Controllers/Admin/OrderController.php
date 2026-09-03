@@ -234,6 +234,7 @@ class OrderController extends Controller
             'order_status' => 'required|in:pending,confirmed,processing,packed,shipped,delivered,cancelled',
             'payment_status' => 'required|in:pending,paid,failed,refunded',
             'payment_method' => 'required|in:cod,online,offline_sale',
+            'sale_date' => 'nullable|date',
             'is_cancellation_disabled' => 'nullable|boolean',
             'is_dispatched_to_courier' => 'nullable|boolean',
             'courier_partner' => 'nullable|string|max:255',
@@ -275,6 +276,9 @@ class OrderController extends Controller
         $validated['is_dispatched_to_courier'] = $isDispatched;
         if ($isDispatched && !$order->dispatched_at) {
             $validated['dispatched_at'] = now();
+        }
+        if (!empty($validated['sale_date'])) {
+            $validated['sale_date'] = \Carbon\Carbon::parse($validated['sale_date']);
         }
 
         $order->update($validated);

@@ -182,6 +182,12 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Sale Date (DD-MM-YYYY)</label>
+                        <input type="date" name="sale_date" class="form-control rounded-3" value="{{ old('sale_date', $order->sale_date ? $order->sale_date->format('Y-m-d') : $order->created_at->format('Y-m-d')) }}">
+                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;"><i class="fa-solid fa-circle-info text-warning me-1"></i> Date when the sale actually took place.</small>
+                    </div>
+
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="is_cancellation_disabled" value="1" id="cancellationLockSwitch" {{ old('is_cancellation_disabled', $order->is_cancellation_disabled) ? 'checked' : '' }}>
                         <label class="form-check-label small fw-semibold text-dark" for="cancellationLockSwitch">

@@ -27,8 +27,8 @@
             <span class="badge bg-uppercase bg-{{ $order->payment_method === 'cash' ? 'success' : 'info' }} me-1">{{ $order->payment_method }}</span>
             <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>
         </td>
-        <td class="small text-muted" title="Recorded: {{ $order->created_at->format('M d, Y h:i A') }}">
-            <i class="fa-regular fa-calendar-check me-1 text-warning"></i>{{ ($order->sale_date ?? $order->created_at)->format('M d, Y') }}
+        <td class="small text-muted" title="Recorded: {{ $order->created_at->format('d-m-Y h:i A') }}">
+            <i class="fa-regular fa-calendar-check me-1 text-warning"></i>{{ ($order->sale_date ?? $order->created_at)->format('d-m-Y') }}
         </td>
         <td class="text-end pe-3">
             <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">

@@ -2,6 +2,8 @@
     @php
         $opsCount = $order->operations->count();
         $activeOpsCount = $order->operations->where('status', 'active')->count();
+        $canAdjustOrder = ($order->order_status !== 'pending' && $order->order_status !== 'cancelled')
+            && ($order->payment_status === 'paid' || $order->payment_status === 'offline_sale' || $order->payment_method === 'offline_sale' || $order->payment_method === 'manual' || $opsCount > 0);
     @endphp
     <tr>
         <td class="ps-3">
@@ -69,10 +71,12 @@
         </td>
         <td class="text-end pe-3">
             <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                <a href="{{ route('admin.order-operations.create', $order->id) }}" 
-                   class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2.5 py-1 shadow-sm d-inline-flex align-items-center gap-1" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.72rem;" title="Adjust Order">
-                    <i class="fa-solid fa-pen-to-square"></i> <span class="d-none d-sm-inline">Adjust Order</span>
-                </a>
+                @if($canAdjustOrder)
+                    <a href="{{ route('admin.order-operations.create', $order->id) }}" 
+                       class="btn btn-sm btn-warning text-dark fw-bold rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Adjust Order">
+                        <i class="fa-solid fa-sliders" style="font-size: 0.75rem;"></i>
+                    </a>
+                @endif
                 @if($opsCount === 1)
                     @php $singleOp = $order->operations->first(); @endphp
                     <a href="{{ route('admin.order-operations.show', $singleOp->id) }}" 

@@ -4,6 +4,8 @@
         $activeOpsCount = $order->operations->where('status', 'active')->count();
         $isEven = $index % 2 === 0;
         $accentBorder = $isEven ? 'border-warning' : 'border-dark';
+        $canAdjustOrder = ($order->order_status !== 'pending' && $order->order_status !== 'cancelled')
+            && ($order->payment_status === 'paid' || $order->payment_status === 'offline_sale' || $order->payment_method === 'offline_sale' || $order->payment_method === 'manual' || $opsCount > 0);
     @endphp
     <div class="card border-0 rounded-3 shadow-sm mb-3 position-relative overflow-hidden order-ops-mobile-card border-start border-4 {{ $accentBorder }}" 
          style="{{ $isEven ? 'background-color: #FFFFFF;' : 'background-color: #F8FAFC; border: 1px solid #E2E8F0 !important;' }}">
@@ -107,9 +109,11 @@
         <div class="card-footer border-top py-1.5 px-2.5" style="{{ $isEven ? 'background-color: #F8FAFC;' : 'background-color: #EDF2F7;' }}">
             <div class="d-flex align-items-center justify-content-between">
                 <span class="text-muted" style="font-size: 0.68rem;">Delivery: ₹{{ number_format($order->shipping, 2) }}</span>
-                <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 py-1 shadow-sm d-inline-flex align-items-center gap-1" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.72rem;" title="Adjust Order">
-                    <i class="fa-solid fa-pen-to-square"></i> Adjust Order
-                </a>
+                @if($canAdjustOrder)
+                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-warning text-dark fw-bold rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Adjust Order">
+                        <i class="fa-solid fa-sliders" style="font-size: 0.75rem;"></i>
+                    </a>
+                @endif
             </div>
         </div>
     </div>

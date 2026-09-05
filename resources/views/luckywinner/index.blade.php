@@ -8,6 +8,8 @@
 
 <div id="lw-error" class="lw-error" role="alert" hidden></div>
 
+<div class="lw-after-controls" id="lw-after-controls"><button type="button" class="lw-text-button" id="lw-new" hidden>＋ Start a new lucky draw</button><p>Each order can win once per draw. Customers with more orders have more entries.</p></div>
+
 <section class="lw-setup" id="lw-setup" aria-label="Set up a giveaway">
     <form id="lw-period-form">
         <div class="lw-setup-title"><span class="lw-step">01</span><div><h2>Choose your moment</h2><p>Select the orders for today’s giveaway.</p></div></div>
@@ -26,6 +28,11 @@
 </section>
 
 <section class="lw-studio" id="lw-studio" aria-label="Lucky Winner draw studio">
+    <aside class="lw-sidebar">
+        <div class="lw-participants-panel"><div class="lw-panel-heading"><h2>The lucky crowd</h2><span class="lw-count-pill" id="lw-participant-count">0</span></div><p>One successful order. One chance.</p><label class="lw-search"><span aria-hidden="true">⌕</span><input type="search" id="lw-search" placeholder="Find a name or order" aria-label="Search participants" disabled></label><div class="lw-participant-list" id="lw-participants"><div class="lw-empty"><span>✧</span><strong>Your crowd is waiting</strong><p>Load a period to meet<br>your giveaway participants.</p></div></div><div class="lw-list-pager" id="lw-list-pager" hidden><button type="button" id="lw-prev" aria-label="Previous participants">←</button><span id="lw-page-info"></span><button type="button" id="lw-next" aria-label="Next participants">→</button></div></div>
+        <div class="lw-gifts-panel"><div class="lw-panel-heading"><span class="lw-step">02</span><h2>Make someone’s day</h2></div><label for="lw-gifts">How many gifts?</label><div class="lw-gift-input"><span aria-hidden="true">✧</span><input type="number" id="lw-gifts" min="1" step="1" value="1" disabled><span>winners</span></div><p>Every winning order gets one gift.<br>The next surprise could be theirs.</p></div>
+    </aside>
+
     <div class="lw-stage" id="lw-stage">
         <div class="lw-stage-grain" aria-hidden="true"></div>
         <div class="lw-stage-top">
@@ -53,11 +60,6 @@
         <div class="lw-celebration" id="lw-celebration" aria-hidden="true"></div>
         <div class="lw-stage-bottom"><span>MADE POSSIBLE BY YOU</span><span>WITH LOVE, {{ $siteName }}</span></div>
     </div>
-
-    <aside class="lw-sidebar">
-        <div class="lw-gifts-panel"><div class="lw-panel-heading"><span class="lw-step">02</span><h2>Make someone’s day</h2></div><label for="lw-gifts">How many gifts?</label><div class="lw-gift-input"><span aria-hidden="true">✧</span><input type="number" id="lw-gifts" min="1" step="1" value="1" disabled><span>winners</span></div><p>Every winning order gets one gift.<br>The next surprise could be theirs.</p></div>
-        <div class="lw-participants-panel"><div class="lw-panel-heading"><h2>The lucky crowd</h2><span class="lw-count-pill" id="lw-participant-count">0</span></div><p>One successful order. One chance.</p><label class="lw-search"><span aria-hidden="true">⌕</span><input type="search" id="lw-search" placeholder="Find a name or order" aria-label="Search participants" disabled></label><div class="lw-participant-list" id="lw-participants"><div class="lw-empty"><span>✧</span><strong>Your crowd is waiting</strong><p>Load a period to meet<br>your giveaway participants.</p></div></div><div class="lw-list-pager" id="lw-list-pager" hidden><button type="button" id="lw-prev" aria-label="Previous participants">←</button><span id="lw-page-info"></span><button type="button" id="lw-next" aria-label="Next participants">→</button></div></div>
-    </aside>
 </section>
 
 <section class="lw-save-panel" id="lw-save-panel" hidden>
@@ -65,7 +67,6 @@
     <button type="button" class="lw-button lw-dark" id="lw-store">Store winners <span aria-hidden="true">↗</span></button>
     <a id="lw-saved-link" class="lw-button lw-dark" hidden>View saved draw ↗</a>
 </section>
-<div class="lw-after-controls"><button type="button" class="lw-text-button" id="lw-new" hidden>＋ Start a new lucky draw</button><p>Each order can win once per draw. Customers with more orders have more entries.</p></div>
 <details class="lw-rules"><summary>How entries &amp; selection work <span>＋</span></summary><div><p>Paid orders with Confirmed, Processing, Packed, Shipped or Delivered status are eligible. Dates use the sale date, or order creation date when no sale date is set, in {{ config('luckywinner.timezone') }}. Same-day ranges include the entire day. Test orders are excluded.</p><p>Active return activity in this period reduces the weight of that order and other entries matching the customer’s phone, email or account. Current weights: normal {{ config('luckywinner.normal_weight') }}, return {{ min(config('luckywinner.normal_weight'), max(1, config('luckywinner.return_weight'))) }}. Weighting applies once, regardless of the number of returns.</p><p>The server selects randomly from the complete weighted pool; animation only presents the result. Entries are checked again when the first winner is selected, then frozen for that draw. Temporary draws can be resumed for {{ config('luckywinner.draft_lifetime_hours') }} hours. Only Store Winners creates permanent history.</p></div></details>
 @endsection
 

@@ -88,6 +88,14 @@
             }
         }
 
+        /* Ensure modal content & body have solid non-transparent background */
+        .modal-content {
+            background-color: #ffffff !important;
+        }
+        .modal-body:not(.bg-dark):not(.bg-secondary):not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) {
+            background-color: #ffffff !important;
+        }
+
         /* Sidebar Styling */
         .admin-sidebar {
             width: 260px;
@@ -291,6 +299,44 @@
             background-color: #F7FAFC;
         }
         @media (max-width: 575.98px) {
+            .admin-topbar {
+                padding: 8px 12px !important;
+            }
+            .admin-topbar #sidebarToggle {
+                padding: 0.25rem 0.45rem !important;
+            }
+            .admin-topbar #sidebarToggle i {
+                font-size: 0.95rem !important;
+            }
+            .admin-topbar .dropdown-toggle {
+                padding: 0.25rem 0.6rem !important;
+                font-size: 0.75rem !important;
+            }
+            .admin-topbar .dropdown-toggle i {
+                font-size: 0.75rem !important;
+            }
+            .admin-topbar .fa-bell {
+                font-size: 1.05rem !important;
+            }
+            .notif-dropdown-menu {
+                width: 290px !important;
+                max-width: 88vw !important;
+            }
+            .notif-dropdown-menu .notif-header-title {
+                font-size: 0.78rem !important;
+            }
+            .notif-dropdown-menu .notif-item-title {
+                font-size: 0.75rem !important;
+            }
+            .notif-dropdown-menu .notif-item-msg {
+                font-size: 0.68rem !important;
+            }
+            .notif-dropdown-menu .notif-item-time {
+                font-size: 0.64rem !important;
+            }
+            .notif-dropdown-menu .notif-footer-link {
+                font-size: 0.72rem !important;
+            }
             .pagination {
                 justify-content: center;
                 font-size: 0.76rem;
@@ -494,9 +540,9 @@
                             </span>
                         @endif
                     </a>
-                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-0 mt-2" style="width: 330px; max-width: 90vw;">
-                        <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between rounded-top-4">
-                            <span class="fw-bold text-dark small"><i class="fa-solid fa-bell me-1 text-warning"></i> Notifications</span>
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-0 mt-2 notif-dropdown-menu" style="width: 330px; max-width: 90vw;">
+                        <div class="p-2.5 p-sm-3 bg-light border-bottom d-flex align-items-center justify-content-between rounded-top-4">
+                            <span class="fw-bold text-dark small notif-header-title"><i class="fa-solid fa-bell me-1 text-warning"></i> Notifications</span>
                             @if($unreadCount > 0)
                                 <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">{{ $unreadCount }} New</span>
                             @endif
@@ -505,20 +551,20 @@
                             @forelse($recentNotifications as $notif)
                                 <form action="{{ route('admin.notifications.read', $notif->id) }}" method="POST" class="m-0 p-0">
                                     @csrf
-                                    <button type="submit" class="list-group-item list-group-item-action p-3 text-start border-0 border-bottom {{ !$notif->is_read ? 'bg-light text-dark fw-bold' : 'text-muted' }}">
+                                    <button type="submit" class="list-group-item list-group-item-action p-2.5 p-sm-3 text-start border-0 border-bottom {{ !$notif->is_read ? 'bg-light text-dark fw-bold' : 'text-muted' }}">
                                         <div class="d-flex align-items-start gap-2">
                                             <span class="fs-6 text-warning mt-0.5">
                                                 <i class="fa-solid {{ $notif->type === 'new_order' ? 'fa-bag-shopping' : 'fa-bell' }}"></i>
                                             </span>
                                             <div class="w-100">
-                                                <div class="fw-bold text-dark small mb-0 d-flex align-items-center justify-content-between">
+                                                <div class="fw-bold text-dark small mb-0 d-flex align-items-center justify-content-between notif-item-title">
                                                     <span>{{ $notif->title }}</span>
                                                     @if(!$notif->is_read)
                                                         <span class="badge bg-primary rounded-circle p-1" style="width: 6px; height: 6px;" title="Unread"></span>
                                                     @endif
                                                 </div>
-                                                <div class="text-secondary small text-truncate" style="max-width: 240px; font-size: 0.78rem;">{{ $notif->message }}</div>
-                                                <div class="text-muted extra-small mt-1" style="font-size: 0.7rem;">{{ $notif->created_at->diffForHumans() }}</div>
+                                                <div class="text-secondary small text-truncate notif-item-msg" style="max-width: 240px; font-size: 0.78rem;">{{ $notif->message }}</div>
+                                                <div class="text-muted extra-small mt-1 notif-item-time" style="font-size: 0.7rem;">{{ $notif->created_at->diffForHumans() }}</div>
                                             </div>
                                         </div>
                                     </button>
@@ -528,7 +574,7 @@
                             @endforelse
                         </div>
                         <div class="p-2 text-center bg-light border-top rounded-bottom-4">
-                            <a href="{{ route('admin.notifications.index') }}" class="small fw-bold text-decoration-none text-dark">View All Notifications <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                            <a href="{{ route('admin.notifications.index') }}" class="small fw-bold text-decoration-none text-dark notif-footer-link">View All Notifications <i class="fa-solid fa-arrow-right ms-1"></i></a>
                         </div>
                     </div>
                 </div>
@@ -536,7 +582,7 @@
                 <div class="dropdown">
                     <button class="btn btn-light dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown">
                         <i class="fa-solid fa-user-shield me-1 text-warning"></i>
-                        <span>{{ Auth::user()->name ?? 'Quara Admin' }}</span>
+                        <span>Quara</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
                         <li>

@@ -3,6 +3,57 @@
 @section('title', 'Product Master - ' . $siteName . ' Admin')
 
 @section('content')
+<style>
+    .prod-sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background-color: #ffffff !important;
+        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+    }
+    thead .prod-sticky-col {
+        z-index: 6;
+        background-color: #f8f9fa !important;
+    }
+    .prod-img-wrapper {
+        position: relative;
+        width: 44px;
+        height: 56px;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .prod-img-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.85;
+        transition: opacity 0.2s ease;
+    }
+    .prod-img-wrapper:hover .prod-img-overlay {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.55);
+    }
+    .prod-action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+    @media (min-width: 576px) {
+        .prod-action-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
 @php
     $activeFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('category_id') ? 1 : 0)
@@ -152,8 +203,7 @@
             <table class="table align-middle mb-0">
                 <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
-                        <th>Image</th>
-                        <th>Product Details</th>
+                        <th class="prod-sticky-col text-center" style="min-width: 110px;">Product</th>
                         <th>Category</th>
                         <th>Original Price</th>
                         <th>Discount</th>
@@ -161,7 +211,7 @@
                         <th>Size-wise Stock</th>
                         <th>Booked Stock</th>
                         <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="products-desktop-tbody">
@@ -169,7 +219,7 @@
                         @include('admin.products.partials.desktop_rows', ['products' => collect([$product])])
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">No products found matching filters.</td>
+                            <td colspan="9" class="text-center py-4 text-muted">No products found matching filters.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -213,10 +263,37 @@
         </div>
     </div>
 </div>
+
+<!-- Product Image Preview Modal -->
+<div class="modal fade" id="productPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white py-2.5 px-3">
+                <h5 class="modal-title font-serif fw-bold small text-truncate" id="productPreviewModalLabel">Product Preview</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 280px; max-height: 75vh;">
+                <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
 <script>
+window.openProductPreview = function(imgSrc, title) {
+    if (!imgSrc) return;
+    const modalElem = document.getElementById('productPreviewModal');
+    const imgElem = document.getElementById('productPreviewModalImg');
+    const titleElem = document.getElementById('productPreviewModalLabel');
+    if (imgElem) imgElem.src = imgSrc;
+    if (titleElem) titleElem.textContent = title || 'Product Image';
+    if (modalElem) {
+        const modalInstance = new bootstrap.Modal(modalElem);
+        modalInstance.show();
+    }
+};
 document.addEventListener('DOMContentLoaded', function() {
     const desktopContainer = document.getElementById('products-table-scroll-container');
     const mobileContainer = document.getElementById('products-mobile-cards-container');

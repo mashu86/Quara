@@ -41,7 +41,7 @@ window.openImagePreviewModal = function(imageUrl, title) {
         </h4>
     </div>
     <div class="d-flex justify-content-between align-items-center gap-2">
-        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             @php
                 $isOrderedCustomerShow = ($order->payment_status === 'paid' || $order->payment_method === 'offline_sale' || $order->order_source === 'manual' || !in_array($order->order_status, ['pending', 'cancelled']));
             @endphp
@@ -668,7 +668,7 @@ window.openImagePreviewModal = function(imageUrl, title) {
 <!-- Edit Payment Details Modal -->
 <div class="modal fade" id="editPaymentDetailsModal" tabindex="-1" aria-labelledby="editPaymentDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white">
             <div class="modal-header bg-dark text-white rounded-top-4 py-3">
                 <h5 class="modal-title font-serif fw-bold" id="editPaymentDetailsModalLabel">
                     <i class="fa-solid fa-credit-card text-warning me-2"></i> Edit Payment Details (#{{ $order->order_number }})
@@ -677,7 +677,7 @@ window.openImagePreviewModal = function(imageUrl, title) {
             </div>
             <form action="{{ route('admin.orders.update-payment-details', $order->id) }}" method="POST">
                 @csrf
-                <div class="modal-body p-4">
+                <div class="modal-body p-4 bg-white">
                     <div class="alert alert-info py-2 px-3 small rounded-3 mb-3" style="font-size: 0.76rem;">
                         <i class="fa-solid fa-circle-info me-1"></i>
                         Use this option to fix payment status issues (e.g. money received in Razorpay but status showing Pending on website).

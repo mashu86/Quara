@@ -2,6 +2,36 @@
 
 @section('title', 'Delivery Price Master - ' . $siteName . ' Admin')
 
+<style>
+    .shipping-action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.72rem;
+    }
+    @media (min-width: 576px) {
+        .shipping-action-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 0.82rem;
+        }
+    }
+    .policy-sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: #ffffff !important;
+        z-index: 5;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    }
+    thead th.policy-sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: #212529 !important;
+        color: #ffffff !important;
+        z-index: 6;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+</style>
+
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
     <div>
@@ -26,8 +56,8 @@
             <table class="table align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th class="ps-3">Priority</th>
-                        <th>Policy Name</th>
+                        <th class="ps-3 policy-sticky-col">Policy Name</th>
+                        <th class="text-center">Priority</th>
                         <th>Criteria</th>
                         <th>Conditions</th>
                         <th>Delivery Type</th>
@@ -39,8 +69,8 @@
                 <tbody>
                     @forelse($policies as $policy)
                         <tr>
-                            <td class="ps-3"><span class="badge bg-secondary rounded-circle">{{ $policy->priority }}</span></td>
-                            <td class="fw-bold text-dark">{{ $policy->name }}</td>
+                            <td class="ps-3 fw-bold text-dark policy-sticky-col">{{ $policy->name }}</td>
+                            <td class="text-center"><span class="badge bg-secondary rounded-circle">{{ $policy->priority }}</span></td>
                             <td>
                                 @if($policy->criteria_type === 'cart_count')
                                     <span class="badge bg-info text-dark"><i class="fa-solid fa-layer-group me-1"></i> Cart Count</span>
@@ -74,15 +104,15 @@
                                 @endif
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                                    <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Policy">
+                                <div class="d-flex align-items-center justify-content-end gap-2 flex-nowrap">
+                                    <a href="{{ route('admin.shipping-policies.edit', $policy->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm shipping-action-btn" title="Edit Policy">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
 
                                     <form action="{{ route('admin.shipping-policies.destroy', $policy->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete this policy?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Policy">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm shipping-action-btn" title="Delete Policy">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>

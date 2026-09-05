@@ -3,124 +3,169 @@
 @section('title', 'Edit Income #' . $income->id . ' - ' . $siteName . ' Admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">Edit Income Record</h3>
-        <p class="text-muted small mb-0">Modify income details, quantity or profit & loss status.</p>
+<style>
+    @media (max-width: 767.98px) {
+        .income-card-body {
+            padding: 1rem !important;
+        }
+        .form-label {
+            font-size: 0.82rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .form-control, .form-select, .input-group-text {
+            font-size: 0.85rem !important;
+            padding: 0.45rem 0.65rem !important;
+        }
+        .input-group-lg .form-control,
+        .input-group-lg .input-group-text,
+        .form-select-lg {
+            font-size: 0.95rem !important;
+            padding: 0.45rem 0.75rem !important;
+        }
+        .form-text, small.text-muted {
+            font-size: 0.70rem !important;
+        }
+    }
+</style>
+
+<div class="container-fluid px-2 px-md-4 py-3">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 mb-md-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-pen-to-square text-warning me-2"></i>Edit Income Record</h4>
+            <p class="text-muted small mb-0">Modify income details, quantity or profit & loss status.</p>
+        </div>
+        <a href="{{ route('admin.incomes.index') }}" class="btn btn-outline-dark rounded-pill px-3.5 py-1.5 fw-bold w-100 w-sm-auto text-center text-nowrap">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Incomes
+        </a>
     </div>
-    <a href="{{ route('admin.incomes.index') }}" class="btn btn-outline-dark rounded-pill px-3 py-1.5 fw-bold">
-        &larr; Back to Incomes
-    </a>
-</div>
 
-<div class="card border-0 rounded-4 shadow-sm">
-    <div class="card-body p-4 p-md-5">
-        <form action="{{ route('admin.incomes.update', $income->id) }}" method="POST" onsubmit="return handleAdminFormSubmit(this);">
-            @csrf
-            @method('PUT')
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="card-body p-3 p-md-5 income-card-body">
+            <form action="{{ route('admin.incomes.update', $income->id) }}" method="POST" onsubmit="return handleAdminFormSubmit(this);">
+                @csrf
+                @method('PUT')
 
-            <div class="row g-3 mb-3">
-                <!-- Income Name -->
-                <div class="col-md-8">
-                    <label for="income_name" class="form-label fw-bold">Income Name <span class="text-danger">*</span></label>
-                    <input type="text" name="income_name" id="income_name" class="form-control rounded-3 @error('income_name') is-invalid @enderror" value="{{ old('income_name', $income->income_name) }}" placeholder="e.g. Wholesale Customer Order, Bulk Fabric Sale, Scrap Income" required>
-                    @error('income_name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <!-- Transaction Date -->
-                <div class="col-md-4">
-                    <label for="income_date" class="form-label fw-bold">Transaction Date <span class="text-danger">*</span></label>
-                    <input type="date" name="income_date" id="income_date" class="form-control rounded-3 @error('income_date') is-invalid @enderror" value="{{ old('income_date', \Carbon\Carbon::parse($income->income_date)->format('Y-m-d')) }}" required>
-                    @error('income_date')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="row g-3 mb-3">
-                <!-- Income Type -->
-                <div class="col-md-4">
-                    <label for="type" class="form-label fw-bold">Income Type <span class="text-danger">*</span></label>
-                    <select name="type" id="type" class="form-select rounded-3 @error('type') is-invalid @enderror" required onchange="toggleWholesaleFields();">
-                        <option value="wholesale_selling" {{ old('type', $income->type) === 'wholesale_selling' ? 'selected' : '' }}>Wholesale Selling</option>
-                        <option value="other" {{ old('type', $income->type) === 'other' ? 'selected' : '' }}>Other Income</option>
-                    </select>
-                    @error('type')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <!-- Income Price / Unit Price -->
-                <div class="col-md-4">
-                    <label for="income_price" class="form-label fw-bold">Income Price / Unit Rate (&#8377;) <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0">&#8377;</span>
-                        <input type="number" step="0.01" name="income_price" id="income_price" class="form-control border-start-0 @error('income_price') is-invalid @enderror" value="{{ old('income_price', $income->income_price) }}" placeholder="0.00" required oninput="calculateTotalIncome();">
+                <div class="row g-3 mb-3">
+                    <!-- Income Name -->
+                    <div class="col-12 col-md-8">
+                        <label for="income_name" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-file-invoice-dollar text-muted me-1"></i> Income Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="income_name" id="income_name" class="form-control rounded-3 @error('income_name') is-invalid @enderror" value="{{ old('income_name', $income->income_name) }}" placeholder="e.g. Wholesale Customer Order, Bulk Fabric Sale, Scrap Income" required>
+                        @error('income_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
-                    @error('income_price')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                </div>
 
-                <!-- Total Selling Pieces (Wholesale) -->
-                <div class="col-md-4" id="pieces_wrapper">
-                    <label for="selling_pieces" class="form-label fw-bold">Total Selling Piece <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <input type="number" name="selling_pieces" id="selling_pieces" class="form-control border-end-0 @error('selling_pieces') is-invalid @enderror" value="{{ old('selling_pieces', $income->selling_pieces ?? 1) }}" min="1" placeholder="1" oninput="calculateTotalIncome();">
-                        <span class="input-group-text bg-light border-start-0">pcs</span>
+                    <!-- Transaction Date -->
+                    <div class="col-12 col-md-4">
+                        <label for="income_date" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-calendar-days text-muted me-1"></i> Transaction Date <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" name="income_date" id="income_date" class="form-control rounded-3 @error('income_date') is-invalid @enderror" value="{{ old('income_date', \Carbon\Carbon::parse($income->income_date)->format('Y-m-d')) }}" required>
+                        @error('income_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
-                    @error('selling_pieces')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
                 </div>
-            </div>
 
-            <div class="row g-3 mb-4">
-                <!-- Total Income Amount -->
-                <div class="col-md-6">
-                    <label for="total_income_amount" class="form-label fw-bold text-success">Total Income Amount (&#8377;) <span class="text-danger">*</span></label>
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text bg-success-subtle text-success border-end-0 fw-bold">&#8377;</span>
-                        <input type="number" step="0.01" name="total_income_amount" id="total_income_amount" class="form-control border-start-0 fw-bold text-success @error('total_income_amount') is-invalid @enderror" value="{{ old('total_income_amount', $income->total_income_amount) }}" placeholder="0.00" required>
+                <div class="row g-3 mb-3">
+                    <!-- Income Type -->
+                    <div class="col-12 col-md-4">
+                        <label for="type" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-layer-group text-muted me-1"></i> Income Type <span class="text-danger">*</span>
+                        </label>
+                        <select name="type" id="type" class="form-select rounded-3 @error('type') is-invalid @enderror" required onchange="toggleWholesaleFields();">
+                            <option value="wholesale_selling" {{ old('type', $income->type) === 'wholesale_selling' ? 'selected' : '' }}>Wholesale Selling</option>
+                            <option value="other" {{ old('type', $income->type) === 'other' ? 'selected' : '' }}>Other Income</option>
+                        </select>
+                        @error('type')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
-                    <small class="text-muted">Automatically calculated based on price & pieces, but can be manually edited if required.</small>
-                    @error('total_income_amount')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
+
+                    <!-- Income Price / Unit Price -->
+                    <div class="col-12 col-md-4">
+                        <label for="income_price" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-tag text-muted me-1"></i> Unit Rate (&#8377;) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">&#8377;</span>
+                            <input type="number" step="0.01" name="income_price" id="income_price" class="form-control border-start-0 @error('income_price') is-invalid @enderror" value="{{ old('income_price', $income->income_price) }}" placeholder="0.00" required oninput="calculateTotalIncome();">
+                        </div>
+                        @error('income_price')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Total Selling Pieces (Wholesale) -->
+                    <div class="col-12 col-md-4" id="pieces_wrapper">
+                        <label for="selling_pieces" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-cubes text-muted me-1"></i> Total Selling Pieces <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" name="selling_pieces" id="selling_pieces" class="form-control border-end-0 @error('selling_pieces') is-invalid @enderror" value="{{ old('selling_pieces', $income->selling_pieces ?? 1) }}" min="1" placeholder="1" oninput="calculateTotalIncome();">
+                            <span class="input-group-text bg-light border-start-0">pcs</span>
+                        </div>
+                        @error('selling_pieces')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
-                <!-- Status -->
-                <div class="col-md-6">
-                    <label for="status" class="form-label fw-bold">Status <span class="text-danger">*</span></label>
-                    <select name="status" id="status" class="form-select form-select-lg rounded-3 @error('status') is-invalid @enderror" required>
-                        <option value="active" {{ old('status', $income->status) === 'active' ? 'selected' : '' }}>Active (Included in Profit & Loss)</option>
-                        <option value="inactive" {{ old('status', $income->status) === 'inactive' ? 'selected' : '' }}>Inactive (Excluded from Profit & Loss)</option>
-                    </select>
-                    <small class="text-muted">Active incomes directly add to business revenue in the Profit & Loss statement.</small>
-                    @error('status')
+                <div class="row g-3 mb-4">
+                    <!-- Total Income Amount -->
+                    <div class="col-12 col-md-6">
+                        <label for="total_income_amount" class="form-label fw-bold text-success">
+                            <i class="fa-solid fa-money-bill-wave me-1"></i> Total Income Amount (&#8377;) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-success-subtle text-success border-end-0 fw-bold">&#8377;</span>
+                            <input type="number" step="0.01" name="total_income_amount" id="total_income_amount" class="form-control border-start-0 fw-bold text-success @error('total_income_amount') is-invalid @enderror" value="{{ old('total_income_amount', $income->total_income_amount) }}" placeholder="0.00" required>
+                        </div>
+                        <small class="text-muted d-block mt-1">Calculated automatically based on rate & pieces (can be edited).</small>
+                        @error('total_income_amount')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-12 col-md-6">
+                        <label for="status" class="form-label fw-bold text-dark">
+                            <i class="fa-solid fa-circle-check text-muted me-1"></i> Status <span class="text-danger">*</span>
+                        </label>
+                        <select name="status" id="status" class="form-select form-select-lg rounded-3 @error('status') is-invalid @enderror" required>
+                            <option value="active" {{ old('status', $income->status) === 'active' ? 'selected' : '' }}>Active (Included in P&L Statement)</option>
+                            <option value="inactive" {{ old('status', $income->status) === 'inactive' ? 'selected' : '' }}>Inactive (Excluded from P&L)</option>
+                        </select>
+                        <small class="text-muted d-block mt-1">Active incomes add directly to overall business revenue.</small>
+                        @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Notes / Remarks -->
+                <div class="mb-4">
+                    <label for="notes" class="form-label fw-bold text-dark">
+                        <i class="fa-solid fa-comment-dots text-muted me-1"></i> Notes / Customer Info
+                    </label>
+                    <textarea name="notes" id="notes" class="form-control rounded-3 @error('notes') is-invalid @enderror" rows="3" placeholder="Enter customer details, order reference, or notes (optional)...">{{ old('notes', $income->notes) }}</textarea>
+                    @error('notes')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-            </div>
 
-            <!-- Notes / Remarks -->
-            <div class="mb-4">
-                <label for="notes" class="form-label fw-bold">Notes / Customer Information</label>
-                <textarea name="notes" id="notes" class="form-control rounded-3 @error('notes') is-invalid @enderror" rows="3" placeholder="Enter customer name, enquiry details, payment reference or notes (optional)...">{{ old('notes', $income->notes) }}</textarea>
-                @error('notes')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 border-top pt-4">
-                <a href="{{ route('admin.incomes.index') }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
-                <button type="submit" class="btn btn-warning rounded-pill px-5 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
-                    <i class="fa-solid fa-check me-1"></i> Update Income Record
-                </button>
-            </div>
-        </form>
+                <!-- Action Buttons -->
+                <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 border-top pt-3.5 mt-3">
+                    <a href="{{ route('admin.incomes.index') }}" class="btn btn-outline-secondary rounded-pill px-4 order-2 order-sm-1">Cancel</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark shadow-sm order-1 order-sm-2" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-check me-1"></i> Update Income Record
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

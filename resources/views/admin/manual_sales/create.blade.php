@@ -63,6 +63,9 @@
             font-size: 0.7rem !important;
             padding: 0.35rem 0.5rem !important;
         }
+        .d-none-mobile-empty {
+            display: none !important;
+        }
     }
 </style>
 
@@ -100,27 +103,36 @@
                         </div>
                     </div>
 
-                    <!-- Category Filter Checkboxes -->
+                    <!-- Category Multi-Select Dropdown Filter -->
                     <div class="mb-3 mb-md-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label fw-bold mb-0 small">Filter Products by Category</label>
-                            <div>
-                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none me-2 fw-semibold" onclick="selectAllCategories(true)">Select All</button>
-                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted fw-semibold" onclick="selectAllCategories(false)">Clear All</button>
-                            </div>
-                        </div>
-                        <div class="p-2.5 border rounded-3 bg-light" style="max-height: 110px; overflow-y: auto;">
-                            <div class="row g-2">
-                                @foreach($categories as $cat)
-                                    <div class="col-6 col-sm-4 col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input category-checkbox" type="checkbox" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="filterProductsByCategory()">
-                                            <label class="form-check-label text-truncate w-100 small fw-medium" for="cat_{{ $cat->id }}" title="{{ $cat->name }}">
-                                                {{ $cat->name }}
-                                            </label>
+                        <label class="form-label fw-bold mb-1.5 small text-dark d-block">
+                            <i class="fa-solid fa-filter text-warning me-1"></i> Filter Products by Category
+                        </label>
+                        <div class="dropdown category-multiselect-dropdown position-relative">
+                            <button class="btn btn-white border w-100 d-flex align-items-center justify-content-between rounded-3 py-2 px-3 shadow-xs bg-white text-dark" 
+                                    type="button" id="categoryDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <span class="small fw-semibold text-truncate" id="categoryDropdownLabel">All Categories</span>
+                                <i class="fa-solid fa-chevron-down text-muted small ms-2"></i>
+                            </button>
+                            <div class="dropdown-menu w-100 p-2 shadow-lg border rounded-3 mt-1" aria-labelledby="categoryDropdownBtn" style="max-height: 280px; overflow-y: auto;">
+                                <!-- Top Controls: Select All (Left) & Clear All (Right) -->
+                                <div class="d-flex justify-content-between align-items-center px-2 py-1.5 border-bottom mb-2 bg-light rounded-2">
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold text-primary small" onclick="selectAllCategories(true)">Select All</button>
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted fw-bold small" onclick="selectAllCategories(false)">Clear All</button>
+                                </div>
+                                <!-- Category Checkboxes List -->
+                                <div class="category-options-list">
+                                    @foreach($categories as $cat)
+                                        <div class="dropdown-item rounded-2 py-1.5 px-2 mb-0.5 user-select-none">
+                                            <div class="form-check m-0 d-flex align-items-center gap-2">
+                                                <input class="form-check-input category-checkbox m-0" type="checkbox" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="filterProductsByCategory()">
+                                                <label class="form-check-label small fw-medium text-dark text-truncate flex-grow-1" for="cat_{{ $cat->id }}" title="{{ $cat->name }}" style="cursor: pointer;">
+                                                    {{ $cat->name }}
+                                                </label>
+                                            </div>
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -328,20 +340,22 @@
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="form-label fw-bold small mb-1">Select Product <span class="text-danger">*</span></label>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="product-inline-thumb-container d-none flex-shrink-0">
-                                <img class="product-inline-thumb rounded-3 border shadow-sm" src="" alt="Thumb" style="width: 52px; height: 58px; object-fit: cover; cursor: pointer;" onclick="openRowThumbModal(this)" title="Click to view full image">
-                            </div>
-                            <div class="flex-grow-1 position-relative" style="cursor: pointer;" onclick="openVisualPickerForRow(this)" title="Click to Pick Product with Image">
-                                <input type="text" class="form-control rounded-3 bg-white product-display-input fw-semibold" readonly placeholder="👉 Click here to Pick Product with Image..." style="cursor: pointer; font-size: 0.85rem;">
-                                <select class="form-select rounded-3 product-select d-none" required onchange="onRowProductChange(this)">
-                                    <option value="">-- Choose Product --</option>
-                                    ${buildProductOptionsHtml()}
-                                </select>
-                            </div>
-                            <button type="button" class="btn btn-warning text-dark border border-warning-subtle fw-bold btn-sm rounded-3 px-3 py-2 flex-shrink-0 shadow-sm" onclick="openVisualPickerForRow(this)" title="Pick product by photo grid" style="font-size: 0.78rem;">
+                        <div class="product-selection-wrapper d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                            <button type="button" class="btn btn-warning text-dark border border-warning-subtle fw-bold btn-sm rounded-3 px-3 py-2 flex-shrink-0 shadow-sm order-1 order-md-2 pick-product-main-btn w-100 w-md-auto" onclick="openVisualPickerForRow(this)" title="Pick product by photo grid" style="font-size: 0.78rem;">
                                 <i class="fa-solid fa-images me-1"></i> Pick Product Image
                             </button>
+                            <div class="product-display-container d-flex align-items-center gap-2 flex-grow-1 position-relative order-2 order-md-1 d-none-mobile-empty">
+                                <div class="product-inline-thumb-container d-none flex-shrink-0">
+                                    <img class="product-inline-thumb rounded-3 border shadow-sm" src="" alt="Thumb" style="width: 52px; height: 58px; object-fit: cover; cursor: pointer;" onclick="openRowThumbModal(this)" title="Click to view full image">
+                                </div>
+                                <div class="flex-grow-1 position-relative" style="cursor: pointer;" onclick="openVisualPickerForRow(this)" title="Click to Pick Product with Image">
+                                    <input type="text" class="form-control rounded-3 bg-white product-display-input fw-semibold" readonly placeholder="👉 Click here to Pick Product with Image..." style="cursor: pointer; font-size: 0.85rem;">
+                                    <select class="form-select rounded-3 product-select d-none" required onchange="onRowProductChange(this)">
+                                        <option value="">-- Choose Product --</option>
+                                        ${buildProductOptionsHtml()}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -527,6 +541,7 @@
         const sizeSelect = card.querySelector('.size-select');
         const priceInput = card.querySelector('.price-input');
         const displayInput = card.querySelector('.product-display-input');
+        const displayContainer = card.querySelector('.product-display-container');
         const thumbContainer = card.querySelector('.product-inline-thumb-container');
         const thumbImg = card.querySelector('.product-inline-thumb');
 
@@ -538,6 +553,7 @@
             if (displayInput) displayInput.value = '';
             if (priceInput) priceInput.value = '';
             if (thumbContainer) thumbContainer.classList.add('d-none');
+            if (displayContainer) displayContainer.classList.add('d-none-mobile-empty');
             onRowSizeChange(sizeSelect);
             filterProductsByCategory();
             return;
@@ -549,6 +565,7 @@
             thumbImg.src = prod.image;
             thumbContainer.classList.remove('d-none');
         }
+        if (displayContainer) displayContainer.classList.remove('d-none-mobile-empty');
 
         prod.sizes.forEach(sz => {
             const opt = document.createElement('option');
@@ -562,6 +579,17 @@
             }
             sizeSelect.appendChild(opt);
         });
+
+        // Auto-select size if there is only 1 valid/available size option (or single size total)
+        const validSizeOpts = Array.from(sizeSelect.options).filter(opt => opt.value && !opt.disabled);
+        if (validSizeOpts.length === 1) {
+            sizeSelect.value = validSizeOpts[0].value;
+        } else if (validSizeOpts.length === 0) {
+            const allSizeOpts = Array.from(sizeSelect.options).filter(opt => opt.value);
+            if (allSizeOpts.length === 1) {
+                sizeSelect.value = allSizeOpts[0].value;
+            }
+        }
 
         onRowSizeChange(sizeSelect);
         filterProductsByCategory();
@@ -654,6 +682,27 @@
                 onRowProductChange(selectElem);
             }
         });
+
+        updateCategoryDropdownLabel();
+    }
+
+    function updateCategoryDropdownLabel() {
+        const total = document.querySelectorAll('.category-checkbox').length;
+        const checked = document.querySelectorAll('.category-checkbox:checked').length;
+        const labelElem = document.getElementById('categoryDropdownLabel');
+        if (!labelElem) return;
+
+        if (checked === 0) {
+            labelElem.innerText = 'All Categories';
+        } else if (checked === total) {
+            labelElem.innerText = `All Categories Selected (${total})`;
+        } else if (checked === 1) {
+            const firstChecked = document.querySelector('.category-checkbox:checked');
+            const catLabel = firstChecked ? firstChecked.nextElementSibling.innerText.trim() : '';
+            labelElem.innerText = `1 Category Selected (${catLabel})`;
+        } else {
+            labelElem.innerText = `${checked} Categories Selected`;
+        }
     }
 
     function selectAllCategories(status) {
@@ -811,11 +860,11 @@
 
             if (isOut) {
                 if (!isBookedFilter) return; // Hide booked when available filter active
-                let bookedInfo = prod.bookedBy ? `: ${prod.bookedBy}` : '';
-                badgeHtml = `<span class="badge bg-warning text-dark">🔒 Booked${bookedInfo} (${physicalStock} pcs)</span>`;
+                let bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
+                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${physicalStock} pcs)">🔒${bookedInfo} (${physicalStock} pcs)</span>`;
             } else {
                 if (isBookedFilter) return; // Hide available when booked filter active
-                badgeHtml = `<span class="badge bg-success">🟢 ${physicalStock} pcs in stock</span>`;
+                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${physicalStock} pcs in stock</span>`;
             }
 
             matchCount++;

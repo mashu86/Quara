@@ -61,7 +61,7 @@ class LuckyWinnerController extends Controller
 
     public function history()
     {
-        $draws = LuckyDraw::with('winners')->latest('id')->paginate(12);
+        $draws = LuckyDraw::with('winners')->orderBy('drawn_at', 'desc')->orderBy('id', 'desc')->paginate(15);
 
         return view('admin.luckywinner.history', compact('draws'));
     }

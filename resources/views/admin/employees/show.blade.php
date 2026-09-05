@@ -3,6 +3,28 @@
 @section('title', 'Employee Profile - ' . $employee->name)
 
 @section('content')
+<style>
+    @media (max-width: 767.98px) {
+        .stat-card h3 {
+            font-size: 0.95rem !important;
+        }
+        .stat-card span {
+            font-size: 0.60rem !important;
+        }
+        .nav-pills .nav-link {
+            font-size: 0.76rem !important;
+            padding: 0.35rem 0.7rem !important;
+        }
+        .table {
+            font-size: 0.75rem !important;
+        }
+        .table .badge {
+            font-size: 0.65rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+    }
+</style>
+
 <div class="container-fluid px-2 px-md-4 py-3">
     <!-- Header -->
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">

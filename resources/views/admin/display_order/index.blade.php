@@ -31,6 +31,32 @@
         border-radius: 8px;
     }
     @media (max-width: 576px) {
+        .display-order-nav-pills {
+            flex-wrap: nowrap !important;
+            gap: 6px !important;
+        }
+        .display-order-nav-pills .nav-item {
+            flex: 1 1 50% !important;
+            min-width: 0 !important;
+        }
+        .display-order-nav-pills .nav-link {
+            font-size: 0.68rem !important;
+            padding: 5px 6px !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+        .display-order-nav-pills .nav-link i {
+            font-size: 0.65rem !important;
+            margin-right: 3px !important;
+        }
+        .display-order-card-header {
+            padding: 8px 10px !important;
+        }
         .grid-thumb-img {
             height: 95px;
         }
@@ -223,16 +249,16 @@
 
     <!-- SECTION 2: GRID DRAG AND DROP POSITION MANAGER -->
     <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-white border-bottom py-3 px-3 px-md-4">
-            <ul class="nav nav-pills card-header-pills fw-semibold gap-2" id="sortingTab" role="tablist">
+        <div class="card-header bg-white border-bottom py-2.5 py-md-3 px-2.5 px-md-4 display-order-card-header">
+            <ul class="nav nav-pills card-header-pills fw-semibold gap-1.5 gap-md-2 flex-nowrap display-order-nav-pills" id="sortingTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill px-3 px-md-4 py-2 small" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-content" type="button" role="tab">
-                        <i class="fa-solid fa-layer-group me-1.5"></i> Category Order ({{ $categories->count() }})
+                    <button class="nav-link active rounded-pill px-2.5 px-md-4 py-1.5 py-md-2 small" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-content" type="button" role="tab">
+                        <i class="fa-solid fa-layer-group me-1"></i> Category Order ({{ $categories->count() }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 px-md-4 py-2 small" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-content" type="button" role="tab">
-                        <i class="fa-solid fa-shirt me-1.5"></i> Product Order ({{ $products->count() }})
+                    <button class="nav-link rounded-pill px-2.5 px-md-4 py-1.5 py-md-2 small" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-content" type="button" role="tab">
+                        <i class="fa-solid fa-shirt me-1"></i> Product Order ({{ $products->count() }})
                     </button>
                 </li>
             </ul>

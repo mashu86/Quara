@@ -8,7 +8,7 @@ Open `/luckywinner` or **Admin → Lucky Winner**. Guests use the existing admin
 2. Load eligible orders and choose the number of gifts. Each order is a separate entry, including multiple orders from the same customer.
 3. Start the draw. The server selects a winner; the reel shuffles, slows down, and reveals that result. Use Next Winner to continue. Full screen hides the surrounding controls for recording; Escape or the full screen button exits.
 4. Select See All Winners to show the final result. Exit full screen, then click **Store Winners** to create the permanent draw and linked winner records.
-5. Find stored draws in **Winner archive**. To draw the same period again, explicitly start a new draw. Existing records are never overwritten.
+5. Find stored draws in **Admin → Lucky Winner History** (`/admin/luckywinner/history`). Draw and winner details open inside the main admin panel. Old `/luckywinner/history` links redirect here. To draw the same period again, explicitly start a new draw. Existing records are never overwritten.
 
 ## Eligibility and return weighting
 

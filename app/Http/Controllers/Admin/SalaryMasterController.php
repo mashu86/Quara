@@ -207,8 +207,9 @@ class SalaryMasterController extends Controller
             }
         });
 
-        return redirect()->route('admin.salary-master.index')
-            ->with('success', "Salary settlement of ₹" . number_format($settlementAmount, 2) . " recorded successfully!");
+        $targetUrl = $request->headers->get('referer') ?: route('admin.salary-master.index');
+        return redirect()->to($targetUrl)
+            ->with('success', "Salary settlement of ₹" . number_format($settlementAmount, 2) . " for {$employee->name} recorded successfully as Salary Expense!");
     }
 
     /**

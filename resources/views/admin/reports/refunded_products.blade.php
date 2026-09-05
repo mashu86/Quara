@@ -4,12 +4,82 @@
 
 @section('content')
 <style>
-    @media (max-width: 576px) {
+    .prod-img-container {
+        width: 44px;
+        height: 52px;
+        position: relative;
+        cursor: pointer;
+        border-radius: 8px;
+        overflow: hidden;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+    .prod-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .prod-img-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.85;
+        transition: all 0.2s ease-in-out;
+    }
+    .prod-img-container:hover .prod-img-overlay {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.65);
+    }
+    .prod-title-mobile {
+        display: block;
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.78rem;
+    }
+
+    @media (max-width: 767.98px) {
         .report-header-title { font-size: 1.15rem !important; }
         .report-header-subtitle { font-size: 0.72rem !important; }
         .report-top-btn { font-size: 0.78rem !important; padding: 0.35rem 0.6rem !important; border-radius: 8px !important; }
         .stat-card-title { font-size: 0.72rem !important; }
         .stat-card-val { font-size: 1.15rem !important; }
+
+        /* Mobile Sticky 1st Column (Product Details) */
+        .refund-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .refund-table th:first-child,
+        .refund-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.12);
+            min-width: 115px;
+            max-width: 125px;
+        }
+        .refund-table th:first-child {
+            background-color: #212529 !important;
+            color: #ffffff !important;
+        }
+        .refund-table td:first-child {
+            background-color: #ffffff !important;
+        }
+        .refund-table tr:hover td:first-child {
+            background-color: #f8f9fa !important;
+        }
+        .prod-title-mobile {
+            max-width: 100px;
+            font-size: 0.74rem;
+        }
+        .refund-table {
+            font-size: 0.78rem !important;
+        }
     }
 </style>
 
@@ -119,12 +189,12 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+        <div class="refund-table-wrapper">
+            <table class="table table-hover align-middle mb-0 refund-table">
                 <thead class="table-dark">
                     <tr>
-                        <th class="ps-4" style="width: 130px;">Date &amp; Order</th>
-                        <th>Product Details</th>
+                        <th class="ps-3 ps-md-4">Product Details</th>
+                        <th>Date &amp; Order</th>
                         <th>Customer</th>
                         <th class="text-center">Stock Condition</th>
                         <th class="text-end">Original Price</th>
@@ -139,50 +209,70 @@
                             $prod = $op->product;
                             $imgUrl = $prod ? $prod->primary_image_url : \App\Models\Setting::logoUrl();
                             $refundAmt = (float) ($op->total_refund_amount > 0 ? $op->total_refund_amount : ($orderItem ? $orderItem->refund_amount : 0));
+                            $prodName = $orderItem ? $orderItem->product_name : ($prod ? $prod->name : 'Product');
+                            $prodSize = $orderItem ? $orderItem->size : 'N/A';
                         @endphp
                         <tr>
-                            <td class="ps-4">
-                                <div class="fw-bold text-dark small">{{ $op->created_at->format('d-m-Y') }}</div>
-                                @if($order)
-                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="badge bg-dark text-decoration-none" title="View Order Adjustments">
-                                        #{{ $order->order_number }}
-                                    </a>
-                                @endif
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2.5">
-                                    <img src="{{ $imgUrl }}" alt="Product" class="rounded-3 border flex-shrink-0" style="width: 44px; height: 52px; object-fit: cover;">
-                                    <div>
-                                        <div class="fw-bold text-dark small">{{ $orderItem ? $orderItem->product_name : ($prod ? $prod->name : 'Product') }}</div>
-                                        <div class="small text-muted" style="font-size: 0.74rem;">
-                                            Size: <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ $orderItem ? $orderItem->size : 'N/A' }}</span> | Qty: <strong>{{ $op->quantity }} pcs</strong>
+                            <!-- 1st Column: Fixed / Sticky Product Details on Mobile -->
+                            <td class="ps-3 ps-md-4">
+                                <div class="d-flex flex-column align-items-center align-items-md-start gap-1">
+                                    <div class="prod-img-container shadow-sm border" onclick="openImageModal('{{ $imgUrl }}', '{{ e($prodName) }}', '{{ $prodSize }}', '{{ $op->quantity }}')" title="Click to view image design preview">
+                                        <img src="{{ $imgUrl }}" alt="Product">
+                                        <div class="prod-img-overlay">
+                                            <i class="fa-solid fa-eye text-white fs-6"></i>
+                                        </div>
+                                    </div>
+                                    <div class="text-center text-md-start w-100">
+                                        <div class="fw-bold text-dark prod-title-mobile" title="{{ $prodName }}">
+                                            {{ $prodName }}
+                                        </div>
+                                        <div class="small text-muted" style="font-size: 0.70rem;">
+                                            <span class="badge bg-secondary" style="font-size: 0.62rem;">{{ $prodSize }}</span> | <strong>{{ $op->quantity }}pcs</strong>
                                         </div>
                                     </div>
                                 </div>
                             </td>
+
+                            <!-- 2nd Column: Date & Order -->
+                            <td>
+                                <div class="fw-bold text-dark small text-nowrap">{{ $op->created_at->format('d-m-Y') }}</div>
+                                @if($order)
+                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="badge bg-dark text-decoration-none text-nowrap" title="View Order Adjustments">
+                                        #{{ $order->order_number }}
+                                    </a>
+                                @endif
+                            </td>
+
+                            <!-- 3rd Column: Customer -->
                             <td>
                                 @if($order)
-                                    <div class="fw-semibold text-dark small">{{ $order->customer_name }}</div>
-                                    <div class="small text-muted" style="font-size: 0.72rem;">{{ $order->customer_phone }}</div>
+                                    <div class="fw-semibold text-dark small text-nowrap">{{ $order->customer_name }}</div>
+                                    <div class="small text-muted text-nowrap" style="font-size: 0.72rem;">{{ $order->customer_phone }}</div>
                                 @else
                                     <span class="text-muted small">N/A</span>
                                 @endif
                             </td>
+
+                            <!-- 4th Column: Stock Condition -->
                             <td class="text-center">
                                 @if($op->inventory_condition === 'return_to_stock')
-                                    <span class="badge bg-success-subtle text-success border border-success px-2.5 py-1" style="font-size: 0.72rem;">
+                                    <span class="badge bg-success-subtle text-success border border-success px-2.5 py-1 text-nowrap" style="font-size: 0.72rem;">
                                         <i class="fa-solid fa-box-archive me-1"></i> Restocked
                                     </span>
                                 @else
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2.5 py-1" style="font-size: 0.72rem;">
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2.5 py-1 text-nowrap" style="font-size: 0.72rem;">
                                         <i class="fa-solid fa-snowflake me-1"></i> Frozen
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-end fw-semibold text-dark">
+
+                            <!-- 5th Column: Original Price -->
+                            <td class="text-end fw-semibold text-dark text-nowrap">
                                 ₹{{ number_format($orderItem ? $orderItem->subtotal : 0, 2) }}
                             </td>
-                            <td class="text-end pe-4">
+
+                            <!-- 6th Column: Refund Given -->
+                            <td class="text-end pe-4 text-nowrap">
                                 @if($refundAmt > 0)
                                     <span class="fw-bold fs-6 text-danger">-₹{{ number_format($refundAmt, 2) }}</span>
                                 @else
@@ -209,4 +299,39 @@
         </div>
     @endif
 </div>
+
+<!-- Image Design Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header border-0 bg-dark text-white p-3">
+                <h6 class="modal-title fw-bold text-white small" id="imagePreviewModalLabel">
+                    <i class="fa-solid fa-image me-1 text-warning"></i> Product Design Preview
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-light">
+                <img id="imageModalImg" src="" alt="Product Design Preview" class="img-fluid w-100" style="max-height: 380px; object-fit: contain;">
+            </div>
+            <div class="modal-footer border-top bg-white p-2.5 d-flex justify-content-between align-items-center">
+                <div class="text-start pe-2" style="max-width: 200px;">
+                    <span id="imageModalName" class="fw-bold text-dark small d-block text-truncate"></span>
+                    <span id="imageModalMeta" class="small text-muted d-block" style="font-size: 0.72rem;"></span>
+                </div>
+                <button type="button" class="btn btn-sm btn-dark rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openImageModal(url, name, size, qty) {
+    document.getElementById('imageModalImg').src = url;
+    document.getElementById('imageModalName').innerText = name;
+    document.getElementById('imageModalMeta').innerText = 'Size: ' + size + ' | Quantity: ' + qty + ' pcs';
+    var modalElement = document.getElementById('imagePreviewModal');
+    var modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+</script>
 @endsection

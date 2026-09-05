@@ -3,6 +3,58 @@
 @section('title', 'Salary Master - ' . $siteName)
 
 @section('content')
+<style>
+    @media (max-width: 767.98px) {
+        .stat-card h3 {
+            font-size: 0.95rem !important;
+        }
+        .stat-card span {
+            font-size: 0.60rem !important;
+        }
+        .modal-header {
+            padding: 0.75rem 1rem !important;
+        }
+        .modal-header .modal-title {
+            font-size: 0.95rem !important;
+        }
+        .modal-body {
+            padding: 0.85rem 1rem !important;
+        }
+        .modal-body .form-label {
+            font-size: 0.76rem !important;
+            margin-bottom: 0.2rem !important;
+        }
+        .modal-body .form-select,
+        .modal-body .form-control,
+        .modal-body .input-group-text {
+            font-size: 0.78rem !important;
+            padding: 0.35rem 0.55rem !important;
+        }
+        .modal-body .form-text {
+            font-size: 0.65rem !important;
+        }
+        .modal-footer {
+            padding: 0.6rem 1rem !important;
+        }
+        .modal-footer .btn {
+            font-size: 0.78rem !important;
+            padding: 0.3rem 0.8rem !important;
+        }
+        .card-body .form-select,
+        .card-body .form-control {
+            font-size: 0.78rem !important;
+            padding: 0.35rem 0.55rem !important;
+        }
+        .table {
+            font-size: 0.75rem !important;
+        }
+        .table .badge {
+            font-size: 0.65rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+    }
+</style>
+
 <div class="container-fluid px-2 px-md-4 py-3">
     <!-- Header & Action Buttons -->
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">

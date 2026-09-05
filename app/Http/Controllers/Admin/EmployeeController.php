@@ -29,17 +29,38 @@ class EmployeeController extends Controller
             $query->where('salary_type', $request->salary_type);
         }
 
+        if ($request->filled('employee_id')) {
+            $query->where('id', $request->employee_id);
+        }
+
         $employees = $query->orderBy('name', 'asc')->paginate(15)->withQueryString();
 
-        // Calculate aggregate metrics across all employees
-        $allEmployees = Employee::all();
-        $totalEmployeesCount = $allEmployees->count();
-        $totalEarnedAll = $allEmployees->sum(fn($emp) => $emp->total_earned);
-        $totalPaidAll = $allEmployees->sum(fn($emp) => $emp->total_paid);
-        $totalOutstandingAll = max(0.00, round($totalEarnedAll - $totalPaidAll, 2));
+        $allEmployeesList = Employee::orderBy('name', 'asc')->get(['id', 'name', 'designation']);
+
+        // Selected employee specific stats if filtered by single employee
+        $selectedEmployee = null;
+        if ($request->filled('employee_id')) {
+            $selectedEmployee = Employee::find($request->employee_id);
+        }
+
+        // Aggregate metrics across all or selected employee
+        if ($selectedEmployee) {
+            $totalEmployeesCount = 1;
+            $totalEarnedAll = $selectedEmployee->total_earned;
+            $totalPaidAll = $selectedEmployee->total_paid;
+            $totalOutstandingAll = $selectedEmployee->outstanding_salary;
+        } else {
+            $allEmployees = Employee::all();
+            $totalEmployeesCount = $allEmployees->count();
+            $totalEarnedAll = $allEmployees->sum(fn($emp) => $emp->total_earned);
+            $totalPaidAll = $allEmployees->sum(fn($emp) => $emp->total_paid);
+            $totalOutstandingAll = max(0.00, round($totalEarnedAll - $totalPaidAll, 2));
+        }
 
         return view('admin.employees.index', compact(
             'employees',
+            'allEmployeesList',
+            'selectedEmployee',
             'totalEmployeesCount',
             'totalEarnedAll',
             'totalPaidAll',

@@ -2,54 +2,20 @@
 
 @section('title', 'Manual Sales - ' . $siteName . ' Admin')
 
-@section('content')
-<style>
-    @media (max-width: 576px) {
-        .add-offline-btn {
-            border-radius: 8px !important;
-            font-size: 0.78rem !important;
-            padding: 0.4rem 0.65rem !important;
-        }
-        .offline-sales-title {
-            font-size: 1.15rem !important;
-        }
-        .offline-sales-subtitle {
-            font-size: 0.72rem !important;
-        }
-        .search-trigger-btn {
-            font-size: 0.78rem !important;
-            padding: 0.4rem 0.75rem !important;
-        }
-        #manualSalesFilterModal .modal-title {
-            font-size: 0.9rem !important;
-        }
-        #manualSalesFilterModal .form-label {
-            font-size: 0.76rem !important;
-        }
-        #manualSalesFilterModal .form-control {
-            font-size: 0.78rem !important;
-            padding: 0.4rem 0.65rem !important;
-        }
-        #manualSalesFilterModal .btn {
-            font-size: 0.78rem !important;
-            padding: 0.35rem 0.8rem !important;
-        }
-        #manualSalesFilterModal .modal-body {
-            padding: 1rem !important;
-        }
-        #manualSalesFilterModal .modal-footer {
-            padding: 0.65rem 1rem !important;
-        }
-    }
-</style>
+@section('styles')
+<link rel="stylesheet" href="{{ asset('css/manual-sales.css') }}?v=1">
+@endsection
 
-<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+@section('content')
+<div class="manual-sales-page">
+
+<div class="manual-sales-heading mb-3 mb-md-4">
     <div>
         <h3 class="fw-bold mb-1 offline-sales-title">Offline Sales</h3>
         <p class="text-muted small mb-0 offline-sales-subtitle">Record offline store purchases, counter sales & direct customer orders.</p>
     </div>
     <a href="{{ route('admin.manual-sales.create') }}" class="btn btn-warning rounded-3 rounded-md-pill fw-bold px-2.5 px-md-4 py-1.5 py-md-2 add-offline-btn shadow-sm text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Record New Offline Sale">
-        <i class="fa-solid fa-plus me-0 me-md-1"></i><span class="d-none d-md-inline"> Record New Offline Sale</span>
+        <i class="fa-solid fa-plus" aria-hidden="true"></i><span class="d-md-none">New Sale</span><span class="d-none d-md-inline">Record New Offline Sale</span>
     </a>
 </div>
 
@@ -81,18 +47,18 @@
 <div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
     <div class="card-body p-3">
         <form action="{{ route('admin.manual-sales.index') }}" method="GET" class="row g-2 align-items-end">
-            <div class="col-lg-5 col-md-4">
+            <div class="col-lg-4">
                 <label class="form-label small fw-semibold text-muted mb-1">Search Keyword</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white rounded-start-pill border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
                     <input type="text" name="search" class="form-control rounded-end-pill border-start-0" placeholder="Order #, Customer Name, Phone..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-lg-2.5 col-md-3">
+            <div class="col-lg-3">
                 <label class="form-label small fw-semibold text-muted mb-1"><i class="fa-regular fa-calendar me-1"></i> From Date</label>
                 <input type="date" name="from_date" class="form-control rounded-pill" value="{{ request('from_date') }}">
             </div>
-            <div class="col-lg-2.5 col-md-3">
+            <div class="col-lg-3">
                 <label class="form-label small fw-semibold text-muted mb-1"><i class="fa-regular fa-calendar me-1"></i> To Date</label>
                 <input type="date" name="to_date" class="form-control rounded-pill" value="{{ request('to_date') }}">
             </div>
@@ -108,7 +74,7 @@
 
 <!-- Manual Sales Mobile Filter Modal (d-lg-none) -->
 <div class="modal fade d-lg-none" id="manualSalesFilterModal" tabindex="-1" aria-labelledby="manualSalesFilterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-dark text-white rounded-top-4 py-3">
                 <h5 class="modal-title font-serif fw-bold" id="manualSalesFilterModalLabel">
@@ -116,18 +82,18 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.manual-sales.index') }}" method="GET">
+            <form action="{{ route('admin.manual-sales.index') }}" method="GET" class="manual-sales-filter-form">
                 <div class="modal-body p-3.5">
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark mb-1">Search Order # / Customer Name / Phone</label>
                         <input type="text" name="search" class="form-control rounded-3" placeholder="Order #, Customer Name, Phone..." value="{{ request('search') }}">
                     </div>
                     <div class="row g-2">
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-semibold text-dark mb-1"><i class="fa-regular fa-calendar me-1"></i> From Date</label>
                             <input type="date" name="from_date" class="form-control rounded-3" value="{{ request('from_date') }}">
                         </div>
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-semibold text-dark mb-1"><i class="fa-regular fa-calendar me-1"></i> To Date</label>
                             <input type="date" name="to_date" class="form-control rounded-3" value="{{ request('to_date') }}">
                         </div>
@@ -147,13 +113,13 @@
 <!-- Table / Cards Section -->
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-0">
-        <!-- MOBILE VIEW: Compact Cards Layout (d-block d-md-none) -->
-        <div class="d-block d-md-none p-2 bg-light" id="manual-sales-mobile-container">
+        <!-- Mobile and tablet cards -->
+        <div class="d-block d-lg-none p-2 bg-light" id="manual-sales-mobile-container">
             @include('admin.manual_sales.partials.mobile_cards')
         </div>
 
-        <!-- DESKTOP VIEW: Table Layout (d-none d-md-block) -->
-        <div class="d-none d-md-block">
+        <!-- Desktop table -->
+        <div class="d-none d-lg-block">
             <div class="table-responsive" id="manual-sales-scroll-container" style="max-height: 75vh; overflow-y: auto;">
                 <table class="table align-middle mb-0">
                     <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
@@ -185,15 +151,20 @@
         </div>
     </div>
     <div class="card-footer bg-white py-2 text-center border-top">
-        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+        <div id="infinite-scroll-loading" class="d-none text-muted small py-1" role="status">
             <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
             Loading more offline sales...
         </div>
         <div id="infinite-scroll-end" class="{{ $manualOrders->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
             <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $manualOrders->total() }} offline sales loaded
         </div>
+        <button type="button" id="manual-sales-load-more" class="btn btn-sm btn-outline-dark rounded-pill px-4 my-1 {{ $manualOrders->hasMorePages() ? '' : 'd-none' }}" style="min-height: 44px;">Load more sales</button>
+        <p id="manual-sales-load-error" class="small text-danger my-2 d-none" role="alert">Could not load more sales. Tap Retry to continue.</p>
     </div>
 </div>
+
+</div>
+@endsection
 
 @section('scripts')
 <script>
@@ -202,14 +173,14 @@
         if (!modalEl) {
             const modalHtml = `
                 <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
                         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                             <div class="modal-header bg-dark text-white py-2.5 px-3">
                                 <h5 class="modal-title fs-6 fw-bold text-truncate" id="imagePreviewModalTitle">Product Image Preview</h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            <div class="modal-body p-2 p-sm-3 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 350px;">
-                                <img id="imagePreviewModalImg" src="" alt="Product Large Image" class="img-fluid rounded-3 shadow" style="max-height: 80vh; max-width: 100%; object-fit: contain;">
+                            <div class="modal-body p-2 p-sm-3 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 0;">
+                                <img id="imagePreviewModalImg" src="" alt="Product Large Image" class="img-fluid rounded-3 shadow" style="max-height: 70vh; max-height: 70dvh; max-width: 100%; object-fit: contain;">
                             </div>
                         </div>
                     </div>
@@ -219,7 +190,7 @@
         }
         document.getElementById('imagePreviewModalImg').src = imageUrl;
         document.getElementById('imagePreviewModalTitle').textContent = title || 'Product Image Preview';
-        const modal = new bootstrap.Modal(modalEl);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
     }
 
@@ -227,15 +198,18 @@
         let nextPageUrl = @json($manualOrders->nextPageUrl());
         let hasMore = @json($manualOrders->hasMorePages());
         let isLoading = false;
+        let loadFailed = false;
 
         const scrollContainer = document.getElementById('manual-sales-scroll-container');
         const tbody = document.getElementById('manual-sales-tbody');
         const mobileContainer = document.getElementById('manual-sales-mobile-container');
         const loadingSpinner = document.getElementById('infinite-scroll-loading');
         const endNotice = document.getElementById('infinite-scroll-end');
+        const loadMoreButton = document.getElementById('manual-sales-load-more');
+        const loadError = document.getElementById('manual-sales-load-error');
 
         function checkAndLoadMore() {
-            if (isLoading || !hasMore || !nextPageUrl) return;
+            if (isLoading || loadFailed || !hasMore || !nextPageUrl) return;
 
             let shouldLoad = false;
 
@@ -244,11 +218,9 @@
                 if (scrollBottom < 150) {
                     shouldLoad = true;
                 }
-            }
-
-            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-            if (windowScrollBottom < 300) {
-                shouldLoad = true;
+            } else {
+                const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+                shouldLoad = windowScrollBottom < 300;
             }
 
             if (shouldLoad) {
@@ -257,7 +229,11 @@
         }
 
         function fetchNextPage() {
+            if (isLoading || !hasMore || !nextPageUrl) return;
             isLoading = true;
+            loadFailed = false;
+            loadMoreButton.disabled = true;
+            loadError.classList.add('d-none');
             if (loadingSpinner) loadingSpinner.classList.remove('d-none');
             if (endNotice) endNotice.classList.add('d-none');
 
@@ -267,7 +243,10 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Unable to load sales');
+                return response.json();
+            })
             .then(data => {
                 if (data.desktop_html && tbody) {
                     tbody.insertAdjacentHTML('beforeend', data.desktop_html);
@@ -284,19 +263,30 @@
                 if (!hasMore && endNotice) {
                     endNotice.classList.remove('d-none');
                 }
+                loadMoreButton.classList.toggle('d-none', !hasMore);
+                loadMoreButton.textContent = 'Load more sales';
+                requestAnimationFrame(checkAndLoadMore);
             })
             .catch(err => {
                 console.error('Error fetching more offline sales:', err);
                 isLoading = false;
+                loadFailed = true;
+                loadError.classList.remove('d-none');
+                loadMoreButton.textContent = 'Retry';
                 if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            })
+            .finally(() => {
+                loadMoreButton.disabled = false;
             });
         }
 
         if (scrollContainer) {
-            scrollContainer.addEventListener('scroll', checkAndLoadMore);
+            scrollContainer.addEventListener('scroll', checkAndLoadMore, { passive: true });
         }
-        window.addEventListener('scroll', checkAndLoadMore);
+        loadMoreButton.addEventListener('click', fetchNextPage);
+        window.addEventListener('scroll', checkAndLoadMore, { passive: true });
+        window.addEventListener('resize', checkAndLoadMore);
+        requestAnimationFrame(checkAndLoadMore);
     });
 </script>
-@endsection
 @endsection

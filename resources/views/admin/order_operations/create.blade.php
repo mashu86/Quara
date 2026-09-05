@@ -8,10 +8,16 @@
         .op-form-title { font-size: 1.15rem !important; }
         .op-form-subtitle { font-size: 0.72rem !important; }
         .op-back-btn { font-size: 0.76rem !important; padding: 0.35rem 0.6rem !important; border-radius: 8px !important; }
-        .card-body.p-4 { padding: 1rem 0.85rem !important; }
+        .card-body.p-4 { padding: 0.85rem !important; }
         .card-body h5 { font-size: 0.92rem !important; margin-bottom: 0.75rem !important; }
         .form-label { font-size: 0.76rem !important; margin-bottom: 0.25rem !important; }
         .form-control, .form-select { font-size: 0.78rem !important; padding: 0.4rem 0.65rem !important; }
+        .item-adj-card { padding: 0.65rem !important; }
+        .item-adj-thumb { width: 44px !important; height: 54px !important; }
+        .item-adj-title { font-size: 0.84rem !important; }
+    }
+    @media (min-width: 768px) {
+        .border-start-md { border-left: 1px solid rgba(255,255,255,0.18) !important; }
     }
     .item-adj-card {
         transition: all 0.2s ease;
@@ -57,19 +63,19 @@
         <div class="row g-3 align-items-center">
             <div class="col-md-4">
                 <div class="small text-warning fw-bold text-uppercase" style="letter-spacing: 0.5px;">Customer Details</div>
-                <div class="fw-bold fs-6">{{ $order->customer_name }}</div>
+                <div class="fw-bold fs-6 text-truncate">{{ $order->customer_name }}</div>
                 @if($order->customer_phone)
                     <a href="tel:{{ $order->customer_phone }}" class="text-white-50 text-decoration-none small">
                         <i class="fa-solid fa-phone text-success me-1"></i>{{ $order->customer_phone }}
                     </a>
                 @endif
             </div>
-            <div class="col-md-4 border-start border-secondary ps-md-4">
+            <div class="col-md-4 border-start-md ps-md-4 pt-2 pt-md-0 border-top border-top-md-0 border-secondary">
                 <div class="small text-warning fw-bold text-uppercase" style="letter-spacing: 0.5px;">Order Information</div>
                 <div class="small text-white-50">Date: <strong class="text-white">{{ ($order->sale_date ?? $order->created_at)->format('d-m-Y') }}</strong></div>
                 <div class="small text-white-50">Payment: <strong class="text-white text-uppercase">{{ str_replace('_', ' ', $order->payment_method) }} ({{ ucfirst($order->payment_status) }})</strong></div>
             </div>
-            <div class="col-md-4 border-start border-secondary ps-md-4 text-md-end">
+            <div class="col-md-4 border-start-md ps-md-4 text-md-end pt-2 pt-md-0 border-top border-top-md-0 border-secondary">
                 <div class="small text-warning fw-bold text-uppercase" style="letter-spacing: 0.5px;">Order Net Realized Amount</div>
                 @php
                     $totalOrderRefunds = (float) $order->operations->where('status', 'active')->sum('total_refund_amount');
@@ -100,7 +106,7 @@
                 </div>
 
                 <p class="text-muted small mb-3">
-                    Click <strong>[Edit / Adjust]</strong> on any product to process return, cancellation, inventory condition, or refund for that specific item.
+                    Click <strong>[Adjust]</strong> on any product to process return, cancellation, inventory condition, or refund for that specific item.
                 </p>
 
                 <!-- Product Items List -->
@@ -112,11 +118,11 @@
                             $statusClass = 'status-' . ($item->item_status ?? 'active');
                             $itemOps = $order->operations->where('order_item_id', $item->id);
                         @endphp
-                        <div class="card border rounded-3 p-3 bg-white shadow-sm item-adj-card {{ $statusClass }}">
-                            <div class="d-flex align-items-start gap-3">
+                        <div class="card border rounded-3 p-2.5 p-sm-3 bg-white shadow-sm item-adj-card {{ $statusClass }}">
+                            <div class="d-flex align-items-start gap-2.5 gap-sm-3">
                                 <!-- Product Thumb (NON-EDITABLE ORIGINAL INFO) -->
                                 <div class="p-0.5 bg-white border rounded flex-shrink-0" style="cursor: pointer;" onclick="openImagePreviewModal('{{ addslashes($imgUrl) }}', '{{ addslashes($item->product_name) }}')" title="Click to view full image">
-                                    <img src="{{ $imgUrl }}" alt="{{ $item->product_name }}" class="rounded d-block" style="width: 50px; height: 60px; object-fit: cover;">
+                                    <img src="{{ $imgUrl }}" alt="{{ $item->product_name }}" class="rounded d-block item-adj-thumb" style="width: 48px; height: 58px; object-fit: cover;">
                                 </div>
                                 <div class="flex-grow-1 min-w-0">
                                     @php
@@ -159,61 +165,61 @@
                                         $itemB64 = base64_encode(json_encode($itemPayload));
                                         $opB64 = base64_encode(json_encode($opPayload));
                                     @endphp
-                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                                        <h6 class="fw-bold text-dark mb-0 text-truncate" style="font-size: 0.92rem;">{{ $item->product_name }}</h6>
-                                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                        <h6 class="fw-bold text-dark mb-0 item-adj-title text-truncate me-auto" style="font-size: 0.9rem; max-width: 100%;">{{ $item->product_name }}</h6>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
                                             @if($alreadyAdjusted)
                                                 <!-- Return / Adjustment Details Button (Read-Only) -->
-                                                <button type="button" class="btn btn-sm btn-info text-dark rounded-pill px-2.5 py-1 font-sans fw-bold d-inline-flex align-items-center gap-1 shadow-xs"
+                                                <button type="button" class="btn btn-sm btn-info text-dark rounded-pill font-sans fw-bold d-inline-flex align-items-center gap-1 shadow-xs"
                                                         data-item-b64="{{ $itemB64 }}"
                                                         data-op-b64="{{ $opB64 }}"
                                                         onclick="triggerViewAdjustmentDetails(this)"
-                                                        style="font-size: 0.74rem !important; padding: 0.28rem 0.65rem !important;" title="View read-only return & adjustment details">
+                                                        style="font-size: 0.7rem !important; padding: 0.25rem 0.65rem !important;" title="View read-only return & adjustment details">
                                                     <i class="fa-solid fa-file-invoice text-dark"></i>
                                                     <span>Return Details</span>
                                                 </button>
-                                                <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5" style="font-size: 0.72rem;" title="This item has already been adjusted / returned and cannot be edited or adjusted again.">
+                                                <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This item has already been adjusted / returned and cannot be edited or adjusted again.">
                                                     <i class="fa-solid fa-lock me-1 text-warning"></i> Locked
                                                 </span>
                                             @else
-                                                <button type="button" class="btn op-adjust-btn d-inline-flex align-items-center gap-1.5 flex-shrink-0"
+                                                <button type="button" class="btn op-adjust-btn d-inline-flex align-items-center gap-1 flex-shrink-0"
                                                         data-item-b64="{{ $itemB64 }}"
                                                         onclick="triggerOpenItemAdjustment(this)"
-                                                        style="padding: 0.28rem 0.75rem !important; font-size: 0.74rem !important;">
+                                                        style="padding: 0.25rem 0.75rem !important; font-size: 0.72rem !important;">
                                                     <i class="fa-solid fa-pen-to-square"></i>
-                                                    <span>Edit / Adjust</span>
+                                                    <span>Adjust</span>
                                                 </button>
                                             @endif
                                         </div>
                                     </div>
 
-                                    <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.78rem;">
-                                        <span class="badge bg-dark">Size: {{ $item->size }}</span>
-                                        <span class="text-muted fw-semibold">Quantity: {{ $item->quantity }} pcs</span>
-                                        <span class="text-muted">Price: ₹{{ number_format($item->unit_price, 2) }}</span>
-                                        <span class="fw-bold text-dark">Subtotal: ₹{{ number_format($item->subtotal, 2) }}</span>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap my-2" style="font-size: 0.74rem;">
+                                        <span class="badge bg-dark px-2 py-1" style="font-size: 0.68rem;">Size: {{ $item->size }}</span>
+                                        <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.7rem;">Qty: {{ $item->quantity }} pcs</span>
+                                        <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.7rem;">Price: ₹{{ number_format($item->unit_price, 2) }}</span>
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-1 fw-bold ms-auto ms-sm-0" style="font-size: 0.72rem;">Subtotal: ₹{{ number_format($item->subtotal, 2) }}</span>
                                     </div>
                                     
                                     <!-- Status Badges -->
-                                    <div class="mt-2 d-flex align-items-center gap-1.5 flex-wrap">
+                                    <div class="mt-2.5 pt-1.5 border-top border-light-subtle d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.68rem;">
                                         @if(($item->item_status ?? 'active') === 'cancelled')
-                                            <span class="badge bg-danger"><i class="fa-solid fa-ban me-1"></i> Order Cancelled</span>
+                                            <span class="badge bg-danger px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-ban me-1"></i> Order Cancelled</span>
                                         @elseif(($item->item_status ?? 'active') === 'returned')
-                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-rotate-left me-1"></i> Product Returned</span>
+                                            <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-rotate-left me-1"></i> Product Returned</span>
                                         @elseif(($item->item_status ?? 'active') === 'exchanged')
-                                            <span class="badge bg-info text-dark"><i class="fa-solid fa-right-left me-1"></i> Product Exchanged</span>
+                                            <span class="badge bg-info text-dark px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-right-left me-1"></i> Product Exchanged</span>
                                         @else
-                                            <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Active / Normal</span>
+                                            <span class="badge bg-success px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-check me-1"></i> Active / Normal</span>
                                         @endif
 
                                         @if($item->inventory_condition === 'return_to_stock')
-                                            <span class="badge bg-success"><i class="fa-solid fa-box-archive me-1"></i> Restocked (+{{ $item->quantity }})</span>
+                                            <span class="badge bg-success px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-box-archive me-1"></i> Restocked (+{{ $item->quantity }})</span>
                                         @elseif($item->inventory_condition === 'do_not_restock')
-                                            <span class="badge bg-secondary"><i class="fa-solid fa-snowflake me-1"></i> Frozen / Not Restocked</span>
+                                            <span class="badge bg-secondary px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-snowflake me-1"></i> Frozen / Not Restocked</span>
                                         @endif
 
                                         @if($item->refund_amount > 0)
-                                            <span class="badge bg-danger"><i class="fa-solid fa-hand-holding-dollar me-1"></i> Refund: ₹{{ number_format($item->refund_amount, 2) }}</span>
+                                            <span class="badge bg-danger px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-hand-holding-dollar me-1"></i> Refund: ₹{{ number_format($item->refund_amount, 2) }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -967,11 +973,11 @@
 
             if (isOut) {
                 if (!isBookedFilter) return; // Hide booked when available filter is active
-                let bookedInfo = prod.bookedBy ? `: ${prod.bookedBy}` : '';
-                badgeHtml = `<span class="badge bg-warning text-dark">🔒 Booked${bookedInfo} (${physicalStock} pcs)</span>`;
+                let bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
+                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${physicalStock} pcs)">🔒${bookedInfo} (${physicalStock} pcs)</span>`;
             } else {
                 if (isBookedFilter) return; // Hide available when booked filter is active
-                badgeHtml = `<span class="badge bg-success">🟢 ${physicalStock} pcs in stock</span>`;
+                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${physicalStock} pcs in stock</span>`;
             }
 
             matchCount++;

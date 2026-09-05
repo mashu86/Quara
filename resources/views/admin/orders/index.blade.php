@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- Quick Edit Payment Modal for Orders Index -->
 <div class="modal fade" id="indexEditPaymentModal" tabindex="-1" aria-labelledby="indexEditPaymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white">
             <div class="modal-header bg-dark text-white rounded-top-4 py-2.5">
                 <h5 class="modal-title font-serif fw-bold fs-6" id="indexEditPaymentModalLabel">
                     <i class="fa-solid fa-credit-card text-warning me-2"></i> Edit Payment (<span id="quickEditOrderNumber"></span>)
@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <form id="quickEditPaymentForm" method="POST" action="">
                 @csrf
-                <div class="modal-body p-3 p-sm-4">
+                <div class="modal-body p-3 p-sm-4 bg-white">
                     <div class="alert alert-info py-2 px-3 small rounded-3 mb-3" style="font-size: 0.76rem;">
                         <i class="fa-solid fa-circle-info me-1"></i>
                         Fix payment status (e.g. Razorpay payment received, but website showing Pending).

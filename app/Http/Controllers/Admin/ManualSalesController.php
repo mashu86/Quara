@@ -142,7 +142,14 @@ class ManualSalesController extends Controller
         $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
         $grandTotal = $calculatedSubtotal + $shipping;
         $orderNumber = 'QW-MAN-' . strtoupper(str_shuffle(substr(uniqid(), -5)));
-        $saleDate = !empty($validated['sale_date']) ? \Carbon\Carbon::parse($validated['sale_date']) : now();
+
+        $nowInIst = \Carbon\Carbon::now('Asia/Kolkata');
+        if (!empty($validated['sale_date'])) {
+            $parsedDate = \Carbon\Carbon::parse($validated['sale_date'], 'Asia/Kolkata');
+            $saleDate = $parsedDate->setTime($nowInIst->hour, $nowInIst->minute, $nowInIst->second);
+        } else {
+            $saleDate = $nowInIst;
+        }
 
         DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $shipping, $grandTotal, $orderNumber, $saleDate) {
             $order = Order::create([
@@ -262,7 +269,14 @@ class ManualSalesController extends Controller
         ]);
 
         $oldItems = $order->items;
-        $saleDate = !empty($validated['sale_date']) ? \Carbon\Carbon::parse($validated['sale_date']) : ($order->sale_date ?? $order->created_at);
+        
+        $nowInIst = \Carbon\Carbon::now('Asia/Kolkata');
+        if (!empty($validated['sale_date'])) {
+            $parsedDate = \Carbon\Carbon::parse($validated['sale_date'], 'Asia/Kolkata');
+            $saleDate = $parsedDate->setTime($nowInIst->hour, $nowInIst->minute, $nowInIst->second);
+        } else {
+            $saleDate = $order->sale_date ?? $nowInIst;
+        }
 
         try {
             DB::transaction(function () use ($order, $oldItems, $validated, $saleDate) {

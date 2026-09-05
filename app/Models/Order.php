@@ -178,7 +178,18 @@ class Order extends Model
         if (!$date) {
             return \Carbon\Carbon::now('Asia/Kolkata');
         }
-        return \Carbon\Carbon::parse($date)->setTimezone('Asia/Kolkata');
+
+        $carbonDate = \Carbon\Carbon::parse($date)->setTimezone('Asia/Kolkata');
+
+        // If sale_date has 00:00:00 time (legacy date-only entry), combine with created_at time if available
+        if ($this->sale_date && $carbonDate->format('H:i:s') === '00:00:00' && $this->created_at) {
+            $createdTime = \Carbon\Carbon::parse($this->created_at)->setTimezone('Asia/Kolkata');
+            if ($createdTime->format('H:i:s') !== '00:00:00') {
+                return $carbonDate->setTime($createdTime->hour, $createdTime->minute, $createdTime->second);
+            }
+        }
+
+        return $carbonDate;
     }
 
     public static function generateOrderNumber(): string

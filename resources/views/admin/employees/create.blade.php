@@ -3,93 +3,183 @@
 @section('title', 'Add New Employee - ' . $siteName)
 
 @section('content')
+<style>
+    @media (max-width: 767.98px) {
+        .employee-form-card {
+            border-radius: 14px !important;
+        }
+        .page-header-title {
+            font-size: 1.25rem !important;
+        }
+        .page-header-subtitle {
+            font-size: 0.75rem !important;
+        }
+        .back-btn-mobile {
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.78rem !important;
+        }
+        .form-section-title {
+            font-size: 0.88rem !important;
+        }
+        .form-label {
+            font-size: 0.78rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .form-control, .form-select, .input-group-text {
+            font-size: 0.82rem !important;
+            padding: 0.45rem 0.65rem !important;
+        }
+        .submit-action-btn {
+            width: 100% !important;
+            padding: 0.65rem !important;
+            font-size: 0.88rem !important;
+        }
+        .cancel-action-btn {
+            width: 100% !important;
+            padding: 0.55rem !important;
+            font-size: 0.82rem !important;
+        }
+        .form-actions-container {
+            flex-direction: column-reverse !important;
+            gap: 0.5rem !important;
+        }
+    }
+</style>
+
 <div class="container-fluid px-2 px-md-4 py-3">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <!-- Header Row -->
+    <div class="d-flex align-items-center justify-content-between mb-3 mb-md-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-plus text-info me-2"></i> Add New Employee</h4>
-            <p class="text-muted small mb-0">Create employee master profile and configure salary settings.</p>
+            <h4 class="fw-bold mb-1 page-header-title">
+                <i class="fa-solid fa-user-plus text-info me-2"></i>Add New Employee
+            </h4>
+            <p class="text-muted small mb-0 page-header-subtitle">Create employee profile and configure salary structure.</p>
         </div>
-        <a href="{{ route('admin.employees.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
+        <a href="{{ route('admin.employees.index') }}" class="btn btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold shadow-sm back-btn-mobile">
             <i class="fa-solid fa-arrow-left me-1"></i> Back to List
         </a>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 max-w-3xl mx-auto">
-        <div class="card-body p-4">
+    <!-- Main Card Container -->
+    <div class="card border-0 shadow-sm rounded-4 employee-form-card mx-auto" style="max-width: 780px;">
+        <div class="card-body p-3 p-md-4">
             <form action="{{ route('admin.employees.store') }}" method="POST" onsubmit="return handleAdminFormSubmit(this);">
                 @csrf
 
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Employee Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="e.g. Rahul Sharma" required>
-                        @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                <!-- Section 1: Basic Information -->
+                <div class="mb-3 mb-md-4 pb-2 border-bottom">
+                    <h6 class="fw-bold text-dark mb-3 form-section-title">
+                        <i class="fa-solid fa-id-card text-primary me-2"></i>Personal & Contact Details
+                    </h6>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Designation / Role</label>
-                        <input type="text" name="designation" class="form-control @error('designation') is-invalid @enderror" value="{{ old('designation') }}" placeholder="e.g. Sales Executive, Master Tailor">
-                        @error('designation') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Phone Number</label>
-                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" placeholder="e.g. 9876543210">
-                        @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Email Address</label>
-                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}" placeholder="e.g. rahul@example.com">
-                        @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-                </div>
-
-                <!-- Salary Configuration -->
-                <div class="bg-light p-3 rounded-4 mb-3">
-                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-calculator text-warning me-2"></i> Salary Structure</h6>
-
-                    <div class="row g-3">
+                    <div class="row g-2.5 g-md-3">
+                        <!-- Employee Name -->
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold text-dark">Salary Type <span class="text-danger">*</span></label>
-                            <select name="salary_type" id="salaryTypeSelect" class="form-select @error('salary_type') is-invalid @enderror" required>
-                                <option value="fixed" {{ old('salary_type', 'fixed') === 'fixed' ? 'selected' : '' }}>Fixed Salary (Monthly Amount Required)</option>
-                                <option value="non_fixed" {{ old('salary_type') === 'non_fixed' ? 'selected' : '' }}>Non-Fixed Salary (Variable / Daily Work)</option>
-                            </select>
-                            @error('salary_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-12 col-md-6" id="monthlySalaryContainer">
-                            <label class="form-label fw-semibold text-dark">Monthly Salary (₹) <span class="text-danger" id="monthlySalaryReqMark">*</span></label>
+                            <label class="form-label fw-bold text-dark">Employee Name <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white">₹</span>
-                                <input type="number" step="0.01" min="0" name="monthly_salary" id="monthlySalaryInput" class="form-control @error('monthly_salary') is-invalid @enderror" value="{{ old('monthly_salary') }}" placeholder="e.g. 15000">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" name="name" class="form-control border-start-0 @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="e.g. Rahul Sharma" required>
                             </div>
-                            @error('monthly_salary') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-                            <div class="form-text">Required if Fixed Salary is selected. Leave empty for Non-Fixed.</div>
+                            @error('name') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+
+                        <!-- Designation -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Designation / Role</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-briefcase"></i></span>
+                                <input type="text" name="designation" class="form-control border-start-0 @error('designation') is-invalid @enderror" value="{{ old('designation') }}" placeholder="e.g. Sales Executive, Tailor">
+                            </div>
+                            @error('designation') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-phone"></i></span>
+                                <input type="tel" name="phone" class="form-control border-start-0 @error('phone') is-invalid @enderror" value="{{ old('phone') }}" placeholder="e.g. 9876543210">
+                            </div>
+                            @error('phone') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+
+                        <!-- Email Address -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-envelope"></i></span>
+                                <input type="email" name="email" class="form-control border-start-0 @error('email') is-invalid @enderror" value="{{ old('email') }}" placeholder="e.g. rahul@example.com">
+                            </div>
+                            @error('email') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Joining Date</label>
-                        <input type="date" name="joining_date" class="form-control @error('joining_date') is-invalid @enderror" value="{{ old('joining_date') }}">
-                        @error('joining_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                <!-- Section 2: Salary Structure -->
+                <div class="p-3 p-md-3.5 bg-light rounded-3 border mb-3 mb-md-4">
+                    <h6 class="fw-bold text-dark mb-3 form-section-title">
+                        <i class="fa-solid fa-calculator text-warning me-2"></i>Salary Structure
+                    </h6>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold text-dark">Notes / Internal Remarks</label>
-                        <input type="text" name="notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}" placeholder="Optional notes...">
-                        @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <div class="row g-2.5 g-md-3">
+                        <!-- Salary Type -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Salary Type <span class="text-danger">*</span></label>
+                            <select name="salary_type" id="salaryTypeSelect" class="form-select rounded-3 @error('salary_type') is-invalid @enderror" required>
+                                <option value="fixed" {{ old('salary_type', 'fixed') === 'fixed' ? 'selected' : '' }}>Fixed Salary (Monthly Fixed Amount)</option>
+                                <option value="non_fixed" {{ old('salary_type') === 'non_fixed' ? 'selected' : '' }}>Non-Fixed Salary (Variable / Daily Basis)</option>
+                            </select>
+                            @error('salary_type') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+
+                        <!-- Monthly Salary Input -->
+                        <div class="col-12 col-md-6" id="monthlySalaryContainer">
+                            <label class="form-label fw-bold text-dark">Monthly Salary (₹) <span class="text-danger" id="monthlySalaryReqMark">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 fw-bold text-dark">₹</span>
+                                <input type="number" step="0.01" min="0" name="monthly_salary" id="monthlySalaryInput" class="form-control border-start-0 @error('monthly_salary') is-invalid @enderror" value="{{ old('monthly_salary') }}" placeholder="e.g. 15000">
+                            </div>
+                            @error('monthly_salary') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                            <div class="form-text small text-muted" style="font-size: 0.72rem;">Required for Fixed Salary. Leave empty for Non-Fixed.</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                    <a href="{{ route('admin.employees.index') }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
-                    <button type="submit" class="btn btn-dark rounded-pill px-4 shadow-sm">
+                <!-- Section 3: Joining & Additional Info -->
+                <div class="mb-3 mb-md-4">
+                    <h6 class="fw-bold text-dark mb-3 form-section-title">
+                        <i class="fa-solid fa-calendar-days text-success me-2"></i>Employment Details
+                    </h6>
+
+                    <div class="row g-2.5 g-md-3">
+                        <!-- Joining Date -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Joining Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-calendar"></i></span>
+                                <input type="date" name="joining_date" class="form-control border-start-0 @error('joining_date') is-invalid @enderror" value="{{ old('joining_date') }}">
+                            </div>
+                            @error('joining_date') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark">Notes / Internal Remarks</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-note-sticky"></i></span>
+                                <input type="text" name="notes" class="form-control border-start-0 @error('notes') is-invalid @enderror" value="{{ old('notes') }}" placeholder="e.g. Working hours 9 AM - 7 PM">
+                            </div>
+                            @error('notes') <div class="text-danger small mt-1" style="font-size: 0.75rem;">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Action Buttons -->
+                <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top form-actions-container">
+                    <a href="{{ route('admin.employees.index') }}" class="btn btn-outline-secondary rounded-3 px-4 py-2 fw-semibold cancel-action-btn">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-dark text-white rounded-3 px-4 py-2 fw-bold shadow-sm submit-action-btn">
                         <i class="fa-solid fa-check me-1 text-warning"></i> Save Employee Profile
                     </button>
                 </div>

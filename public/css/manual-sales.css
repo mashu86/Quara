@@ -1,0 +1,59 @@
+.manual-sales-page { min-width: 0; }
+.manual-sales-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.manual-sales-heading > div { flex: 1; min-width: 0; }
+.manual-sales-heading .add-offline-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; min-height: 44px; padding: 10px 16px; }
+.manual-sales-mobile-card { border-left: 3px solid var(--qw-gold) !important; min-width: 0; }
+.manual-sale-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px; border-bottom: 1px solid #ececf1; }
+.manual-sale-reference { flex: 1; min-width: 0; }
+.manual-sale-order-number { color: #856211; display: block; font-size: .84rem; font-weight: 700; overflow-wrap: anywhere; text-decoration: none; }
+.manual-sale-date { display: block; color: #74747b; font-size: .73rem; margin-top: 5px; }
+.manual-sale-source { flex-shrink: 0; padding: 6px 8px; font-size: .62rem; font-weight: 600; }
+.manual-sale-body { padding: 14px; }
+.manual-sale-customer { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; padding-bottom: 12px; border-bottom: 1px solid #ececf1; }
+.manual-sale-customer-details { flex: 1 1 140px; min-width: 0; }
+.manual-sale-customer-name { font-size: .87rem; font-weight: 600; overflow-wrap: anywhere; }
+.manual-sale-phone { display: inline-flex; align-items: center; color: #666670; font-size: .79rem; text-decoration: none; min-height: 36px; overflow-wrap: anywhere; }
+.manual-sale-method { font-size: .64rem; line-height: 1.4; padding: 6px 8px; white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+.manual-sale-section-label { display: block; font-size: .72rem; color: #74747b; font-weight: 500; }
+.manual-sale-items { margin-top: 13px; }
+.manual-sale-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px; margin-top: 8px; background: #f7f7fa; border: 1px solid #eeeef3; border-radius: 9px; }
+.manual-sale-image { border: 1px solid #e4e4eb; border-radius: 6px; background: #fff; padding: 2px; flex-shrink: 0; cursor: pointer; }
+.manual-sale-image img { display: block; object-fit: cover; border-radius: 4px; }
+.manual-sale-item-details { flex: 1; min-width: 0; }
+.manual-sale-product-name { font-size: .82rem; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
+.manual-sale-item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 9px; margin-top: 8px; }
+.manual-sale-item-meta .badge { font-size: .65rem; white-space: normal; overflow-wrap: anywhere; max-width: 100%; line-height: 1.4; }
+.manual-sale-quantity { font-size: .72rem; color: #74747b; }
+.manual-sale-item-price { font-size: .79rem; margin-left: auto; overflow-wrap: anywhere; max-width: 100%; }
+.manual-sale-total-row { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #ececf1; }
+.manual-sale-total-row > div { min-width: 0; }
+.manual-sale-total { display: block; font-size: 1.08rem; font-weight: 700; margin-top: 3px; overflow-wrap: anywhere; }
+.manual-sale-payment { font-size: .7rem; padding: 6px 9px; }
+.manual-sale-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; background: #fafafd; border-top: 1px solid #ececf1; padding: 12px 14px; border-radius: 0 0 8px 8px; }
+.manual-sale-actions .btn { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 8px; font-size: .78rem; font-weight: 600; padding: 8px; }
+#manualSalesFilterModal .modal-content { overflow: hidden; }
+.manual-sales-filter-form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+#manualSalesFilterModal .modal-body { overflow-y: auto; padding: 16px; }
+#manualSalesFilterModal .modal-footer { flex-shrink: 0; }
+#manualSalesFilterModal .form-control { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+#manualSalesFilterModal .modal-title { font-size: .95rem; }
+#manualSalesFilterModal .form-label { font-size: .8rem; }
+#manualSalesFilterModal .modal-footer .btn { min-height: 44px; }
+@media (max-width: 991.98px) {
+    .manual-sales-heading { align-items: flex-start; }
+    .manual-sales-heading .offline-sales-title { font-size: 1.2rem !important; }
+    .manual-sales-heading .offline-sales-subtitle { font-size: .77rem; line-height: 1.5; }
+    .manual-sales-page .search-trigger-btn { min-height: 44px; font-size: .82rem; }
+    .manual-sales-page .add-offline-btn { font-size: .78rem; }
+    #manual-sales-mobile-container { border-radius: 12px; }
+}
+@media (max-width: 374.98px) {
+    .manual-sales-heading { flex-wrap: wrap; gap: 12px; }
+    .manual-sales-heading > div { flex-basis: 100%; }
+    .manual-sales-heading .add-offline-btn { width: 100%; }
+    .manual-sale-header, .manual-sale-body { padding: 12px; }
+    .manual-sale-header { flex-wrap: wrap; gap: 8px; }
+    .manual-sale-source { margin-left: auto; }
+    .manual-sale-item-price { flex-basis: 100%; margin-left: 0; }
+    .manual-sale-actions { padding: 12px; gap: 8px; }
+}

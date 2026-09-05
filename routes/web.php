@@ -25,6 +25,22 @@ use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\Admin\ContractualPostController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Controllers\Admin\LuckyWinnerController;
+use App\Http\Middleware\LuckyWinnerAccess;
+
+Route::prefix('luckywinner')->name('luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
+    Route::get('/', [LuckyWinnerController::class, 'index'])->name('index');
+    Route::post('/prepare', [LuckyWinnerController::class, 'prepare'])->name('prepare');
+    Route::post('/draft/{token}/select', [LuckyWinnerController::class, 'select'])->whereUuid('token')->name('select');
+    Route::post('/draft/{token}/store', [LuckyWinnerController::class, 'store'])->whereUuid('token')->name('store');
+    Route::get('/history', fn () => redirect()->route('admin.luckywinner.history'))->name('history');
+    Route::get('/history/{draw}', fn (\App\Models\LuckyDraw $draw) => redirect()->route('admin.luckywinner.show', $draw))->name('show');
+});
+
+Route::prefix('admin/luckywinner')->name('admin.luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
+    Route::get('/history', [LuckyWinnerController::class, 'history'])->name('history');
+    Route::get('/history/{draw}', [LuckyWinnerController::class, 'show'])->name('show');
+});
 
 /*
 |--------------------------------------------------------------------------

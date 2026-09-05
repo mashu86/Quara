@@ -62,8 +62,8 @@
 @section('content')
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1 fs-4 fs-sm-3">Dashboard Overview</h3>
-        <p class="text-muted small mb-0">Welcome back, {{ auth()->user()->name }}! Here is what's happening today.</p>
+        <h3 class="fw-bold mb-1 fs-4 fs-sm-3 text-dark text-uppercase" style="letter-spacing: 0.5px;">WELCOME AKARSHA MAHSHOOQUE</h3>
+        <p class="text-muted small mb-0">Live store performance, sales & inventory dashboard overview</p>
     </div>
     <div class="d-flex w-100 w-sm-auto gap-2 mt-2 mt-sm-0">
         <a href="{{ route('admin.products.create') }}" class="btn btn-dark rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-semibold shadow-sm text-center admin-dash-mobile-btn">

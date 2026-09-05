@@ -327,6 +327,16 @@
                     </a>
                 </li>
 
+                <li class="nav-item">
+                    <a href="{{ route('luckywinner.index') }}" class="nav-link">
+                        <i class="fa-solid fa-gift me-2 text-gold"></i> Lucky Winner
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.luckywinner.history') }}" class="nav-link {{ request()->routeIs('admin.luckywinner.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-trophy me-2 text-gold"></i> Lucky Winner History
+                    </a>
+                </li>
                 <li class="nav-heading">Catalog Management</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">

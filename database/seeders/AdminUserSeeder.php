@@ -13,7 +13,7 @@ class AdminUserSeeder extends Seeder
         User::updateOrCreate(
             ['username' => 'Quara'],
             [
-                'name' => 'Quara Admin',
+                'name' => 'Akarsha Mahshooque',
                 'email' => 'quarawaldrop@gmail.com',
                 'phone' => '+918078037591',
                 'role' => 'admin',

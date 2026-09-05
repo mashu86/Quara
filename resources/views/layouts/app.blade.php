@@ -668,6 +668,7 @@
             }
         });
     </script>
+    <script src="{{ asset('js/pincode_autofill.js') }}"></script>
     @yield('scripts')
 </body>
 </html>

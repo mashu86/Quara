@@ -10,6 +10,11 @@
         </h3>
         <p class="text-muted small mb-0 d-none d-sm-block">Live sales reporting, date-wise analytics & order fulfillment control</p>
     </div>
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" onclick="previewBlankCourierAddress()" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1.5 fw-semibold shadow-sm" style="font-size: 0.78rem;" title="Print Blank Courier Shipping Label">
+            <i class="fa-solid fa-print text-warning me-1"></i> Print Blank Label
+        </button>
+    </div>
 </div>
 
 @php
@@ -494,7 +499,7 @@
             <h5 class="fw-bold mb-0 text-dark font-serif" style="font-size: 0.85rem;">
                 <i class="fa-solid fa-list-check text-warning me-1.5"></i> Orders List ({{ $orders->total() }})
             </h5>
-            <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px;" title="Print Courier Address Label (A5)">
+            <button type="button" onclick="printOrderCourierLabel(null)" class="btn btn-outline-dark btn-sm rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px;" title="Print Courier Address Label (10.5 &times; 14.5 cm)">
                 <i class="fa-solid fa-print text-warning" style="font-size: 0.75rem;"></i>
             </button>
         </div>
@@ -717,230 +722,5 @@ function openIndexEditPaymentModal(order) {
 }
 </script>
 
-<!-- COURIER ADDRESS PREVIEW MODAL -->
-<div class="modal fade" id="courierAddressPreviewModal" tabindex="-1" aria-labelledby="courierAddressPreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-dark text-white rounded-top-4 py-2.5">
-                <h5 class="modal-title font-serif fw-bold fs-6" id="courierAddressPreviewModalLabel">
-                    <i class="fa-solid fa-truck-fast text-warning me-2"></i> Courier Address Label Preview
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 bg-white" id="courierAddressPreviewModalBody">
-                <!-- Dynamically populated label template -->
-            </div>
-            <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 px-sm-4 py-2 d-flex justify-content-between align-items-center">
-                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-1.5 btn-sm" style="font-size: 0.78rem;" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-warning rounded-pill px-3 px-sm-4 py-1.5 fw-bold text-dark shadow-sm btn-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.78rem;" id="modalPrintCourierBtn">
-                    <i class="fa-solid fa-print me-1"></i>
-                    <span class="d-none d-sm-inline">Print / Download Label</span>
-                    <span class="d-inline d-sm-none">Print</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function formatOrderToAddressHtml(order) {
-    let lines = [];
-    if (order.customer_name) {
-        lines.push('<strong style="font-size: 1.05em; color: #111;">' + escapeHtml(order.customer_name) + '</strong>');
-    }
-    if (order.house_building) lines.push(escapeHtml(order.house_building));
-    
-    let streetAreaCity = [order.street, order.area, order.city].filter(Boolean).map(s => s.trim()).join(', ');
-    if (streetAreaCity) lines.push(escapeHtml(streetAreaCity));
-    
-    let distState = [order.district, order.state].filter(Boolean).map(s => s.trim()).join(', ');
-    let pin = (order.pin_code || order.pincode || '').toString().trim();
-    
-    let locPinLine = distState;
-    if (pin) {
-        locPinLine = locPinLine ? (locPinLine + ' - ' + pin) : ('PIN: ' + pin);
-    }
-    if (locPinLine) lines.push(escapeHtml(locPinLine));
-
-    if (order.customer_phone) {
-        lines.push('<span style="font-weight: 700;">Ph: ' + escapeHtml(order.customer_phone) + '</span>');
-    }
-
-    if (lines.length === 0) {
-        return '<em>No shipping address provided for this order.</em>';
-    }
-
-    return lines.join('<br>');
-}
-
-function previewCourierAddress(order) {
-    const body = document.getElementById('courierAddressPreviewModalBody');
-    const toAddress = formatOrderToAddressHtml(order);
-
-    body.innerHTML = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; font-size: 15.5pt; line-height: 1.8; border: 1px dashed #ccc; padding: 40px 35px 35px 35px; border-radius: 8px; background: #fff; letter-spacing: 0.2px;">
-            <div style="margin-bottom: 30px;">
-                <div style="font-size: 18pt; font-weight: 700; color: #111; margin-bottom: 8px;">To ,</div>
-                <div style="margin-left: 1cm; min-height: 55mm;">
-                    ${toAddress}
-                </div>
-            </div>
-            <div style="display: flex; justify-content: flex-end;">
-                <div style="width: 88mm;">
-                    <div style="font-size: 18pt; font-weight: 700; color: #111; margin-bottom: 8px;">From ,</div>
-                    <div style="margin-left: 1cm; font-weight: 500;">
-                        <strong style="font-size: 1.05em; color: #111;">Akarsha Bakker</strong><br>
-                        TK House, Vilakkannoor<br>
-                        Naduvil P.O. - 670582<br>
-                        <span style="font-weight: 700;">Ph: 8078037591</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalPrintCourierBtn').onclick = function() {
-        printOrderCourierLabel(order);
-    };
-
-    const modal = new bootstrap.Modal(document.getElementById('courierAddressPreviewModal'));
-    modal.show();
-}
-
-function printOrderCourierLabel(order) {
-    const toAddressHtml = formatOrderToAddressHtml(order);
-    const toContainer = document.querySelector('#courier-parcel-print-area .parcel-to-blank');
-    if (toContainer) {
-        toContainer.innerHTML = `<div class="parcel-from-details" style="font-size: 15.5pt; font-weight: 500; line-height: 1.8;">${toAddressHtml}</div>`;
-    }
-    window.print();
-}
-</script>
-
-<!-- COURIER PARCEL ADDRESS PRINT LAYOUT (EXACT PHOTO TEMPLATE STYLE) -->
-<div id="courier-parcel-print-area" class="d-none d-print-block">
-    <div class="courier-parcel-sheet">
-        <!-- TO SECTION -->
-        <div class="parcel-section">
-            <div class="parcel-label">To ,</div>
-            <div class="parcel-indent-box parcel-to-blank">
-                <!-- Open blank space for writing customer shipping address by hand -->
-            </div>
-        </div>
-
-        <!-- FROM SECTION -->
-        <div class="parcel-section parcel-from-container">
-            <div class="parcel-from-wrapper">
-                <div class="parcel-label">From ,</div>
-                <div class="parcel-indent-box parcel-from-details">
-                    <strong style="font-size: 1.05em; color: #111;">Akarsha Bakker</strong><br>
-                    TK House, Vilakkannoor<br>
-                    Naduvil P.O. - 670582<br>
-                    <span style="font-weight: 700;">Ph: 8078037591</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    @media print {
-        @page {
-            size: auto;
-            margin: 0;
-        }
-
-        html, body {
-            background: #ffffff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100% !important;
-            max-height: 100% !important;
-            overflow: hidden !important;
-        }
-
-        body * {
-            visibility: hidden !important;
-        }
-
-        #courier-parcel-print-area, #courier-parcel-print-area * {
-            visibility: visible !important;
-        }
-
-        #courier-parcel-print-area {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            display: block !important;
-            background: #ffffff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            z-index: 99999 !important;
-        }
-
-        .courier-parcel-sheet {
-            width: 135mm;
-            max-width: 100%;
-            box-sizing: border-box;
-            border: none !important;
-            padding-top: 1.2cm !important;
-            padding-left: 1.2cm !important;
-            padding-right: 1.2cm !important;
-            padding-bottom: 0.8cm !important;
-            background: #ffffff !important;
-            color: #111111 !important;
-            font-family: Arial, "Segoe UI", Helvetica, sans-serif;
-        }
-
-        .parcel-section {
-            width: 100%;
-            margin-bottom: 6mm;
-        }
-
-        .parcel-from-container {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 4mm;
-        }
-
-        .parcel-from-wrapper {
-            width: 88mm;
-        }
-
-        .parcel-label {
-            font-size: 18pt;
-            font-weight: 700;
-            color: #111111;
-            margin-bottom: 3.5mm;
-        }
-
-        .parcel-indent-box {
-            margin-left: 1cm;
-            padding-left: 0.2cm;
-        }
-
-        .parcel-to-blank {
-            min-height: 55mm;
-            height: auto;
-            background-color: transparent;
-        }
-
-        .parcel-from-details {
-            font-size: 15.5pt;
-            font-weight: 600;
-            line-height: 1.8;
-            color: #111111;
-        }
-    }
-</style>
+@include('admin.orders.partials.courier-label')
 @endsection

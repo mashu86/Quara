@@ -16,6 +16,9 @@ class StorageFileController extends Controller
         if (str_starts_with($cleanPath, 'storage/')) {
             $cleanPath = substr($cleanPath, 8);
         }
+        if (str_starts_with($cleanPath, 'media/')) {
+            $cleanPath = substr($cleanPath, 6);
+        }
 
         $fullPath = storage_path('app/public/'.$cleanPath);
 

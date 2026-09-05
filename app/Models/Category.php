@@ -40,8 +40,8 @@ class Category extends Model
             return $this->background_image;
         }
 
-        $cleanPath = ltrim(str_replace('storage/', '', $this->background_image), '/');
-        return asset('storage/' . $cleanPath);
+        $cleanPath = ltrim(str_replace(['storage/', 'media/'], '', $this->background_image), '/');
+        return asset('media/' . $cleanPath);
     }
 
     protected static function boot()

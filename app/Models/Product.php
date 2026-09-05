@@ -116,8 +116,8 @@ class Product extends Model
             return $path;
         }
 
-        $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
-        return asset('storage/' . $cleanPath);
+        $cleanPath = ltrim(str_replace(['storage/', 'media/'], '', $path), '/');
+        return asset('media/' . $cleanPath);
     }
 
     public static function calculateFinalPrice($price, $discountType, $discountValue): float

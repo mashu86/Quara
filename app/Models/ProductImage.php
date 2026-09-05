@@ -52,7 +52,7 @@ class ProductImage extends Model
             return $this->image_path;
         }
 
-        $cleanPath = ltrim(str_replace('storage/', '', $this->image_path), '/');
-        return asset('storage/' . $cleanPath);
+        $cleanPath = ltrim(str_replace(['storage/', 'media/'], '', $this->image_path), '/');
+        return asset('media/' . $cleanPath);
     }
 }

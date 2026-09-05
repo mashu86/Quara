@@ -93,30 +93,37 @@
     </div>
 </div>
 
-<!-- Financial Summary Cards (2x2 Grid on Mobile) -->
-<div class="row g-2 g-md-3 mb-4">
-    <div class="col-6 col-md-3">
+<!-- Financial Summary Cards -->
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-2 g-md-3 mb-4">
+    <div class="col">
+        <div class="card border-0 rounded-4 shadow-sm bg-white p-2.5 p-md-3 h-100 border-start border-danger border-4">
+            <span class="text-muted small fw-bold text-uppercase stat-card-title">Today's Charges</span>
+            <h4 class="fw-bold text-danger mt-1 mb-0 stat-card-amount">₹{{ number_format($todayRazorpayCharges, 2) }}</h4>
+            <span class="extra-small text-muted mt-1 stat-card-sub">Today's Gateway Fee</span>
+        </div>
+    </div>
+    <div class="col">
         <div class="card border-0 rounded-4 shadow-sm bg-white p-2.5 p-md-3 h-100">
             <span class="text-muted small fw-bold text-uppercase stat-card-title">Online Revenue</span>
             <h4 class="fw-bold text-dark mt-1 mb-0 stat-card-amount">₹{{ number_format($totalOnlineRevenue, 2) }}</h4>
             <span class="extra-small text-secondary mt-1 stat-card-sub">Total Online Payments</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="card border-0 rounded-4 shadow-sm bg-white p-2.5 p-md-3 h-100">
             <span class="text-muted small fw-bold text-uppercase stat-card-title">Base Fee ({{ $feePct }}%)</span>
             <h4 class="fw-bold text-secondary mt-1 mb-0 stat-card-amount">₹{{ number_format($totalRazorpayBaseFee, 2) }}</h4>
             <span class="extra-small text-muted mt-1 stat-card-sub">Gateway Base Charge</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="card border-0 rounded-4 shadow-sm bg-white p-2.5 p-md-3 h-100">
             <span class="text-muted small fw-bold text-uppercase stat-card-title">GST ({{ $gstPct }}%)</span>
             <h4 class="fw-bold text-danger mt-1 mb-0 stat-card-amount">₹{{ number_format($totalRazorpayGstFee, 2) }}</h4>
             <span class="extra-small text-muted mt-1 stat-card-sub">Tax on Gateway Fee</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-12 col-xl">
         <div class="card border-0 rounded-4 shadow-sm bg-danger text-white p-2.5 p-md-3 h-100">
             <span class="text-uppercase fw-bold small opacity-75 stat-card-title">Total Deducted</span>
             <h4 class="fw-bold mt-1 mb-0 stat-card-amount">₹{{ number_format($totalRazorpayCharges, 2) }}</h4>

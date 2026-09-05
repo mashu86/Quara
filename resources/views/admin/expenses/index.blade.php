@@ -155,6 +155,9 @@
         <a href="{{ route('admin.reports.profit-loss') }}" class="btn btn-outline-dark rounded-pill px-3 py-1.5 pnl-btn shadow-sm w-100 w-sm-auto text-center fw-bold" title="Profit & Loss Report">
             <i class="fa-solid fa-chart-line text-warning me-1"></i> Profit & Loss Report
         </a>
+        <a href="{{ route('admin.reports.refunded-products') }}" class="btn btn-outline-danger rounded-pill px-3 py-1.5 pnl-btn shadow-sm w-100 w-sm-auto text-center fw-bold" title="Product Refund Report">
+            <i class="fa-solid fa-rotate-left me-1"></i> Product Refund Report
+        </a>
         <a href="{{ route('admin.expenses.create') }}" class="btn btn-warning rounded-pill px-3 py-1.5 add-expense-btn shadow-sm text-dark w-100 w-sm-auto text-center fw-bold" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Record Expense">
             <i class="fa-solid fa-plus me-1"></i> Record Expense
         </a>
@@ -176,51 +179,71 @@
 
 <!-- General Expense Summary -->
 <div class="row g-2 g-md-3 mb-3 mb-md-4">
+    <!-- Card 1: Total Business Expenses -->
     <div class="col-6 col-xl-3">
         <div class="card border-0 shadow-sm expense-summary-card">
             <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
                 <div class="expense-summary-icon bg-dark text-warning"><i class="fa-solid fa-wallet"></i></div>
-                <div class="min-w-0">
-                    <div class="expense-summary-label mb-1">Total Expenses</div>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="expense-summary-label mb-0.5">Total Business Expenses</div>
                     <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($totalExpenses, 2) }}</div>
+                    <small class="text-muted d-block text-truncate" style="font-size: 0.65rem;">All Business Outflows</small>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Card 2: Table Expenses (General Ledger) -->
     <div class="col-6 col-xl-3">
-        <div class="card border-0 shadow-sm expense-summary-card">
+        <div class="card border-0 shadow-sm expense-summary-card border-start border-3 border-dark">
             <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
-                <div class="expense-summary-icon bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-calendar-days"></i></div>
-                <div class="min-w-0">
-                    <div class="expense-summary-label mb-1">This Month</div>
-                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($thisMonthExpenses, 2) }}</div>
+                <div class="expense-summary-icon bg-secondary-subtle text-dark"><i class="fa-solid fa-receipt"></i></div>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="expense-summary-label mb-0.5">Table Expenses</div>
+                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($totalGeneralExpenses, 2) }}</div>
+                    <small class="text-muted d-block text-truncate" style="font-size: 0.65rem;">Displayed in Table Below</small>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Card 3: Razorpay Charges Expense Card with Clickable Icon -->
     <div class="col-6 col-xl-3">
-        <div class="card border-0 shadow-sm expense-summary-card">
+        <div class="card border-0 shadow-sm expense-summary-card border-start border-3 border-info">
             <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
-                <div class="expense-summary-icon bg-primary-subtle text-primary"><i class="fa-solid fa-calendar-week"></i></div>
-                <div class="min-w-0">
-                    <div class="expense-summary-label mb-1">This Week</div>
-                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($thisWeekExpenses, 2) }}</div>
+                <a href="{{ route('admin.reports.razorpay-charges') }}" class="expense-summary-icon bg-info-subtle text-info text-decoration-none shadow-sm" title="Click to View Razorpay Charges Report">
+                    <i class="fa-brands fa-credit-card"></i>
+                </a>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="expense-summary-label mb-0.5">Razorpay Charges</div>
+                    <div class="expense-summary-value fw-bold text-truncate text-info">&#8377;{{ number_format($allTimeBusinessExpenses['razorpay_charges'], 2) }}</div>
+                    <a href="{{ route('admin.reports.razorpay-charges') }}" class="text-info fw-semibold d-inline-block text-decoration-none" style="font-size: 0.65rem;">
+                        View Report <i class="fa-solid fa-arrow-right ms-0.5"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Card 4: Total Refund Expenses Card with Clickable Icon -->
     <div class="col-6 col-xl-3">
-        <div class="card border-0 shadow-sm expense-summary-card">
+        <div class="card border-0 shadow-sm expense-summary-card border-start border-3 border-danger">
             <div class="card-body p-3 d-flex align-items-center gap-2 gap-md-3">
-                <div class="expense-summary-icon bg-success-subtle text-success"><i class="fa-solid fa-sun"></i></div>
-                <div class="min-w-0">
-                    <div class="expense-summary-label mb-1">Today</div>
-                    <div class="expense-summary-value fw-bold text-truncate">&#8377;{{ number_format($todayExpenses, 2) }}</div>
+                <a href="{{ route('admin.reports.refunded-products') }}" class="expense-summary-icon bg-danger-subtle text-danger text-decoration-none shadow-sm" title="Click to View Product Refund Report">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="expense-summary-label mb-0.5">Total Refund Expenses</div>
+                    <div class="expense-summary-value fw-bold text-truncate text-danger">&#8377;{{ number_format($totalRefundsExpense, 2) }}</div>
+                    <a href="{{ route('admin.reports.refunded-products') }}" class="text-danger fw-semibold d-inline-block text-decoration-none" style="font-size: 0.65rem;">
+                        View Report <i class="fa-solid fa-arrow-right ms-0.5"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- Mobile / Tablet Filter Button Bar (d-lg-none) -->
 <div class="d-lg-none mb-3">
@@ -487,76 +510,82 @@ function showExpenseDetail(expenseId) {
         } else {
             modalBody.innerHTML = `<div class="alert alert-danger mb-0">Failed to load expense details.</div>`;
         }
-    document.addEventListener('DOMContentLoaded', function () {
-        let nextPageUrl = @json($expenses->nextPageUrl());
-        let hasMore = @json($expenses->hasMorePages());
-        let isLoading = false;
-
-        const scrollContainer = document.getElementById('expenses-scroll-container');
-        const tbody = document.getElementById('expenses-tbody');
-        const loadingSpinner = document.getElementById('infinite-scroll-loading');
-        const endNotice = document.getElementById('infinite-scroll-end');
-
-        function checkAndLoadMore() {
-            if (isLoading || !hasMore || !nextPageUrl) return;
-
-            let shouldLoad = false;
-
-            if (scrollContainer && scrollContainer.offsetParent !== null) {
-                const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
-                if (scrollBottom < 150) {
-                    shouldLoad = true;
-                }
-            }
-
-            const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-            if (windowScrollBottom < 300) {
-                shouldLoad = true;
-            }
-
-            if (shouldLoad) {
-                fetchNextPage();
-            }
-        }
-
-        function fetchNextPage() {
-            isLoading = true;
-            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
-            if (endNotice) endNotice.classList.add('d-none');
-
-            fetch(nextPageUrl, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.desktop_html && tbody) {
-                    tbody.insertAdjacentHTML('beforeend', data.desktop_html);
-                }
-
-                nextPageUrl = data.next_page_url;
-                hasMore = data.has_more;
-                isLoading = false;
-                if (loadingSpinner) loadingSpinner.classList.add('d-none');
-
-                if (!hasMore && endNotice) {
-                    endNotice.classList.remove('d-none');
-                }
-            })
-            .catch(err => {
-                console.error('Error fetching more expense records:', err);
-                isLoading = false;
-                if (loadingSpinner) loadingSpinner.classList.add('d-none');
-            });
-        }
-
-        if (scrollContainer) {
-            scrollContainer.addEventListener('scroll', checkAndLoadMore);
-        }
-        window.addEventListener('scroll', checkAndLoadMore);
+    })
+    .catch(err => {
+        console.error('Error loading expense details:', err);
+        modalBody.innerHTML = `<div class="alert alert-danger mb-0">Error loading expense details.</div>`;
     });
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    let nextPageUrl = @json($expenses->nextPageUrl());
+    let hasMore = @json($expenses->hasMorePages());
+    let isLoading = false;
+
+    const scrollContainer = document.getElementById('expenses-scroll-container');
+    const tbody = document.getElementById('expenses-tbody');
+    const loadingSpinner = document.getElementById('infinite-scroll-loading');
+    const endNotice = document.getElementById('infinite-scroll-end');
+
+    function checkAndLoadMore() {
+        if (isLoading || !hasMore || !nextPageUrl) return;
+
+        let shouldLoad = false;
+
+        if (scrollContainer && scrollContainer.offsetParent !== null) {
+            const scrollBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+            if (scrollBottom < 200) {
+                shouldLoad = true;
+            }
+        }
+
+        const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+        if (windowScrollBottom < 350) {
+            shouldLoad = true;
+        }
+
+        if (shouldLoad) {
+            fetchNextPage();
+        }
+    }
+
+    function fetchNextPage() {
+        isLoading = true;
+        if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+        if (endNotice) endNotice.classList.add('d-none');
+
+        fetch(nextPageUrl, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.desktop_html && tbody) {
+                tbody.insertAdjacentHTML('beforeend', data.desktop_html);
+            }
+
+            nextPageUrl = data.next_page_url;
+            hasMore = data.has_more;
+            isLoading = false;
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
+
+            if (!hasMore && endNotice) {
+                endNotice.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching more expense records:', err);
+            isLoading = false;
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
+        });
+    }
+
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', checkAndLoadMore);
+    }
+    window.addEventListener('scroll', checkAndLoadMore);
+});
 </script>
 @endsection

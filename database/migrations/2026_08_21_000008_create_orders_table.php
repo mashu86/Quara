@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('discount', 10, 2)->default(0.00);
             $table->decimal('shipping', 10, 2)->default(0.00);
             $table->decimal('grand_total', 10, 2);
-            $table->enum('payment_method', ['cod', 'online'])->default('cod');
+            $table->string('payment_method', 50)->default('cod');
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
             $table->enum('order_status', ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'])->default('pending');
             $table->text('notes')->nullable();

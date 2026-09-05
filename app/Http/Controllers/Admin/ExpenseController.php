@@ -14,6 +14,104 @@ use Illuminate\Support\Facades\Schema;
 
 class ExpenseController extends Controller
 {
+    /**
+     * Unified calculation helper for Total Business Expenses & Costs across all modules
+     */
+    public static function getBusinessExpensesSummary($startDate = null, $endDate = null)
+    {
+        $inactiveOrderIds = \App\Models\OrderOperation::where('status', 'inactive')->pluck('order_id')->toArray();
+
+        $ordersQuery = Order::whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            });
+
+        if (count($inactiveOrderIds) > 0) {
+            $ordersQuery->whereNotIn('id', $inactiveOrderIds);
+        }
+
+        if ($startDate && $endDate) {
+            $ordersQuery->whereBetween(DB::raw('COALESCE(sale_date, created_at)'), [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        } elseif ($startDate) {
+            $ordersQuery->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '>=', $startDate);
+        } elseif ($endDate) {
+            $ordersQuery->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '<=', $endDate);
+        }
+
+        $paidOrderIds = (clone $ordersQuery)->pluck('id');
+
+        $productCost = 0.00;
+        if (Schema::hasColumn('products', 'cost_price') && count($paidOrderIds) > 0) {
+            $productCost = (float) DB::table('order_items')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereIn('order_items.order_id', $paidOrderIds)
+                ->where(function ($q) {
+                    $q->where('order_items.item_status', 'active')
+                      ->orWhere('order_items.inventory_condition', 'do_not_restock');
+                })
+                ->sum(DB::raw('COALESCE(products.cost_price, 0) * order_items.quantity'));
+        }
+
+        $shippingCost = (float) (clone $ordersQuery)->sum('shipping');
+
+        $onlinePaidOrders = (clone $ordersQuery)->where('payment_method', 'online')->get();
+        $feePct = (float) Setting::get('razorpay_fee_percent', 2.00);
+        $gstPct = (float) Setting::get('razorpay_gst_percent', 18.00);
+        foreach ($onlinePaidOrders as $o) {
+            if ($o->razorpay_total_charge <= 0) {
+                $o->calculateRazorpayCharge(null, $feePct, $gstPct);
+            }
+        }
+        $razorpayCharges = (float) (clone $ordersQuery)->where('payment_method', 'online')->sum('razorpay_total_charge');
+
+        $generalExpensesQuery = Expense::query();
+        if ($startDate && $endDate) {
+            $generalExpensesQuery->whereBetween('expense_date', [$startDate, $endDate]);
+        } elseif ($startDate) {
+            $generalExpensesQuery->where('expense_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $generalExpensesQuery->where('expense_date', '<=', $endDate);
+        }
+        $generalExpenses = (float) $generalExpensesQuery->sum('amount');
+
+        $opsQuery = \App\Models\OrderOperation::where('status', 'active');
+        if ($startDate && $endDate) {
+            $opsQuery->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        } elseif ($startDate) {
+            $opsQuery->where('created_at', '>=', $startDate . ' 00:00:00');
+        } elseif ($endDate) {
+            $opsQuery->where('created_at', '<=', $endDate . ' 23:59:59');
+        }
+        $operationExpenses = (float) (clone $opsQuery)->sum('additional_expense_total');
+
+        $refundsQuery = \App\Models\OrderRefund::whereHas('orderOperation', function ($q) {
+            $q->where('status', 'active');
+        });
+        if ($startDate && $endDate) {
+            $refundsQuery->whereBetween('refund_date', [$startDate, $endDate]);
+        } elseif ($startDate) {
+            $refundsQuery->where('refund_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $refundsQuery->where('refund_date', '<=', $endDate);
+        }
+        $operationRefunds = (float) $refundsQuery->sum('refund_amount');
+
+        $totalCombinedExpenses = $productCost + $razorpayCharges + $generalExpenses + $operationExpenses + $operationRefunds;
+
+        return [
+            'total' => $totalCombinedExpenses,
+            'product_cost' => $productCost,
+            'shipping_cost' => 0.00,
+            'shipping_revenue' => (float) (clone $ordersQuery)->sum('shipping'),
+            'razorpay_charges' => $razorpayCharges,
+            'general_expenses' => $generalExpenses,
+            'operation_expenses' => $operationExpenses,
+            'operation_refunds' => $operationRefunds,
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = Expense::query();
@@ -35,17 +133,23 @@ class ExpenseController extends Controller
         }
 
         $today = Carbon::now('Asia/Kolkata')->startOfDay();
+        $todayStr = $today->toDateString();
+        $startOfMonth = $today->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $today->copy()->endOfMonth()->toDateString();
+        $startOfWeek = $today->copy()->startOfWeek()->toDateString();
+        $endOfWeek = $today->copy()->endOfWeek()->toDateString();
 
-        $totalExpenses = Expense::sum('amount');
-        $thisMonthExpenses = Expense::whereBetween('expense_date', [
-            $today->copy()->startOfMonth()->toDateString(),
-            $today->copy()->endOfMonth()->toDateString(),
-        ])->sum('amount');
-        $thisWeekExpenses = Expense::whereBetween('expense_date', [
-            $today->copy()->startOfWeek()->toDateString(),
-            $today->copy()->endOfWeek()->toDateString(),
-        ])->sum('amount');
-        $todayExpenses = Expense::whereDate('expense_date', $today->toDateString())->sum('amount');
+        $allTimeBusinessExpenses = self::getBusinessExpensesSummary();
+        $thisMonthBusinessExpenses = self::getBusinessExpensesSummary($startOfMonth, $endOfMonth);
+        $thisWeekBusinessExpenses = self::getBusinessExpensesSummary($startOfWeek, $endOfWeek);
+        $todayBusinessExpenses = self::getBusinessExpensesSummary($todayStr, $todayStr);
+
+        $totalExpenses = $allTimeBusinessExpenses['total'];
+        $totalGeneralExpenses = $allTimeBusinessExpenses['general_expenses'];
+        $totalRefundsExpense = (float) \App\Models\OrderOperation::where('status', 'active')->sum('total_refund_amount');
+        $thisMonthExpenses = $thisMonthBusinessExpenses['total'];
+        $thisWeekExpenses = $thisWeekBusinessExpenses['total'];
+        $todayExpenses = $todayBusinessExpenses['total'];
 
         $filteredExpenseTotal = (clone $query)->sum('amount');
         $expenses = $query->orderBy('expense_date', 'desc')
@@ -67,6 +171,10 @@ class ExpenseController extends Controller
         return view('admin.expenses.index', compact(
             'expenses',
             'totalExpenses',
+            'totalGeneralExpenses',
+            'allTimeBusinessExpenses',
+            'thisMonthBusinessExpenses',
+            'totalRefundsExpense',
             'thisMonthExpenses',
             'thisWeekExpenses',
             'todayExpenses',
@@ -262,7 +370,7 @@ class ExpenseController extends Controller
             ->toArray();
 
         // Base Orders Query for paid/completed orders (excluding cancelled/refunded, INACTIVE operations, and test phone 9544832975)
-        $ordersQuery = Order::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        $ordersQuery = Order::whereBetween(DB::raw('COALESCE(sale_date, created_at)'), [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
             ->where(function ($q) {
@@ -286,13 +394,17 @@ class ExpenseController extends Controller
         $codOrdersCount = (clone $ordersQuery)->where('payment_method', 'cod')->count();
         $onlineOrdersCount = (clone $ordersQuery)->where('payment_method', 'online')->count();
 
-        // Calculate Product Cost Price for sold items
+        // Calculate Product Cost Price for sold/frozen items (excluding restocked returns)
         $paidOrderIds = (clone $ordersQuery)->pluck('id');
         $totalProductCost = 0.00;
         if (Schema::hasColumn('products', 'cost_price') && count($paidOrderIds) > 0) {
             $totalProductCost = DB::table('order_items')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->whereIn('order_items.order_id', $paidOrderIds)
+                ->where(function ($q) {
+                    $q->where('order_items.item_status', 'active')
+                      ->orWhere('order_items.inventory_condition', 'do_not_restock');
+                })
                 ->sum(DB::raw('COALESCE(products.cost_price, 0) * order_items.quantity'));
         }
 
@@ -319,12 +431,15 @@ class ExpenseController extends Controller
         // Fetch ACTIVE Order Operations in the selected date range
         $activeOperationsQuery = \App\Models\OrderOperation::with(['order', 'product', 'orderItem', 'expenses'])
             ->where('status', 'active')
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('return_date', [$startDate, $endDate])
+                  ->orWhereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            });
 
         $activeOperationsList = (clone $activeOperationsQuery)->orderBy('created_at', 'desc')->get();
-        $totalOperationRefunds = (float) (clone $activeOperationsQuery)->sum('total_refund_amount');
+        $totalOperationRefunds = (float) \App\Models\OrderRefund::whereBetween('refund_date', [$startDate, $endDate])->sum('refund_amount');
         $totalOperationExpenses = (float) (clone $activeOperationsQuery)->sum('additional_expense_total');
-        $totalOperationAdjustment = (float) (clone $activeOperationsQuery)->sum('total_financial_adjustment');
+        $totalOperationAdjustment = $totalOperationRefunds + $totalOperationExpenses;
 
         // Fetch ACTIVE Incomes (Wholesale & Manual Additional Incomes) in the selected date range
         $activeIncomesQuery = \App\Models\Income::where('status', 'active')
@@ -334,14 +449,14 @@ class ExpenseController extends Controller
         $totalAdditionalIncome = (float) (clone $activeIncomesQuery)->sum('total_income_amount');
 
         // Original P&L Base
-        $originalExpenses = $totalProductCost + $totalShippingRevenue + $totalRazorpayCharges + $otherExpenses;
+        $originalExpenses = $totalProductCost + $totalRazorpayCharges + $otherExpenses;
         $originalNetProfitLoss = ($totalGrossRevenue + $totalAdditionalIncome) - $originalExpenses;
 
         // Adjusted P&L including ACTIVE Order Operations & Active Incomes
         $totalCombinedRevenue = $totalGrossRevenue + $totalAdditionalIncome;
         $adjustedGrossRevenue = max(0, $totalCombinedRevenue - $totalOperationRefunds);
-        $totalExpenses = $originalExpenses + $totalOperationExpenses;
-        $netProfitLoss = $totalCombinedRevenue - $totalExpenses - $totalOperationRefunds;
+        $totalExpenses = $originalExpenses + $totalOperationExpenses + $totalOperationRefunds;
+        $netProfitLoss = $totalCombinedRevenue - $totalExpenses;
         $isProfit = $netProfitLoss >= 0;
 
         // ALL-TIME (Overall Business) Profit & Loss Calculation
@@ -365,6 +480,10 @@ class ExpenseController extends Controller
             $allTimeProductCost = DB::table('order_items')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->whereIn('order_items.order_id', $allTimePaidOrderIds)
+                ->where(function ($q) {
+                    $q->where('order_items.item_status', 'active')
+                      ->orWhere('order_items.inventory_condition', 'do_not_restock');
+                })
                 ->sum(DB::raw('COALESCE(products.cost_price, 0) * order_items.quantity'));
         }
 
@@ -372,15 +491,15 @@ class ExpenseController extends Controller
         $allTimeOtherExpenses = (float) Expense::sum('amount');
 
         $allTimeActiveOps = \App\Models\OrderOperation::where('status', 'active');
-        $allTimeOperationRefunds = (float) (clone $allTimeActiveOps)->sum('total_refund_amount');
+        $allTimeOperationRefunds = (float) \App\Models\OrderRefund::sum('refund_amount');
         $allTimeOperationExpenses = (float) (clone $allTimeActiveOps)->sum('additional_expense_total');
 
         $allTimeActiveIncomes = \App\Models\Income::where('status', 'active');
         $allTimeAdditionalIncome = (float) (clone $allTimeActiveIncomes)->sum('total_income_amount');
 
         $allTimeCombinedRevenue = $allTimeGrossRevenue + $allTimeAdditionalIncome;
-        $allTimeTotalExpenses = $allTimeProductCost + $allTimeShippingRevenue + $allTimeRazorpayCharges + $allTimeOtherExpenses + $allTimeOperationExpenses;
-        $allTimeNetProfitLoss = $allTimeCombinedRevenue - $allTimeTotalExpenses - $allTimeOperationRefunds;
+        $allTimeTotalExpenses = $allTimeProductCost + $allTimeRazorpayCharges + $allTimeOtherExpenses + $allTimeOperationExpenses + $allTimeOperationRefunds;
+        $allTimeNetProfitLoss = $allTimeCombinedRevenue - $allTimeTotalExpenses;
         $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
 
         return view('admin.expenses.profit_loss', compact(
@@ -447,7 +566,7 @@ class ExpenseController extends Controller
                 $q->whereNull('customer_phone')
                   ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
             })
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween(DB::raw('COALESCE(sale_date, created_at)'), [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->orderBy('id', 'desc');
 
         if (count($inactiveOperationOrderIds) > 0) {
@@ -465,7 +584,7 @@ class ExpenseController extends Controller
         $summaryQuery = Order::where('payment_method', 'online')
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween(DB::raw('COALESCE(sale_date, created_at)'), [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
 
         if (count($inactiveOperationOrderIds) > 0) {
             $summaryQuery->whereNotIn('id', $inactiveOperationOrderIds);
@@ -476,6 +595,29 @@ class ExpenseController extends Controller
         $totalRazorpayGstFee = $summaryQuery->sum('razorpay_gst_fee');
         $totalRazorpayCharges = $summaryQuery->sum('razorpay_total_charge');
         $totalNetReceived = $summaryQuery->sum('razorpay_net_amount');
+
+        // Today's Razorpay Charges (Asia/Kolkata timezone)
+        $todayDate = Carbon::now('Asia/Kolkata')->toDateString();
+        $todayRazorpayQuery = Order::where('payment_method', 'online')
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            })
+            ->whereDate(DB::raw('COALESCE(sale_date, created_at)'), $todayDate);
+
+        if (count($inactiveOperationOrderIds) > 0) {
+            $todayRazorpayQuery->whereNotIn('id', $inactiveOperationOrderIds);
+        }
+
+        $todayOnlineOrders = (clone $todayRazorpayQuery)->get();
+        foreach ($todayOnlineOrders as $to) {
+            if ($to->razorpay_total_charge <= 0) {
+                $to->calculateRazorpayCharge(null, $feePct, $gstPct);
+            }
+        }
+        $todayRazorpayCharges = (float) (clone $todayRazorpayQuery)->sum('razorpay_total_charge');
 
         if ($request->ajax() || $request->wantsJson()) {
             $desktopHtml = view('admin.reports.partials.razorpay_rows', compact('orders'))->render();
@@ -494,6 +636,7 @@ class ExpenseController extends Controller
             'endDate',
             'feePct',
             'gstPct',
+            'todayRazorpayCharges',
             'totalOnlineRevenue',
             'totalRazorpayBaseFee',
             'totalRazorpayGstFee',
@@ -502,4 +645,66 @@ class ExpenseController extends Controller
         ));
     }
 
+    /**
+     * Dedicated Refunded Products & Customer Refund Expense Report.
+     */
+    public function refundedProductsReport(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+        $search = $request->get('search');
+        $invConditionFilter = $request->get('inventory_condition'); // all, return_to_stock, do_not_restock
+
+        // Active operations that involve returns, cancellations or refunds
+        $query = \App\Models\OrderOperation::with(['order', 'product.images', 'orderItem', 'replacementProduct', 'replacementProductSize', 'refunds'])
+            ->where('status', 'active')
+            ->whereBetween(DB::raw('COALESCE(return_date, DATE(created_at))'), [$startDate, $endDate]);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('order', function ($oq) use ($search) {
+                    $oq->where('order_number', 'LIKE', "%{$search}%")
+                       ->orWhere('customer_name', 'LIKE', "%{$search}%")
+                       ->orWhere('customer_phone', 'LIKE', "%{$search}%");
+                })->orWhereHas('orderItem', function ($iq) use ($search) {
+                    $iq->where('product_name', 'LIKE', "%{$search}%");
+                })->orWhereHas('product', function ($pq) use ($search) {
+                    $pq->where('name', 'LIKE', "%{$search}%");
+                });
+            });
+        }
+
+        if (!empty($invConditionFilter) && $invConditionFilter !== 'all') {
+            $query->where('inventory_condition', $invConditionFilter);
+        }
+
+        // Summary Stats across active operations in date range
+        $summaryQuery = \App\Models\OrderOperation::where('status', 'active')
+            ->whereBetween(DB::raw('COALESCE(return_date, DATE(created_at))'), [$startDate, $endDate]);
+
+        // Aggregate actual money refunded based on refund_date from OrderRefund table
+        $totalRefundedAmount = (float) \App\Models\OrderRefund::whereHas('orderOperation', function ($q) {
+                $q->where('status', 'active');
+            })
+            ->whereBetween('refund_date', [$startDate, $endDate])
+            ->sum('refund_amount');
+
+        $totalRefundedItemsCount = (int) (clone $summaryQuery)->count();
+        $restockedItemsCount = (int) (clone $summaryQuery)->where('inventory_condition', 'return_to_stock')->count();
+        $frozenItemsCount = (int) (clone $summaryQuery)->where('inventory_condition', 'do_not_restock')->count();
+
+        $refundOperations = $query->orderBy(DB::raw('COALESCE(return_date, DATE(created_at))'), 'desc')->paginate(15)->withQueryString();
+
+        return view('admin.reports.refunded_products', compact(
+            'refundOperations',
+            'startDate',
+            'endDate',
+            'search',
+            'invConditionFilter',
+            'totalRefundedAmount',
+            'totalRefundedItemsCount',
+            'restockedItemsCount',
+            'frozenItemsCount'
+        ));
+    }
 }

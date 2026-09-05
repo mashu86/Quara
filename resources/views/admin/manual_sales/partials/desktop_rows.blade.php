@@ -10,11 +10,11 @@
                     $itemImg = $itemProd ? $itemProd->primary_image_url : \App\Models\Setting::logoUrl();
                 @endphp
                 <div class="d-flex align-items-center gap-2 my-1">
-                    <img src="{{ $itemImg }}" alt="{{ $item->product_name }}" 
-                         class="rounded border shadow-sm flex-shrink-0" 
-                         style="width: 38px; height: 44px; object-fit: cover; cursor: pointer;" 
-                         onclick="openImagePreviewModal('{{ addslashes($itemImg) }}', '{{ addslashes($item->product_name) }}')" 
-                         title="Click to view image">
+                    <div class="p-0.5 bg-white border rounded flex-shrink-0" style="cursor: pointer;" onclick="openImagePreviewModal('{{ addslashes($itemImg) }}', '{{ addslashes($item->product_name) }}')" title="Click to view image">
+                        <img src="{{ $itemImg }}" alt="{{ $item->product_name }}" 
+                             class="rounded d-block" 
+                             style="width: 38px; height: 46px; object-fit: cover;">
+                    </div>
                     <div>
                         <span class="fw-bold text-dark">{{ $item->product_name }}</span> 
                         <div class="small text-muted">(Size: {{ $item->size }}) &times; {{ $item->quantity }}</div>
@@ -32,11 +32,11 @@
         </td>
         <td class="text-end pe-3">
             <div class="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Record Operation / Return">
-                    <i class="fa-solid fa-rotate-left"></i>
+                <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Adjust / Exchange Order Items">
+                    <i class="fa-solid fa-sliders text-warning"></i>
                 </a>
-                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Offline Sale">
-                    <i class="fa-solid fa-pen-to-square"></i>
+                <a href="{{ route('admin.manual-sales.edit', $order->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Edit Customer & Sale Details">
+                    <i class="fa-solid fa-user-pen"></i>
                 </a>
             </div>
         </td>

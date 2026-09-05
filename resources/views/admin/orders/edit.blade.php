@@ -119,10 +119,35 @@
                             </thead>
                             <tbody>
                                 @foreach($order->items as $item)
-                                    <tr>
-                                        <td><span class="fw-bold text-dark">{{ $item->product_name }}</span></td>
+                                    @php
+                                        $itemOp = $order->operations ? $order->operations->where('status', 'active')->where('order_item_id', $item->id)->first() : null;
+                                        $isReturned = ($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])));
+                                        $itemUnitPrice = (float) ($item->unit_price ?? $item->final_unit_price ?? $item->price ?? 0);
+                                    @endphp
+                                    <tr class="{{ $isReturned ? 'table-danger border-start border-4 border-danger' : '' }}">
+                                        <td>
+                                            <span class="fw-bold text-dark">{{ $item->product_name }}</span>
+                                            @if($isReturned || $itemOp)
+                                                <div class="mt-1">
+                                                    @if($isReturned)
+                                                        <span class="badge bg-danger text-white me-1" style="font-size: 0.65rem;">
+                                                            <i class="fa-solid fa-rotate-left me-0.5"></i> RETURNED
+                                                        </span>
+                                                    @endif
+                                                    @if($itemOp && $itemOp->is_money_refunded && $itemOp->total_refund_amount > 0)
+                                                        <span class="badge bg-danger text-white me-1" style="font-size: 0.65rem;">
+                                                            <i class="fa-solid fa-hand-holding-dollar me-0.5"></i> Refund: ₹{{ number_format($itemOp->total_refund_amount, 2) }}
+                                                        </span>
+                                                    @elseif($itemOp && !$itemOp->is_money_refunded)
+                                                        <span class="badge bg-secondary text-white me-1" style="font-size: 0.65rem;">
+                                                            <i class="fa-solid fa-ban me-0.5"></i> No Refund
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td><span class="badge bg-dark">{{ $item->size }}</span></td>
-                                        <td>₹{{ number_format($item->price, 2) }}</td>
+                                        <td>₹{{ number_format($itemUnitPrice, 2) }}</td>
                                         <td>{{ $item->quantity }}</td>
                                         <td class="text-end pe-3 fw-bold">₹{{ number_format($item->subtotal, 2) }}</td>
                                     </tr>
@@ -130,9 +155,24 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="4" class="text-end fw-bold">Grand Total:</td>
-                                    <td class="text-end pe-3 fw-bold text-warning fs-6">₹{{ number_format($order->grand_total, 2) }}</td>
+                                    <td colspan="4" class="text-end fw-bold">Grand Total (Original):</td>
+                                    <td class="text-end pe-3 fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</td>
                                 </tr>
+                                @php
+                                    $activeOps = $order->operations ? $order->operations->where('status', 'active') : collect();
+                                    $totRefund = (float) $activeOps->sum('total_refund_amount');
+                                    $netRealized = (float) $order->grand_total - $totRefund;
+                                @endphp
+                                @if($totRefund > 0)
+                                    <tr class="text-danger">
+                                        <td colspan="4" class="text-end fw-bold">Refund Deducted:</td>
+                                        <td class="text-end pe-3 fw-bold">-₹{{ number_format($totRefund, 2) }}</td>
+                                    </tr>
+                                    <tr class="table-success border-top border-2">
+                                        <td colspan="4" class="text-end fw-bold text-success"><i class="fa-solid fa-wallet me-1"></i> Net Realized Total:</td>
+                                        <td class="text-end pe-3 fw-bold text-success fs-6">₹{{ number_format($netRealized, 2) }}</td>
+                                    </tr>
+                                @endif
                             </tfoot>
                         </table>
                     </div>
@@ -180,6 +220,12 @@
                             <option value="online" {{ old('payment_method', $order->payment_method) === 'online' ? 'selected' : '' }}>Razorpay Online</option>
                             <option value="offline_sale" {{ old('payment_method', $order->payment_method) === 'offline_sale' ? 'selected' : '' }}>Offline Sale</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Shipping / Delivery Charge (₹)</label>
+                        <input type="number" step="0.01" min="0" name="shipping" class="form-control rounded-3" value="{{ old('shipping', number_format($order->shipping, 2, '.', '')) }}">
+                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;"><i class="fa-solid fa-truck text-warning me-1"></i> Adjusting shipping charge updates total sales & profit accordingly.</small>
                     </div>
 
                     <div class="mb-3">

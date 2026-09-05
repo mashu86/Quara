@@ -7,29 +7,29 @@
     @media (max-width: 576px) {
         .back-offline-btn {
             padding: 0.25rem 0.55rem !important;
-            font-size: 0.82rem !important;
+            font-size: 0.8rem !important;
             border-radius: 8px !important;
         }
         .page-header-title {
-            font-size: 1.15rem !important;
+            font-size: 1.1rem !important;
         }
         .page-header-subtitle {
-            font-size: 0.72rem !important;
+            font-size: 0.7rem !important;
         }
-        .card-body.p-4 {
-            padding: 1rem 0.85rem !important;
+        .card-body.p-4, .card-body.p-3 {
+            padding: 0.85rem 0.65rem !important;
         }
         .card-body h5 {
-            font-size: 0.92rem !important;
-            margin-bottom: 0.75rem !important;
+            font-size: 0.88rem !important;
+            margin-bottom: 0.5rem !important;
         }
         .form-label {
-            font-size: 0.78rem !important;
-            margin-bottom: 0.25rem !important;
+            font-size: 0.75rem !important;
+            margin-bottom: 0.2rem !important;
         }
         .form-control, .form-select {
-            font-size: 0.78rem !important;
-            padding: 0.4rem 0.65rem !important;
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
         }
         .submit-sale-btn {
             padding: 0.65rem 1rem !important;
@@ -43,10 +43,25 @@
         }
         .remove-item-btn {
             padding: 0.15rem 0.45rem !important;
-            font-size: 0.72rem !important;
+            font-size: 0.7rem !important;
         }
         .product-item-card {
-            padding: 0.75rem !important;
+            padding: 0.65rem !important;
+            overflow-x: hidden !important;
+        }
+        .item-badge {
+            font-size: 0.68rem !important;
+            padding: 0.3rem 0.5rem !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        .filter-stock-btn {
+            font-size: 0.72rem !important;
+            padding: 0.3rem 0.5rem !important;
+        }
+        .pick-product-btn {
+            font-size: 0.7rem !important;
+            padding: 0.35rem 0.5rem !important;
         }
     }
 </style>
@@ -74,13 +89,13 @@
                         <!-- 2 Clean Filter Pills: Available vs Booked -->
                         <div class="btn-group btn-group-sm" role="group" aria-label="Stock Filter">
                             <input type="radio" class="btn-check" name="stock_filter_type" id="filterAvailable" value="available" checked onchange="filterProductsByCategory()">
-                            <label class="btn btn-outline-success fw-bold px-3 py-1.5 rounded-start-pill" for="filterAvailable">
-                                🟢 Available Products
+                            <label class="btn btn-outline-success fw-bold px-2 px-md-3 py-1 py-md-1.5 filter-stock-btn rounded-start-pill" for="filterAvailable">
+                                🟢 Available <span class="d-none d-sm-inline">Products</span>
                             </label>
 
                             <input type="radio" class="btn-check" name="stock_filter_type" id="filterBooked" value="booked" onchange="filterProductsByCategory()">
-                            <label class="btn btn-outline-warning text-dark fw-bold px-3 py-1.5 rounded-end-pill" for="filterBooked">
-                                🔒 Booked Products
+                            <label class="btn btn-outline-warning text-dark fw-bold px-2 px-md-3 py-1 py-md-1.5 filter-stock-btn rounded-end-pill" for="filterBooked">
+                                🔒 Booked <span class="d-none d-sm-inline">Products</span>
                             </label>
                         </div>
                     </div>
@@ -315,14 +330,18 @@
                         <label class="form-label fw-bold small mb-1">Select Product <span class="text-danger">*</span></label>
                         <div class="d-flex align-items-center gap-2">
                             <div class="product-inline-thumb-container d-none flex-shrink-0">
-                                <img class="product-inline-thumb rounded-3 border shadow-sm" src="" alt="Thumb" style="width: 48px; height: 55px; object-fit: cover; cursor: pointer;" onclick="openRowThumbModal(this)">
+                                <img class="product-inline-thumb rounded-3 border shadow-sm" src="" alt="Thumb" style="width: 52px; height: 58px; object-fit: cover; cursor: pointer;" onclick="openRowThumbModal(this)" title="Click to view full image">
                             </div>
-                            <div class="flex-grow-1">
-                                <select class="form-select rounded-3 product-select" required onchange="onRowProductChange(this)">
+                            <div class="flex-grow-1 position-relative" style="cursor: pointer;" onclick="openVisualPickerForRow(this)" title="Click to Pick Product with Image">
+                                <input type="text" class="form-control rounded-3 bg-white product-display-input fw-semibold" readonly placeholder="👉 Click here to Pick Product with Image..." style="cursor: pointer; font-size: 0.85rem;">
+                                <select class="form-select rounded-3 product-select d-none" required onchange="onRowProductChange(this)">
                                     <option value="">-- Choose Product --</option>
                                     ${buildProductOptionsHtml()}
                                 </select>
                             </div>
+                            <button type="button" class="btn btn-warning text-dark border border-warning-subtle fw-bold btn-sm rounded-3 px-3 py-2 flex-shrink-0 shadow-sm" onclick="openVisualPickerForRow(this)" title="Pick product by photo grid" style="font-size: 0.78rem;">
+                                <i class="fa-solid fa-images me-1"></i> Pick Product Image
+                            </button>
                         </div>
                     </div>
 
@@ -474,7 +493,11 @@
                     }
 
                     if (qtyInput) {
-                        qtyInput.max = remainingStock;
+                        if (remainingStock > 0) {
+                            qtyInput.max = remainingStock;
+                        } else {
+                            qtyInput.removeAttribute('max');
+                        }
                         let curQty = parseInt(qtyInput.value) || 0;
                         if (remainingStock > 0 && curQty > remainingStock) {
                             qtyInput.value = remainingStock;
@@ -503,6 +526,7 @@
         const prodId = parseInt(selectElem.value);
         const sizeSelect = card.querySelector('.size-select');
         const priceInput = card.querySelector('.price-input');
+        const displayInput = card.querySelector('.product-display-input');
         const thumbContainer = card.querySelector('.product-inline-thumb-container');
         const thumbImg = card.querySelector('.product-inline-thumb');
 
@@ -511,6 +535,7 @@
 
         const prod = productsData.find(p => p.id === prodId);
         if (!prod) {
+            if (displayInput) displayInput.value = '';
             if (priceInput) priceInput.value = '';
             if (thumbContainer) thumbContainer.classList.add('d-none');
             onRowSizeChange(sizeSelect);
@@ -518,6 +543,7 @@
             return;
         }
 
+        if (displayInput) displayInput.value = `${prod.name} (Price: ₹${prod.price.toFixed(2)})`;
         if (priceInput) priceInput.value = prod.price.toFixed(2);
         if (thumbContainer && thumbImg) {
             thumbImg.src = prod.image;
@@ -701,6 +727,139 @@
                     </div>
                 `;
             }
+        }
+    }
+
+    let activePickerCard = null;
+
+    function openVisualPickerForRow(btn) {
+        activePickerCard = btn.closest('.product-item-card');
+        let modalEl = document.getElementById('visualProductPickerModal');
+        if (!modalEl) {
+            const modalHtml = `
+                <div class="modal fade" id="visualProductPickerModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div class="modal-header bg-dark text-white py-2.5 px-3">
+                                <h5 class="modal-title fs-6 fw-bold">
+                                    <i class="fa-solid fa-images text-warning me-2"></i> Select Product by Image
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-3 bg-light" style="max-height: 78vh; overflow-y: auto;">
+                                <div class="mb-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                        <input type="text" id="visualPickerSearchInput" class="form-control border-start-0 ps-0 rounded-end-pill py-2" placeholder="Type product name to search..." oninput="renderVisualPickerGrid()">
+                                    </div>
+                                </div>
+                                <div class="row g-2.5" id="visualPickerGrid">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modalEl = document.getElementById('visualProductPickerModal');
+        }
+
+        document.getElementById('visualPickerSearchInput').value = '';
+        renderVisualPickerGrid();
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    function renderVisualPickerGrid() {
+        const grid = document.getElementById('visualPickerGrid');
+        if (!grid) return;
+
+        const searchVal = (document.getElementById('visualPickerSearchInput')?.value || '').toLowerCase().trim();
+        const otherSelectedProdIds = activePickerCard ? getSelectedProductIdsInOtherRows(activePickerCard) : [];
+
+        const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+        const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const filterBookedRadio = document.getElementById('filterBooked');
+        const isBookedFilter = filterBookedRadio ? filterBookedRadio.checked : false;
+
+        let html = '';
+        let matchCount = 0;
+
+        productsData.forEach(prod => {
+            const isMatchedCategory = (selectedCatIds.length === 0) || prod.categories.some(id => selectedCatIds.includes(parseInt(id)));
+            const isNameMatched = !searchVal || prod.name.toLowerCase().includes(searchVal);
+
+            if (!isMatchedCategory || !isNameMatched) return;
+
+            const isSelectedInOther = otherSelectedProdIds.includes(prod.id);
+            const isOut = prod.isOut;
+            const physicalStock = prod.physicalStock;
+
+            let badgeHtml = '';
+            let isSelectable = true;
+
+            if (isSelectedInOther) {
+                // Completely hide products already selected in another row to prevent conflicts
+                return;
+            }
+
+            if (physicalStock <= 0) {
+                // Completely hide 0 stock products to keep picker clean
+                return;
+            }
+
+            if (isOut) {
+                if (!isBookedFilter) return; // Hide booked when available filter active
+                let bookedInfo = prod.bookedBy ? `: ${prod.bookedBy}` : '';
+                badgeHtml = `<span class="badge bg-warning text-dark">🔒 Booked${bookedInfo} (${physicalStock} pcs)</span>`;
+            } else {
+                if (isBookedFilter) return; // Hide available when booked filter active
+                badgeHtml = `<span class="badge bg-success">🟢 ${physicalStock} pcs in stock</span>`;
+            }
+
+            matchCount++;
+
+            html += `
+                <div class="col-6 col-sm-4 col-md-3">
+                    <div class="card h-100 border rounded-3 shadow-sm product-picker-card ${isSelectable ? 'cursor-pointer' : 'opacity-60'}" ${isSelectable ? `onclick="selectProductFromPicker(${prod.id})"` : ''} style="transition: transform 0.15s ease;">
+                        <div class="position-relative bg-white text-center p-1 rounded-top-3">
+                            <img src="${prod.image}" class="img-fluid rounded-2" style="height: 110px; width: 100%; object-fit: cover;" alt="${prod.name}">
+                        </div>
+                        <div class="card-body p-2 d-flex flex-column justify-content-between">
+                            <div>
+                                <h6 class="fw-bold small text-dark mb-1 text-truncate" title="${prod.name}">${prod.name}</h6>
+                                <div class="fw-bold text-success small">₹${prod.price.toFixed(2)}</div>
+                                <div class="mt-1">${badgeHtml}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm ${isSelectable ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted'} w-100 mt-2 py-1" style="font-size: 0.72rem;" ${isSelectable ? '' : 'disabled'}>
+                                ${isSelectable ? '<i class="fa-solid fa-check me-1"></i> Select' : 'Unavailable'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (matchCount === 0) {
+            html = `<div class="col-12 text-center py-4 text-muted"><i class="fa-solid fa-box-open fa-2x mb-2"></i><p class="mb-0 small fw-bold">No matching products found.</p></div>`;
+        }
+
+        grid.innerHTML = html;
+    }
+
+    function selectProductFromPicker(prodId) {
+        if (!activePickerCard) return;
+        const selectElem = activePickerCard.querySelector('.product-select');
+        if (selectElem) {
+            selectElem.value = prodId;
+            onRowProductChange(selectElem);
+        }
+
+        const modalEl = document.getElementById('visualProductPickerModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
         }
     }
 

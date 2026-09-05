@@ -21,6 +21,12 @@ class OrderItem extends Model
         'final_unit_price',
         'quantity',
         'subtotal',
+        'item_status',
+        'inventory_condition',
+        'return_date',
+        'refund_date',
+        'refund_amount',
+        'exchange_item_id',
     ];
 
     protected $casts = [
@@ -28,7 +34,15 @@ class OrderItem extends Model
         'discount_amount' => 'decimal:2',
         'final_unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
+        'return_date' => 'date',
+        'refund_date' => 'date',
     ];
+
+    public function refunds(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OrderRefund::class, 'order_item_id');
+    }
 
     public function order(): BelongsTo
     {

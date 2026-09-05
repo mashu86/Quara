@@ -266,7 +266,7 @@
 
                                     <!-- Category Image -->
                                     <div class="position-relative bg-light text-center p-1.5">
-                                        <img src="{{ $cat->background_image_url }}" alt="{{ $cat->name }}" class="img-fluid rounded-3 grid-thumb-img">
+                                        <img src="{{ $cat->background_image_url }}" alt="{{ $cat->name }}" class="img-fluid rounded-3 grid-thumb-img" loading="lazy" onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
                                     </div>
 
                                     <!-- Category Details -->
@@ -315,7 +315,7 @@
 
                                     <!-- Product Image -->
                                     <div class="position-relative text-center p-1.5 bg-light">
-                                        <img src="{{ $prod->primary_image_url }}" alt="{{ $prod->name }}" class="img-fluid rounded-3 grid-thumb-img">
+                                        <img src="{{ $prod->primary_image_url }}" alt="{{ $prod->name }}" class="img-fluid rounded-3 grid-thumb-img" loading="lazy" onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
                                         @if($prod->is_out_of_stock)
                                             <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size: 0.58rem;">OUT OF STOCK</span>
                                         @endif

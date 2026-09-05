@@ -107,6 +107,27 @@ class Order extends Model
         return $data;
     }
 
+    /**
+     * Standardized recalculation of order totals and gateway charges when shipping, subtotal, or discounts change.
+     */
+    public function recalculateTotals(?float $newShipping = null): void
+    {
+        if ($newShipping !== null) {
+            $this->shipping = max(0, round($newShipping, 2));
+        }
+
+        $subtotal = (float) $this->subtotal;
+        $discount = (float) ($this->discount_amount ?? $this->discount ?? 0);
+        $shipping = (float) $this->shipping;
+
+        $this->grand_total = max(0, round($subtotal + $shipping - $discount, 2));
+        $this->save();
+
+        if ($this->payment_method === 'online' || $this->payment_status === 'paid' || (float) $this->razorpay_total_charge > 0) {
+            $this->calculateRazorpayCharge();
+        }
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -127,9 +148,19 @@ class Order extends Model
         return $this->hasMany(Notification::class);
     }
 
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(OrderRefund::class);
+    }
+
     public function getFullAddressAttribute(): string
     {
         return "{$this->house_building}, {$this->street}, {$this->area}, {$this->city}, {$this->district}, {$this->state} - {$this->pin_code}";
+    }
+
+    public function getEffectiveDateAttribute()
+    {
+        return $this->sale_date ?? $this->created_at;
     }
 
     public static function generateOrderNumber(): string

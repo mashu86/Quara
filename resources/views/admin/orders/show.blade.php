@@ -3,6 +3,34 @@
 @section('title', 'Order Details - ' . $siteName . ' Admin')
 
 @section('content')
+<script>
+window.openImagePreviewModal = function(imageUrl, title) {
+    var imgEl = document.getElementById('productImagePreviewModalImg');
+    var titleEl = document.getElementById('productImagePreviewModalTitle');
+    if (imgEl && titleEl) {
+        imgEl.src = imageUrl;
+        var cleanTitle = (typeof escapeHtml === 'function') ? escapeHtml(title) : title;
+        titleEl.innerHTML = '<i class="fa-solid fa-shirt text-warning me-2"></i> ' + cleanTitle;
+        var modal = new bootstrap.Modal(document.getElementById('productImagePreviewModal'));
+        modal.show();
+    }
+};
+</script>
+<style>
+    .order-show-header-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.68rem !important;
+    }
+    @media (min-width: 576px) {
+        .order-show-header-btn {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 0.8rem !important;
+        }
+    }
+</style>
+
 <div class="mb-3 mb-md-4">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
         <h4 class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;">
@@ -13,23 +41,34 @@
         </h4>
     </div>
     <div class="d-flex justify-content-between align-items-center gap-2">
-        <div class="d-flex align-items-center gap-2" style="gap: 8px;">
-            <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="WhatsApp Follow-up">
-                <i class="fa-brands fa-whatsapp fs-6"></i>
+        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+            @php
+                $isOrderedCustomerShow = ($order->payment_status === 'paid' || $order->payment_method === 'offline_sale' || $order->order_source === 'manual' || !in_array($order->order_status, ['pending', 'cancelled']));
+            @endphp
+            @if($isOrderedCustomerShow)
+                <button type="button" onclick="previewCourierAddress({{ json_encode($order) }})" class="btn btn-sm btn-outline-info rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="Preview Courier Address Label">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+                <button type="button" onclick="printOrderCourierLabel({{ json_encode($order) }})" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="Print Courier Address Label">
+                    <i class="fa-solid fa-print text-warning"></i>
+                </button>
+            @endif
+            <button type="button" onclick="openWhatsappModal({{ json_encode($order) }})" class="btn btn-sm btn-success text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="WhatsApp Follow-up">
+                <i class="fa-brands fa-whatsapp"></i>
             </button>
-            <a href="{{ route('admin.orders.edit', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="Edit Order Details">
-                <i class="fa-solid fa-pen-to-square fs-6"></i>
+            <a href="{{ route('admin.orders.edit', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="Edit Order Details">
+                <i class="fa-solid fa-pen-to-square"></i>
             </a>
-            <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;" title="Record Operation / Return">
-                <i class="fa-solid fa-rotate-left fs-6"></i>
+            <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="Record Operation / Return">
+                <i class="fa-solid fa-rotate-left"></i>
             </a>
-            <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
-                <i class="fa-solid fa-print fs-6"></i>
+            <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
+                <i class="fa-solid fa-print"></i>
             </a>
         </div>
         <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;">&larr; <span class="d-none d-sm-inline">Back to </span>My Sales</a>
     </div>
-    <div class="text-muted mt-1.5" style="font-size: 0.75rem;">Placed on {{ $order->created_at->format('F d, Y at h:i A') }}</div>
+    <div class="text-muted mt-1.5" style="font-size: 0.75rem;">Order Date: {{ $order->effective_date->format('F d, Y \a\t h:i A') }}</div>
 </div>
 
 <div class="row g-3 g-md-4">
@@ -37,83 +76,282 @@
     <div class="col-lg-8">
         <!-- Order Items -->
         <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
-            <div class="card-header bg-white py-2.5 py-sm-3 border-bottom">
-                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;"><i class="fa-solid fa-bag-shopping me-2 text-warning"></i> Ordered Items</h6>
+            <div class="card-header bg-white py-2.5 py-sm-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">
+                    <i class="fa-solid fa-bag-shopping me-2 text-warning"></i> Ordered Items ({{ $order->items->count() }})
+                </h6>
+                <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.65rem;">{{ $order->items->sum('quantity') }} Pcs</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0" style="font-size: 0.78rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Product</th>
-                                <th>Photo</th>
-                                <th>Size</th>
-                                <th>Unit Price</th>
-                                <th>Qty</th>
-                                <th class="text-end">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($order->items as $item)
-                                @php
-                                    $itemProduct = $item->product;
-                                    $itemImageUrl = $itemProduct ? $itemProduct->primary_image_url : \App\Models\Setting::logoUrl();
-                                    $itemName = $item['product_name'] ?? ($itemProduct ? $itemProduct->name : 'Product');
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <div class="fw-bold text-dark mb-0" style="font-size: 0.82rem;">{{ $itemName }}</div>
+                <!-- MOBILE VIEW: Product Item Cards (d-block d-md-none) -->
+                @php
+                    $activeOps = $order->operations ? $order->operations->where('status', 'active') : collect();
+                    $totRefund = (float) $activeOps->sum('total_refund_amount');
+                    $totExpense = (float) $activeOps->sum('additional_expense_total');
+                    $totIncome = (float) $activeOps->where('price_difference', '>', 0)->sum('price_difference');
+                    $netRealized = (float) $order->grand_total - $totRefund - $totExpense + $totIncome;
+                @endphp
+                <div class="d-block d-md-none p-2.5 bg-light border-bottom">
+                    @foreach($order->items as $item)
+                        @php
+                            $itemProduct = $item->product;
+                            $itemImageUrl = $itemProduct ? $itemProduct->primary_image_url : \App\Models\Setting::logoUrl();
+                            $itemName = $item->product_name ?? ($itemProduct ? $itemProduct->name : 'Product');
+                            $itemUnitPrice = (float) ($item->unit_price ?? $item->final_unit_price ?? 0);
+                            $itemOp = $order->operations ? $order->operations->where('status', 'active')->where('order_item_id', $item->id)->first() : null;
+                            $isReturned = ($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])));
+                        @endphp
+                        <div class="card shadow-sm rounded-3 mb-2 p-2.5 bg-white {{ $isReturned ? 'border border-danger border-2' : 'border-0' }}">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="p-1 bg-light border rounded-3 flex-shrink-0 shadow-sm position-relative overflow-hidden" 
+                                     style="cursor: pointer; transition: transform 0.2s ease;" 
+                                     onclick="window.openImagePreviewModal &amp;&amp; window.openImagePreviewModal('{{ addslashes($itemImageUrl) }}', '{{ addslashes($itemName) }}')" 
+                                     title="Click to view enlarged image">
+                                    <img src="{{ $itemImageUrl }}" alt="{{ $itemName }}" 
+                                         class="rounded-2 d-block item-thumb-img" 
+                                         style="width: 58px; height: 72px; object-fit: cover;">
+                                    <span class="position-absolute bottom-0 end-0 bg-dark text-warning px-1 py-0.5 rounded-start" style="font-size: 0.55rem; opacity: 0.9;">
+                                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.82rem; line-height: 1.3;">{{ $itemName }}</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-1 mb-1.5">
+                                        <span class="badge bg-dark" style="font-size: 0.65rem;">Size: {{ $item->size }}</span>
+                                        <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.65rem;">Qty: {{ $item->quantity }}</span>
                                         @if($itemProduct)
-                                            <a href="{{ route('admin.products.edit', $itemProduct->id) }}" target="_blank" class="text-muted small text-decoration-none" style="font-size: 0.7rem;">
-                                                Master Link <i class="fa-solid fa-arrow-up-right-from-square ms-0.5" style="font-size: 0.65rem;"></i>
+                                            <a href="{{ route('admin.products.edit', $itemProduct->id) }}" target="_blank" class="text-muted small text-decoration-none ms-auto" style="font-size: 0.68rem;">
+                                                Master Link <i class="fa-solid fa-arrow-up-right-from-square ms-0.5" style="font-size: 0.6rem;"></i>
                                             </a>
                                         @endif
-                                    </td>
-                                    <td>
-                                        <img src="{{ $itemImageUrl }}" alt="{{ $itemName }}" 
-                                             class="rounded-3 border shadow-sm item-thumb-img" 
-                                             style="width: 48px; height: 60px; object-fit: cover; cursor: pointer; transition: transform 0.2s ease;"
-                                             onclick="openImagePreviewModal('{{ addslashes($itemImageUrl) }}', '{{ addslashes($itemName) }}')"
-                                             title="Click to view large image">
-                                    </td>
-                                    <td><span class="badge bg-dark" style="font-size: 0.7rem;">{{ $item['size'] }}</span></td>
-                                    <td>₹{{ number_format($item['price'], 2) }}</td>
-                                    <td>{{ $item['quantity'] }}</td>
-                                    <td class="text-end fw-bold">₹{{ number_format($item['subtotal'], 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <td colspan="5" class="text-end fw-bold">Items Subtotal:</td>
-                                <td class="text-end fw-bold">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</td>
-                            </tr>
-                            @php
-                                $discVal = (float)($order->discount_amount ?: $order->discount);
-                                $shipVal = (float)($order->shipping_charge ?: $order->shipping);
-                            @endphp
-                            @if($discVal > 0)
-                                <tr class="text-danger">
-                                    <td colspan="5" class="text-end fw-bold">Discount / Offer:</td>
-                                    <td class="text-end fw-bold">-₹{{ number_format($discVal, 2) }}</td>
-                                </tr>
-                            @endif
-                            <tr>
-                                <td colspan="5" class="text-end fw-bold">Delivery / Shipping Charge:</td>
-                                <td class="text-end fw-bold text-dark">
-                                    @if($shipVal > 0)
-                                        +₹{{ number_format($shipVal, 2) }}
-                                    @else
-                                        <span class="badge bg-success small">FREE</span>
+                                    </div>
+
+                                    @if($itemOp || in_array($item->item_status, ['returned', 'exchanged', 'cancelled']))
+                                        <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                                            @if($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])))
+                                                <span class="badge bg-danger text-white" style="font-size: 0.6rem;"><i class="fa-solid fa-rotate-left me-1"></i> RETURNED</span>
+                                            @elseif($item->item_status === 'exchanged' || ($itemOp && $itemOp->operation_type === 'product_exchange'))
+                                                <span class="badge bg-info text-dark" style="font-size: 0.6rem;"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> EXCHANGED</span>
+                                            @elseif($item->item_status === 'cancelled')
+                                                <span class="badge bg-secondary text-white" style="font-size: 0.6rem;"><i class="fa-solid fa-ban me-1"></i> CANCELLED</span>
+                                            @endif
+
+                                            @if(($itemOp && $itemOp->inventory_condition === 'return_to_stock') || $item->inventory_condition === 'return_to_stock')
+                                                <span class="badge bg-success text-white" style="font-size: 0.6rem;"><i class="fa-solid fa-boxes-packing me-1"></i> Restocked</span>
+                                            @elseif(($itemOp && $itemOp->inventory_condition === 'do_not_restock') || $item->inventory_condition === 'do_not_restock')
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.6rem;"><i class="fa-solid fa-snowflake me-1"></i> Frozen (No Restock)</span>
+                                            @endif
+
+                                            @if($itemOp && $itemOp->is_money_refunded && $itemOp->total_refund_amount > 0)
+                                                <span class="badge bg-danger text-white" style="font-size: 0.6rem;"><i class="fa-solid fa-hand-holding-dollar me-1"></i> Refund: ₹{{ number_format($itemOp->total_refund_amount, 2) }}</span>
+                                            @elseif($itemOp && !$itemOp->is_money_refunded)
+                                                <span class="badge bg-light text-muted border" style="font-size: 0.6rem;"><i class="fa-solid fa-ban me-1"></i> No Refund</span>
+                                            @endif
+                                        </div>
+                                        @if($itemOp && $itemOp->replacementProduct)
+                                            <div class="text-muted mb-1" style="font-size: 0.68rem;">
+                                                <i class="fa-solid fa-right-left text-info me-1"></i> Replaced with: <strong>{{ $itemOp->replacementProduct->name }}</strong> (Size: {{ $itemOp->replacementProductSize->size ?? 'N/A' }})
+                                            </div>
+                                        @endif
                                     @endif
-                                </td>
-                            </tr>
-                            <tr class="border-top border-2">
-                                <td colspan="5" class="text-end fw-bold" style="font-size: 0.85rem;">Grand Total:</td>
-                                <td class="text-end fw-bold text-warning fs-6" style="font-size: 0.88rem;">₹{{ number_format($order->grand_total, 2) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+
+                                    <div class="d-flex justify-content-between align-items-center pt-1 border-top mt-1">
+                                        <span class="text-muted" style="font-size: 0.72rem;">₹{{ number_format($itemUnitPrice, 2) }} × {{ $item->quantity }}</span>
+                                        <span class="fw-bold text-dark" style="font-size: 0.82rem;">₹{{ number_format($item->subtotal, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <!-- Mobile Summary Breakdown Box -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5" style="font-size: 0.78rem;">
+                            <span class="text-muted">Items Subtotal:</span>
+                            <span class="fw-bold text-dark">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</span>
+                        </div>
+                        @php
+                            $discVal = (float)($order->discount_amount ?: $order->discount);
+                            $shipVal = (float)($order->shipping_charge ?: $order->shipping);
+                        @endphp
+                        @if($discVal > 0)
+                            <div class="d-flex justify-content-between align-items-center mb-1.5 text-danger" style="font-size: 0.78rem;">
+                                <span>Discount / Offer:</span>
+                                <span class="fw-bold">-₹{{ number_format($discVal, 2) }}</span>
+                            </div>
+                        @endif
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.78rem;">
+                            <span class="text-muted">Delivery / Shipping:</span>
+                            <span class="fw-bold text-dark">
+                                @if($shipVal > 0)
+                                    +₹{{ number_format($shipVal, 2) }}
+                                @else
+                                    <span class="badge bg-success small" style="font-size: 0.62rem;">FREE</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-2" style="font-size: 0.88rem;">
+                            <span class="fw-bold text-dark">Grand Total (Original):</span>
+                            <span class="fw-bold text-warning" style="font-size: 0.95rem;">₹{{ number_format($order->grand_total, 2) }}</span>
+                        </div>
+                        @if($totRefund > 0)
+                            <div class="d-flex justify-content-between align-items-center mt-1.5 text-danger" style="font-size: 0.78rem;">
+                                <span>Refunds Deducted:</span>
+                                <span class="fw-bold">-₹{{ number_format($totRefund, 2) }}</span>
+                            </div>
+                        @endif
+                        @if($totExpense > 0)
+                            <div class="d-flex justify-content-between align-items-center mt-1 text-danger" style="font-size: 0.78rem;">
+                                <span>Operation Expenses:</span>
+                                <span class="fw-bold">-₹{{ number_format($totExpense, 2) }}</span>
+                            </div>
+                        @endif
+                        @if($totIncome > 0)
+                            <div class="d-flex justify-content-between align-items-center mt-1 text-success" style="font-size: 0.78rem;">
+                                <span>Exchange Addition:</span>
+                                <span class="fw-bold">+₹{{ number_format($totIncome, 2) }}</span>
+                            </div>
+                        @endif
+                        @if($totRefund > 0 || $totExpense > 0 || $totIncome > 0)
+                            <div class="d-flex justify-content-between align-items-center pt-2 mt-1.5 border-top text-success" style="font-size: 0.88rem;">
+                                <span class="fw-bold"><i class="fa-solid fa-wallet me-1"></i> Net Realized Total:</span>
+                                <span class="fw-bold fs-6">₹{{ number_format($netRealized, 2) }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- DESKTOP VIEW: Table Layout (d-none d-md-block) -->
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" style="font-size: 0.78rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Photo</th>
+                                    <th>Size</th>
+                                    <th>Unit Price</th>
+                                    <th>Qty</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($order->items as $item)
+                                    @php
+                                        $itemProduct = $item->product;
+                                        $itemImageUrl = $itemProduct ? $itemProduct->primary_image_url : \App\Models\Setting::logoUrl();
+                                        $itemName = $item->product_name ?? ($itemProduct ? $itemProduct->name : 'Product');
+                                        $itemUnitPrice = (float) ($item->unit_price ?? $item->final_unit_price ?? 0);
+                                        $itemOp = $order->operations ? $order->operations->where('status', 'active')->where('order_item_id', $item->id)->first() : null;
+                                        $isReturned = ($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])));
+                                    @endphp
+                                    <tr class="{{ $isReturned ? 'table-danger border-start border-4 border-danger' : '' }}">
+                                        <td>
+                                            <div class="fw-bold text-dark mb-0" style="font-size: 0.82rem;">{{ $itemName }}</div>
+                                            @if($itemProduct)
+                                                <a href="{{ route('admin.products.edit', $itemProduct->id) }}" target="_blank" class="text-muted small text-decoration-none d-inline-block mb-1" style="font-size: 0.7rem;">
+                                                    Master Link <i class="fa-solid fa-arrow-up-right-from-square ms-0.5" style="font-size: 0.65rem;"></i>
+                                                </a>
+                                            @endif
+                                            @if($itemOp || in_array($item->item_status, ['returned', 'exchanged', 'cancelled']))
+                                                <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
+                                                    @if($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])))
+                                                        <span class="badge bg-danger text-white" style="font-size: 0.62rem;"><i class="fa-solid fa-rotate-left me-1"></i> RETURNED</span>
+                                                    @elseif($item->item_status === 'exchanged' || ($itemOp && $itemOp->operation_type === 'product_exchange'))
+                                                        <span class="badge bg-info text-dark" style="font-size: 0.62rem;"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> EXCHANGED</span>
+                                                    @elseif($item->item_status === 'cancelled')
+                                                        <span class="badge bg-secondary text-white" style="font-size: 0.62rem;"><i class="fa-solid fa-ban me-1"></i> CANCELLED</span>
+                                                    @endif
+
+                                                    @if(($itemOp && $itemOp->inventory_condition === 'return_to_stock') || $item->inventory_condition === 'return_to_stock')
+                                                        <span class="badge bg-success text-white" style="font-size: 0.62rem;"><i class="fa-solid fa-boxes-packing me-1"></i> Restocked</span>
+                                                    @elseif(($itemOp && $itemOp->inventory_condition === 'do_not_restock') || $item->inventory_condition === 'do_not_restock')
+                                                        <span class="badge bg-warning text-dark" style="font-size: 0.62rem;"><i class="fa-solid fa-snowflake me-1"></i> Frozen (No Restock)</span>
+                                                    @endif
+
+                                                    @if($itemOp && $itemOp->is_money_refunded && $itemOp->total_refund_amount > 0)
+                                                        <span class="badge bg-danger text-white" style="font-size: 0.62rem;"><i class="fa-solid fa-hand-holding-dollar me-1"></i> Refund: ₹{{ number_format($itemOp->total_refund_amount, 2) }}</span>
+                                                    @elseif($itemOp && !$itemOp->is_money_refunded)
+                                                        <span class="badge bg-light text-muted border" style="font-size: 0.62rem;"><i class="fa-solid fa-ban me-1"></i> No Refund</span>
+                                                    @endif
+                                                </div>
+                                                @if($itemOp && $itemOp->replacementProduct)
+                                                    <div class="text-muted small mt-1" style="font-size: 0.7rem;">
+                                                        <i class="fa-solid fa-right-left text-info me-1"></i> Replaced with: <strong>{{ $itemOp->replacementProduct->name }}</strong> (Size: {{ $itemOp->replacementProductSize->size ?? 'N/A' }})
+                                                    </div>
+                                                @endif
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <img src="{{ $itemImageUrl }}" alt="{{ $itemName }}" 
+                                                 class="rounded-3 border shadow-sm item-thumb-img" 
+                                                 style="width: 48px; height: 60px; object-fit: cover; cursor: pointer; transition: transform 0.2s ease;"
+                                                 onclick="window.openImagePreviewModal &amp;&amp; window.openImagePreviewModal('{{ addslashes($itemImageUrl) }}', '{{ addslashes($itemName) }}')"
+                                                 title="Click to view large image">
+                                        </td>
+                                        <td><span class="badge bg-dark" style="font-size: 0.7rem;">{{ $item->size }}</span></td>
+                                        <td class="fw-semibold">₹{{ number_format($itemUnitPrice, 2) }}</td>
+                                        <td>{{ $item->quantity }}</td>
+                                        <td class="text-end fw-bold">₹{{ number_format($item->subtotal, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="5" class="text-end fw-bold">Items Subtotal:</td>
+                                    <td class="text-end fw-bold">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</td>
+                                </tr>
+                                @php
+                                    $discVal = (float)($order->discount_amount ?: $order->discount);
+                                    $shipVal = (float)($order->shipping_charge ?: $order->shipping);
+                                @endphp
+                                @if($discVal > 0)
+                                    <tr class="text-danger">
+                                        <td colspan="5" class="text-end fw-bold">Discount / Offer:</td>
+                                        <td class="text-end fw-bold">-₹{{ number_format($discVal, 2) }}</td>
+                                    </tr>
+                                @endif
+                                <tr>
+                                    <td colspan="5" class="text-end fw-bold">Delivery / Shipping Charge:</td>
+                                    <td class="text-end fw-bold text-dark">
+                                        @if($shipVal > 0)
+                                            +₹{{ number_format($shipVal, 2) }}
+                                        @else
+                                            <span class="badge bg-success small">FREE</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr class="border-top border-2">
+                                    <td colspan="5" class="text-end fw-bold" style="font-size: 0.85rem;">Grand Total (Original):</td>
+                                    <td class="text-end fw-bold text-warning fs-6" style="font-size: 0.88rem;">₹{{ number_format($order->grand_total, 2) }}</td>
+                                </tr>
+                                @if($totRefund > 0)
+                                    <tr class="text-danger">
+                                        <td colspan="5" class="text-end fw-bold">Active Refunds Paid Out:</td>
+                                        <td class="text-end fw-bold">-₹{{ number_format($totRefund, 2) }}</td>
+                                    </tr>
+                                @endif
+                                @if($totExpense > 0)
+                                    <tr class="text-danger">
+                                        <td colspan="5" class="text-end fw-bold">Operation Expenses:</td>
+                                        <td class="text-end fw-bold">-₹{{ number_format($totExpense, 2) }}</td>
+                                    </tr>
+                                @endif
+                                @if($totIncome > 0)
+                                    <tr class="text-success">
+                                        <td colspan="5" class="text-end fw-bold">Exchange Addition:</td>
+                                        <td class="text-end fw-bold">+₹{{ number_format($totIncome, 2) }}</td>
+                                    </tr>
+                                @endif
+                                @if($totRefund > 0 || $totExpense > 0 || $totIncome > 0)
+                                    <tr class="table-success border-top border-2">
+                                        <td colspan="5" class="text-end fw-bold text-success" style="font-size: 0.88rem;"><i class="fa-solid fa-wallet me-1"></i> Net Realized Amount:</td>
+                                        <td class="text-end fw-bold text-success fs-6" style="font-size: 0.95rem;">₹{{ number_format($netRealized, 2) }}</td>
+                                    </tr>
+                                @endif
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -389,18 +627,19 @@
 
 <!-- Large Product Image Preview Modal -->
 <div class="modal fade" id="productImagePreviewModal" tabindex="-1" aria-labelledby="productImagePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="modal-header bg-dark text-white py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center">
                 <h6 class="modal-title font-serif fw-bold text-truncate me-2 mb-0" id="productImagePreviewModalTitle">
                     <i class="fa-solid fa-shirt text-warning me-2"></i> Product Photo
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-3 text-center bg-light">
-                <img id="productImagePreviewModalImg" src="" alt="Product Large View" class="img-fluid rounded-3 shadow-sm" style="max-height: 75vh; width: 100%; object-fit: contain;">
+            <div class="modal-body p-2 p-sm-3 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 350px;">
+                <img id="productImagePreviewModalImg" src="" alt="Product Large View" class="img-fluid rounded-3 shadow" style="max-height: 78vh; max-width: 100%; object-fit: contain;">
             </div>
-            <div class="modal-footer bg-white py-2 px-4 border-top">
+            <div class="modal-footer bg-white py-2 px-3 px-sm-4 border-top d-flex justify-content-between align-items-center">
+                <span class="text-muted small" style="font-size: 0.72rem;"><i class="fa-solid fa-circle-info text-info me-1"></i> Tap outside or Close to exit</span>
                 <button type="button" class="btn btn-dark rounded-pill px-4 btn-sm fw-bold ms-auto" data-bs-dismiss="modal">
                     <i class="fa-solid fa-xmark me-1"></i> Close
                 </button>
@@ -497,6 +736,245 @@ function openImagePreviewModal(imageUrl, title) {
         var modal = new bootstrap.Modal(document.getElementById('productImagePreviewModal'));
         modal.show();
     }
+}
+
+<!-- COURIER ADDRESS PREVIEW MODAL -->
+<div class="modal fade" id="courierAddressPreviewModal" tabindex="-1" aria-labelledby="courierAddressPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-2.5">
+                <h5 class="modal-title font-serif fw-bold fs-6" id="courierAddressPreviewModalLabel">
+                    <i class="fa-solid fa-truck-fast text-warning me-2"></i> Courier Address Label Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-white" id="courierAddressPreviewModalBody">
+                <!-- Dynamically populated label template -->
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 px-sm-4 py-2 d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-1.5 btn-sm" style="font-size: 0.78rem;" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-warning rounded-pill px-3 px-sm-4 py-1.5 fw-bold text-dark shadow-sm btn-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.78rem;" id="modalPrintCourierBtn">
+                    <i class="fa-solid fa-print me-1"></i>
+                    <span class="d-none d-sm-inline">Print / Download Label</span>
+                    <span class="d-inline d-sm-none">Print</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- COURIER PARCEL ADDRESS PRINT LAYOUT -->
+<div id="courier-parcel-print-area" class="d-none d-print-block">
+    <div class="courier-parcel-sheet">
+        <!-- TO SECTION -->
+        <div class="parcel-section">
+            <div class="parcel-label">To ,</div>
+            <div class="parcel-indent-box parcel-to-blank">
+                <!-- Open blank space or customer address -->
+            </div>
+        </div>
+
+        <!-- FROM SECTION -->
+        <div class="parcel-section parcel-from-container">
+            <div class="parcel-from-wrapper">
+                <div class="parcel-label">From ,</div>
+                <div class="parcel-indent-box parcel-from-details">
+                    <strong style="font-size: 1.05em; color: #111;">Akarsha Bakker</strong><br>
+                    TK House, Vilakkannoor<br>
+                    Naduvil P.O. - 670582<br>
+                    <span style="font-weight: 700;">Ph: 8078037591</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        @page {
+            size: auto;
+            margin: 0;
+        }
+
+        html, body {
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        body * {
+            visibility: hidden !important;
+        }
+
+        #courier-parcel-print-area, #courier-parcel-print-area * {
+            visibility: visible !important;
+        }
+
+        #courier-parcel-print-area {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: block !important;
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            z-index: 99999 !important;
+        }
+
+        .courier-parcel-sheet {
+            width: 135mm;
+            max-width: 100%;
+            box-sizing: border-box;
+            border: none !important;
+            padding-top: 1.2cm !important;
+            padding-left: 1.2cm !important;
+            padding-right: 1.2cm !important;
+            padding-bottom: 0.8cm !important;
+            background: #ffffff !important;
+            color: #111111 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            letter-spacing: 0.2px;
+        }
+
+        .parcel-section {
+            width: 100%;
+            margin-bottom: 6mm;
+        }
+
+        .parcel-from-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4mm;
+        }
+
+        .parcel-from-wrapper {
+            width: 88mm;
+        }
+
+        .parcel-label {
+            font-size: 18pt;
+            font-weight: 700;
+            color: #111111;
+            margin-bottom: 3.5mm;
+        }
+
+        .parcel-indent-box {
+            margin-left: 1cm;
+            padding-left: 0.2cm;
+        }
+
+        .parcel-to-blank {
+            min-height: 55mm;
+            height: auto;
+            background-color: transparent;
+        }
+
+        .parcel-from-details {
+            font-size: 15.5pt;
+            font-weight: 500;
+            line-height: 1.8;
+            color: #111111;
+        }
+    }
+</style>
+
+<script>
+window.openImagePreviewModal = function(imageUrl, title) {
+    const imgEl = document.getElementById('productImagePreviewModalImg');
+    const titleEl = document.getElementById('productImagePreviewModalTitle');
+    if (imgEl && titleEl) {
+        imgEl.src = imageUrl;
+        const cleanTitle = typeof escapeHtml === 'function' ? escapeHtml(title) : title;
+        titleEl.innerHTML = '<i class="fa-solid fa-shirt text-warning me-2"></i> ' + cleanTitle;
+        const modal = new bootstrap.Modal(document.getElementById('productImagePreviewModal'));
+        modal.show();
+    }
+};
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function formatOrderToAddressHtml(order) {
+    let lines = [];
+    if (order.customer_name) {
+        lines.push('<strong style="font-size: 1.05em; color: #111;">' + escapeHtml(order.customer_name) + '</strong>');
+    }
+    if (order.house_building) lines.push(escapeHtml(order.house_building));
+    
+    let streetAreaCity = [order.street, order.area, order.city].filter(Boolean).map(s => s.trim()).join(', ');
+    if (streetAreaCity) lines.push(escapeHtml(streetAreaCity));
+    
+    let distState = [order.district, order.state].filter(Boolean).map(s => s.trim()).join(', ');
+    let pin = (order.pin_code || order.pincode || '').toString().trim();
+    
+    let locPinLine = distState;
+    if (pin) {
+        locPinLine = locPinLine ? (locPinLine + ' - ' + pin) : ('PIN: ' + pin);
+    }
+    if (locPinLine) lines.push(escapeHtml(locPinLine));
+
+    if (order.customer_phone) {
+        lines.push('<span style="font-weight: 700;">Ph: ' + escapeHtml(order.customer_phone) + '</span>');
+    }
+
+    if (lines.length === 0) {
+        return '<em>No shipping address provided for this order.</em>';
+    }
+
+    return lines.join('<br>');
+}
+
+function previewCourierAddress(order) {
+    const body = document.getElementById('courierAddressPreviewModalBody');
+    const toAddress = formatOrderToAddressHtml(order);
+
+    body.innerHTML = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; font-size: 15.5pt; line-height: 1.8; border: 1px dashed #ccc; padding: 40px 35px 35px 35px; border-radius: 8px; background: #fff; letter-spacing: 0.2px;">
+            <div style="margin-bottom: 30px;">
+                <div style="font-size: 18pt; font-weight: 700; color: #111; margin-bottom: 8px;">To ,</div>
+                <div style="margin-left: 1cm; min-height: 55mm;">
+                    ${toAddress}
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end;">
+                <div style="width: 88mm;">
+                    <div style="font-size: 18pt; font-weight: 700; color: #111; margin-bottom: 8px;">From ,</div>
+                    <div style="margin-left: 1cm; font-weight: 500;">
+                        <strong style="font-size: 1.05em; color: #111;">Akarsha Bakker</strong><br>
+                        TK House, Vilakkannoor<br>
+                        Naduvil P.O. - 670582<br>
+                        <span style="font-weight: 700;">Ph: 8078037591</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalPrintCourierBtn').onclick = function() {
+        printOrderCourierLabel(order);
+    };
+
+    const modal = new bootstrap.Modal(document.getElementById('courierAddressPreviewModal'));
+    modal.show();
+}
+
+function printOrderCourierLabel(order) {
+    const toAddressHtml = formatOrderToAddressHtml(order);
+    const toContainer = document.querySelector('#courier-parcel-print-area .parcel-to-blank');
+    if (toContainer) {
+        toContainer.innerHTML = `<div class="parcel-from-details" style="font-size: 15.5pt; font-weight: 500; line-height: 1.8;">${toAddressHtml}</div>`;
+    }
+    window.print();
 }
 </script>
 @endsection

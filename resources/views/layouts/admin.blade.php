@@ -365,7 +365,7 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.order-operations.index') }}" class="nav-link {{ request()->routeIs('admin.order-operations.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-rotate-left me-2 text-warning"></i> Order Operations
+                        <i class="fa-solid fa-rotate-left me-2 text-warning"></i> Order Adjustments
                     </a>
                 </li>
                 <li class="nav-item">
@@ -378,6 +378,16 @@
                 </li>
 
                 <li class="nav-heading">Accounts & Financials</li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.employees.index') }}" class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-users-gear me-2 text-info"></i> Employee Master
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.salary-master.index') }}" class="nav-link {{ request()->routeIs('admin.salary-master.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-money-bill-transfer me-2 text-warning"></i> Salary Master
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.incomes.index') }}" class="nav-link {{ request()->routeIs('admin.incomes.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-hand-holding-dollar me-2 text-success"></i> Additional Incomes
@@ -396,6 +406,11 @@
                 <li class="nav-item">
                     <a href="{{ route('admin.reports.profit-loss') }}" class="nav-link {{ request()->routeIs('admin.reports.profit-loss') ? 'active' : '' }}">
                         <i class="fa-solid fa-chart-pie me-2"></i> Profit & Loss Report
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.reports.refunded-products') }}" class="nav-link {{ request()->routeIs('admin.reports.refunded-products') ? 'active' : '' }}">
+                        <i class="fa-solid fa-box-open me-2 text-danger"></i> Product Refund Report
                     </a>
                 </li>
                 <li class="nav-item">
@@ -534,7 +549,7 @@
         </header>
 
         <!-- Main Body -->
-        <div class="p-4">
+        <div class="p-2 p-md-3">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm" role="alert">
                     <i class="fa-solid fa-check-circle me-2"></i> {{ session('success') }}

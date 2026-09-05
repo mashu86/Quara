@@ -91,7 +91,7 @@ class Setting extends Model
         $storedPath = $settings === null ? static::get($key) : ($settings[$key] ?? null);
 
         if ($storedPath && Storage::disk('public')->exists($storedPath)) {
-            return url('/media/'.ltrim($storedPath, '/'));
+            return asset('storage/' . ltrim(str_replace('storage/', '', $storedPath), '/'));
         }
 
         return asset($default);

@@ -53,6 +53,6 @@ class ProductImage extends Model
         }
 
         $cleanPath = ltrim(str_replace('storage/', '', $this->image_path), '/');
-        return route('media.show', ['path' => $cleanPath]);
+        return asset('storage/' . $cleanPath);
     }
 }

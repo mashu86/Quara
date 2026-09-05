@@ -34,13 +34,23 @@ class ManualSalesController extends Controller
             });
         }
 
+        if ($request->filled('from_date')) {
+            $query->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '<=', $request->to_date);
+        }
+
         $manualOrders = $query->paginate(15)->withQueryString();
 
         if ($request->ajax() || $request->wantsJson()) {
             $desktopHtml = view('admin.manual_sales.partials.desktop_rows', compact('manualOrders'))->render();
+            $mobileHtml = view('admin.manual_sales.partials.mobile_cards', compact('manualOrders'))->render();
 
             return response()->json([
                 'desktop_html' => $desktopHtml,
+                'mobile_html' => $mobileHtml,
                 'next_page_url' => $manualOrders->nextPageUrl(),
                 'has_more' => $manualOrders->hasMorePages(),
                 'total' => $manualOrders->total(),
@@ -328,7 +338,6 @@ class ManualSalesController extends Controller
                 }
 
                 $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
-                $grandTotal = $calculatedSubtotal + $shipping;
 
                 $order->update([
                     'customer_name' => $validated['customer_name'],
@@ -343,12 +352,13 @@ class ManualSalesController extends Controller
                     'pin_code' => $validated['pin_code'] ?? '670582',
                     'subtotal' => $calculatedSubtotal,
                     'shipping' => $shipping,
-                    'grand_total' => $grandTotal,
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $validated['payment_status'],
                     'sale_date' => $saleDate,
                     'notes' => $validated['notes'] ?? $order->notes,
                 ]);
+
+                $order->recalculateTotals($shipping);
             });
         } catch (\Exception $e) {
             return back()->withInput()->with('error', $e->getMessage());

@@ -41,7 +41,7 @@ class Category extends Model
         }
 
         $cleanPath = ltrim(str_replace('storage/', '', $this->background_image), '/');
-        return route('media.show', ['path' => $cleanPath]);
+        return asset('storage/' . $cleanPath);
     }
 
     protected static function boot()

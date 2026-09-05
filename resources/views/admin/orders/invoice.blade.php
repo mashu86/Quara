@@ -186,6 +186,13 @@
 
         <!-- Items Table -->
         <h6 class="fw-bold mb-3">Order Items Breakdown</h6>
+        @php
+            $activeOps = $order->operations ? $order->operations->where('status', 'active') : collect();
+            $totRefund = (float) $activeOps->sum('total_refund_amount');
+            $totExpense = (float) $activeOps->sum('additional_expense_total');
+            $totIncome = (float) $activeOps->where('price_difference', '>', 0)->sum('price_difference');
+            $netRealized = (float) $order->grand_total - $totRefund - $totExpense + $totIncome;
+        @endphp
         <div class="table-responsive mb-4">
             <table class="table align-middle table-invoice">
                 <thead>
@@ -200,10 +207,32 @@
                 </thead>
                 <tbody>
                     @foreach($order->items as $index => $item)
-                        <tr>
+                        @php
+                            $itemOp = $activeOps->where('order_item_id', $item->id)->first();
+                            $isReturned = ($item->item_status === 'returned' || ($itemOp && in_array($itemOp->operation_type, ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])));
+                        @endphp
+                        <tr class="{{ $isReturned ? 'table-danger border-start border-4 border-danger' : '' }}">
                             <td>{{ $index + 1 }}</td>
                             <td>
                                 <div class="fw-bold text-dark">{{ $item->product_name }}</div>
+                                @if($isReturned || $itemOp)
+                                    <div class="mt-1">
+                                        @if($isReturned)
+                                            <span class="badge bg-danger text-white me-1" style="font-size: 0.65rem;">
+                                                <i class="fa-solid fa-rotate-left me-0.5"></i> RETURNED
+                                            </span>
+                                        @endif
+                                        @if($itemOp && $itemOp->is_money_refunded && $itemOp->total_refund_amount > 0)
+                                            <span class="badge bg-danger text-white me-1" style="font-size: 0.65rem;">
+                                                <i class="fa-solid fa-hand-holding-dollar me-0.5"></i> Refund: ₹{{ number_format($itemOp->total_refund_amount, 2) }}
+                                            </span>
+                                        @elseif($itemOp && !$itemOp->is_money_refunded)
+                                            <span class="badge bg-secondary text-white me-1" style="font-size: 0.65rem;">
+                                                <i class="fa-solid fa-ban me-0.5"></i> No Refund
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-light text-dark border">{{ $item->size }}</span>
@@ -220,7 +249,7 @@
         <!-- Totals & Summary -->
         <div class="row justify-content-end">
             <div class="col-md-6 col-lg-5">
-                <div class="bg-light p-3 rounded-3">
+                <div class="bg-light p-3 rounded-3 border">
                     @php
                         $invSubtotal = $order->subtotal ?: $order->items->sum('subtotal');
                         $invDiscount = (float)($order->discount_amount ?: $order->discount);
@@ -243,13 +272,33 @@
                         </span>
                     </div>
                     <hr class="my-2">
-                    <div class="d-flex justify-content-between fs-5 fw-bold text-dark">
-                        <span>Grand Total:</span>
+                    <div class="d-flex justify-content-between fs-6 fw-bold text-dark">
+                        <span>Grand Total (Original):</span>
                         <span class="text-dark">₹{{ number_format($order->grand_total, 2) }}</span>
                     </div>
+                    @if($totRefund > 0)
+                        <div class="d-flex justify-content-between small text-danger fw-bold mt-1.5">
+                            <span>Refunds Paid Out:</span>
+                            <span>- ₹{{ number_format($totRefund, 2) }}</span>
+                        </div>
+                    @endif
+                    @if($totRefund > 0 || $totExpense > 0 || $totIncome > 0)
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between fs-5 fw-bold text-success">
+                            <span>Net Received Total:</span>
+                            <span>₹{{ number_format($netRealized, 2) }}</span>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
+
+        @if($activeOps->count() > 0)
+            <div class="alert alert-warning border-warning p-2.5 rounded-3 mt-3 mb-0" style="font-size: 0.76rem;">
+                <i class="fa-solid fa-circle-info text-warning me-1.5 fs-6"></i>
+                <strong>Audit Note / വിവരം:</strong> Returned/Refunded items are included for invoice accounting records. Actual money refunds (if any) are deducted in the Net Received Total.
+            </div>
+        @endif
 
         <!-- Footer -->
         <div class="text-center mt-5 pt-4 border-top">

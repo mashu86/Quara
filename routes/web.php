@@ -138,6 +138,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/order-operations', [\App\Http\Controllers\Admin\OrderOperationController::class, 'index'])->name('order-operations.index');
         Route::get('/orders/{order}/operation/create', [\App\Http\Controllers\Admin\OrderOperationController::class, 'create'])->name('order-operations.create');
         Route::post('/orders/{order}/operation', [\App\Http\Controllers\Admin\OrderOperationController::class, 'store'])->name('order-operations.store');
+        Route::post('/orders/{order}/add-item', [\App\Http\Controllers\Admin\OrderOperationController::class, 'addOrderItem'])->name('order-operations.add-item');
+        Route::post('/orders/{order}/update-shipping', [\App\Http\Controllers\Admin\OrderOperationController::class, 'updateShipping'])->name('order-operations.update-shipping');
+        Route::post('/orders/{order}/add-expense', [\App\Http\Controllers\Admin\OrderOperationController::class, 'addOrderExpense'])->name('order-operations.add-expense');
+        Route::post('/orders/{order}/add-refund', [\App\Http\Controllers\Admin\OrderOperationController::class, 'addOrderRefund'])->name('order-operations.add-refund');
+        Route::post('/orders/{order}/add-income', [\App\Http\Controllers\Admin\OrderOperationController::class, 'addOrderIncome'])->name('order-operations.add-income');
+        Route::delete('/orders/{order}/items/{item}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'removeOrderItem'])->name('order-operations.remove-item');
         Route::get('/order-operations/{operation}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'show'])->name('order-operations.show');
         Route::get('/order-operations/{operation}/edit', [\App\Http\Controllers\Admin\OrderOperationController::class, 'edit'])->name('order-operations.edit');
         Route::put('/order-operations/{operation}', [\App\Http\Controllers\Admin\OrderOperationController::class, 'update'])->name('order-operations.update');
@@ -152,7 +158,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('incomes', AdminIncomeController::class);
         Route::post('incomes/{income}/toggle-status', [AdminIncomeController::class, 'toggleStatus'])->name('incomes.toggle-status');
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
+        Route::get('/reports/refunded-products', [AdminExpenseController::class, 'refundedProductsReport'])->name('reports.refunded-products');
         Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
+
+        // Employee Management
+        Route::resource('employees', \App\Http\Controllers\Admin\EmployeeController::class);
+
+        // Salary Master & Settlements
+        Route::get('/salary-master', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'index'])->name('salary-master.index');
+        Route::post('/salary-master', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'store'])->name('salary-master.store');
+        Route::get('/salary-master/{salary}/edit', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'edit'])->name('salary-master.edit');
+        Route::put('/salary-master/{salary}', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'update'])->name('salary-master.update');
+        Route::delete('/salary-master/{salary}', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'destroy'])->name('salary-master.destroy');
+        Route::post('/salary-master/settle', [\App\Http\Controllers\Admin\SalaryMasterController::class, 'settle'])->name('salary-master.settle');
 
         // Contractual Post & India Post Wallet Management
         Route::get('/contractual-posts', [ContractualPostController::class, 'index'])->name('contractual-posts.index');

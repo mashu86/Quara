@@ -31,6 +31,13 @@ class OrderOperation extends Model
         'status',
         'quantity',
         'is_product_restored',
+        'inventory_condition',
+        'return_date',
+        'refund_date',
+        'replacement_product_id',
+        'replacement_product_size_id',
+        'replacement_quantity',
+        'price_difference',
         'is_money_refunded',
         'product_refund_amount',
         'delivery_refund_amount',
@@ -46,12 +53,15 @@ class OrderOperation extends Model
     protected $casts = [
         'is_product_restored' => 'boolean',
         'is_money_refunded' => 'boolean',
+        'return_date' => 'date',
+        'refund_date' => 'date',
         'product_refund_amount' => 'decimal:2',
         'delivery_refund_amount' => 'decimal:2',
         'other_refund_amount' => 'decimal:2',
         'total_refund_amount' => 'decimal:2',
         'additional_expense_total' => 'decimal:2',
         'total_financial_adjustment' => 'decimal:2',
+        'price_difference' => 'decimal:2',
     ];
 
     public function order(): BelongsTo
@@ -69,9 +79,24 @@ class OrderOperation extends Model
         return $this->belongsTo(OrderItem::class, 'order_item_id');
     }
 
+    public function replacementProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'replacement_product_id');
+    }
+
+    public function replacementProductSize(): BelongsTo
+    {
+        return $this->belongsTo(ProductSize::class, 'replacement_product_size_id');
+    }
+
     public function expenses(): HasMany
     {
         return $this->hasMany(OrderOperationExpense::class, 'order_operation_id');
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(OrderRefund::class, 'order_operation_id');
     }
 
     public function scopeActive($query)

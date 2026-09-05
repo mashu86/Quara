@@ -4,45 +4,56 @@
 
 @section('styles')
 <style>
+    .admin-dash-stat-card {
+        padding: 8px 12px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    .admin-dash-stat-title {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.2px !important;
+        line-height: 1.15 !important;
+        display: block;
+    }
+    .admin-dash-stat-val {
+        font-size: 0.95rem !important;
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+        line-height: 1.15 !important;
+    }
+    .admin-dash-stat-sub {
+        font-size: 0.62rem !important;
+        line-height: 1.15 !important;
+        display: block;
+    }
     @media (max-width: 576px) {
         .admin-dash-mobile-btn {
             font-size: 0.74rem !important;
             padding: 6px 10px !important;
         }
         .admin-dash-card-title {
-            font-size: 0.95rem !important;
+            font-size: 0.88rem !important;
         }
         .admin-dash-table th, .admin-dash-table td {
-            font-size: 0.8rem !important;
-            padding: 0.45rem 0.5rem !important;
-        }
-        .admin-dash-stock-name {
-            font-size: 0.82rem !important;
-        }
-        .admin-dash-stock-badge {
-            font-size: 0.74rem !important;
-            padding: 4px 8px !important;
-        }
-        .admin-dash-stat-icon {
-            display: none !important;
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.45rem !important;
         }
         .admin-dash-stat-card {
-            padding: 10px 12px !important;
-            border-radius: 12px !important;
+            padding: 6px 8px !important;
+            border-radius: 8px !important;
         }
         .admin-dash-stat-title {
-            font-size: 0.65rem !important;
-            letter-spacing: 0px !important;
-            line-height: 1.15 !important;
+            font-size: 0.58rem !important;
+            line-height: 1.1 !important;
         }
         .admin-dash-stat-val {
-            font-size: 1.05rem !important;
-            margin-top: 2px !important;
-            margin-bottom: 2px !important;
+            font-size: 0.85rem !important;
+            margin-top: 1px !important;
+            margin-bottom: 1px !important;
         }
         .admin-dash-stat-sub {
-            font-size: 0.68rem !important;
-            line-height: 1.15 !important;
+            font-size: 0.58rem !important;
+            line-height: 1.1 !important;
         }
     }
 </style>
@@ -64,108 +75,110 @@
     </div>
 </div>
 
-<!-- Today Metrics (Ultra-Compact on Mobile) -->
-<div class="row g-2 g-sm-3 mb-3">
-    <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div class="pe-1">
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Today Sales</span>
-                <h4 class="admin-dash-stat-val fw-bold text-success mb-0 mt-1" style="font-size: 1.25rem;">₹{{ number_format($todaySales, 2) }}</h4>
-                <span class="admin-dash-stat-sub text-muted small" style="font-size: 0.7rem;">Online & Offline</span>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-success bg-opacity-10 text-success rounded-3 p-2.5">
-                <i class="fa-solid fa-indian-rupee-sign fs-5"></i>
-            </div>
+<!-- Today Metrics (Ultra-Compact with Card Spacing) -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Sales</span>
+            <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todaySales, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Online & Offline</span>
         </div>
     </div>
 
-    <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div class="pe-1">
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Today Expenses</span>
-                <h4 class="admin-dash-stat-val fw-bold text-danger mb-0 mt-1" style="font-size: 1.25rem;">₹{{ number_format($todayExpenses, 2) }}</h4>
-                <span class="admin-dash-stat-sub text-muted small" style="font-size: 0.7rem;">Expenses & Fees</span>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-danger bg-opacity-10 text-danger rounded-3 p-2.5">
-                <i class="fa-solid fa-receipt fs-5"></i>
-            </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Expenses</span>
+            <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($todayExpenses, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Expenses & Fees</span>
         </div>
     </div>
 
-    <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div class="pe-1">
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Today Orders</span>
-                <h4 class="admin-dash-stat-val fw-bold text-primary mb-0 mt-1" style="font-size: 1.25rem;">{{ $todayOrdersCount }}</h4>
-                <a href="{{ route('admin.orders.index') }}" class="admin-dash-stat-sub text-primary fw-bold text-decoration-none small" style="font-size: 0.72rem;">View Orders &rarr;</a>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-primary bg-opacity-10 text-primary rounded-3 p-2.5">
-                <i class="fa-solid fa-bag-shopping fs-5"></i>
-            </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Orders</span>
+            <h6 class="admin-dash-stat-val fw-bold text-primary">{{ $todayOrdersCount }}</h6>
+            <a href="{{ route('admin.orders.index') }}" class="admin-dash-stat-sub text-primary fw-bold text-decoration-none">View Orders &rarr;</a>
         </div>
     </div>
 
-    <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div class="pe-1">
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Today Bookings</span>
-                <h4 class="admin-dash-stat-val fw-bold text-warning mb-0 mt-1" style="font-size: 1.25rem;">{{ $todayBookingsCount }}</h4>
-                <a href="{{ route('admin.products.index', ['stock_status' => 'reserved']) }}" class="admin-dash-stat-sub text-warning text-darken-3 fw-bold text-decoration-none small" style="font-size: 0.72rem;">Booked List &rarr;</a>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-2.5">
-                <i class="fa-solid fa-lock fs-5"></i>
-            </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Sold Products</span>
+            <h6 class="admin-dash-stat-val fw-bold text-info">{{ $todaySoldProductsPcs }} Pcs</h6>
+            <span class="admin-dash-stat-sub text-muted">Items Sold Today</span>
         </div>
     </div>
 </div>
 
-<!-- All-Time Stat Cards -->
-<div class="row g-2 g-sm-3 mb-4">
+<!-- Overall Financial Performance Section (Total Revenue, Total Expense, Net Profit / Loss) -->
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-success">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Revenue</span>
+            <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($allTimeTotalRevenue, 2) }}</h6>
+            <a href="{{ route('admin.reports.profit-loss') }}" class="admin-dash-stat-sub text-success fw-bold text-decoration-none">Sales + Incomes &rarr;</a>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-danger">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Expense</span>
+            <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($allTimeTotalExpenses, 2) }}</h6>
+            <a href="{{ route('admin.expenses.index') }}" class="admin-dash-stat-sub text-danger fw-bold text-decoration-none">COGS, Fees & Expenses &rarr;</a>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 {{ $allTimeIsProfit ? 'border-success' : 'border-danger' }}">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Profit & Loss</span>
+                @if($allTimeIsProfit)
+                    <span class="badge bg-success text-white fw-bold px-1 py-0" style="font-size: 0.58rem;">PROFIT</span>
+                @else
+                    <span class="badge bg-danger text-white fw-bold px-1 py-0" style="font-size: 0.58rem;">LOSS</span>
+                @endif
+            </div>
+            <h6 class="admin-dash-stat-val fw-bold {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }}">
+                {{ $allTimeIsProfit ? '+' : '-' }}₹{{ number_format(abs($allTimeNetProfitLoss), 2) }}
+            </h6>
+            <a href="{{ route('admin.reports.profit-loss') }}" class="admin-dash-stat-sub {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }} fw-bold text-decoration-none">
+                View P&L Report &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- All-Time & Success Sales Performance Stat Cards -->
+<div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div>
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem;">Total Sales</span>
-                <h5 class="admin-dash-stat-val fw-bold text-dark mb-0 mt-1">₹{{ number_format($totalSales, 2) }}</h5>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-secondary bg-opacity-10 text-secondary rounded-3 p-2">
-                <i class="fa-solid fa-chart-line fs-6"></i>
-            </div>
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-success">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Success Orders</span>
+            <h6 class="admin-dash-stat-val fw-bold text-success">{{ $successOrdersCount }} Orders</h6>
+            <span class="admin-dash-stat-sub text-muted">₹{{ number_format($successOrdersAmount, 2) }}</span>
         </div>
     </div>
 
     <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div>
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem;">Total Orders</span>
-                <h5 class="admin-dash-stat-val fw-bold text-dark mb-0 mt-1">{{ $totalOrders }}</h5>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-secondary bg-opacity-10 text-secondary rounded-3 p-2">
-                <i class="fa-solid fa-boxes-packing fs-6"></i>
-            </div>
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-warning">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Sold Products</span>
+            <h6 class="admin-dash-stat-val fw-bold text-warning-emphasis">{{ number_format($totalSoldProductsPcs) }} Pcs</h6>
+            <span class="admin-dash-stat-sub text-muted">Items Delivered / Sold</span>
         </div>
     </div>
 
     <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div>
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem;">Pending Orders</span>
-                <h5 class="admin-dash-stat-val fw-bold text-warning mb-0 mt-1">{{ $pendingOrders }}</h5>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-2">
-                <i class="fa-solid fa-clock fs-6"></i>
-            </div>
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Sales</span>
+            <h6 class="admin-dash-stat-val fw-bold text-dark">₹{{ number_format($totalSales, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Gross Realized</span>
         </div>
     </div>
 
     <div class="col-6 col-lg-3">
-        <div class="stat-card admin-dash-stat-card p-3 rounded-4 shadow-sm bg-white border d-flex align-items-center justify-content-between h-100">
-            <div>
-                <span class="admin-dash-stat-title text-muted small text-uppercase fw-bold" style="font-size: 0.68rem;">Active Products</span>
-                <h5 class="admin-dash-stat-val fw-bold text-info mb-0 mt-1">{{ $activeProducts }}</h5>
-            </div>
-            <div class="admin-dash-stat-icon stat-icon bg-info bg-opacity-10 text-info rounded-3 p-2">
-                <i class="fa-solid fa-shirt fs-6"></i>
-            </div>
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Orders</span>
+            <h6 class="admin-dash-stat-val fw-bold text-dark">{{ $totalOrders }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Pending: {{ $pendingOrders }}</span>
         </div>
     </div>
 </div>

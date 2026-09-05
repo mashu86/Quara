@@ -227,9 +227,12 @@
                 <span class="badge bg-success rounded-pill px-2.5 px-md-3">{{ $totalOrdersCount }} Orders</span>
             </div>
             <div class="card-body p-3.5 p-md-4 breakdown-card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted small fw-bold breakdown-main-title">Total Combined Revenue</span>
-                    <h3 class="fw-bold text-success mb-0 breakdown-main-amount">₹{{ number_format($totalCombinedRevenue, 2) }}</h3>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-bold breakdown-main-title">Net Realized Revenue</span>
+                    <h3 class="fw-bold text-success mb-0 breakdown-main-amount">₹{{ number_format($adjustedGrossRevenue, 2) }}</h3>
+                </div>
+                <div class="text-end mb-3">
+                    <small class="text-muted" style="font-size: 0.72rem;">(Gross ₹{{ number_format($totalCombinedRevenue, 2) }} - Customer Refunds ₹{{ number_format($totalOperationRefunds, 2) }})</small>
                 </div>
                 <hr class="my-2">
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
@@ -239,6 +242,10 @@
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
                     <span class="text-dark"><i class="fa-solid fa-hand-holding-dollar text-success me-1"></i> Active Additional Incomes:</span>
                     <span class="fw-bold text-success">₹{{ number_format($totalAdditionalIncome, 2) }} <small class="text-muted">({{ $activeIncomesList->count() }})</small></span>
+                </div>
+                <div class="d-flex justify-content-between breakdown-line-item mb-2 text-danger fw-bold">
+                    <span><i class="fa-solid fa-rotate-left me-1"></i> Less: Customer Product Refunds:</span>
+                    <span>-₹{{ number_format($totalOperationRefunds, 2) }}</span>
                 </div>
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
                     <span class="text-dark"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> COD Sales:</span>
@@ -269,13 +276,13 @@
                     <h3 class="fw-bold text-danger mb-0 breakdown-main-amount">₹{{ number_format($totalExpenses, 2) }}</h3>
                 </div>
                 <hr class="my-2">
+                <div class="d-flex justify-content-between breakdown-line-item mb-2 text-danger fw-bold">
+                    <span><i class="fa-solid fa-rotate-left me-1"></i> Customer Product Refunds:</span>
+                    <span>₹{{ number_format($totalOperationRefunds, 2) }}</span>
+                </div>
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
                     <span class="text-dark"><i class="fa-solid fa-box-archive text-warning me-1"></i> Product Cost:</span>
                     <span class="fw-bold text-dark">₹{{ number_format($totalProductCost, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between breakdown-line-item mb-2">
-                    <span class="text-dark"><i class="fa-solid fa-truck text-info me-1"></i> Shipping Cost:</span>
-                    <span class="fw-bold text-dark">₹{{ number_format($totalShippingRevenue, 2) }}</span>
                 </div>
                 <div class="d-flex justify-content-between breakdown-line-item mb-2">
                     <span class="text-dark"><i class="fa-brands fa-credit-card text-danger me-1"></i> Razorpay Charges:</span>

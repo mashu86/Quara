@@ -44,20 +44,80 @@ class DashboardController extends Controller
         $completedOrders = (clone $realOrdersQuery)->where('order_status', 'delivered')->count();
         $cancelledOrders = (clone $realOrdersQuery)->where('order_status', 'cancelled')->count();
 
-        $totalSales = (clone $realOrdersQuery)->where('payment_status', 'paid')->sum('grand_total');
+        $allTimeActiveOps = \App\Models\OrderOperation::where('status', 'active');
+        $allTimeOperationRefunds = (float) \App\Models\OrderRefund::sum('refund_amount');
+        $allTimeOperationExpenses = (float) (clone $allTimeActiveOps)->sum('additional_expense_total');
+
+        $grossSales = (float) (clone $realOrdersQuery)->where('payment_status', 'paid')->sum('grand_total');
+        $totalSales = max(0, $grossSales - $allTimeOperationRefunds);
+
+        // Success Orders (Paid / Completed orders, excluding cancelled)
+        $successOrdersQuery = (clone $realOrdersQuery)
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled');
+
+        $successOrdersCount = (int) (clone $successOrdersQuery)->count();
+        $successGrossAmount = (float) (clone $successOrdersQuery)->sum('grand_total');
+        $successOrdersAmount = max(0, $successGrossAmount - $allTimeOperationRefunds);
+
+        // Total Sold Products Pcs (Total quantity of sold products across success orders)
+        $successOrderIds = (clone $successOrdersQuery)->pluck('id');
+        $totalSoldProductsPcs = 0;
+        if (count($successOrderIds) > 0) {
+            $totalSoldProductsPcs = (int) \App\Models\OrderItem::whereIn('order_id', $successOrderIds)
+                ->whereIn('item_status', ['active', 'exchanged'])
+                ->sum('quantity');
+        }
 
         // Today Metrics Calculations (Asia/Kolkata Timezone)
-        $todaySales = (clone $realOrdersQuery)
-            ->where('payment_status', 'paid')
-            ->where(function ($q) use ($todayStr) {
-                $q->whereDate('created_at', $todayStr)
-                  ->orWhereDate('sale_date', $todayStr);
-            })
+        $todayGrossSales = (float) (clone $realOrdersQuery)
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr)
             ->sum('grand_total');
 
-        $todayExpenses = Expense::whereDate('expense_date', $todayStr)->sum('amount');
-        $todayOrdersCount = (clone $realOrdersQuery)->whereDate('created_at', $todayStr)->count();
+        $todayRefunds = (float) \App\Models\OrderRefund::whereDate('refund_date', $todayStr)->sum('refund_amount');
+
+        $todaySales = max(0, $todayGrossSales - $todayRefunds);
+        
+        $todayExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($todayStr, $todayStr);
+        $todayExpenses = $todayExpensesData['total'];
+        
+        $todayPaidOrdersQuery = (clone $realOrdersQuery)
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr);
+
+        $todayOrdersCount = (int) (clone $todayPaidOrdersQuery)->count();
         $todayBookingsCount = Product::where('is_out_of_stock', 1)->count();
+
+        // Today Sold Products Pcs
+        $todaySuccessOrderIds = (clone $successOrdersQuery)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr)
+            ->pluck('id');
+
+        $todaySoldProductsPcs = 0;
+        if (count($todaySuccessOrderIds) > 0) {
+            $todaySoldProductsPcs = (int) \App\Models\OrderItem::whereIn('order_id', $todaySuccessOrderIds)
+                ->whereIn('item_status', ['active', 'exchanged'])
+                ->sum('quantity');
+        }
+
+        // ALL-TIME Financial Overview (Total Net Sales Revenue, Total Expense, Net Profit / Loss)
+        $allTimePaidOrdersQuery = (clone $realOrdersQuery)
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled');
+
+        $allTimeGrossRevenue = (float) (clone $allTimePaidOrdersQuery)->sum('grand_total');
+        $allTimeNetSalesRevenue = max(0, $allTimeGrossRevenue - $allTimeOperationRefunds);
+        $allTimeAdditionalIncome = (float) \App\Models\Income::where('status', 'active')->sum('total_income_amount');
+        $allTimeTotalRevenue = $allTimeGrossRevenue + $allTimeAdditionalIncome;
+
+        $allTimeExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary();
+        $allTimeTotalExpenses = $allTimeExpensesData['total'];
+
+        $allTimeNetProfitLoss = $allTimeTotalRevenue - $allTimeTotalExpenses;
+        $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
 
         // Low stock products (size stock <= 3)
         $lowStockSizes = ProductSize::with('product')
@@ -88,11 +148,19 @@ class DashboardController extends Controller
             'processingOrders',
             'completedOrders',
             'cancelledOrders',
+            'successOrdersCount',
+            'successOrdersAmount',
+            'totalSoldProductsPcs',
+            'todaySoldProductsPcs',
             'totalSales',
             'todaySales',
             'todayExpenses',
             'todayOrdersCount',
             'todayBookingsCount',
+            'allTimeTotalRevenue',
+            'allTimeTotalExpenses',
+            'allTimeNetProfitLoss',
+            'allTimeIsProfit',
             'lowStockSizes',
             'outOfStockSizes',
             'newOrders',

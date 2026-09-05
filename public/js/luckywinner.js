@@ -67,7 +67,8 @@
             const initials = entry.customer_name.trim().split(/\s+/).slice(0, 2).map(name => Array.from(name)[0] || '').join('').toUpperCase();
             row.append(text('span', initials, 'lw-avatar'));
             const name = text('div', '', 'lw-participant-name');
-            name.append(text('strong', entry.customer_name), text('small', entry.order_number));
+            const contactInfo = [entry.masked_phone, entry.customer_address].filter(Boolean).join(' · ');
+            name.append(text('strong', entry.customer_name), text('small', `${entry.order_number}${contactInfo ? ' · ' + contactInfo : ''}`));
             row.append(name);
             if (isWinner) row.append(text('span', 'WINNER', 'lw-winner-tag'));
             fragment.append(row);
@@ -130,6 +131,16 @@
         $('reveal-caption').textContent = `CONGRATULATIONS · WINNER ${winner.position}`;
         $('reel-name').textContent = winner.customer_name;
         $('reel-order').textContent = winner.order_number;
+        if ($('reel-address')) {
+            const addr = winner.customer_address || '';
+            $('reel-address').textContent = addr;
+            $('reel-address').style.display = addr ? 'block' : 'none';
+        }
+        if ($('reel-contact')) {
+            const contact = [winner.masked_phone, winner.masked_email].filter(Boolean).join(' · ');
+            $('reel-contact').textContent = contact;
+            $('reel-contact').style.display = contact ? 'block' : 'none';
+        }
         $('winner-count').textContent = state.winners.length;
         $('draw').textContent = state.winners.length === state.gift_count ? 'See all winners ✦' : 'Next winner →';
         $('stage-hint').textContent = `A lovely surprise for ${winner.customer_name}.`;
@@ -161,7 +172,13 @@
         const fragment = document.createDocumentFragment();
         for (const winner of state.winners) {
             const card = text('div', '', 'lw-final-winner');
-            card.append(text('span', `WINNER ${String(winner.position).padStart(2, '0')}`), text('strong', winner.customer_name), text('small', winner.order_number));
+            const contactStr = [winner.masked_phone, winner.masked_email].filter(Boolean).join(' · ');
+            card.append(
+                text('span', `WINNER ${String(winner.position).padStart(2, '0')}`),
+                text('strong', winner.customer_name),
+                text('small', winner.order_number + (winner.customer_address ? ` · ${winner.customer_address}` : '')),
+                contactStr ? text('div', contactStr, 'lw-contact-muted') : text('span', '')
+            );
             fragment.append(card);
         }
         $('final-list').replaceChildren(fragment);
@@ -201,6 +218,16 @@
                     const candidate = progress > .94 ? winner : pool[Math.floor(Math.random() * pool.length)];
                     $('reel-name').textContent = candidate.customer_name;
                     $('reel-order').textContent = candidate.order_number;
+                    if ($('reel-address')) {
+                        const addr = candidate.customer_address || '';
+                        $('reel-address').textContent = addr;
+                        $('reel-address').style.display = addr ? 'block' : 'none';
+                    }
+                    if ($('reel-contact')) {
+                        const contact = [candidate.masked_phone, candidate.masked_email].filter(Boolean).join(' · ');
+                        $('reel-contact').textContent = contact;
+                        $('reel-contact').style.display = contact ? 'block' : 'none';
+                    }
                     $('reel-before').textContent = pool[Math.floor(Math.random() * pool.length)].customer_name;
                     $('reel-after').textContent = pool[Math.floor(Math.random() * pool.length)].customer_name;
                     if (progress > .62) {

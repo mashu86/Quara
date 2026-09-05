@@ -115,7 +115,11 @@ class LuckyWinnerDrafts
                     'drawn_at' => $draft['winners'][0]['selected_at'],
                 ]));
                 $draw->update(['draw_number' => 'LW-'.now()->format('Y-m').'-'.str_pad((string) $draw->id, 4, '0', STR_PAD_LEFT)]);
-                $draw->winners()->createMany($draft['winners']);
+                $winnersToInsert = array_map(fn ($winner) => array_intersect_key($winner, array_flip([
+                    'position', 'order_id', 'order_number', 'customer_name', 'order_date',
+                    'customer_address', 'order_type', 'eligibility', 'selected_at'
+                ])), $draft['winners']);
+                $draw->winners()->createMany($winnersToInsert);
 
                 return $draw;
             });
@@ -134,8 +138,13 @@ class LuckyWinnerDrafts
     public function publicState(array $draft): array
     {
         $display = fn ($entry) => [
-            'order_id' => $entry['order_id'], 'order_number' => $entry['order_number'],
-            'customer_name' => $entry['customer_name'], 'order_type' => $entry['order_type'],
+            'order_id' => $entry['order_id'],
+            'order_number' => $entry['order_number'],
+            'customer_name' => $entry['customer_name'],
+            'order_type' => $entry['order_type'],
+            'customer_address' => $entry['customer_address'] ?? '',
+            'masked_phone' => $entry['masked_phone'] ?? ($this->eligibility->maskPhone($entry['customer_phone'] ?? null)),
+            'masked_email' => $entry['masked_email'] ?? ($this->eligibility->maskEmail($entry['customer_email'] ?? null)),
         ];
 
         return [

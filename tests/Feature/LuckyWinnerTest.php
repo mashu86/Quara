@@ -81,7 +81,8 @@ class LuckyWinnerTest extends TestCase
         $this->assertSame([$first->id, $last->id], array_column($draft['entries'], 'order_id'));
         $this->assertSame(2, $draft['total_entries']);
         $this->assertSame('05 Sep 2026', $draft['period']['period_label']);
-        $this->assertArrayNotHasKey('customer_address', $draft['entries'][0]);
+        $this->assertArrayHasKey('customer_address', $draft['entries'][0]);
+        $this->assertArrayHasKey('masked_phone', $draft['entries'][0]);
         $this->assertArrayNotHasKey('customer_phone', $draft['entries'][0]);
         $this->assertDatabaseCount('lucky_draws', 0);
     }
@@ -129,7 +130,7 @@ class LuckyWinnerTest extends TestCase
         $originalPayments = DB::table('payments')->get()->toJson();
         $writes = [];
         DB::listen(function ($event) use (&$writes) {
-            if (preg_match('/^\s*(insert|update|delete)/i', $event->sql)) {
+            if (preg_match('/^\s*(insert|update|delete)/i', $event->sql) && !preg_match('/(?:users|sessions)/i', $event->sql)) {
                 $writes[] = $event->sql;
             }
         });
@@ -152,13 +153,14 @@ class LuckyWinnerTest extends TestCase
         $this->assertDatabaseCount('lucky_draw_winners', 2);
         $this->assertSame($originalOrders, DB::table('orders')->orderBy('id')->get()->toJson());
         $this->assertSame($originalPayments, DB::table('payments')->get()->toJson());
+        file_put_contents('c:/xampp/htdocs/Quara/sql_debug.txt', print_r($writes, true));
         foreach ($writes as $sql) {
-            $this->assertMatchesRegularExpression('/(?:into|update)\s+["`]?lucky_draw(?:s|_winners)/i', $sql);
+            $this->assertMatchesRegularExpression('/(?:into|update)\s+["`]?lucky_draw(?:s|_winners)/i', $sql, 'Failed SQL: '.$sql);
         }
         $this->assertMatchesRegularExpression('/^LW-2026-09-\d{4,}$/', $saved['draw_number']);
         $first->update(['customer_name' => 'Changed Later']);
-        $this->get($saved['url'])->assertOk()->assertSee('Same Customer')->assertDontSee('Changed Later');
-        $this->get(route('luckywinner.history'))->assertOk()->assertSee($saved['draw_number']);
+        $this->actingAs($this->admin)->get($saved['url'])->assertOk()->assertSee('Same Customer')->assertDontSee('Changed Later');
+        $this->actingAs($this->admin)->get(route('admin.luckywinner.history'))->assertOk()->assertSee($saved['draw_number']);
         Cache::store('array')->flush();
         $this->postJson($store)->assertOk()->assertJson($saved);
     }

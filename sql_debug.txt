@@ -1,0 +1,7 @@
+Array
+(
+    [0] => insert into "lucky_draws" ("draw_type", "start_date", "end_date", "selected_month", "period_label", "timezone", "draft_token", "admin_id", "admin_name", "total_successful_orders", "total_entries", "gift_count", "winner_count", "selection_rules", "eligibility_checked_at", "drawn_at", "updated_at", "created_at") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    [1] => update "lucky_draws" set "draw_number" = ?, "updated_at" = ? where "id" = ?
+    [2] => insert into "lucky_draw_winners" ("order_id", "order_number", "customer_name", "order_date", "customer_address", "order_type", "eligibility", "position", "selected_at", "lucky_draw_id", "updated_at", "created_at") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    [3] => insert into "lucky_draw_winners" ("order_id", "order_number", "customer_name", "order_date", "customer_address", "order_type", "eligibility", "position", "selected_at", "lucky_draw_id", "updated_at", "created_at") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+)

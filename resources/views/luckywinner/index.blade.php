@@ -42,7 +42,7 @@
             <div class="lw-gift" id="lw-gift" aria-hidden="true"><div class="lw-bow"></div><div class="lw-gift-lid"></div><div class="lw-gift-box"></div></div>
             <div class="lw-reel" id="lw-reel" hidden>
                 <div class="lw-reel-ghost" id="lw-reel-before" aria-hidden="true"></div>
-                <div class="lw-reel-window"><span class="lw-reel-marker" aria-hidden="true">›</span><div><p class="lw-reveal-caption" id="lw-reveal-caption">YOUR NEXT LUCKY WINNER</p><h3 id="lw-reel-name"></h3><p id="lw-reel-order"></p></div><span class="lw-reel-marker" aria-hidden="true">‹</span></div>
+                <div class="lw-reel-window"><span class="lw-reel-marker" aria-hidden="true">›</span><div><p class="lw-reveal-caption" id="lw-reveal-caption">YOUR NEXT LUCKY WINNER</p><h3 id="lw-reel-name"></h3><p id="lw-reel-order"></p><p id="lw-reel-address" class="lw-reel-address" style="display: none;"></p><p id="lw-reel-contact" class="lw-reel-contact" style="display: none;"></p></div><span class="lw-reel-marker" aria-hidden="true">‹</span></div>
                 <div class="lw-reel-ghost" id="lw-reel-after" aria-hidden="true"></div>
             </div>
             <div id="lw-final" class="lw-final" hidden><p class="lw-reveal-caption">A ROUND OF APPLAUSE FOR</p><h3>Our lucky winners</h3><div id="lw-final-list"></div></div>

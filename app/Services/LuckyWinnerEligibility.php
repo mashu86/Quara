@@ -98,6 +98,10 @@ class LuckyWinnerEligibility
                 'customer_name' => $order->customer_name,
                 'order_date' => ($order->sale_date ?? $order->created_at)->toDateTimeString(),
                 'customer_address' => implode(', ', array_filter([$order->house_building, $order->street, $order->area, $order->city, $order->district, $order->state, $order->pin_code])),
+                'customer_phone' => $order->customer_phone,
+                'customer_email' => $order->customer_email,
+                'masked_phone' => $this->maskPhone($order->customer_phone),
+                'masked_email' => $this->maskEmail($order->customer_email),
                 'order_type' => $order->order_source === 'manual' || $order->payment_method === 'offline_sale' ? 'manual' : 'website',
                 'eligibility' => [
                     'order_status' => $order->order_status,
@@ -139,5 +143,29 @@ class LuckyWinnerEligibility
         }
 
         return $digits;
+    }
+
+    public function maskPhone(?string $phone): string
+    {
+        $digits = preg_replace('/\D/', '', $phone ?? '');
+        if (strlen($digits) < 4) {
+            return $digits ? '****' : '';
+        }
+        return '******' . substr($digits, -4);
+    }
+
+    public function maskEmail(?string $email): string
+    {
+        $email = strtolower(trim((string) $email));
+        if (!$email || !str_contains($email, '@')) {
+            return '';
+        }
+        [$name, $domain] = explode('@', $email, 2);
+        if (strlen($name) <= 2) {
+            $maskedName = substr($name, 0, 1) . '*';
+        } else {
+            $maskedName = substr($name, 0, 1) . str_repeat('*', min(5, strlen($name) - 1));
+        }
+        return $maskedName . '@' . $domain;
     }
 }

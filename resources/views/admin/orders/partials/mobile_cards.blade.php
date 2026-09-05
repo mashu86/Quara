@@ -120,7 +120,7 @@
                     <i class="fa-solid fa-eye"></i>
                 </a>
                 <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" title="Adjust Order">
-                    <i class="fa-solid fa-pen-to-square"></i>
+                    <i class="fa-solid fa-sliders"></i>
                 </a>
                 <a href="{{ route('admin.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Print Invoice">
                     <i class="fa-solid fa-print"></i>

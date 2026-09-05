@@ -29,4 +29,21 @@ class ProductSize extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+
+    public function getReservedStockAttribute(): int
+    {
+        return (int) OrderItem::where('product_size_id', $this->id)
+            ->whereHas('order', function ($q) {
+                $q->where('order_status', 'pending')
+                  ->where('payment_status', 'pending')
+                  ->where('payment_method', 'online')
+                  ->where('reserved_until', '>', now());
+            })
+            ->sum('quantity');
+    }
+
+    public function getAvailableStockAttribute(): int
+    {
+        return max(0, (int) $this->stock - $this->reserved_stock);
+    }
 }

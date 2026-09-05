@@ -547,6 +547,15 @@ window.openImagePreviewModal = function(imageUrl, title) {
                     </div>
                 @endif
 
+                @if($order->payment_status !== 'paid' && ($order->payment_method === 'online' || $order->razorpay_order_id))
+                    <form action="{{ route('admin.orders.recheck-razorpay', $order->id) }}" method="POST" class="mt-2.5">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-bold py-1.5 shadow-sm" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-arrows-rotate me-1 text-primary"></i> Re-check Razorpay Status
+                        </button>
+                    </form>
+                @endif
+
                 @if($order->payment_method === 'online' || $order->razorpay_total_charge > 0)
                     @php
                         if ($order->razorpay_total_charge <= 0) {

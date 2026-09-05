@@ -49,6 +49,8 @@ class Order extends Model
         'razorpay_gst_fee',
         'razorpay_total_charge',
         'razorpay_net_amount',
+        'reserved_until',
+        'is_legacy_pending',
     ];
 
     protected $casts = [
@@ -64,9 +66,21 @@ class Order extends Model
         'razorpay_net_amount' => 'decimal:2',
         'is_cancellation_disabled' => 'boolean',
         'is_dispatched_to_courier' => 'boolean',
+        'is_legacy_pending' => 'boolean',
         'dispatched_at' => 'datetime',
         'sale_date' => 'datetime',
+        'reserved_until' => 'datetime',
     ];
+
+    public function scopeExcludeLegacyPending($query)
+    {
+        return $query->where('is_legacy_pending', false);
+    }
+
+    public function scopeLegacyPending($query)
+    {
+        return $query->where('is_legacy_pending', true);
+    }
 
     /**
      * Calculate and apply Razorpay payment gateway charges.
@@ -160,12 +174,16 @@ class Order extends Model
 
     public function getEffectiveDateAttribute()
     {
-        return $this->sale_date ?? $this->created_at;
+        $date = $this->sale_date ?? $this->created_at;
+        if (!$date) {
+            return \Carbon\Carbon::now('Asia/Kolkata');
+        }
+        return \Carbon\Carbon::parse($date)->setTimezone('Asia/Kolkata');
     }
 
     public static function generateOrderNumber(): string
     {
-        $dateStr = now()->format('Ymd');
+        $dateStr = \Carbon\Carbon::now('Asia/Kolkata')->format('Ymd');
         $prefix = "QW-{$dateStr}-";
         $lastOrder = self::where('order_number', 'LIKE', "{$prefix}%")
             ->orderBy('id', 'desc')

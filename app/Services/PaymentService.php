@@ -121,6 +121,7 @@ class PaymentService
             $order->update([
                 'payment_status' => 'paid',
                 'order_status' => 'confirmed',
+                'reserved_until' => null,
             ]);
 
             // Calculate and record Razorpay payment gateway charges
@@ -140,6 +141,9 @@ class PaymentService
         if ($order->payment) {
             $order->payment->update(['status' => 'failed']);
         }
-        $order->update(['payment_status' => 'failed']);
+        $order->update([
+            'payment_status' => 'failed',
+            'reserved_until' => null,
+        ]);
     }
 }

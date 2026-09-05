@@ -458,6 +458,9 @@
                         <option value="paid" {{ $selectedOptionVal === 'paid' ? 'selected' : '' }}>
                             💳 Payment Paid ({{ $statusCounts['paid'] ?? 0 }})
                         </option>
+                        <option value="old_pending" {{ $selectedOptionVal === 'old_pending' ? 'selected' : '' }} class="bg-danger bg-opacity-10 text-danger fw-bold">
+                            ⚠️ Old Pending (Technical Issue) ({{ $statusCounts['old_pending'] ?? 0 }})
+                        </option>
                     </select>
                 </form>
                 <script>

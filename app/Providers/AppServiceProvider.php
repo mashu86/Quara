@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        date_default_timezone_set('Asia/Kolkata');
         Paginator::useBootstrapFive();
 
         $settings = [];

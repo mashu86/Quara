@@ -54,6 +54,7 @@ Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.in
 Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
+Route::post('/api/webhooks/razorpay', [\App\Http\Controllers\Api\RazorpayWebhookController::class, 'handle'])->name('api.webhooks.razorpay');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');
 
 // Visual Image / Screenshot Search Route
@@ -127,6 +128,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/orders/{order}/toggle-cancellation-lock', [AdminOrderController::class, 'toggleCancellationLock'])->name('orders.toggle-cancellation-lock');
         Route::post('/orders/{order}/send-followup-email', [AdminOrderController::class, 'sendFollowupEmail'])->name('orders.send-followup-email');
         Route::post('/orders/{order}/increment-wa-count', [AdminOrderController::class, 'incrementWaCount'])->name('orders.increment-wa-count');
+        Route::post('/orders/{order}/recheck-razorpay', [AdminOrderController::class, 'recheckRazorpayStatus'])->name('orders.recheck-razorpay');
 
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');

@@ -29,9 +29,9 @@ class StockService
             if (!$productSize) {
                 return ['available' => false, 'message' => "Selected size ({$size}) is not available for this product."];
             }
-            $availableStock = $productSize->stock;
+            $availableStock = $productSize->available_stock;
         } else {
-            $availableStock = $product->sizes->sum('stock');
+            $availableStock = $product->sizes->sum(function ($s) { return $s->available_stock; });
         }
 
         if ($availableStock <= 0) {

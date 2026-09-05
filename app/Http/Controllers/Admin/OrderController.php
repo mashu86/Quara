@@ -107,22 +107,28 @@ class OrderController extends Controller
             });
         }
 
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
+        $statusFilter = $request->status ?: $request->order_status;
+        if ($statusFilter === 'old_pending' || $statusFilter === 'legacy_pending') {
+            $query->where('is_legacy_pending', true);
+        } else {
+            $query->where('is_legacy_pending', false);
 
-        if ($request->filled('status') || $request->filled('order_status')) {
-            $status = $request->status ?: $request->order_status;
-            if (in_array($status, ['returned', 'has_return'])) {
-                $query->whereHas('operations', function ($opQ) {
-                    $opQ->where('status', 'active');
-                });
-            } elseif (in_array($status, ['pay_pending', 'payment_pending'])) {
-                $query->where('payment_status', 'pending');
-            } elseif (in_array($status, ['paid', 'payment_paid'])) {
-                $query->where('payment_status', 'paid');
-            } else {
-                $query->where('order_status', $status);
+            if ($request->filled('payment_status')) {
+                $query->where('payment_status', $request->payment_status);
+            }
+
+            if ($statusFilter) {
+                if (in_array($statusFilter, ['returned', 'has_return'])) {
+                    $query->whereHas('operations', function ($opQ) {
+                        $opQ->where('status', 'active');
+                    });
+                } elseif (in_array($statusFilter, ['pay_pending', 'payment_pending'])) {
+                    $query->where('payment_status', 'pending');
+                } elseif (in_array($statusFilter, ['paid', 'payment_paid'])) {
+                    $query->where('payment_status', 'paid');
+                } else {
+                    $query->where('order_status', $statusFilter);
+                }
             }
         }
 
@@ -171,20 +177,23 @@ class OrderController extends Controller
                   ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
             });
         }
+        $nonLegacyCountBase = (clone $countBase)->where('is_legacy_pending', false);
+
         $statusCounts = [
-            'all' => (clone $countBase)->count(),
-            'pending' => (clone $countBase)->where('order_status', 'pending')->count(),
-            'confirmed' => (clone $countBase)->where('order_status', 'confirmed')->count(),
-            'processing' => (clone $countBase)->where('order_status', 'processing')->count(),
-            'packed' => (clone $countBase)->where('order_status', 'packed')->count(),
-            'shipped' => (clone $countBase)->where('order_status', 'shipped')->count(),
-            'delivered' => (clone $countBase)->where('order_status', 'delivered')->count(),
-            'cancelled' => (clone $countBase)->where('order_status', 'cancelled')->count(),
-            'returned' => (clone $countBase)->whereHas('operations', function ($opQ) {
+            'all' => (clone $nonLegacyCountBase)->count(),
+            'pending' => (clone $nonLegacyCountBase)->where('order_status', 'pending')->count(),
+            'confirmed' => (clone $nonLegacyCountBase)->where('order_status', 'confirmed')->count(),
+            'processing' => (clone $nonLegacyCountBase)->where('order_status', 'processing')->count(),
+            'packed' => (clone $nonLegacyCountBase)->where('order_status', 'packed')->count(),
+            'shipped' => (clone $nonLegacyCountBase)->where('order_status', 'shipped')->count(),
+            'delivered' => (clone $nonLegacyCountBase)->where('order_status', 'delivered')->count(),
+            'cancelled' => (clone $nonLegacyCountBase)->where('order_status', 'cancelled')->count(),
+            'returned' => (clone $nonLegacyCountBase)->whereHas('operations', function ($opQ) {
                 $opQ->where('status', 'active');
             })->count(),
-            'payment_pending' => (clone $countBase)->where('payment_status', 'pending')->count(),
-            'paid' => (clone $countBase)->where('payment_status', 'paid')->count(),
+            'payment_pending' => (clone $nonLegacyCountBase)->where('payment_status', 'pending')->count(),
+            'paid' => (clone $nonLegacyCountBase)->where('payment_status', 'paid')->count(),
+            'old_pending' => (clone $countBase)->where('is_legacy_pending', true)->count(),
         ];
 
         $orders = $query->paginate(15)->withQueryString();
@@ -492,5 +501,82 @@ class OrderController extends Controller
         }
 
         return back()->with('success', "Order #{$order->order_number} payment details updated successfully!");
+    }
+
+    public function recheckRazorpayStatus(Order $order)
+    {
+        $payment = $order->payment;
+        $razorpayKey = config('services.razorpay.key');
+        $razorpaySecret = config('services.razorpay.secret');
+
+        $razorpayOrderId = ($payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_'))
+            ? $payment->razorpay_order_id
+            : null;
+
+        if (empty($razorpayKey) || empty($razorpaySecret)) {
+            return back()->with('error', 'Razorpay API credentials are not configured.');
+        }
+
+        try {
+            $capturedPayment = null;
+
+            if ($razorpayOrderId) {
+                $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                    ->withBasicAuth($razorpayKey, $razorpaySecret)
+                    ->get("https://api.razorpay.com/v1/orders/{$razorpayOrderId}/payments");
+
+                if ($response->successful()) {
+                    $items = $response->json('items', []);
+                    foreach ($items as $item) {
+                        if (isset($item['status']) && $item['status'] === 'captured') {
+                            $capturedPayment = $item;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($capturedPayment) {
+                if ($order->payment_status !== 'paid') {
+                    $itemsForDeduction = $order->items->map(function ($item) {
+                        return [
+                            'product_id' => $item->product_id,
+                            'size' => $item->size,
+                            'quantity' => $item->quantity,
+                        ];
+                    })->toArray();
+
+                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
+
+                    if ($payment) {
+                        $payment->update([
+                            'razorpay_payment_id' => $capturedPayment['id'],
+                            'status' => 'paid',
+                            'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
+                                'rechecked_at' => now()->toIso8601String(),
+                                'razorpay_details' => $capturedPayment,
+                            ]),
+                        ]);
+                    }
+
+                    $order->update([
+                        'payment_status' => 'paid',
+                        'order_status' => 'confirmed',
+                        'reserved_until' => null,
+                        'is_legacy_pending' => false,
+                    ]);
+
+                    $order->calculateRazorpayCharge();
+
+                    return back()->with('success', "Razorpay API Verified! Order #{$order->order_number} marked as Paid & Confirmed.");
+                }
+
+                return back()->with('info', "Order #{$order->order_number} is already marked as Paid.");
+            }
+
+            return back()->with('info', "Checked Razorpay API. No captured payment found yet for Order #{$order->order_number}.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Razorpay API Connection Error: ' . $e->getMessage());
+        }
     }
 }

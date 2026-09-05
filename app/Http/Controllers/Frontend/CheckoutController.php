@@ -116,6 +116,7 @@ class CheckoutController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => ($validated['payment_method'] === 'cod') ? 'pending' : 'pending',
                     'order_status' => ($validated['payment_method'] === 'cod') ? 'confirmed' : 'pending',
+                    'reserved_until' => ($validated['payment_method'] === 'online') ? now()->addMinutes(5) : null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
 

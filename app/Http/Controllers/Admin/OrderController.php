@@ -461,6 +461,23 @@ class OrderController extends Controller
             'auto_confirm_order' => 'nullable|boolean',
         ]);
 
+        $previousPaymentStatus = $order->payment_status;
+
+        // If marking as PAID when previously NOT paid, first check if stock is available
+        if ($validated['payment_status'] === 'paid' && $previousPaymentStatus !== 'paid') {
+            foreach ($order->items as $item) {
+                $productSize = \App\Models\ProductSize::where('product_id', $item->product_id)
+                    ->where('size', $item->size)
+                    ->first();
+
+                $availableStock = $productSize ? $productSize->stock : 0;
+                if ($availableStock < $item->quantity) {
+                    $prodName = $item->product_name ?: 'Product';
+                    return back()->with('error', "Cannot mark as Paid! Item '{$prodName}' (Size: {$item->size}) is already Out of Stock (Available Stock: {$availableStock}).");
+                }
+            }
+        }
+
         // Update order level payment status and method
         $order->payment_status = $validated['payment_status'];
         $order->payment_method = $validated['payment_method'];
@@ -469,6 +486,18 @@ class OrderController extends Controller
         if ($validated['payment_status'] === 'paid' && ($request->boolean('auto_confirm_order') || $order->order_status === 'pending')) {
             if ($order->order_status !== 'cancelled') {
                 $order->order_status = 'confirmed';
+            }
+            // Deduct stock if payment was previously not paid
+            if ($previousPaymentStatus !== 'paid') {
+                $stockService = app(\App\Services\StockService::class);
+                $itemsForDeduction = $order->items->map(function ($item) {
+                    return [
+                        'product_id' => $item->product_id,
+                        'size' => $item->size,
+                        'quantity' => $item->quantity,
+                    ];
+                })->toArray();
+                $stockService->deductStockForOrderItems($itemsForDeduction);
             }
         }
 

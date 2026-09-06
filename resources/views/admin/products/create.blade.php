@@ -208,8 +208,8 @@
                         </div>
                         
                         <div id="bookedByCreateContainer" class="{{ old('is_out_of_stock') ? '' : 'd-none' }} mb-2">
-                            <label class="form-label fw-bold small">Booked By (Customer Name / Instagram Handle)</label>
-                            <input type="text" name="booked_by" class="form-control rounded-3" placeholder="e.g. Anjali (@anjali_insta / 9876543210)" value="{{ old('booked_by') }}">
+                            <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
+                            <input type="text" name="booked_by" id="bookedByCreateInput" class="form-control rounded-3" placeholder="e.g. Anjali" value="{{ old('booked_by') }}" {{ old('is_out_of_stock') ? 'required' : '' }}>
                         </div>
 
                         <div class="form-text small">When checked, this product is marked as <strong>Booked</strong> on Admin side and shows as <strong>"Out of Stock"</strong> to website clients so no online customer can buy it.</div>
@@ -509,11 +509,17 @@
 
     function toggleBookedByContainer(switchElem) {
         const container = document.getElementById('bookedByCreateContainer');
+        const input = document.getElementById('bookedByCreateInput');
         if (container) {
             if (switchElem.checked) {
                 container.classList.remove('d-none');
+                if (input) input.required = true;
             } else {
                 container.classList.add('d-none');
+                if (input) {
+                    input.required = false;
+                    input.value = '';
+                }
             }
         }
     }

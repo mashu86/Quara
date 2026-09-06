@@ -390,8 +390,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.index') || request()->routeIs('admin.products.create') || request()->routeIs('admin.products.edit') ? 'active' : '' }}">
                         <i class="fa-solid fa-shirt me-2"></i> Product Master
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.products.booked-conflicts') }}" class="nav-link {{ request()->routeIs('admin.products.booked-conflicts') ? 'active' : '' }}">
+                        <i class="fa-solid fa-wrench me-2 text-warning"></i> Booked Conflict Resolver
                     </a>
                 </li>
                 <li class="nav-item">

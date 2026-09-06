@@ -54,8 +54,8 @@
 
         <!-- Mobile Card Body -->
         <div class="card-body p-2.5">
-            <!-- Customer Info -->
-            <div class="d-flex justify-content-between align-items-start mb-2">
+            <!-- Customer Info & Stacked Product Thumbnails -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
                     <div class="fw-bold text-dark" style="font-size: 0.8rem;">
                         <i class="fa-solid fa-user text-muted me-1"></i>{{ $order->customer_name }}
@@ -64,6 +64,39 @@
                         <a href="tel:{{ $order->customer_phone }}" class="text-muted text-decoration-none" style="font-size: 0.72rem;">
                             <i class="fa-solid fa-phone text-success me-1"></i>{{ $order->customer_phone }}
                         </a>
+                    @endif
+                </div>
+                @php
+                    $mobileModalItems = $order->items->map(function ($item) {
+                        $imgUrl = null;
+                        if ($item->product && $item->product->primaryImage && $item->product->primaryImage->image_path) {
+                            $imgUrl = asset($item->product->primaryImage->image_path);
+                        }
+                        return [
+                            'id' => $item->id,
+                            'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
+                            'size' => $item->size ?: 'N/A',
+                            'quantity' => $item->quantity ?: 1,
+                            'unit_price' => $item->unit_price,
+                            'final_unit_price' => $item->final_unit_price,
+                            'image_url' => $imgUrl ?: asset('images/placeholder.jpg'),
+                        ];
+                    });
+                @endphp
+                <div class="d-inline-flex align-items-center">
+                    @foreach($mobileModalItems->take(3) as $mIdx => $mItemData)
+                        <img src="{{ $mItemData['image_url'] }}" 
+                             alt="{{ $mItemData['product_name'] }}" 
+                             class="rounded-2 border shadow-sm"
+                             style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #ffffff !important; margin-left: {{ $mIdx > 0 ? '-10px' : '0' }}; z-index: {{ 10 - $mIdx }}; cursor: pointer;"
+                             onclick="openOrderImageModal({{ json_encode($mobileModalItems) }}, {{ $mIdx }})">
+                    @endforeach
+                    @if($mobileModalItems->count() > 3)
+                        <span class="badge bg-dark text-warning rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" 
+                              style="width: 22px; height: 22px; font-size: 0.6rem; margin-left: -8px; z-index: 15; cursor: pointer;"
+                              onclick="openOrderImageModal({{ json_encode($mobileModalItems) }}, 3)">
+                            +{{ $mobileModalItems->count() - 3 }}
+                        </span>
                     @endif
                 </div>
                 <div class="text-end">

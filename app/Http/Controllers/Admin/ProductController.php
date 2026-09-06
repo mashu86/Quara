@@ -94,17 +94,25 @@ class ProductController extends Controller
     public function toggleOutOfStock(Request $request, Product $product)
     {
         if ($request->has('is_out_of_stock')) {
-            $product->is_out_of_stock = $request->boolean('is_out_of_stock');
+            $isOutOfStock = $request->boolean('is_out_of_stock');
         } else {
-            $product->is_out_of_stock = !$product->is_out_of_stock;
+            $isOutOfStock = !$product->is_out_of_stock;
         }
 
-        if ($request->has('booked_by')) {
-            $product->booked_by = $request->input('booked_by');
-        } elseif (!$product->is_out_of_stock) {
-            $product->booked_by = null;
+        $bookedBy = trim($request->input('booked_by', ''));
+
+        if ($isOutOfStock && empty($bookedBy)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booked By is mandatory when marking a product as Booked.'
+                ], 422);
+            }
+            return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
         }
 
+        $product->is_out_of_stock = $isOutOfStock;
+        $product->booked_by = $isOutOfStock ? $bookedBy : null;
         $product->save();
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -161,7 +169,11 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $validated['booked_by'] = $validated['is_out_of_stock'] ? ($request->input('booked_by') ?: null) : null;
+        $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+
+        if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
+            return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
+        }
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -290,7 +302,11 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $validated['booked_by'] = $validated['is_out_of_stock'] ? ($request->input('booked_by') ?: null) : null;
+        $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+
+        if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
+            return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
+        }
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -482,5 +498,67 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully!');
+    }
+
+    public function bookedConflicts(Request $request)
+    {
+        $search = trim($request->input('search', ''));
+        
+        // Show ONLY products that have ACTIVE (non-returned/non-cancelled) sales in order_items but still have booked status (booked_by or is_out_of_stock)
+        $query = Product::with(['primaryImage', 'categories', 'sizes'])
+            ->where(function ($q) {
+                $q->where('is_out_of_stock', true)
+                  ->orWhereNotNull('booked_by');
+            })
+            ->whereHas('orderItems', function ($itemQ) {
+                $itemQ->whereNotIn('item_status', ['returned', 'cancelled'])
+                      ->whereHas('order', function ($orderQ) {
+                          $orderQ->whereNotIn('order_status', ['cancelled']);
+                      });
+            });
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('id', 'LIKE', "%{$search}%")
+                  ->orWhere('booked_by', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $products = $query->latest()->paginate(20)->withQueryString();
+
+        return view('admin.products.booked_conflicts', compact('products', 'search'));
+    }
+
+    public function resolveConflict(Request $request, Product $product)
+    {
+        $request->validate([
+            'resolution' => 'required|in:already_sold,not_sold_keep_booked',
+            'booked_by' => 'nullable|string|max:255',
+        ]);
+
+        $resolution = $request->input('resolution');
+
+        if ($resolution === 'already_sold') {
+            // Option 1: Already sold, but still displaying as Booked -> Clear booking
+            $product->update([
+                'is_out_of_stock' => false,
+                'booked_by' => null,
+            ]);
+
+            return back()->with('success', "Product #{$product->id} '{$product->name}' marked as Sold & Booked status removed successfully.");
+        } elseif ($resolution === 'not_sold_keep_booked') {
+            // Option 2: Not sold yet -> Mark / Keep in Booked
+            $bookedBy = trim($request->input('booked_by', '')) ?: ($product->booked_by ?: 'Booked Customer');
+
+            $product->update([
+                'is_out_of_stock' => true,
+                'booked_by' => $bookedBy,
+            ]);
+
+            return back()->with('success', "Product #{$product->id} '{$product->name}' maintained and marked as Booked ({$bookedBy}).");
+        }
+
+        return back()->with('error', 'Invalid resolution selected.');
     }
 }

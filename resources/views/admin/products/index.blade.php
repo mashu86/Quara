@@ -68,6 +68,9 @@
         <p class="text-muted small mb-0 d-none d-sm-block">Manage product inventory, pricing, discounts and variants</p>
     </div>
     <div class="d-flex align-items-center">
+        <a href="{{ route('admin.products.booked-conflicts') }}" class="btn btn-outline-dark rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-2" style="font-size: 0.78rem;" title="Audit Booked Products Conflict">
+            <i class="fa-solid fa-wrench me-1 text-warning"></i><span>Conflict Resolver</span>
+        </a>
         <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-2 me-sm-3" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
             <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Product</span>
         </a>
@@ -250,8 +253,8 @@
             <div class="modal-body p-4">
                 <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Enter customer details below for quick tracking.</p>
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">Booked By (Customer Name / Instagram Handle / Phone)</label>
-                    <input type="text" id="modalBookedByInput" class="form-control rounded-3" placeholder="e.g. Anjali (@anjali_insta / 9876543210)">
+                    <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
+                    <input type="text" id="modalBookedByInput" class="form-control rounded-3" placeholder="e.g. Anjali" required>
                 </div>
             </div>
             <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 py-2.5">
@@ -445,7 +448,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const toggle = currentBookedToggle;
         const productId = toggle.getAttribute('data-product-id');
         const url = toggle.getAttribute('data-url');
-        const bookedByVal = document.getElementById('modalBookedByInput').value.trim();
+        const bookedByInput = document.getElementById('modalBookedByInput');
+        const bookedByVal = bookedByInput ? bookedByInput.value.trim() : '';
+
+        if (!bookedByVal) {
+            alert('Booked By details are mandatory when marking a product as Booked!');
+            if (bookedByInput) bookedByInput.focus();
+            return;
+        }
 
         toggle.disabled = true;
         const saveBtn = document.getElementById('saveBookedModalBtn');

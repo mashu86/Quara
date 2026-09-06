@@ -23,6 +23,45 @@
             <div class="fw-bold text-dark">{{ $order->customer_name }}</div>
             <div class="small text-muted"><i class="fa-solid fa-phone me-1"></i> {{ $order->customer_phone }}</div>
         </td>
+        @php
+            $modalItems = $order->items->map(function ($item) {
+                $imgUrl = null;
+                if ($item->product && $item->product->primaryImage && $item->product->primaryImage->image_path) {
+                    $imgUrl = asset($item->product->primaryImage->image_path);
+                }
+                return [
+                    'id' => $item->id,
+                    'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
+                    'size' => $item->size ?: 'N/A',
+                    'quantity' => $item->quantity ?: 1,
+                    'unit_price' => $item->unit_price,
+                    'final_unit_price' => $item->final_unit_price,
+                    'image_url' => $imgUrl ?: asset('images/placeholder.jpg'),
+                ];
+            });
+        @endphp
+        <td class="text-center">
+            <div class="d-inline-flex align-items-center justify-content-center" style="padding-left: 10px;">
+                @foreach($modalItems->take(3) as $idx => $itemData)
+                    <img src="{{ $itemData['image_url'] }}" 
+                         alt="{{ $itemData['product_name'] }}" 
+                         class="rounded-2 border shadow-sm"
+                         style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #ffffff !important; margin-left: {{ $idx > 0 ? '-14px' : '0' }}; z-index: {{ 10 - $idx }}; cursor: pointer; transition: transform 0.15s ease;"
+                         title="Click to preview: {{ $itemData['product_name'] }}"
+                         onmouseover="this.style.transform='scale(1.15) translateY(-2px)'; this.style.zIndex='20';"
+                         onmouseout="this.style.transform='scale(1) translateY(0)'; this.style.zIndex='{{ 10 - $idx }}';"
+                         onclick="openOrderImageModal({{ json_encode($modalItems) }}, {{ $idx }})">
+                @endforeach
+                @if($modalItems->count() > 3)
+                    <span class="badge bg-dark text-warning rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" 
+                          style="width: 24px; height: 24px; font-size: 0.65rem; margin-left: -10px; z-index: 15; cursor: pointer;"
+                          title="View all {{ $modalItems->count() }} items"
+                          onclick="openOrderImageModal({{ json_encode($modalItems) }}, 3)">
+                        +{{ $modalItems->count() - 3 }}
+                    </span>
+                @endif
+            </div>
+        </td>
         <td class="small">{{ $order->effective_date->format('M d, Y') }}<br><span class="text-muted">{{ $order->effective_date->format('h:i A') }}</span></td>
         <td>
             <span class="badge bg-light text-dark border small fw-bold">
@@ -134,7 +173,7 @@
 @empty
     @if(!request()->get('page') || request()->get('page') == 1)
         <tr>
-            <td colspan="9" class="text-center py-5 text-muted">
+            <td colspan="10" class="text-center py-5 text-muted">
                 <i class="fa-solid fa-box-open fs-1 text-muted mb-2 d-block"></i>
                 No real sales orders found for the selected date / filters.
             </td>

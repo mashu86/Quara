@@ -199,14 +199,13 @@ class ManualSalesController extends Controller
                 );
             }
 
-            // Unblock reserved/out_of_stock status if product was previously reserved and is now sold
-            foreach ($affectedProducts as $prod) {
-                if ($prod->is_out_of_stock) {
-                    $prod->update([
-                        'is_out_of_stock' => false,
-                        'booked_by' => null,
-                    ]);
-                }
+            // Unblock reserved/out_of_stock status for all products involved in this sale
+            $productIdsToUnbook = array_keys($affectedProducts);
+            if (!empty($productIdsToUnbook)) {
+                \App\Models\Product::whereIn('id', $productIdsToUnbook)->update([
+                    'is_out_of_stock' => false,
+                    'booked_by' => null,
+                ]);
             }
         });
 
@@ -342,13 +341,12 @@ class ManualSalesController extends Controller
                     $affectedProducts[$product->id] = $product;
                 }
 
-                foreach ($affectedProducts as $prod) {
-                    if ($prod->is_out_of_stock) {
-                        $prod->update([
+                $productIdsToUnbook = array_keys($affectedProducts);
+                if (!empty($productIdsToUnbook)) {
+                    \App\Models\Product::whereIn('id', $productIdsToUnbook)->update([
                         'is_out_of_stock' => false,
                         'booked_by' => null,
                     ]);
-                    }
                 }
 
                 $shipping = (float) ($validated['delivery_charge'] ?? 0.00);

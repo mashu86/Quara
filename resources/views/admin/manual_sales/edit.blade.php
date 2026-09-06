@@ -250,28 +250,33 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Email Address (Optional)</label>
-                        <input type="email" name="customer_email" class="form-control rounded-3" placeholder="customer@gmail.com" value="{{ old('customer_email', $order->customer_email) }}">
+                        <label class="form-label fw-bold">Email Address <span class="text-muted fw-normal">(Optional)</span></label>
+                        <input type="email" name="customer_email" class="form-control rounded-3" placeholder="customer@gmail.com (Optional)" value="{{ old('customer_email', $order->customer_email) }}">
                     </div>
 
                     <hr>
 
-                    <h6 class="fw-bold mb-2">Delivery Address (Optional for shipped orders)</h6>
+                    <h6 class="fw-bold mb-2">Customer Address Details <span class="text-danger">*</span></h6>
                     <div class="row g-2">
                         <div class="col-12">
-                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" placeholder="House / Building Name" value="{{ old('house_building', $order->house_building) }}">
+                            <label class="form-label small fw-bold mb-1">House / Building Name <span class="text-danger">*</span></label>
+                            <input type="text" name="house_building" class="form-control rounded-3 mb-2" placeholder="House / Building Name *" value="{{ old('house_building', $order->house_building) }}" required>
                         </div>
                         <div class="col-6">
-                            <input type="text" name="street" class="form-control rounded-3 mb-2" placeholder="Street / Area" value="{{ old('street', $order->street) }}">
+                            <label class="form-label small fw-bold mb-1">Street / Area <span class="text-danger">*</span></label>
+                            <input type="text" name="street" class="form-control rounded-3 mb-2" placeholder="Street / Area *" value="{{ old('street', $order->street) }}" required>
                         </div>
                         <div class="col-6">
-                            <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town" value="{{ old('city', $order->city) }}">
+                            <label class="form-label small fw-bold mb-1">City / Town <span class="text-danger">*</span></label>
+                            <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town *" value="{{ old('city', $order->city) }}" required>
                         </div>
                         <div class="col-6">
-                            <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District" value="{{ old('district', $order->district) }}">
+                            <label class="form-label small fw-bold mb-1">District <span class="text-danger">*</span></label>
+                            <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District *" value="{{ old('district', $order->district) }}" required>
                         </div>
                         <div class="col-6">
-                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code" value="{{ old('pin_code', $order->pin_code) }}">
+                            <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
+                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', $order->pin_code) }}" required>
                         </div>
                     </div>
 

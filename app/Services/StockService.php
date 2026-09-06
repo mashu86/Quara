@@ -98,7 +98,7 @@ class StockService
                 }
 
                 $prevStock = $productSize->stock;
-                $newStock = $prevStock - $qty;
+                $newStock = max(0, $prevStock - $qty);
 
                 $productSize->update(['stock' => $newStock]);
 
@@ -113,6 +113,18 @@ class StockService
                     'reason' => 'Customer Order Purchase',
                     'admin_name' => 'System (Order Processing)',
                 ]);
+
+                // Automatically convert Booked status to Official Sale
+                $product = Product::find($productId);
+                if ($product) {
+                    $totalStockRemaining = ProductSize::where('product_id', $productId)->sum('stock');
+                    $product->update([
+                        'is_out_of_stock' => false,
+                        'booked_by' => null,
+                        'booked_by_admin_id' => null,
+                        'booked_at' => null,
+                    ]);
+                }
             }
             return true;
         });

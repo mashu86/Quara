@@ -15,6 +15,44 @@
     object-fit: cover;
     border-radius: 8px;
 }
+.conflict-img-wrapper {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    margin: 0 auto;
+}
+.conflict-img-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.conflict-img-wrapper:hover .conflict-img-overlay,
+.conflict-img-wrapper:active .conflict-img-overlay {
+    opacity: 1;
+}
+.conflict-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.conflict-sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: #ffffff !important;
+    z-index: 2;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+thead th.conflict-sticky-col {
+    z-index: 3;
+    background-color: #f8f9fa !important;
+}
 @media (max-width: 576px) {
     .conflict-page-title {
         font-size: 1.1rem !important;
@@ -77,15 +115,15 @@
         </form>
 
         <!-- Conflict Products Table -->
-        <div class="table-responsive">
+        <div class="table-responsive conflict-table-wrapper">
             <table class="table align-middle table-hover mb-0 conflict-table-text">
                 <thead class="table-light border-bottom">
                     <tr>
-                        <th style="width: 70px;">Image</th>
-                        <th style="width: 100px;">Primary Key (ID)</th>
-                        <th>Product Details</th>
-                        <th>Stock & Booking Status</th>
-                        <th class="text-center" style="width: 160px;">Operation</th>
+                        <th class="conflict-sticky-col text-center" style="min-width: 70px; width: 70px;">Image</th>
+                        <th style="min-width: 100px; width: 100px;">Primary Key (ID)</th>
+                        <th style="min-width: 180px;">Product Details</th>
+                        <th style="min-width: 200px;">Stock & Booking Status</th>
+                        <th class="text-center" style="min-width: 160px; width: 160px;">Operation</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -95,8 +133,13 @@
                             $primaryImg = $product->primaryImage ? asset($product->primaryImage->image_path) : asset('images/placeholder.jpg');
                         @endphp
                         <tr>
-                            <td>
-                                <img src="{{ $primaryImg }}" alt="{{ $product->name }}" class="conflict-product-img border">
+                            <td class="conflict-sticky-col text-center py-2 px-1">
+                                <div class="conflict-img-wrapper border shadow-xs" onclick="openProductPreview('{{ addslashes($primaryImg) }}', '{{ addslashes($product->name) }}')" title="Click to preview image">
+                                    <img src="{{ $primaryImg }}" alt="{{ $product->name }}" class="conflict-product-img">
+                                    <div class="conflict-img-overlay">
+                                        <i class="fa-solid fa-eye text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-secondary font-monospace fw-bold fs-6">#{{ $product->id }}</span>
@@ -188,24 +231,35 @@
                     <div class="form-check p-3 rounded-3 border mb-2 cursor-pointer border-2" id="optionCard1" onclick="selectOption('already_sold')">
                         <input class="form-check-input" type="radio" name="resolution" id="resOption1" value="already_sold" checked onchange="handleOptionChange()">
                         <label class="form-check-label fw-bold text-dark cursor-pointer ms-1" for="resOption1">
-                            1) Already sold, but still displaying as Booked
+                            1) Already Sold (Mark as Sold Out)
                         </label>
                         <div class="small text-muted ms-4 mt-1">
-                            Clears Booked status (<code class="text-danger">is_out_of_stock = 0</code> and removes <code class="text-danger">booked_by</code>).
+                            Removes Booked tag & marks product as <strong class="text-danger">Sold Out (is_out_of_stock = 1)</strong> so customers cannot buy it.
                         </div>
                     </div>
 
                     <!-- Option 2 -->
-                    <div class="form-check p-3 rounded-3 border cursor-pointer border-2" id="optionCard2" onclick="selectOption('not_sold_keep_booked')">
-                        <input class="form-check-input" type="radio" name="resolution" id="resOption2" value="not_sold_keep_booked" onchange="handleOptionChange()">
+                    <div class="form-check p-3 rounded-3 border mb-2 cursor-pointer border-2" id="optionCard2" onclick="selectOption('not_sold_back_to_stock')">
+                        <input class="form-check-input" type="radio" name="resolution" id="resOption2" value="not_sold_back_to_stock" onchange="handleOptionChange()">
                         <label class="form-check-label fw-bold text-dark cursor-pointer ms-1" for="resOption2">
-                            2) Not sold yet, mark / keep in Booked
+                            2) Not Sold / Cancelled Booking (Return to Stock)
                         </label>
                         <div class="small text-muted ms-4 mt-1">
-                            Maintains product in Booked state (<code class="text-success">is_out_of_stock = 1</code> and keeps <code class="text-success">booked_by</code>).
+                            Removes Booked tag & makes product <strong class="text-success">Available (is_out_of_stock = 0)</strong> for website customers.
+                        </div>
+                    </div>
+
+                    <!-- Option 3 -->
+                    <div class="form-check p-3 rounded-3 border cursor-pointer border-2" id="optionCard3" onclick="selectOption('keep_booked')">
+                        <input class="form-check-input" type="radio" name="resolution" id="resOption3" value="keep_booked" onchange="handleOptionChange()">
+                        <label class="form-check-label fw-bold text-dark cursor-pointer ms-1" for="resOption3">
+                            3) Keep in Booked status
+                        </label>
+                        <div class="small text-muted ms-4 mt-1">
+                            Maintains product in Booked state (<code class="text-warning">is_out_of_stock = 1</code> and keeps <code class="text-warning">booked_by</code>).
                         </div>
                         
-                        <!-- Booked By Input for Option 2 -->
+                        <!-- Booked By Input for Option 3 -->
                         <div id="modalBookedByContainer" class="ms-4 mt-2 d-none">
                             <label class="form-label fw-bold small mb-1">Booked By Details <span class="text-danger">*</span></label>
                             <input type="text" name="booked_by" id="modalBookedByInput" class="form-control form-control-sm rounded-3" placeholder="Enter customer name / phone">
@@ -224,7 +278,30 @@
     </div>
 </div>
 
+<!-- Product Image Preview Modal -->
+<div class="modal fade" id="productPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white py-2.5 px-3">
+                <h5 class="modal-title font-serif fw-bold small text-truncate" id="productPreviewModalLabel">Product Preview</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 280px; max-height: 75vh;">
+                <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function openProductPreview(imgSrc, title) {
+    if (!imgSrc) return;
+    document.getElementById('productPreviewModalImg').src = imgSrc;
+    document.getElementById('productPreviewModalLabel').textContent = title || 'Product Image';
+    const modal = new bootstrap.Modal(document.getElementById('productPreviewModal'));
+    modal.show();
+}
+
 function openResolveModal(id, name, imgUrl, currentBookedBy) {
     document.getElementById('modalProductId').innerText = '#' + id;
     document.getElementById('modalProductName').innerText = name;
@@ -247,30 +324,40 @@ function openResolveModal(id, name, imgUrl, currentBookedBy) {
 function selectOption(val) {
     if (val === 'already_sold') {
         document.getElementById('resOption1').checked = true;
-    } else {
+    } else if (val === 'not_sold_back_to_stock') {
         document.getElementById('resOption2').checked = true;
+    } else {
+        document.getElementById('resOption3').checked = true;
     }
     handleOptionChange();
 }
 
 function handleOptionChange() {
+    const isOpt3 = document.getElementById('resOption3').checked;
     const isOpt2 = document.getElementById('resOption2').checked;
+    const isOpt1 = document.getElementById('resOption1').checked;
+
     const container = document.getElementById('modalBookedByContainer');
     const input = document.getElementById('modalBookedByInput');
 
     const card1 = document.getElementById('optionCard1');
     const card2 = document.getElementById('optionCard2');
+    const card3 = document.getElementById('optionCard3');
 
-    if (isOpt2) {
+    [card1, card2, card3].forEach(c => c.classList.remove('border-warning', 'bg-light'));
+
+    if (isOpt3) {
         container.classList.remove('d-none');
         if (input) input.required = true;
+        card3.classList.add('border-warning', 'bg-light');
+    } else if (isOpt2) {
+        container.classList.add('d-none');
+        if (input) input.required = false;
         card2.classList.add('border-warning', 'bg-light');
-        card1.classList.remove('border-warning', 'bg-light');
     } else {
         container.classList.add('d-none');
         if (input) input.required = false;
         card1.classList.add('border-warning', 'bg-light');
-        card2.classList.remove('border-warning', 'bg-light');
     }
 }
 </script>

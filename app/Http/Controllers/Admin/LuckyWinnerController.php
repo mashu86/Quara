@@ -62,8 +62,39 @@ class LuckyWinnerController extends Controller
     public function history()
     {
         $draws = LuckyDraw::with('winners')->orderBy('drawn_at', 'desc')->orderBy('id', 'desc')->paginate(15);
+        $showLastLuckyDraw = \App\Models\Setting::get('show_last_lucky_draw', '0');
+        $totalDrawsCount = LuckyDraw::count();
 
-        return view('admin.luckywinner.history', compact('draws'));
+        return view('admin.luckywinner.history', compact('draws', 'showLastLuckyDraw', 'totalDrawsCount'));
+    }
+
+    public function toggleVisibility(Request $request)
+    {
+        $totalDrawsCount = LuckyDraw::count();
+        if ($totalDrawsCount === 0) {
+            \App\Models\Setting::set('show_last_lucky_draw', '0');
+            return response()->json([
+                'success' => false,
+                'message' => 'ഇതുവരെ Lucky Draw ഒന്നും എടുത്തിട്ടില്ല (No Lucky Draw Conducted Yet).'
+            ], 422);
+        }
+
+        $request->validate([
+            'show_last_lucky_draw' => 'required|in:0,1',
+        ]);
+
+        $status = $request->input('show_last_lucky_draw');
+        \App\Models\Setting::set('show_last_lucky_draw', $status);
+
+        $msg = $status === '1'
+            ? 'Last Lucky Draw winners visibility enabled on client site!'
+            : 'Last Lucky Draw winners visibility disabled on client site!';
+
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'message' => $msg
+        ]);
     }
 
     public function show(LuckyDraw $draw)
@@ -71,5 +102,27 @@ class LuckyWinnerController extends Controller
         $draw->load('winners');
 
         return view('admin.luckywinner.show', compact('draw'));
+    }
+
+    public function updateTitle(Request $request, LuckyDraw $draw)
+    {
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+        ]);
+
+        $draw->update([
+            'title' => $validated['title'] ? trim($validated['title']) : null,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Lucky draw title updated successfully!',
+                'title' => $draw->title,
+                'display_title' => $draw->display_title,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Lucky draw name/title updated successfully!');
     }
 }

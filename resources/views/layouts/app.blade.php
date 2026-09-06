@@ -537,6 +537,24 @@
         </div>
     </header>
 
+    @if(($showLastLuckyDraw ?? '0') === '1' && isset($latestLuckyDraw) && $latestLuckyDraw && $latestLuckyDraw->winners->count() > 0)
+        <!-- Last Lucky Winners Header Link Banner -->
+        <div class="qw-lucky-winner-banner text-center py-2 px-3 position-relative" style="background: linear-gradient(135deg, #111111 0%, #2A2108 50%, #111111 100%); border-bottom: 1.5px solid var(--qw-gold);">
+            <div class="container d-flex align-items-center justify-content-center flex-wrap gap-2">
+                <span class="badge bg-gold text-white rounded-pill px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.8px;">
+                    <i class="fa-solid fa-crown me-1"></i> Winner Announcement
+                </span>
+                <a href="#" class="text-white text-decoration-none fw-bold small d-inline-flex align-items-center gap-1.5 qw-winner-link" data-bs-toggle="modal" data-bs-target="#latestLuckyWinnersModal" style="letter-spacing: 0.3px;">
+                    <span class="text-gold"><i class="fa-solid fa-trophy text-warning"></i> Last Lucky Winners</span>
+                    <span class="d-none d-sm-inline opacity-75">— Click here to view lucky winners!</span>
+                    <span class="badge rounded-pill px-2 py-0.5 ms-1" style="background: rgba(212, 175, 55, 0.25); color: #F3E5AB; border: 1px solid rgba(212, 175, 55, 0.5); font-size: 0.7rem;">
+                        <i class="fa-solid fa-eye me-1"></i> View Winners
+                    </span>
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- Alert Notifications -->
     <div class="container mt-3">
         @if(session('success'))
@@ -647,6 +665,7 @@
         </div>
     </div>
 
+    @include('frontend.partials.lucky_winners_modal')
     @include('frontend.partials.image_search_modal')
 
     <!-- Bootstrap JS Bundle -->

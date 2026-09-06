@@ -422,9 +422,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             toggle.checked = false;
                             toggle.setAttribute('data-booked-by', '');
                             const label = document.getElementById('outOfStockLabel_' + productId);
+                            const totalStock = parseInt(toggle.getAttribute('data-total-stock') || '0', 10);
+                            if (totalStock <= 0) {
+                                toggle.disabled = true;
+                                toggle.style.cursor = 'not-allowed';
+                            } else {
+                                toggle.disabled = false;
+                                toggle.style.cursor = 'pointer';
+                            }
                             if (label) {
-                                label.textContent = 'Available';
-                                label.className = 'form-check-label small fw-bold ms-1 text-success';
+                                if (totalStock <= 0) {
+                                    label.textContent = 'Sold Out';
+                                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
+                                    label.style.cursor = 'not-allowed';
+                                } else {
+                                    label.textContent = 'Available';
+                                    label.className = 'form-check-label small fw-bold ms-1 text-success';
+                                    label.style.cursor = 'pointer';
+                                }
                             }
                             const displayDiv = document.getElementById('bookedByDisplay_' + productId);
                             if (displayDiv) displayDiv.classList.add('d-none');

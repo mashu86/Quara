@@ -40,7 +40,12 @@ Route::prefix('luckywinner')->name('luckywinner.')->middleware(LuckyWinnerAccess
 Route::prefix('admin/luckywinner')->name('admin.luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
     Route::get('/history', [LuckyWinnerController::class, 'history'])->name('history');
     Route::get('/history/{draw}', [LuckyWinnerController::class, 'show'])->name('show');
+    Route::post('/history/{draw}/update-title', [LuckyWinnerController::class, 'updateTitle'])->name('update-title');
+    Route::post('/toggle-visibility', [LuckyWinnerController::class, 'toggleVisibility'])->name('toggle-visibility');
 });
+
+// Razorpay Asynchronous Webhook Route (CSRF Exempted in bootstrap/app.php)
+Route::post('api/webhooks/razorpay', [\App\Http\Controllers\Api\RazorpayWebhookController::class, 'handle'])->name('webhooks.razorpay');
 
 /*
 |--------------------------------------------------------------------------
@@ -147,6 +152,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/orders/{order}/send-followup-email', [AdminOrderController::class, 'sendFollowupEmail'])->name('orders.send-followup-email');
         Route::post('/orders/{order}/increment-wa-count', [AdminOrderController::class, 'incrementWaCount'])->name('orders.increment-wa-count');
         Route::post('/orders/{order}/recheck-razorpay', [AdminOrderController::class, 'recheckRazorpayStatus'])->name('orders.recheck-razorpay');
+        Route::post('/orders/auto-sync-pending', [AdminOrderController::class, 'autoSyncPendingOrdersAjax'])->name('orders.auto-sync-pending');
 
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');

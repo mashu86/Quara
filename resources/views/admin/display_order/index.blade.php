@@ -6,11 +6,14 @@
 <style>
     .drag-handle {
         cursor: grab;
-        color: #666;
-        transition: color 0.2s ease;
+        color: #444;
+        touch-action: none;
+        transition: color 0.2s ease, background-color 0.2s ease;
     }
     .drag-handle:active {
         cursor: grabbing;
+        background-color: var(--qw-gold) !important;
+        color: #000 !important;
     }
     .sortable-ghost {
         opacity: 0.3;
@@ -77,11 +80,7 @@
         }
     }
     .category-order-item, .product-order-item {
-        cursor: grab;
         user-select: none;
-    }
-    .category-order-item:active, .product-order-item:active {
-        cursor: grabbing;
     }
     .category-grid-card, .product-grid-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -467,12 +466,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 1. Initialize Sortable for Categories Grid (Whole Card Draggable)
+    // 1. Initialize Sortable for Categories Grid (Restricted to .drag-handle icon)
     const elCategories = document.getElementById('sortableCategories');
     if (elCategories) {
         new Sortable(elCategories, {
+            handle: '.drag-handle',
             animation: 150,
-            touchStartThreshold: 3,
+            touchStartThreshold: 5,
+            delay: 150,
+            delayOnTouchOnly: true,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
@@ -511,12 +513,15 @@ document.addEventListener('DOMContentLoaded', function() {
         saveCategoryOrder(true);
     });
 
-    // 2. Initialize Sortable for Products Grid (Whole Card Draggable)
+    // 2. Initialize Sortable for Products Grid (Restricted to .drag-handle icon)
     const elProducts = document.getElementById('sortableProducts');
     if (elProducts) {
         new Sortable(elProducts, {
+            handle: '.drag-handle',
             animation: 150,
-            touchStartThreshold: 3,
+            touchStartThreshold: 5,
+            delay: 150,
+            delayOnTouchOnly: true,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',

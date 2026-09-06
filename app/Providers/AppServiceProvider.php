@@ -86,7 +86,13 @@ class AppServiceProvider extends ServiceProvider
             $whatsappObj = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
             $socialLinks = SocialMedia::where('status', 'active')->orderBy('sort_order')->get();
 
-            $view->with(compact('navCategories', 'whatsappObj', 'socialLinks'));
+            $showLastLuckyDraw = Setting::get('show_last_lucky_draw', '0');
+            $latestLuckyDraw = null;
+            if ($showLastLuckyDraw === '1') {
+                $latestLuckyDraw = \App\Models\LuckyDraw::with('winners')->orderBy('drawn_at', 'desc')->orderBy('id', 'desc')->first();
+            }
+
+            $view->with(compact('navCategories', 'whatsappObj', 'socialLinks', 'showLastLuckyDraw', 'latestLuckyDraw'));
         });
 
         View::composer('layouts.admin', function ($view) {

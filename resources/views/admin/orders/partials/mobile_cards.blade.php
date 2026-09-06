@@ -140,6 +140,14 @@
         <div class="card-footer border-top py-2 px-2.5" style="{{ $isEven ? 'background-color: #F8FAFC;' : 'background-color: #EDF2F7;' }}">
             <!-- Row 1: Action Icons -->
             <div class="d-flex align-items-center justify-content-end gap-2 mb-2">
+                @if($order->payment_method === 'online' && $order->payment_status !== 'paid')
+                    <form action="{{ route('admin.orders.recheck-razorpay', $order->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Sync and verify this order with Razorpay API?');">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-info text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" title="Sync & Verify with Razorpay">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </form>
+                @endif
                 <button type="button" onclick="openIndexEditPaymentModal({{ json_encode($order) }})" class="btn btn-sm btn-outline-primary rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" title="Edit Payment Details">
                     <i class="fa-solid fa-credit-card"></i>
                 </button>

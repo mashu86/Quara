@@ -52,19 +52,27 @@
             </div>
         </td>
         <td>
-            <div class="form-check form-switch mb-0">
+            <div class="form-check form-switch mb-0" title="{{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'Cannot book a sold-out item (Stock: 0)' : 'Toggle Booked Status' }}">
                 <input class="form-check-input out-of-stock-toggle" type="checkbox" role="switch"
                        id="outOfStockToggle_{{ $product->id }}"
                        data-product-id="{{ $product->id }}"
                        data-product-name="{{ $product->name }}"
                        data-booked-by="{{ $product->booked_by }}"
+                       data-total-stock="{{ $totalStock }}"
                        data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
                        {{ $product->is_out_of_stock ? 'checked' : '' }}
-                       style="cursor: pointer; width: 2.3em; height: 1.2em;">
-                <label class="form-check-label small fw-bold ms-1 {{ $product->is_out_of_stock ? 'text-danger' : 'text-success' }}"
+                       {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'disabled' : '' }}
+                       style="cursor: {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'not-allowed' : 'pointer' }}; width: 2.3em; height: 1.2em;">
+                <label class="form-check-label small fw-bold ms-1 {{ ($product->is_out_of_stock || $totalStock <= 0) ? 'text-danger' : 'text-success' }}"
                        id="outOfStockLabel_{{ $product->id }}"
-                       for="outOfStockToggle_{{ $product->id }}" style="cursor: pointer; font-size: 0.78rem;">
-                    {{ $product->is_out_of_stock ? '🔒 Booked' : 'Available' }}
+                       for="outOfStockToggle_{{ $product->id }}" style="cursor: {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'not-allowed' : 'pointer' }}; font-size: 0.78rem;">
+                    @if($product->is_out_of_stock && !empty($product->booked_by))
+                        🔒 Booked
+                    @elseif($product->is_out_of_stock || $totalStock <= 0)
+                        Sold Out
+                    @else
+                        Available
+                    @endif
                 </label>
             </div>
             <div class="small text-muted fw-semibold mt-1 {{ ($product->is_out_of_stock && !empty($product->booked_by)) ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="bookedByDisplay_{{ $product->id }}">

@@ -233,7 +233,7 @@ class ProductController extends Controller
 
         $action = $request->input('action', 'save_and_close');
         if ($action === 'save_and_add_another') {
-            return redirect()->route('admin.products.create', ['category_ids' => $categoryIds])
+            return redirect()->route('admin.products.create')
                 ->with('success', 'Product "' . $validated['name'] . '" saved successfully! Ready to add your next product.');
         }
 
@@ -504,16 +504,25 @@ class ProductController extends Controller
     {
         $search = trim($request->input('search', ''));
         
-        // Show ONLY products that have ACTIVE (non-returned/non-cancelled) sales in order_items but still have booked status (booked_by or is_out_of_stock)
+        // Show products that have CONFIRMED/PAID sales AND (have booked_by set OR stock > 0 while flagged out of stock)
         $query = Product::with(['primaryImage', 'categories', 'sizes'])
             ->where(function ($q) {
-                $q->where('is_out_of_stock', true)
-                  ->orWhereNotNull('booked_by');
+                $q->whereNotNull('booked_by')
+                  ->orWhere(function ($subQ) {
+                      $subQ->where('is_out_of_stock', true)
+                           ->whereHas('sizes', function ($sQ) {
+                               $sQ->where('stock', '>', 0);
+                           });
+                  });
             })
             ->whereHas('orderItems', function ($itemQ) {
                 $itemQ->whereNotIn('item_status', ['returned', 'cancelled'])
                       ->whereHas('order', function ($orderQ) {
-                          $orderQ->whereNotIn('order_status', ['cancelled']);
+                          $orderQ->whereNotIn('order_status', ['cancelled'])
+                                 ->where(function ($q) {
+                                     $q->where('payment_status', 'paid')
+                                       ->orWhereIn('order_status', ['processing', 'completed', 'delivered']);
+                                 });
                       });
             });
 
@@ -533,22 +542,37 @@ class ProductController extends Controller
     public function resolveConflict(Request $request, Product $product)
     {
         $request->validate([
-            'resolution' => 'required|in:already_sold,not_sold_keep_booked',
+            'resolution' => 'required|in:already_sold,not_sold_back_to_stock,keep_booked',
             'booked_by' => 'nullable|string|max:255',
         ]);
 
         $resolution = $request->input('resolution');
 
         if ($resolution === 'already_sold') {
-            // Option 1: Already sold, but still displaying as Booked -> Clear booking
+            // Option 1: Already sold -> Set is_out_of_stock = false, clear booked_by, and set physical stock = 0
             $product->update([
                 'is_out_of_stock' => false,
                 'booked_by' => null,
+                'booked_by_admin_id' => null,
+                'booked_at' => null,
             ]);
 
-            return back()->with('success', "Product #{$product->id} '{$product->name}' marked as Sold & Booked status removed successfully.");
-        } elseif ($resolution === 'not_sold_keep_booked') {
-            // Option 2: Not sold yet -> Mark / Keep in Booked
+            // Ensure physical size stock is zeroed out for sold item
+            $product->sizes()->update(['stock' => 0]);
+
+            return back()->with('success', "Product #{$product->id} '{$product->name}' marked as Sold Out & Booked status removed successfully.");
+        } elseif ($resolution === 'not_sold_back_to_stock') {
+            // Option 2: Not sold -> Put back to Available Stock (is_out_of_stock = false) & Clear booked_by
+            $product->update([
+                'is_out_of_stock' => false,
+                'booked_by' => null,
+                'booked_by_admin_id' => null,
+                'booked_at' => null,
+            ]);
+
+            return back()->with('success', "Product #{$product->id} '{$product->name}' returned to Available Stock successfully.");
+        } elseif ($resolution === 'keep_booked') {
+            // Option 3: Keep in Booked status
             $bookedBy = trim($request->input('booked_by', '')) ?: ($product->booked_by ?: 'Booked Customer');
 
             $product->update([

@@ -532,15 +532,12 @@ class OrderController extends Controller
         return back()->with('success', "Order #{$order->order_number} payment details updated successfully!");
     }
 
-    public function recheckRazorpayStatus(Order $order)
+    public function recheckRazorpayStatus(Request $request, Order $order)
     {
         $payment = $order->payment;
         $razorpayKey = config('services.razorpay.key');
         $razorpaySecret = config('services.razorpay.secret');
-
-        $razorpayOrderId = ($payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_'))
-            ? $payment->razorpay_order_id
-            : null;
+        $inputPaymentId = trim($request->input('razorpay_payment_id', ''));
 
         if (empty($razorpayKey) || empty($razorpaySecret)) {
             return back()->with('error', 'Razorpay API credentials are not configured.');
@@ -549,17 +546,63 @@ class OrderController extends Controller
         try {
             $capturedPayment = null;
 
-            if ($razorpayOrderId) {
+            // 1. If explicit payment ID is passed (e.g. pay_TYh3nf3uOMSipQ)
+            $paymentIdToCheck = $inputPaymentId ?: ($payment ? $payment->razorpay_payment_id : null);
+            if ($paymentIdToCheck && str_starts_with($paymentIdToCheck, 'pay_')) {
                 $response = \Illuminate\Support\Facades\Http::withoutVerifying()
                     ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/orders/{$razorpayOrderId}/payments");
+                    ->get("https://api.razorpay.com/v1/payments/{$paymentIdToCheck}");
+
+                if ($response->successful()) {
+                    $pData = $response->json();
+                    if (in_array($pData['status'] ?? '', ['captured', 'authorized'])) {
+                        $capturedPayment = $pData;
+                    }
+                }
+            }
+
+            // 2. Try fetching by Razorpay Order ID
+            if (!$capturedPayment) {
+                $razorpayOrderId = ($payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_'))
+                    ? $payment->razorpay_order_id
+                    : null;
+
+                if ($razorpayOrderId) {
+                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                        ->withBasicAuth($razorpayKey, $razorpaySecret)
+                        ->get("https://api.razorpay.com/v1/orders/{$razorpayOrderId}/payments");
+
+                    if ($response->successful()) {
+                        $items = $response->json('items', []);
+                        foreach ($items as $item) {
+                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                                $capturedPayment = $item;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback: Search Razorpay Payments list by Order Receipt / Amount matching
+            if (!$capturedPayment) {
+                $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                    ->withBasicAuth($razorpayKey, $razorpaySecret)
+                    ->get("https://api.razorpay.com/v1/payments", [
+                        'count' => 30,
+                    ]);
 
                 if ($response->successful()) {
                     $items = $response->json('items', []);
                     foreach ($items as $item) {
-                        if (isset($item['status']) && $item['status'] === 'captured') {
-                            $capturedPayment = $item;
-                            break;
+                        $notes = $item['notes'] ?? [];
+                        $receipt = $notes['order_number'] ?? ($item['description'] ?? '');
+                        if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                            if (str_contains($receipt, $order->order_number) ||
+                               ((float)($item['amount'] / 100) == (float)$order->grand_total && abs(strtotime($order->created_at) - ($item['created_at'] ?? 0)) < 14400)) {
+                                $capturedPayment = $item;
+                                break;
+                            }
                         }
                     }
                 }
@@ -577,16 +620,23 @@ class OrderController extends Controller
 
                     $this->stockService->deductStockForOrderItems($itemsForDeduction);
 
-                    if ($payment) {
-                        $payment->update([
-                            'razorpay_payment_id' => $capturedPayment['id'],
-                            'status' => 'paid',
-                            'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
-                                'rechecked_at' => now()->toIso8601String(),
-                                'razorpay_details' => $capturedPayment,
-                            ]),
+                    if (!$payment) {
+                        $payment = \App\Models\Payment::create([
+                            'order_id' => $order->id,
+                            'payment_method' => 'online',
+                            'amount' => $order->grand_total,
                         ]);
                     }
+
+                    $payment->update([
+                        'razorpay_payment_id' => $capturedPayment['id'],
+                        'razorpay_order_id' => $capturedPayment['order_id'] ?? $payment->razorpay_order_id,
+                        'status' => 'paid',
+                        'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
+                            'rechecked_at' => now()->toIso8601String(),
+                            'razorpay_details' => $capturedPayment,
+                        ]),
+                    ]);
 
                     $order->update([
                         'payment_status' => 'paid',
@@ -597,15 +647,151 @@ class OrderController extends Controller
 
                     $order->calculateRazorpayCharge();
 
-                    return back()->with('success', "Razorpay API Verified! Order #{$order->order_number} marked as Paid & Confirmed.");
+                    // Create Admin Notification
+                    Notification::create([
+                        'title' => 'Order Paid (Razorpay Synced)',
+                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Synced with Razorpay",
+                        'type' => 'new_order',
+                        'order_id' => $order->id,
+                        'is_read' => false,
+                    ]);
+
+                    return back()->with('success', "Razorpay Verified! Order #{$order->order_number} (Payment ID: {$capturedPayment['id']}) marked as Paid & Confirmed.");
                 }
 
                 return back()->with('info', "Order #{$order->order_number} is already marked as Paid.");
             }
 
-            return back()->with('info', "Checked Razorpay API. No captured payment found yet for Order #{$order->order_number}.");
+            return back()->with('info', "Checked Razorpay API. No captured payment found for Order #{$order->order_number}.");
         } catch (\Exception $e) {
             return back()->with('error', 'Razorpay API Connection Error: ' . $e->getMessage());
+        }
+    }
+
+    public function autoSyncPendingOrdersAjax(Request $request)
+    {
+        $syncedCount = 0;
+        try {
+            $pendingOrders = Order::where('payment_method', 'online')
+                ->where('payment_status', 'pending')
+                ->where('created_at', '>=', now()->subHours(48))
+                ->take(5)
+                ->get();
+
+            if ($pendingOrders->isEmpty()) {
+                return response()->json(['success' => true, 'synced_count' => 0]);
+            }
+
+            $razorpayKey = config('services.razorpay.key');
+            $razorpaySecret = config('services.razorpay.secret');
+
+            if (empty($razorpayKey) || empty($razorpaySecret)) {
+                return response()->json(['success' => false, 'message' => 'API credentials missing'], 400);
+            }
+
+            foreach ($pendingOrders as $order) {
+                $payment = $order->payment;
+                $capturedPayment = null;
+
+                $paymentIdToCheck = $payment ? $payment->razorpay_payment_id : null;
+                if ($paymentIdToCheck && str_starts_with($paymentIdToCheck, 'pay_')) {
+                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                        ->withBasicAuth($razorpayKey, $razorpaySecret)
+                        ->get("https://api.razorpay.com/v1/payments/{$paymentIdToCheck}");
+
+                    if ($response->successful() && in_array($response->json('status'), ['captured', 'authorized'])) {
+                        $capturedPayment = $response->json();
+                    }
+                }
+
+                if (!$capturedPayment && $payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_')) {
+                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                        ->withBasicAuth($razorpayKey, $razorpaySecret)
+                        ->get("https://api.razorpay.com/v1/orders/{$payment->razorpay_order_id}/payments");
+
+                    if ($response->successful()) {
+                        foreach ($response->json('items', []) as $item) {
+                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                                $capturedPayment = $item;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!$capturedPayment) {
+                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                        ->withBasicAuth($razorpayKey, $razorpaySecret)
+                        ->get("https://api.razorpay.com/v1/payments", [
+                            'count' => 30,
+                        ]);
+
+                    if ($response->successful()) {
+                        foreach ($response->json('items', []) as $item) {
+                            $notes = $item['notes'] ?? [];
+                            $receipt = $notes['order_number'] ?? ($item['description'] ?? '');
+                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                                if (str_contains($receipt, $order->order_number) ||
+                                   ((float)($item['amount'] / 100) == (float)$order->grand_total && abs(strtotime($order->created_at) - ($item['created_at'] ?? 0)) < 14400)) {
+                                    $capturedPayment = $item;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($capturedPayment) {
+                    $itemsForDeduction = $order->items->map(fn($item) => [
+                        'product_id' => $item->product_id,
+                        'size' => $item->size,
+                        'quantity' => $item->quantity,
+                    ])->toArray();
+
+                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
+
+                    if (!$payment) {
+                        $payment = \App\Models\Payment::create([
+                            'order_id' => $order->id,
+                            'payment_method' => 'online',
+                            'amount' => $order->grand_total,
+                        ]);
+                    }
+
+                    $payment->update([
+                        'razorpay_payment_id' => $capturedPayment['id'],
+                        'status' => 'paid',
+                        'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
+                            'auto_synced_at' => now()->toIso8601String(),
+                            'razorpay_details' => $capturedPayment,
+                        ]),
+                    ]);
+
+                    $order->update([
+                        'payment_status' => 'paid',
+                        'order_status' => 'confirmed',
+                        'reserved_until' => null,
+                        'is_legacy_pending' => false,
+                    ]);
+
+                    $order->calculateRazorpayCharge();
+
+                    Notification::create([
+                        'title' => 'Order Auto-Synced (Paid)',
+                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Auto-Synced as Paid",
+                        'type' => 'new_order',
+                        'order_id' => $order->id,
+                        'is_read' => false,
+                    ]);
+
+                    $syncedCount++;
+                }
+            }
+
+            return response()->json(['success' => true, 'synced_count' => $syncedCount]);
+        } catch (\Exception $e) {
+            \Log::error('Auto Sync Pending Online Orders Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

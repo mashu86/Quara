@@ -13,7 +13,7 @@
                     <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img" loading="lazy">
                     @if($product->total_stock <= 0)
                         <div class="qw-out-of-stock-overlay">
-                            <span class="qw-out-of-stock-badge">OUT OF STOCK</span>
+                            <span class="qw-out-of-stock-badge">SOLD OUT</span>
                         </div>
                     @endif
                 </div>
@@ -48,7 +48,7 @@
 
                 <div class="d-grid">
                     @if($product->total_stock <= 0)
-                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75 qw-btn-card">OUT OF STOCK</a>
+                        <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-secondary btn-sm opacity-75 qw-btn-card">SOLD OUT</a>
                     @else
                         <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-qw-outline btn-sm qw-btn-card">VIEW DETAILS</a>
                     @endif

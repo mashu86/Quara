@@ -1,16 +1,51 @@
 @extends('layouts.admin')
 
-@section('title', $draw->draw_number . ' - Lucky Winner Details')
+@section('title', ($draw->title ?: $draw->draw_number) . ' - Lucky Winner Details')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show rounded-3 small py-2.5 px-3 mb-4" role="alert">
+        <i class="fa-solid fa-circle-check me-1"></i> {{ session('success') }}
+        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1"><i class="fa-solid fa-trophy text-warning me-2"></i>{{ $draw->draw_number }}</h3>
-        <p class="text-muted small mb-0">Lucky Winner Details &middot; {{ $draw->period_label }}</p>
+        <h3 class="fw-bold mb-1">
+            <i class="fa-solid fa-trophy text-warning me-2"></i>
+            <span>{{ $draw->display_title }}</span>
+        </h3>
+        <p class="text-muted small mb-0">Lucky Winner Details &middot; {{ $draw->period_label }} (Ref #{{ $draw->draw_number }})</p>
     </div>
-    <a href="{{ route('admin.luckywinner.history') }}" class="btn btn-outline-dark rounded-pill px-3">
+    <a href="{{ route('admin.luckywinner.history') }}" class="btn btn-outline-dark rounded-pill px-3 fw-semibold">
         <i class="fa-solid fa-arrow-left me-2"></i>Lucky Winner History
     </a>
+</div>
+
+<!-- EDIT CUSTOM DRAW TITLE / NAME CARD -->
+<div class="card border-0 shadow-sm rounded-4 mb-4" style="background: #FFFDF7; border: 1.5px dashed var(--qw-gold, #D4AF37) !important;">
+    <div class="card-body p-3 p-md-4">
+        <form action="{{ route('admin.luckywinner.update-title', $draw->id) }}" method="POST" id="updateTitleForm">
+            @csrf
+            <div class="row align-items-center g-2 g-md-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-pen-to-square text-warning me-1"></i> Custom Draw Title / Name
+                    </label>
+                    <div class="form-text small text-muted" style="font-size: 0.73rem;">Set a custom title for this history record.</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <input type="text" name="title" class="form-control rounded-3 py-2 fw-semibold bg-white" placeholder="e.g. Onam Mega Contest / September Giveaway" value="{{ old('title', $draw->title) }}">
+                </div>
+                <div class="col-12 col-md-3">
+                    <button type="submit" class="btn btn-warning text-dark rounded-pill fw-bold w-100 py-2 shadow-xs" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Draw Name
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -26,6 +61,7 @@
     <div class="card-body p-4">
         <dl class="row g-3 mb-0">
             @foreach([
+                'Custom Draw Title' => $draw->title ?: 'Not set (Using Period Label)',
                 'Draw Type' => $draw->draw_type === 'month' ? 'Month' : 'Date range',
                 'Selected Period' => $draw->period_label,
                 'Start Date' => $draw->start_date->format('d M Y'),

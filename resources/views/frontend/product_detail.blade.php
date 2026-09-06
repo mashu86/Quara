@@ -328,7 +328,7 @@
                     @endif
                     @if($product->total_stock <= 0)
                         <div class="qw-out-of-stock-overlay">
-                            <span class="qw-out-of-stock-badge fs-6 px-4 py-2">OUT OF STOCK</span>
+                            <span class="qw-out-of-stock-badge fs-6 px-4 py-2">SOLD OUT</span>
                         </div>
                     @endif
                     <img id="mainProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="product-main-image" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
@@ -490,7 +490,7 @@
                         </div>
                     @else
                         <div class="alert alert-danger text-center fw-bold py-3 mb-4 rounded-3">
-                            <i class="fa-solid fa-circle-xmark me-2"></i> OUT OF STOCK
+                            <i class="fa-solid fa-circle-xmark me-2"></i> SOLD OUT
                         </div>
                     @endif
                 </form>

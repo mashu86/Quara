@@ -268,20 +268,30 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">🔒 Booked Product (Client Out of Stock)</label>
-                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
-                            <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockEditSwitch" value="1" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'checked' : '' }} onchange="toggleBookedByEditContainer(this)">
-                            <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockEditSwitch">
-                                🔒 Mark as Booked Product
-                            </label>
-                        </div>
+                        <label class="form-label fw-bold small">🔒 Booked Product Status</label>
+                        @php
+                            $totalEditStock = $product->sizes->sum('stock');
+                        @endphp
+                        @if($totalEditStock <= 0 && !$product->is_out_of_stock)
+                            <div class="alert alert-secondary py-2 px-3 small rounded-3 mb-2 border">
+                                <i class="fa-solid fa-circle-info me-1 text-danger"></i> <strong>Sold Out Product (Stock: 0)</strong><br>
+                                This product is already sold out and cannot be booked.
+                            </div>
+                        @else
+                            <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockEditSwitch" value="1" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'checked' : '' }} onchange="toggleBookedByEditContainer(this)">
+                                <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockEditSwitch">
+                                    🔒 Mark as Booked Product
+                                </label>
+                            </div>
 
-                        <div id="bookedByEditContainer" class="{{ old('is_out_of_stock', $product->is_out_of_stock) ? '' : 'd-none' }} mb-2">
-                            <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
-                            <input type="text" name="booked_by" id="bookedByEditInput" class="form-control rounded-3" placeholder="e.g. Anjali" value="{{ old('booked_by', $product->booked_by) }}" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'required' : '' }}>
-                        </div>
+                            <div id="bookedByEditContainer" class="{{ old('is_out_of_stock', $product->is_out_of_stock) ? '' : 'd-none' }} mb-2">
+                                <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
+                                <input type="text" name="booked_by" id="bookedByEditInput" class="form-control rounded-3" placeholder="e.g. Anjali" value="{{ old('booked_by', $product->booked_by) }}" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'required' : '' }}>
+                            </div>
+                        @endif
 
-                        <div class="form-text small">When checked, this product is marked as <strong>Booked</strong> on Admin side and shows as <strong>"Out of Stock"</strong> to website clients so no online customer can buy it.</div>
+                        <div class="form-text small">When marked as Booked, it shows as <strong>"Sold Out"</strong> to website clients so no online customer can buy it.</div>
                     </div>
 
                     <button type="submit" class="btn btn-warning rounded-3 fw-bold w-100 py-2.5 shadow-sm border-0 mb-4" style="font-size: 0.85rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">

@@ -629,7 +629,23 @@ document.addEventListener('DOMContentLoaded', function () {
     if (desktopContainer) {
         desktopContainer.addEventListener('scroll', checkAndLoadMore);
     }
-    window.addEventListener('scroll', checkAndLoadMore);
+    // Zero-Lag Background Auto-Sync (Runs 1.2s after page load - Zero impact on page load speed)
+    setTimeout(() => {
+        fetch("{{ route('admin.orders.auto-sync-pending') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.synced_count > 0) {
+                window.location.reload();
+            }
+        })
+        .catch(err => console.log('Auto-sync background check finished.'));
+    }, 1200);
 });
 </script>
 </div>

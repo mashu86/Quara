@@ -174,6 +174,11 @@ class OrderOperationController extends Controller
                 $newStock = $prevStock + $qtyToAdjust;
                 $pSize->update(['stock' => $newStock]);
 
+                // Ensure product becomes available on website if returned to stock
+                if ($newStock > 0) {
+                    Product::where('id', $pSize->product_id)->update(['is_out_of_stock' => false]);
+                }
+
                 StockMovement::create([
                     'product_id' => $pSize->product_id,
                     'product_size_id' => $pSize->id,

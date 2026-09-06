@@ -21,4 +21,9 @@ class LuckyDraw extends Model
     {
         return $this->hasMany(LuckyDrawWinner::class)->orderBy('position');
     }
+
+    public function getDisplayTitleAttribute(): string
+    {
+        return !empty($this->title) ? $this->title : $this->period_label;
+    }
 }

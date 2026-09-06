@@ -584,25 +584,30 @@ class OrderController extends Controller
                 }
             }
 
-            // 3. Fallback: Search Razorpay Payments list by Order Receipt / Amount matching
+            // 3. Fallback: Search Razorpay Payments list strictly by exact Order Number in notes/receipt
             if (!$capturedPayment) {
                 $response = \Illuminate\Support\Facades\Http::withoutVerifying()
                     ->withBasicAuth($razorpayKey, $razorpaySecret)
                     ->get("https://api.razorpay.com/v1/payments", [
-                        'count' => 30,
+                        'count' => 50,
                     ]);
 
                 if ($response->successful()) {
                     $items = $response->json('items', []);
+                    $orderNum = trim($order->order_number ?? '');
+
                     foreach ($items as $item) {
+                        if (!in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                            continue;
+                        }
+
                         $notes = $item['notes'] ?? [];
-                        $receipt = $notes['order_number'] ?? ($item['description'] ?? '');
-                        if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                            if (str_contains($receipt, $order->order_number) ||
-                               ((float)($item['amount'] / 100) == (float)$order->grand_total && abs(strtotime($order->created_at) - ($item['created_at'] ?? 0)) < 14400)) {
-                                $capturedPayment = $item;
-                                break;
-                            }
+                        $receipt = $notes['order_number'] ?? ($notes['order_id'] ?? ($item['description'] ?? ''));
+
+                        // Strictly match exact Order Number (e.g. QW-XXXX) in Razorpay notes/description
+                        if (!empty($orderNum) && str_contains($receipt, $orderNum)) {
+                            $capturedPayment = $item;
+                            break;
                         }
                     }
                 }
@@ -664,7 +669,11 @@ class OrderController extends Controller
 
             return back()->with('info', "Checked Razorpay API. No captured payment found for Order #{$order->order_number}.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Razorpay API Connection Error: ' . $e->getMessage());
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'Stock validation failed')) {
+                return back()->with('error', "Razorpay Payment Verified! However, order cannot be confirmed automatically because: {$msg}. Please add 1 stock to this product in Admin -> Products, then click Sync again to confirm.");
+            }
+            return back()->with('error', 'Razorpay Sync Status: ' . $msg);
         }
     }
 

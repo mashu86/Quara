@@ -25,10 +25,7 @@
         </td>
         @php
             $modalItems = $order->items->map(function ($item) {
-                $imgUrl = null;
-                if ($item->product && $item->product->primaryImage && $item->product->primaryImage->image_path) {
-                    $imgUrl = asset($item->product->primaryImage->image_path);
-                }
+                $imgUrl = $item->product ? $item->product->primary_image_url : \App\Models\Setting::logoUrl();
                 return [
                     'id' => $item->id,
                     'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
@@ -36,7 +33,7 @@
                     'quantity' => $item->quantity ?: 1,
                     'unit_price' => $item->unit_price,
                     'final_unit_price' => $item->final_unit_price,
-                    'image_url' => $imgUrl ?: asset('images/placeholder.jpg'),
+                    'image_url' => $imgUrl,
                 ];
             });
         @endphp

@@ -130,7 +130,7 @@ thead th.conflict-sticky-col {
                     @forelse($products as $product)
                         @php
                             $totalStock = $product->sizes->sum('stock');
-                            $primaryImg = $product->primaryImage ? asset($product->primaryImage->image_path) : asset('images/placeholder.jpg');
+                            $primaryImg = $product->primary_image_url;
                         @endphp
                         <tr>
                             <td class="conflict-sticky-col text-center py-2 px-1">

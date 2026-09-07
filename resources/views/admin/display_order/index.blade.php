@@ -269,7 +269,7 @@
                 <div class="tab-pane fade show active" id="categories-content" role="tabpanel">
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                         <div class="small text-muted" style="font-size: 0.78rem;">
-                            <i class="fa-solid fa-hand-pointer text-warning me-1"></i> Drag cards <i class="fa-solid fa-up-down-left-right"></i> to reorder. (Mobile: 2 per row | Laptop: 4 per row)
+                            <i class="fa-solid fa-hand-pointer text-warning me-1"></i> Drag cards <i class="fa-solid fa-up-down-left-right"></i> or click <i class="fa-solid fa-pen-to-square text-primary"></i> to set position.
                         </div>
                         <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" id="saveCatOrderBtn" style="font-size: 0.78rem;">
                             <i class="fa-solid fa-check me-1"></i> Save Category Order
@@ -281,9 +281,14 @@
                         @forelse($categories as $index => $cat)
                             <div class="col-6 col-md-4 col-lg-3 category-order-item" data-id="{{ $cat->id }}">
                                 <div class="card h-100 border rounded-4 shadow-sm overflow-hidden category-grid-card position-relative">
-                                    <!-- Top Drag Bar & Badge -->
+                                    <!-- Top Drag Bar & Badge & Edit Position Icon -->
                                     <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
-                                        <span class="order-badge cat-order-badge">#{{ $index + 1 }}</span>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="order-badge cat-order-badge">#{{ $index + 1 }}</span>
+                                            <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1 edit-position-btn" data-type="category" data-id="{{ $cat->id }}" data-current="{{ $index + 1 }}" data-name="{{ $cat->name }}" title="Set exact position number">
+                                                <i class="fa-solid fa-pen-to-square text-primary" style="font-size: 0.78rem;"></i>
+                                            </button>
+                                        </div>
                                         <div class="drag-handle text-secondary p-1" title="Drag to reorder">
                                             <i class="fa-solid fa-up-down-left-right"></i>
                                         </div>
@@ -318,21 +323,34 @@
                 <div class="tab-pane fade" id="products-content" role="tabpanel">
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                         <div class="small text-muted" style="font-size: 0.78rem;">
-                            <i class="fa-solid fa-hand-pointer text-warning me-1"></i> Drag cards <i class="fa-solid fa-up-down-left-right"></i> to reorder. (Mobile: 2 per row | Laptop: 4 per row)
+                            <i class="fa-solid fa-hand-pointer text-warning me-1"></i> Drag cards <i class="fa-solid fa-up-down-left-right"></i> or click <i class="fa-solid fa-pen-to-square text-primary"></i> to set position.
                         </div>
-                        <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" id="saveProdOrderBtn" style="font-size: 0.78rem;">
-                            <i class="fa-solid fa-check me-1"></i> Save Product Order
-                        </button>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-bold shadow-sm" id="sortAvailableFirstBtn" style="font-size: 0.78rem;" title="Move available products to the top">
+                                <i class="fa-solid fa-rotate text-warning me-1"></i> Available Products First
+                            </button>
+                            <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" id="saveProdOrderBtn" style="font-size: 0.78rem;">
+                                <i class="fa-solid fa-check me-1"></i> Save Product Order
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Products 2-col (mobile) & 4-col (desktop) Grid -->
                     <div class="row g-2 g-md-3" id="sortableProducts">
                         @forelse($products as $index => $prod)
-                            <div class="col-6 col-md-4 col-lg-3 product-order-item" data-id="{{ $prod->id }}">
+                            @php
+                                $isAvailable = (!$prod->is_out_of_stock && $prod->status === 'active' && empty($prod->booked_by) && $prod->total_stock > 0);
+                            @endphp
+                            <div class="col-6 col-md-4 col-lg-3 product-order-item" data-id="{{ $prod->id }}" data-available="{{ $isAvailable ? 1 : 0 }}">
                                 <div class="card h-100 border rounded-4 shadow-sm overflow-hidden product-grid-card position-relative">
-                                    <!-- Top Drag Bar & Badge -->
+                                    <!-- Top Drag Bar & Badge & Edit Position Icon -->
                                     <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
-                                        <span class="order-badge prod-order-badge">#{{ $index + 1 }}</span>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="order-badge prod-order-badge">#{{ $index + 1 }}</span>
+                                            <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1 edit-position-btn" data-type="product" data-id="{{ $prod->id }}" data-current="{{ $index + 1 }}" data-name="{{ $prod->name }}" title="Set exact position number">
+                                                <i class="fa-solid fa-pen-to-square text-primary" style="font-size: 0.78rem;"></i>
+                                            </button>
+                                        </div>
                                         <div class="drag-handle text-secondary p-1" title="Drag to reorder">
                                             <i class="fa-solid fa-up-down-left-right"></i>
                                         </div>
@@ -341,8 +359,16 @@
                                     <!-- Product Image -->
                                     <div class="position-relative text-center p-1.5 bg-light">
                                         <img src="{{ $prod->primary_image_url }}" alt="{{ $prod->name }}" class="img-fluid rounded-3 grid-thumb-img" loading="lazy" onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
-                                        @if($prod->is_out_of_stock)
-                                            <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size: 0.58rem;">OUT OF STOCK</span>
+                                        @if(!$isAvailable)
+                                            <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size: 0.58rem;">
+                                                @if($prod->is_out_of_stock || $prod->total_stock <= 0)
+                                                    OUT OF STOCK
+                                                @elseif(!empty($prod->booked_by))
+                                                    BOOKED
+                                                @else
+                                                    INACTIVE
+                                                @endif
+                                            </span>
                                         @endif
                                     </div>
 
@@ -371,6 +397,40 @@
         </div>
     </div>
 
+</div>
+
+<!-- Set Position Number Modal -->
+<div class="modal fade" id="setPositionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-2.5 px-3">
+                <h6 class="modal-title font-serif fw-bold mb-0">
+                    <i class="fa-solid fa-pen-to-square text-warning me-1.5"></i> Change Position
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="setPositionForm">
+                <div class="modal-body p-3 text-center">
+                    <input type="hidden" id="posItemType">
+                    <input type="hidden" id="posItemId">
+                    <p class="small text-dark fw-bold mb-2 text-truncate" id="posItemNameDisplay"></p>
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                        <span class="small text-muted">Current: <strong class="text-dark" id="posCurrentDisplay">#0</strong></span>
+                        <i class="fa-solid fa-arrow-right text-muted extra-small"></i>
+                        <span class="small text-muted">New Position:</span>
+                    </div>
+                    <input type="number" min="1" id="newPositionInput" class="form-control rounded-3 text-center fw-bold fs-5 py-1" style="max-width: 120px; margin: 0 auto;" required>
+                    <small class="text-muted extra-small d-block mt-2" id="posRangeHint">Enter position number</small>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 border-0 p-2 d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm w-50" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning rounded-pill btn-sm w-50 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                        Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -463,6 +523,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const items = document.querySelectorAll(`${containerSelector} .${badgeSelector}`);
         items.forEach((badge, idx) => {
             badge.textContent = `#${idx + 1}`;
+            const btn = badge.closest('.d-flex')?.querySelector('.edit-position-btn');
+            if (btn) {
+                btn.setAttribute('data-current', idx + 1);
+            }
         });
     }
 
@@ -558,6 +622,120 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('saveProdOrderBtn')?.addEventListener('click', function() {
         saveProductOrder(true);
+    });
+
+    // 3. Available Products First Refresh Button Handler
+    const sortAvailableFirstBtn = document.getElementById('sortAvailableFirstBtn');
+    sortAvailableFirstBtn?.addEventListener('click', function() {
+        const container = document.getElementById('sortableProducts');
+        if (!container) return;
+
+        const items = Array.from(container.querySelectorAll('.product-order-item'));
+        if (items.length === 0) return;
+
+        // Stable sort: Available products first (1 before 0), keeping original relative order
+        items.sort((a, b) => {
+            const availA = parseInt(a.getAttribute('data-available') || '0', 10);
+            const availB = parseInt(b.getAttribute('data-available') || '0', 10);
+            return availB - availA;
+        });
+
+        // Re-append in sorted sequence
+        items.forEach(item => container.appendChild(item));
+
+        updateBadges('#sortableProducts', 'prod-order-badge');
+        saveProductOrder(false);
+        showAlert('success', 'Available products placed first successfully! Remember you can still drag cards or edit positions as needed.');
+    });
+
+    // 4. Direct Numerical Position Change Modal Handler
+    const setPositionModalEl = document.getElementById('setPositionModal');
+    const setPositionModal = setPositionModalEl ? new bootstrap.Modal(setPositionModalEl) : null;
+    const setPositionForm = document.getElementById('setPositionForm');
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.edit-position-btn');
+        if (!btn) return;
+
+        const type = btn.getAttribute('data-type');
+        const id = btn.getAttribute('data-id');
+        const currentPos = parseInt(btn.getAttribute('data-current') || '1', 10);
+        const name = btn.getAttribute('data-name') || '';
+
+        const containerId = type === 'category' ? '#sortableCategories' : '#sortableProducts';
+        const totalItems = document.querySelectorAll(`${containerId} .${type}-order-item`).length;
+
+        document.getElementById('posItemType').value = type;
+        document.getElementById('posItemId').value = id;
+        document.getElementById('posItemNameDisplay').textContent = name;
+        document.getElementById('posCurrentDisplay').textContent = `#${currentPos}`;
+
+        const input = document.getElementById('newPositionInput');
+        input.value = currentPos;
+        input.setAttribute('max', totalItems);
+        document.getElementById('posRangeHint').textContent = `Enter target position between 1 and ${totalItems}`;
+
+        setPositionModal?.show();
+    });
+
+    setPositionForm?.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const type = document.getElementById('posItemType').value;
+        const id = document.getElementById('posItemId').value;
+        const targetPos = parseInt(document.getElementById('newPositionInput').value, 10);
+
+        const containerId = type === 'category' ? '#sortableCategories' : '#sortableProducts';
+        const itemClass = type === 'category' ? 'category-order-item' : 'product-order-item';
+        const badgeClass = type === 'category' ? 'cat-order-badge' : 'prod-order-badge';
+
+        const container = document.querySelector(containerId);
+        if (!container) return;
+
+        const items = Array.from(container.querySelectorAll(`.${itemClass}`));
+        const totalItems = items.length;
+
+        if (isNaN(targetPos) || targetPos < 1 || targetPos > totalItems) {
+            alert(`Please enter a valid position number between 1 and ${totalItems}.`);
+            return;
+        }
+
+        const targetItemIndex = items.findIndex(item => item.getAttribute('data-id') === id);
+        if (targetItemIndex === -1) return;
+
+        const targetItem = items[targetItemIndex];
+        const newZeroIndex = targetPos - 1;
+
+        if (targetItemIndex === newZeroIndex) {
+            setPositionModal?.hide();
+            return;
+        }
+
+        // Shift insertion in DOM
+        if (newZeroIndex >= totalItems - 1) {
+            container.appendChild(targetItem);
+        } else if (newZeroIndex > targetItemIndex) {
+            container.insertBefore(targetItem, items[newZeroIndex + 1]);
+        } else {
+            container.insertBefore(targetItem, items[newZeroIndex]);
+        }
+
+        updateBadges(containerId, badgeClass);
+
+        setPositionModal?.hide();
+
+        if (type === 'category') {
+            saveCategoryOrder(true);
+        } else {
+            saveProductOrder(true);
+        }
+
+        // Scroll & highlight moved card
+        targetItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        targetItem.querySelector('.card')?.classList.add('sortable-chosen');
+        setTimeout(() => {
+            targetItem.querySelector('.card')?.classList.remove('sortable-chosen');
+        }, 1500);
     });
 });
 </script>

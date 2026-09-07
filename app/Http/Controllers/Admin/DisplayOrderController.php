@@ -19,7 +19,7 @@ class DisplayOrderController extends Controller
         ->orderBy('id', 'desc')
         ->get();
 
-        $products = Product::with(['category', 'images'])
+        $products = Product::with(['category', 'images', 'sizes'])
             ->orderBy('sort_order', 'asc')
             ->orderBy('id', 'desc')
             ->get();

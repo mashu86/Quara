@@ -81,8 +81,7 @@
     .courier-parcel-sheet .parcel-to-section {
         display: flex;
         flex-direction: column;
-        flex: 1;
-        min-height: 0;
+        flex: 0 0 auto;
     }
     .courier-parcel-sheet .parcel-label {
         flex-shrink: 0;
@@ -96,14 +95,16 @@
         overflow-wrap: anywhere;
     }
     .courier-parcel-sheet .parcel-to-space {
-        flex: 1;
-        min-height: 0;
+        flex: 0 0 auto;
+        min-height: 32mm;
+        max-height: 75mm;
         overflow: hidden;
     }
     .courier-parcel-sheet .parcel-from-container {
         display: flex;
         justify-content: flex-end;
         flex-shrink: 0;
+        margin-top: 4mm;
     }
     .courier-parcel-sheet .parcel-from-wrapper { width: 75mm; }
     #courierAddressPreviewModalBody .courier-parcel-sheet {
@@ -224,7 +225,13 @@ function fitCourierAddress(sheet) {
 }
 
 function setCourierAddress(order) {
-    courierPrintArea.querySelector('.parcel-to-address').innerHTML = order ? formatOrderToAddressHtml(order) : '';
+    const addressEl = courierPrintArea.querySelector('.parcel-to-address');
+    if (order) {
+        addressEl.innerHTML = formatOrderToAddressHtml(order);
+    } else {
+        // Reserve 5 lines of vertical space for handwriting an address on blank label
+        addressEl.innerHTML = '<br><br><br><br><br>';
+    }
     fitCourierAddress(courierPrintArea.querySelector('.courier-parcel-sheet'));
 }
 

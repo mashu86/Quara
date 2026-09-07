@@ -120,6 +120,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('categories/{category}/toggle-status', [AdminCategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
 
         // Product Master
+        Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
         Route::get('products-booked-conflicts', [AdminProductController::class, 'bookedConflicts'])->name('products.booked-conflicts');
         Route::post('products/{product}/resolve-conflict', [AdminProductController::class, 'resolveConflict'])->name('products.resolve-conflict');

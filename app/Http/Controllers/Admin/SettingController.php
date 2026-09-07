@@ -31,6 +31,8 @@ class SettingController extends Controller
             'hasSavedMailPassword' => ! empty($settings['mail_password']),
             'razorpayKey' => $settings['razorpay_key'] ?? config('services.razorpay.key'),
             'hasSavedRazorpaySecret' => ! empty($settings['razorpay_secret']),
+            'geminiApiKey' => Setting::decryptSecret($settings['gemini_api_key'] ?? null) ?? config('services.gemini.api_key', ''),
+            'hasSavedGeminiKey' => ! empty($settings['gemini_api_key']),
         ]);
     }
 
@@ -53,6 +55,7 @@ class SettingController extends Controller
             'mail_from_name' => ['required', 'string', 'max:255'],
             'razorpay_key' => ['required', 'string', 'max:255', 'regex:/^rzp_(test|live)_[A-Za-z0-9]+$/'],
             'razorpay_secret' => ['nullable', 'string', 'max:1000'],
+            'gemini_api_key' => ['nullable', 'string', 'max:1000'],
             'razorpay_fee_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'razorpay_gst_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'recalculate_past_orders' => ['nullable', 'boolean'],
@@ -93,6 +96,10 @@ class SettingController extends Controller
 
         if (! empty($validated['razorpay_secret'])) {
             Setting::set('razorpay_secret', Crypt::encryptString($validated['razorpay_secret']), 'payment');
+        }
+
+        if (! empty($validated['gemini_api_key'])) {
+            Setting::set('gemini_api_key', Crypt::encryptString($validated['gemini_api_key']), 'ai');
         }
 
         Setting::set('razorpay_fee_percent', number_format((float) $validated['razorpay_fee_percent'], 2, '.', ''), 'payment');

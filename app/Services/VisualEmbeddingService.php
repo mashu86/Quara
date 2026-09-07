@@ -401,6 +401,103 @@ class VisualEmbeddingService
         return [$h, $s, $v];
     }
 
+    /**
+     * Extract dominant color names locally from an outfit photo using GD color quantization.
+     */
+    public function extractDominantColors(string $filePath): array
+    {
+        if (! is_file($filePath) || ! is_readable($filePath)) {
+            return [];
+        }
+
+        $image = @imagecreatefromstring((string) file_get_contents($filePath));
+        if (! $image) {
+            return [];
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        if ($width <= 0 || $height <= 0) {
+            imagedestroy($image);
+            return [];
+        }
+
+        $sample = imagecreatetruecolor(32, 32);
+        imagecopyresampled($sample, $image, 0, 0, 0, 0, 32, 32, $width, $height);
+        imagedestroy($image);
+
+        $colorBins = [];
+
+        for ($y = 0; $y < 32; $y++) {
+            for ($x = 0; $x < 32; $x++) {
+                // Ignore border background padding
+                if ($x < 3 || $x > 28 || $y < 3 || $y > 28) {
+                    continue;
+                }
+
+                $rgb = imagecolorat($sample, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+
+                // Skip pure white/light grey background
+                if ($r > 240 && $g > 240 && $b > 240) {
+                    continue;
+                }
+
+                $name = $this->classifyColorName($r, $g, $b);
+                $colorBins[$name] = ($colorBins[$name] ?? 0) + 1;
+            }
+        }
+
+        imagedestroy($sample);
+
+        arsort($colorBins);
+        return array_slice(array_keys($colorBins), 0, 3);
+    }
+
+    private function classifyColorName(int $r, int $g, int $b): string
+    {
+        [$h, $s, $v] = $this->rgbToHsv($r, $g, $b);
+
+        if ($v < 0.15) {
+            return 'Black';
+        }
+        if ($s < 0.15 && $v > 0.80) {
+            return 'White';
+        }
+        if ($s < 0.15) {
+            return 'Grey';
+        }
+
+        $hDeg = $h * 360.0;
+
+        if ($hDeg < 15 || $hDeg >= 345) {
+            return ($v < 0.50) ? 'Maroon' : 'Red';
+        }
+        if ($hDeg >= 15 && $hDeg < 45) {
+            return ($s < 0.40) ? 'Beige / Peach' : 'Orange / Rust';
+        }
+        if ($hDeg >= 45 && $hDeg < 70) {
+            return 'Yellow / Gold';
+        }
+        if ($hDeg >= 70 && $hDeg < 170) {
+            return 'Green';
+        }
+        if ($hDeg >= 170 && $hDeg < 250) {
+            return ($v < 0.40) ? 'Navy Blue' : 'Blue';
+        }
+        if ($hDeg >= 250 && $hDeg < 290) {
+            return 'Purple / Violet';
+        }
+        if ($hDeg >= 290 && $hDeg < 345) {
+            return ($s < 0.40) ? 'Pink / Rose' : 'Magenta / Fuchsia';
+        }
+
+        return 'Multicolor';
+    }
+
     private function resolveLocalPath(?string $imagePath): ?string
     {
         if (! is_string($imagePath) || $imagePath === '') {

@@ -57,6 +57,47 @@
     <div class="row g-3 g-md-4">
         <!-- Main Fields -->
         <div class="col-lg-8">
+            <!-- AI Magic Wand Product Copy Generator -->
+            <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <h5 class="fw-bold mb-0 text-white d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                            <i class="fa-solid fa-wand-magic-sparkles text-warning fs-5"></i>
+                            <span>AI Product Assistant (Google Gemini)</span>
+                        </h5>
+                        <span class="badge bg-warning text-dark fw-bold px-2.5 py-1" style="font-size: 0.72rem;">GEMINI 1.5 VISION</span>
+                    </div>
+                    <p class="text-white-50 small mb-3">Upload a dress photo below and click the Magic Wand button to automatically generate and fill the <strong>Product Name</strong> and <strong>Description</strong>!</p>
+
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm">
+                                <input type="file" id="aiDressImageInput" class="form-control rounded-start-3 bg-dark text-white border-secondary" accept="image/*" onchange="previewAiDressImage(this)">
+                                <button type="button" class="btn btn-outline-light" onclick="clearAiDressImage()" title="Clear image"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <button type="button" id="btnRunAiAssist" class="btn btn-warning w-100 rounded-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 py-1.5 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;" onclick="triggerAiAutoFill()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>Auto-Fill Name & Description</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected AI Dress Image Preview -->
+                    <div id="aiDressPreviewBox" class="mt-3 p-2 bg-dark bg-opacity-50 rounded-3 border border-secondary d-none d-flex align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <img id="aiDressPreviewImg" src="" class="rounded border border-secondary" style="width: 48px; height: 48px; object-fit: cover;">
+                            <div>
+                                <div class="text-white small fw-bold text-truncate" id="aiDressFileName" style="max-width: 220px;">dress_sample.jpg</div>
+                                <div class="text-success small" style="font-size: 0.72rem;"><i class="fa-solid fa-circle-check me-1"></i> Assigned to Main Product Cover Image</div>
+                            </div>
+                        </div>
+                        <span id="aiStatusBadge" class="badge bg-secondary">Ready</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
                 <div class="card-body p-3 p-md-4 admin-prod-card-body">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Basic Details</h5>
@@ -522,6 +563,120 @@
                 }
             }
         }
+    }
+
+    function previewAiDressImage(input) {
+        const file = input.files && input.files[0];
+        const previewBox = document.getElementById('aiDressPreviewBox');
+        const previewImg = document.getElementById('aiDressPreviewImg');
+        const fileNameEl = document.getElementById('aiDressFileName');
+        const mainInput = document.getElementById('mainImageInput');
+
+        if (file) {
+            fileNameEl.innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewBox.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+
+            if (mainInput && window.DataTransfer) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                mainInput.files = dt.files;
+                previewMainImage(mainInput);
+            }
+        } else {
+            previewBox.classList.add('d-none');
+        }
+    }
+
+    function clearAiDressImage() {
+        const input = document.getElementById('aiDressImageInput');
+        const previewBox = document.getElementById('aiDressPreviewBox');
+        if (input) input.value = '';
+        if (previewBox) previewBox.classList.add('d-none');
+    }
+
+    function triggerAiAutoFill() {
+        const aiInput = document.getElementById('aiDressImageInput');
+        const mainInput = document.getElementById('mainImageInput');
+        const file = (aiInput && aiInput.files && aiInput.files[0]) || (mainInput && mainInput.files && mainInput.files[0]);
+
+        if (!file) {
+            alert('Please select a dress image first!');
+            if (aiInput) aiInput.click();
+            return;
+        }
+
+        const btn = document.getElementById('btnRunAiAssist');
+        const statusBadge = document.getElementById('aiStatusBadge');
+        const originalBtnHtml = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Analyzing with AI...';
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-warning text-dark';
+            statusBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-1"></i> Generating Copy...';
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('_token', '{{ csrf_token() }}');
+
+        fetch('{{ route("admin.products.ai-auto-fill") }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+
+            if (data.success) {
+                if (statusBadge) {
+                    statusBadge.className = 'badge bg-success';
+                    statusBadge.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copy Auto-Filled!';
+                }
+
+                const nameInput = document.querySelector('input[name="name"]');
+                const descTextarea = document.querySelector('textarea[name="description"]');
+
+                if (nameInput && data.name) {
+                    nameInput.value = data.name;
+                    nameInput.style.transition = 'background 0.3s ease';
+                    nameInput.style.backgroundColor = '#fffbe6';
+                    setTimeout(() => nameInput.style.backgroundColor = '', 2500);
+                }
+
+                if (descTextarea && data.description) {
+                    descTextarea.value = data.description;
+                    descTextarea.style.transition = 'background 0.3s ease';
+                    descTextarea.style.backgroundColor = '#fffbe6';
+                    setTimeout(() => descTextarea.style.backgroundColor = '', 2500);
+                }
+            } else {
+                if (statusBadge) {
+                    statusBadge.className = 'badge bg-danger';
+                    statusBadge.innerText = 'Failed';
+                }
+                alert(data.message || 'AI Auto-Fill failed. Please try again.');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+            if (statusBadge) {
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.innerText = 'Error';
+            }
+            alert('An error occurred during AI analysis. Please check your internet connection and Gemini API key.');
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

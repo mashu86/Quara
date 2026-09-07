@@ -7,12 +7,15 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
+use App\Models\Setting;
 use App\Services\ImageOptimizerService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class ProductController extends Controller
 {
@@ -584,5 +587,158 @@ class ProductController extends Controller
         }
 
         return back()->with('error', 'Invalid resolution selected.');
+    }
+
+    public function aiAutoFill(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:10240',
+        ]);
+
+        $geminiKey = Setting::decryptSecret(Setting::get('gemini_api_key')) ?: (string) config('services.gemini.api_key', '');
+
+        if (empty($geminiKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Google Gemini API Key is not configured. Please add it under Master Settings (/admin/settings).'
+            ], 422);
+        }
+
+        try {
+            $filePath = $request->file('image')->getRealPath();
+            $mimeType = mime_content_type($filePath) ?: 'image/jpeg';
+            $fileData = file_get_contents($filePath);
+
+            if ($fileData === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to read uploaded dress image.'
+                ], 400);
+            }
+
+            $base64Data = base64_encode($fileData);
+
+            $prompt = implode("\n", [
+                'You are an expert e-commerce fashion copywriter for a ladies fashion shop ("Quara Wardrobe").',
+                'Examine this uploaded dress image in detail.',
+                'Detect garment type (e.g. Abaya, Maxi Dress, Kurti, Salwar Set, Kaftan, Gown, Tops, Saree), color, fabric/material (e.g. Chiffon, Georgette, Silk, Cotton, Rayon), neckline, sleeve style, pattern (floral, printed, embroidered, solid), silhouette & embellishments.',
+                'Return ONLY a valid JSON object strictly matching this format:',
+                '{"name": "Short e-commerce title (STRICTLY MAXIMUM 2 TO 4 WORDS ONLY, e.g. Floral Chiffon Maxi Dress)", "description": "Beautiful e-commerce product description formatted with section headers (FABRIC & DETAILS, SILHOUETTE & FIT, STYLING & OCCASION, CARE INSTRUCTIONS) and clear bullet points."}',
+            ]);
+
+            $payload = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inline_data' => [
+                                    'mime_type' => $mimeType,
+                                    'data' => $base64Data,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+
+            $modelsToTry = [
+                'gemma-4-26b-a4b-it',
+                'gemini-1.5-flash-latest',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash',
+                'gemini-2.5-flash',
+                'gemini-1.5-pro',
+            ];
+
+            // Put cached working model first if available
+            $cachedModel = Cache::get('gemini_working_model_' . md5($geminiKey));
+            if ($cachedModel && in_array($cachedModel, $modelsToTry, true)) {
+                $modelsToTry = array_unique(array_merge([$cachedModel], $modelsToTry));
+            }
+
+            $response = null;
+            $status = 0;
+            $curlError = '';
+            $successfulModel = null;
+
+            foreach ($modelsToTry as $model) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($geminiKey);
+
+                $curl = curl_init($url);
+                curl_setopt_array($curl, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_CONNECTTIMEOUT => 10,
+                    CURLOPT_TIMEOUT => 45,
+                ]);
+
+                $response = curl_exec($curl);
+                $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($curl);
+                curl_close($curl);
+
+                if (is_string($response) && $status >= 200 && $status < 300) {
+                    $successfulModel = $model;
+                    Cache::put('gemini_working_model_' . md5($geminiKey), $model, 86400);
+                    break;
+                }
+
+                // If rate limited (429) or model unavailable (404/503), try next candidate
+                Log::warning("Gemini AI model {$model} failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
+            }
+
+            if (!$successfulModel || !is_string($response)) {
+                Log::error('AI auto fill Gemini all models failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to analyze image with Google Gemini AI. Please check your API key.'
+                ], 500);
+            }
+
+            $responseData = json_decode($response, true);
+            $rawText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+            if (!is_string($rawText)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid AI response format received from Google Studio.'
+                ], 500);
+            }
+
+            // Extract JSON block if response contains markdown formatting like ```json ... ```
+            $cleanJson = $rawText;
+            if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $rawText, $matches)) {
+                $cleanJson = $matches[1];
+            } else {
+                $cleanJson = trim($cleanJson, "` \t\n\r\0\x0B");
+            }
+
+            $decoded = json_decode($cleanJson, true);
+
+            if (!is_array($decoded) || empty($decoded['name'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'AI could not extract dress details from this photo. Please upload a clearer clothing photo.'
+                ], 422);
+            }
+
+            $productName = trim($decoded['name']);
+            $productName = Str::words($productName, 4, '');
+
+            return response()->json([
+                'success' => true,
+                'name' => $productName,
+                'description' => trim($decoded['description'] ?? ''),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('AI auto fill error', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during AI analysis: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

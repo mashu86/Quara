@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Services\VisualEmbeddingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 class VisualSearchController extends Controller
@@ -39,13 +41,35 @@ class VisualSearchController extends Controller
                 ]);
             }
 
-            $apiKey = (string) config('services.openai.api_key', '');
+            // 1. Primary Engine: Pure Local Fast PHP GD Vector & Color Matching (~90ms)
+            $vectorMatches = $embeddingService->searchSimilarProducts($tempPath, self::MAX_RESULTS, 45.0);
+            $detectedColors = $embeddingService->extractDominantColors($tempPath);
 
-            if ($apiKey !== '') {
-                $aiResult = $this->matchCatalogWithVision(
+            if (! empty($vectorMatches)) {
+                $formattedVectorProducts = array_map(function ($item) {
+                    return array_merge($this->formatProduct($item['product']), [
+                        'match_score' => (int) $item['score'],
+                    ]);
+                }, $vectorMatches);
+
+                return response()->json([
+                    'success' => true,
+                    'matching_mode' => 'local_vector_gd',
+                    'client_visual_verification' => false,
+                    'detected_colors' => $detectedColors,
+                    'total_matches' => count($formattedVectorProducts),
+                    'products' => $formattedVectorProducts,
+                ]);
+            }
+
+            // 2. Fallback to Gemini AI if configured and local threshold yields no matches
+            $geminiKey = Setting::decryptSecret(Setting::get('gemini_api_key')) ?: (string) config('services.gemini.api_key', '');
+
+            if ($geminiKey !== '') {
+                $aiResult = $this->matchCatalogWithGemini(
                     $tempPath,
                     $products,
-                    $apiKey
+                    $geminiKey
                 );
 
                 if ($aiResult !== null) {
@@ -60,33 +84,13 @@ class VisualSearchController extends Controller
                 }
             }
 
-            // Perform vector similarity search using catalog stored embeddings
-            $vectorMatches = $embeddingService->searchSimilarProducts($tempPath, self::MAX_RESULTS, 52.0);
-
-            if (! empty($vectorMatches)) {
-                $formattedVectorProducts = array_map(function ($item) {
-                    return array_merge($this->formatProduct($item['product']), [
-                        'match_score' => (int) $item['score'],
-                    ]);
-                }, $vectorMatches);
-
-                return response()->json([
-                    'success' => true,
-                    'matching_mode' => 'vector_embedding',
-                    'client_visual_verification' => false,
-                    'total_matches' => count($formattedVectorProducts),
-                    'products' => $formattedVectorProducts,
-                ]);
-            }
-
-            // The browser compares the uploaded photo with these actual product
-            // images if database vector matches fall below threshold.
+            // 3. Fallback Browser-side Client Verification
             return response()->json([
                 'success' => true,
                 'matching_mode' => 'browser_visual',
                 'client_visual_verification' => true,
                 'match_threshold' => 56,
-                'detected_colors' => [],
+                'detected_colors' => $detectedColors,
                 'total_matches' => 0,
                 'products' => $products
                     ->filter(fn (Product $product) => $product->images->isNotEmpty())
@@ -377,5 +381,207 @@ class VisualSearchController extends Controller
     protected function cleanPromptText(?string $value): string
     {
         return mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string) $value)) ?? ''), 0, 120);
+    }
+
+    protected function matchCatalogWithGemini(string $queryPath, Collection $products, string $apiKey): ?array
+    {
+        $queryDataUrl = $this->fileToDataUrl($queryPath);
+
+        if ($queryDataUrl === null) {
+            return null;
+        }
+
+        $parts = explode(',', $queryDataUrl);
+        $base64Data = end($parts);
+        $mimeType = mime_content_type($queryPath) ?: 'image/jpeg';
+
+        $allMatches = [];
+        $detectedColors = [];
+        $detectedPattern = null;
+        $clothingWasDetected = false;
+        $receivedValidResult = false;
+
+        foreach ($products->chunk(self::AI_BATCH_SIZE) as $batch) {
+            $promptText = implode("\n", [
+                'You are the strict visual-search engine for a fashion shop.',
+                'The first image is the customer query. Below are labeled catalog products.',
+                'A match MUST be the same garment class (for example top vs top, saree vs saree, gown vs gown).',
+                'Ignore the person, face, skin, pose, body shape, accessories, room and background. Judge only the clothing.',
+                'Compare garment type, silhouette/cut, dominant and secondary colors, pattern/print, neckline, sleeves and visible material.',
+                'Return ONLY a valid JSON object strictly adhering to: {"is_clothing":boolean,"detected_colors":["color"],"detected_pattern":"solid/floral/striped/checked/embroidered/printed/other","matches":[{"product_id":integer,"score":integer}]}.',
+                'Use scores 90-99 only for same/near-identical item, 80-89 for strong visual match, 72-79 for credible similar item. Omit products below 72.',
+            ]);
+
+            $catalogItemsText = [];
+            $includedIds = [];
+
+            foreach ($batch as $product) {
+                $includedIds[] = (int) $product->id;
+                $catalogItemsText[] = sprintf(
+                    'CATALOG_PRODUCT_ID: %d | NAME: %s | CATEGORY: %s',
+                    $product->id,
+                    $this->cleanPromptText($product->name),
+                    $this->cleanPromptText($product->category?->name ?? 'Fashion')
+                );
+            }
+
+            if ($includedIds === []) {
+                continue;
+            }
+
+            $fullPrompt = $promptText . "\n\nPRODUCTS TO EVALUATE:\n" . implode("\n", $catalogItemsText);
+
+            $payload = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $fullPrompt],
+                            [
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
+                                    'data' => $base64Data,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'generationConfig' => [
+                    'responseMimeType' => 'application/json',
+                    'temperature' => 0.1,
+                ],
+            ];
+
+            $result = $this->sendGeminiVisionRequest($payload, $apiKey);
+
+            if ($result === null) {
+                continue;
+            }
+
+            $receivedValidResult = true;
+            $batchMatches = is_array($result['matches'] ?? null) ? $result['matches'] : [];
+            $batchColors = is_array($result['detected_colors'] ?? null) ? $result['detected_colors'] : [];
+            if ($detectedPattern === null && is_string($result['detected_pattern'] ?? null)) {
+                $detectedPattern = trim($result['detected_pattern']);
+            }
+            $clothingWasDetected = $clothingWasDetected
+                || ($result['is_clothing'] ?? false) === true
+                || $batchMatches !== [];
+            $detectedColors = array_merge($detectedColors, $batchColors);
+
+            foreach ($batchMatches as $match) {
+                if (! is_array($match)) {
+                    continue;
+                }
+
+                $productId = filter_var($match['product_id'] ?? null, FILTER_VALIDATE_INT);
+                $score = filter_var($match['score'] ?? null, FILTER_VALIDATE_INT);
+
+                if ($productId === false || $score === false || ! in_array($productId, $includedIds, true)) {
+                    continue;
+                }
+
+                if ($score < 72 || $score > 99) {
+                    continue;
+                }
+
+                $allMatches[$productId] = max($allMatches[$productId] ?? 0, $score);
+            }
+        }
+
+        if (! $receivedValidResult) {
+            return null;
+        }
+
+        arsort($allMatches);
+
+        return [
+            'is_clothing' => $clothingWasDetected,
+            'detected_colors' => array_values(array_unique(array_filter(
+                array_map(fn ($color) => trim((string) $color), $detectedColors)
+            ))),
+            'detected_pattern' => $detectedPattern,
+            'matches' => collect($allMatches)
+                ->take(self::MAX_RESULTS)
+                ->map(fn (int $score, int $id) => ['product_id' => $id, 'score' => $score])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    protected function sendGeminiVisionRequest(array $payload, string $apiKey): ?array
+    {
+        $modelsToTry = [
+            'gemma-4-26b-a4b-it',
+            'gemini-1.5-flash-latest',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-2.5-flash',
+            'gemini-1.5-pro',
+        ];
+
+        $cachedModel = Cache::get('gemini_working_model_' . md5($apiKey));
+        if ($cachedModel && in_array($cachedModel, $modelsToTry, true)) {
+            $modelsToTry = array_unique(array_merge([$cachedModel], $modelsToTry));
+        }
+
+        $response = null;
+        $status = 0;
+        $curlError = '';
+        $successfulModel = null;
+
+        foreach ($modelsToTry as $model) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($apiKey);
+
+            $curl = curl_init($url);
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 45,
+            ]);
+
+            $response = curl_exec($curl);
+            $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($curl);
+            curl_close($curl);
+
+            if (is_string($response) && $status >= 200 && $status < 300) {
+                $successfulModel = $model;
+                Cache::put('gemini_working_model_' . md5($apiKey), $model, 86400);
+                break;
+            }
+        }
+
+        if (! $successfulModel || ! is_string($response)) {
+            Log::warning('Google Gemini AI vision request failed on all candidate models', [
+                'status' => $status,
+                'curl_error' => $curlError,
+                'response' => mb_substr((string) $response, 0, 300),
+            ]);
+
+            return null;
+        }
+
+        $responseData = json_decode($response, true);
+        $text = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+        if (! is_string($text)) {
+            return null;
+        }
+
+        $cleanJson = $text;
+        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $text, $matches)) {
+            $cleanJson = $matches[1];
+        } else {
+            $cleanJson = trim($cleanJson, "` \t\n\r\0\x0B");
+        }
+
+        $decoded = json_decode($cleanJson, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }

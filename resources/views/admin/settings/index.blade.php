@@ -187,6 +187,40 @@
         </div>
     </div>
 
+    <div class="card setting-card mb-4">
+        <div class="card-header">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-brain text-info me-2"></i> Google AI Studio (Gemini AI) Configuration</h5>
+            <div class="section-note">Manage the Google Gemini API key used for visual search, outfit image matching, and intelligent catalog search.</div>
+        </div>
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                <h6 class="fw-bold mb-0">Google Gemini API Credentials</h6>
+                <div>
+                    @if($hasSavedGeminiKey)
+                        <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> GEMINI KEY ACTIVE</span>
+                    @else
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-circle-exclamation me-1"></i> NOT CONFIGURED</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="alert alert-info border-0 rounded-3 small">
+                <i class="fa-solid fa-circle-info me-1"></i> This key is stored encrypted. It powers Google AI Studio (Gemini 1.5 Flash / Vision) for visual search and outfit photo matching.
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="gemini_api_key" class="form-label fw-bold">Google Gemini API Key</label>
+                    <div class="input-group">
+                        <input type="password" id="gemini_api_key" name="gemini_api_key" class="form-control rounded-start-3 @error('gemini_api_key') is-invalid @enderror" autocomplete="new-password" placeholder="{{ $hasSavedGeminiKey ? 'Saved securely — enter only to change' : 'AIzaSy... or AQ...' }}">
+                        <button type="button" class="btn btn-outline-secondary toggle-gemini-key" title="Show or hide Gemini Key"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                    <div class="form-text">{{ $hasSavedGeminiKey ? 'A Gemini API key is currently saved and encrypted. Leave blank to keep it.' : 'Enter your Google AI Studio API key (starts with AQ... or AIza...).' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-grid d-sm-flex justify-content-sm-end pb-4">
         <button type="submit" class="btn btn-warning rounded-pill px-5 py-2 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
             <i class="fa-solid fa-floppy-disk me-1"></i> Save Master Settings
@@ -217,6 +251,14 @@
 
     document.querySelector('.toggle-razorpay-secret')?.addEventListener('click', function () {
         const input = document.getElementById('razorpay_secret');
+        const icon = this.querySelector('i');
+        input.type = input.type === 'password' ? 'text' : 'password';
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
+
+    document.querySelector('.toggle-gemini-key')?.addEventListener('click', function () {
+        const input = document.getElementById('gemini_api_key');
         const icon = this.querySelector('i');
         input.type = input.type === 'password' ? 'text' : 'password';
         icon.classList.toggle('fa-eye');

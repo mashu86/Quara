@@ -72,13 +72,39 @@ class ContractualPostController extends Controller
     private function parseInputDate($dateString)
     {
         if (!$dateString) return date('Y-m-d');
-        try {
-            if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', trim($dateString), $matches)) {
-                $day = sprintf('%02d', $matches[1]);
-                $month = sprintf('%02d', $matches[2]);
-                $year = $matches[3];
-                return "{$year}-{$month}-{$day}";
+        $dateString = trim($dateString);
+
+        // 1. Check YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+        if (preg_match('/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})$/', $dateString, $matches)) {
+            $year = (int) $matches[1];
+            $month = (int) $matches[2];
+            $day = (int) $matches[3];
+            if (checkdate($month, $day, $year)) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
             }
+        }
+
+        // 2. Check DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
+        if (preg_match('/^(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})$/', $dateString, $matches)) {
+            $day = (int) $matches[1];
+            $month = (int) $matches[2];
+            $year = (int) $matches[3];
+            if (checkdate($month, $day, $year)) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
+            }
+        }
+
+        // 3. Check DD-MM-YY or DD/MM/YY or DD.MM.YY (2-digit year)
+        if (preg_match('/^(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{2})$/', $dateString, $matches)) {
+            $day = (int) $matches[1];
+            $month = (int) $matches[2];
+            $year = 2000 + (int) $matches[3];
+            if (checkdate($month, $day, $year)) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
+            }
+        }
+
+        try {
             return \Carbon\Carbon::parse($dateString)->format('Y-m-d');
         } catch (\Exception $e) {
             return date('Y-m-d');

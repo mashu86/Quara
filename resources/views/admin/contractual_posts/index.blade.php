@@ -283,7 +283,7 @@
                                     <tr>
                                         <td class="ps-3 ps-md-4 fw-semibold text-dark">
                                             <i class="fa-regular fa-calendar me-1 text-muted"></i> {{ $recharge->date->format('d-m-Y') }}
-                                        </td>   </td>
+                                        </td>
                                         <td class="fw-bold text-success fs-6">
                                             ₹{{ number_format($recharge->amount, 2) }}
                                         </td>
@@ -606,13 +606,41 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+    // Helper function for strict dd-mm-yyyy parsing in JavaScript
+    function parseDdMmYyyy(dateStr) {
+        if (!dateStr) return null;
+        var parts = dateStr.trim().split(/[-\/\.]/);
+        if (parts.length === 3) {
+            var day, month, year;
+            if (parts[0].length === 4) {
+                year = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10) - 1;
+                day = parseInt(parts[2], 10);
+            } else {
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10) - 1;
+                year = parseInt(parts[2], 10);
+                if (year < 100) year += 2000;
+            }
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year) && month >= 0 && month < 12 && day >= 1 && day <= 31) {
+                return new Date(year, month, day);
+            }
+        }
+        return null;
+    }
+
     // Initialize Flatpickr Date Picker forcing dd-mm-yyyy format across all devices
     function initFlatpickr(scope = document) {
         scope.querySelectorAll('.flatpickr-date').forEach(el => {
             if (!el._flatpickr) {
                 flatpickr(el, {
                     dateFormat: "d-m-Y",
-                    allowInput: true
+                    allowInput: true,
+                    parseDate: function(dateStr, format) {
+                        var parsed = parseDdMmYyyy(dateStr);
+                        if (parsed) return parsed;
+                        return flatpickr.parseDate(dateStr, format);
+                    }
                 });
             }
         });

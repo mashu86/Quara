@@ -481,7 +481,6 @@ class OrderController extends Controller
         // If changing status from PAID back to PENDING / FAILED / REFUNDED manually by Admin
         if ($previousPaymentStatus === 'paid' && in_array($validated['payment_status'], ['pending', 'failed', 'refunded'])) {
             $order->order_status = 'pending';
-            $order->razorpay_payment_id = null;
 
             $stockService = app(\App\Services\StockService::class);
             $itemsToReserve = $order->items->map(function ($item) {

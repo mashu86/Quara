@@ -478,6 +478,23 @@ class OrderController extends Controller
             }
         }
 
+        // If changing status from PAID back to PENDING / FAILED / REFUNDED manually by Admin
+        if ($previousPaymentStatus === 'paid' && in_array($validated['payment_status'], ['pending', 'failed', 'refunded'])) {
+            $order->order_status = 'pending';
+            $order->razorpay_payment_id = null;
+
+            $stockService = app(\App\Services\StockService::class);
+            $itemsToReserve = $order->items->map(function ($item) {
+                return [
+                    'product_id' => $item->product_id,
+                    'size' => $item->size,
+                    'quantity' => $item->quantity,
+                ];
+            })->toArray();
+
+            $stockService->reserveStockForOrderItems($itemsToReserve, "Manual Admin Reversion (Order #{$order->order_number} set to {$validated['payment_status']})");
+        }
+
         // Update order level payment status and method
         $order->payment_status = $validated['payment_status'];
         $order->payment_method = $validated['payment_method'];
@@ -512,9 +529,12 @@ class OrderController extends Controller
         $payment->status = $validated['payment_status'];
         $payment->amount = $payment->amount ?: $order->grand_total;
 
-        if (!empty($validated['razorpay_payment_id'])) {
+        if ($validated['payment_status'] === 'pending') {
+            $payment->razorpay_payment_id = null;
+        } elseif (!empty($validated['razorpay_payment_id'])) {
             $payment->razorpay_payment_id = $validated['razorpay_payment_id'];
         }
+
         if (!empty($validated['razorpay_order_id'])) {
             $payment->razorpay_order_id = $validated['razorpay_order_id'];
         }
@@ -529,7 +549,7 @@ class OrderController extends Controller
             $order->calculateRazorpayCharge();
         }
 
-        return back()->with('success', "Order #{$order->order_number} payment details updated successfully!");
+        return back()->with('success', "Order #{$order->order_number} payment details updated successfully! (Status set to {$validated['payment_status']})");
     }
 
     public function recheckRazorpayStatus(Request $request, Order $order)

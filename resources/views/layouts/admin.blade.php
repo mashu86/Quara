@@ -440,6 +440,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.profit-prediction.index') }}" class="nav-link {{ request()->routeIs('admin.profit-prediction.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-chart-line me-2 text-success"></i> Profit Prediction
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-bell me-2"></i> Notifications
                         @if(($unreadCount ?? 0) > 0)

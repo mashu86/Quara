@@ -198,6 +198,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/reports/profit-loss', [AdminExpenseController::class, 'profitLossReport'])->name('reports.profit-loss');
         Route::get('/reports/refunded-products', [AdminExpenseController::class, 'refundedProductsReport'])->name('reports.refunded-products');
         Route::get('/reports/razorpay-charges', [AdminExpenseController::class, 'razorpayReport'])->name('reports.razorpay-charges');
+        Route::get('/profit-prediction', [\App\Http\Controllers\Admin\ProfitPredictionController::class, 'index'])->name('profit-prediction.index');
 
         // Employee Management
         Route::resource('employees', \App\Http\Controllers\Admin\EmployeeController::class);

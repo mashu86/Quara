@@ -217,10 +217,7 @@
                                                     @foreach($ord->items as $item)
                                                         @php
                                                             $prod = $item->product;
-                                                            $imgUrl = null;
-                                                            if ($prod && $prod->images && count($prod->images) > 0) {
-                                                                $imgUrl = asset('storage/' . $prod->images[0]->image_path);
-                                                            }
+                                                            $imgUrl = $prod ? $prod->primary_image_url : asset('media/logo.png');
                                                         @endphp
                                                         <div class="d-flex align-items-center gap-2 bg-light p-1 px-2 rounded-3 border">
                                                             @if($imgUrl)
@@ -229,7 +226,8 @@
                                                                      class="rounded shadow-sm cursor-pointer product-img-thumbnail" 
                                                                      style="width: 44px; height: 44px; object-fit: cover; border: 1px solid #ddd;"
                                                                      onclick="openImageModal('{{ $imgUrl }}', '{{ addslashes($item->product_name) }}', '{{ $item->size }}', '₹{{ number_format($item->price, 2) }}')"
-                                                                     title="Click to view full image">
+                                                                     title="Click to view full image"
+                                                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Image';">
                                                             @else
                                                                 <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 0.7rem;">
                                                                     No Image
@@ -287,29 +285,33 @@
                             <h5 class="fw-bold text-muted">No expenses recorded on this date.</h5>
                         </div>
                     @else
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="ps-3">Expense Name</th>
-                                        <th>Category</th>
-                                        <th>Amount</th>
-                                        <th>Description</th>
-                                        <th>Logged By</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($expenses as $exp)
-                                        <tr>
-                                            <td class="ps-3 fw-bold text-dark">{{ $exp->title }}</td>
-                                            <td><span class="badge bg-secondary">{{ $exp->category ?? 'General' }}</span></td>
-                                            <td class="fw-bold text-danger fs-6">₹{{ number_format($exp->amount, 2) }}</td>
-                                            <td class="text-muted small">{{ $exp->description ?: '-' }}</td>
-                                            <td class="small text-secondary">{{ $exp->spent_by ?: 'Admin' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="p-3">
+                            <div class="row g-3">
+                                @foreach($expenses as $exp)
+                                    <div class="col-12 col-md-6 col-lg-4">
+                                        <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-danger bg-white">
+                                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                                <div>
+                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                        <span class="badge bg-danger-subtle text-danger font-monospace border border-danger-subtle px-2 py-1">
+                                                            <i class="fa-solid fa-tag me-1"></i> {{ $exp->category ?? 'General' }}
+                                                        </span>
+                                                        <span class="fw-bold text-danger fs-5">₹{{ number_format($exp->amount, 2) }}</span>
+                                                    </div>
+                                                    <h6 class="fw-bold text-dark mb-1">{{ $exp->title }}</h6>
+                                                    @if($exp->description)
+                                                        <p class="text-muted small mb-2" style="font-size: 0.82rem;">{{ $exp->description }}</p>
+                                                    @endif
+                                                </div>
+                                                <div class="pt-2 border-top d-flex align-items-center justify-content-between extra-small text-muted mt-2" style="font-size: 0.75rem;">
+                                                    <span><i class="fa-regular fa-user me-1"></i> {{ $exp->spent_by ?: 'Admin' }}</span>
+                                                    <span><i class="fa-regular fa-clock me-1"></i> {{ $exp->created_at ? $exp->created_at->format('h:i A') : '' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -392,20 +394,18 @@
                                         @foreach($bookedProductSizes as $bps)
                                             @php
                                                 $prod = $bps->product;
-                                                $imgUrl = null;
-                                                if ($prod && $prod->images && count($prod->images) > 0) {
-                                                    $imgUrl = asset('storage/' . $prod->images[0]->image_path);
-                                                }
+                                                $imgUrl = $prod ? $prod->primary_image_url : asset('media/logo.png');
                                             @endphp
                                             <tr>
                                                 <td class="ps-3">
                                                     <div class="d-flex align-items-center gap-3">
                                                         @if($imgUrl)
                                                             <img src="{{ $imgUrl }}" 
-                                                                 alt="{{ $prod->name }}" 
+                                                                 alt="{{ $prod ? $prod->name : 'Product' }}" 
                                                                  class="rounded shadow-sm cursor-pointer product-img-thumbnail" 
                                                                  style="width: 50px; height: 50px; object-fit: cover; border: 1px solid #ddd;"
-                                                                 onclick="openImageModal('{{ $imgUrl }}', '{{ addslashes($prod->name) }}', '{{ $bps->size }}', '₹{{ number_format($prod->selling_price, 2) }}')">
+                                                                 onclick="openImageModal('{{ $imgUrl }}', '{{ addslashes($prod ? $prod->name : 'Product') }}', '{{ $bps->size }}', '₹{{ number_format($prod ? $prod->selling_price : 0, 2) }}')"
+                                                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Image';">
                                                         @else
                                                             <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 0.7rem;">
                                                                 No Image

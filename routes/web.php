@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckContro
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
 use App\Http\Controllers\Admin\PaymentDiscrepancyController as AdminPaymentDiscrepancyController;
+use App\Http\Controllers\Admin\DailyJournalController as AdminDailyJournalController;
 use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\Admin\ContractualPostController;
 use App\Http\Controllers\StorageFileController;
@@ -161,6 +162,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/payment-discrepancies/{order}/reconcile', [AdminPaymentDiscrepancyController::class, 'reconcile'])->name('payment-discrepancies.reconcile');
         Route::post('/payment-discrepancies/reconcile-all', [AdminPaymentDiscrepancyController::class, 'reconcile-all'])->name('payment-discrepancies.reconcile-all');
 
+        // Daily Business Operations & Summary Journal Module
+        Route::get('/daily-journal', [AdminDailyJournalController::class, 'index'])->name('daily-journal.index');
+        Route::post('/daily-journal/release-reserved-stock', [AdminDailyJournalController::class, 'releaseReservedStock'])->name('daily-journal.release-reserved-stock');
+
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');
         Route::post('/manual-sales', [AdminManualSalesController::class, 'store'])->name('manual-sales.store');
@@ -230,5 +235,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::post('/notifications/mark-all-read', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 });

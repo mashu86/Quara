@@ -256,4 +256,47 @@ class StockService
             return $productSize;
         });
     }
+
+    /**
+     * Release/Unbook reserved stock for a product size back into available public inventory.
+     */
+    public function releaseReservedStockForProductSize(int $productSizeId, string $reason = 'Manual Admin Release / Unbook'): bool
+    {
+        return DB::transaction(function () use ($productSizeId, $reason) {
+            $productSize = ProductSize::where('id', $productSizeId)->lockForUpdate()->first();
+            if (!$productSize) {
+                return false;
+            }
+
+            $prevReserved = $productSize->reserved_stock ?? 0;
+            $productSize->update(['reserved_stock' => 0]);
+
+            $product = Product::find($productSize->product_id);
+            if ($product) {
+                $totalAvailable = ProductSize::where('product_id', $product->id)
+                    ->get()
+                    ->sum('available_stock');
+
+                $product->update([
+                    'is_out_of_stock' => $totalAvailable <= 0,
+                    'booked_by' => null,
+                    'booked_by_admin_id' => null,
+                    'booked_at' => null,
+                ]);
+            }
+
+            StockMovement::create([
+                'product_id' => $productSize->product_id,
+                'product_size_id' => $productSize->id,
+                'size' => $productSize->size,
+                'previous_stock' => $productSize->stock,
+                'new_stock' => $productSize->stock,
+                'difference' => 0,
+                'reason' => $reason . " (Released {$prevReserved} reserved pcs)",
+                'admin_name' => auth()->check() ? auth()->user()->name : 'Admin',
+            ]);
+
+            return true;
+        });
+    }
 }

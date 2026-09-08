@@ -58,87 +58,87 @@
         @endif
     </div>
 
-    <!-- 5 KPI Summary Cards -->
-    <div class="row g-3 mb-4">
+    <!-- 5 Compact KPI Summary Cards -->
+    <div class="row g-2 mb-3">
         <!-- Total Sales -->
-        <div class="col-12 col-sm-6 col-xl-2-4">
-            <div class="stat-card border-start border-4 border-success bg-white shadow-sm p-3 rounded-4">
+        <div class="col-6 col-md-4 col-xl-2-4">
+            <div class="stat-card border-start border-3 border-success bg-white shadow-sm p-2 px-3 rounded-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Sales</div>
-                        <h3 class="fw-bold mb-0 text-success mt-1">₹{{ number_format($grossSales, 2) }}</h3>
-                        <div class="text-muted extra-small mt-1">Net: ₹{{ number_format($netSales, 2) }}</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold" style="font-size: 0.68rem;">Successful Sales</div>
+                        <h4 class="fw-bold mb-0 text-success mt-1 fs-5">₹{{ number_format($grossSales, 2) }}</h4>
+                        <div class="text-muted extra-small" style="font-size: 0.68rem;">Net: ₹{{ number_format($netSales, 2) }}</div>
                     </div>
-                    <div class="stat-icon bg-success-subtle text-success rounded-circle p-3">
-                        <i class="fa-solid fa-indian-rupee-sign fs-5"></i>
+                    <div class="stat-icon bg-success-subtle text-success rounded-circle p-2">
+                        <i class="fa-solid fa-indian-rupee-sign fs-6"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Total Orders Received -->
-        <div class="col-12 col-sm-6 col-xl-2-4">
-            <div class="stat-card border-start border-4 border-primary bg-white shadow-sm p-3 rounded-4">
+        <div class="col-6 col-md-4 col-xl-2-4">
+            <div class="stat-card border-start border-3 border-primary bg-white shadow-sm p-2 px-3 rounded-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Orders Received</div>
-                        <h3 class="fw-bold mb-0 text-primary mt-1">{{ $totalOrdersCount }}</h3>
-                        <div class="text-muted extra-small mt-1">{{ $paidOrdersCount }} Paid | {{ $pendingOrdersCount }} Pending</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold" style="font-size: 0.68rem;">Successful Orders</div>
+                        <h4 class="fw-bold mb-0 text-primary mt-1 fs-5">{{ count($orders) }}</h4>
+                        <div class="text-muted extra-small" style="font-size: 0.68rem;">Paid / Confirmed</div>
                     </div>
-                    <div class="stat-icon bg-primary-subtle text-primary rounded-circle p-3">
-                        <i class="fa-solid fa-cart-shopping fs-5"></i>
+                    <div class="stat-icon bg-primary-subtle text-primary rounded-circle p-2">
+                        <i class="fa-solid fa-circle-check fs-6"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Sold Products (Pcs) -->
-        <div class="col-12 col-sm-6 col-xl-2-4">
-            <div class="stat-card border-start border-4 border-info bg-white shadow-sm p-3 rounded-4">
+        <div class="col-6 col-md-4 col-xl-2-4">
+            <div class="stat-card border-start border-3 border-info bg-white shadow-sm p-2 px-3 rounded-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Sold Items (Pcs)</div>
-                        <h3 class="fw-bold mb-0 text-info mt-1">{{ $totalSoldPcs }} <span class="fs-6 fw-normal text-muted">pcs</span></h3>
-                        <div class="text-muted extra-small mt-1">across paid orders</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold" style="font-size: 0.68rem;">Sold Items (Pcs)</div>
+                        <h4 class="fw-bold mb-0 text-info mt-1 fs-5">{{ $totalSoldPcs }} <span class="fs-6 fw-normal text-muted">pcs</span></h4>
+                        <div class="text-muted extra-small" style="font-size: 0.68rem;">across paid orders</div>
                     </div>
-                    <div class="stat-icon bg-info-subtle text-info rounded-circle p-3">
-                        <i class="fa-solid fa-shirt fs-5"></i>
+                    <div class="stat-icon bg-info-subtle text-info rounded-circle p-2">
+                        <i class="fa-solid fa-shirt fs-6"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Total Expenses -->
-        <div class="col-12 col-sm-6 col-xl-2-4">
-            <div class="stat-card border-start border-4 border-danger bg-white shadow-sm p-3 rounded-4">
+        <div class="col-6 col-md-6 col-xl-2-4">
+            <div class="stat-card border-start border-3 border-danger bg-white shadow-sm p-2 px-3 rounded-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Expenses</div>
-                        <h3 class="fw-bold mb-0 text-danger mt-1">₹{{ number_format($totalExpenses, 2) }}</h3>
-                        <div class="text-muted extra-small mt-1">{{ count($expenses) }} expense items</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold" style="font-size: 0.68rem;">Total Expenses</div>
+                        <h4 class="fw-bold mb-0 text-danger mt-1 fs-5">₹{{ number_format($totalExpenses, 2) }}</h4>
+                        <div class="text-muted extra-small" style="font-size: 0.68rem;">{{ count($expenses) }} items</div>
                     </div>
-                    <div class="stat-icon bg-danger-subtle text-danger rounded-circle p-3">
-                        <i class="fa-solid fa-arrow-trend-down fs-5"></i>
+                    <div class="stat-icon bg-danger-subtle text-danger rounded-circle p-2">
+                        <i class="fa-solid fa-arrow-trend-down fs-6"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Daily Net Profit/Loss -->
-        <div class="col-12 col-sm-6 col-xl-2-4">
-            <div class="stat-card border-start border-4 {{ $isProfit ? 'border-success' : 'border-danger' }} bg-white shadow-sm p-3 rounded-4">
+        <div class="col-6 col-md-6 col-xl-2-4">
+            <div class="stat-card border-start border-3 {{ $isProfit ? 'border-success' : 'border-danger' }} bg-white shadow-sm p-2 px-3 rounded-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Daily Profit/Loss</div>
-                        <h3 class="fw-bold mb-0 {{ $isProfit ? 'text-success' : 'text-danger' }} mt-1">
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold" style="font-size: 0.68rem;">Daily Net Profit/Loss</div>
+                        <h4 class="fw-bold mb-0 {{ $isProfit ? 'text-success' : 'text-danger' }} mt-1 fs-5">
                             ₹{{ number_format(abs($netProfitLoss), 2) }}
-                        </h3>
-                        <div class="extra-small font-bold mt-1 {{ $isProfit ? 'text-success' : 'text-danger' }}">
+                        </h4>
+                        <div class="extra-small font-bold" style="font-size: 0.68rem;" class="{{ $isProfit ? 'text-success' : 'text-danger' }}">
                             {{ $isProfit ? '▲ Net Profit' : '▼ Net Loss' }}
                         </div>
                     </div>
-                    <div class="stat-icon {{ $isProfit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} rounded-circle p-3">
-                        <i class="fa-solid {{ $isProfit ? 'fa-chart-line' : 'fa-chart-line-down' }} fs-5"></i>
+                    <div class="stat-icon {{ $isProfit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} rounded-circle p-2">
+                        <i class="fa-solid {{ $isProfit ? 'fa-chart-line' : 'fa-chart-line-down' }} fs-6"></i>
                     </div>
                 </div>
             </div>
@@ -147,26 +147,26 @@
 
     <!-- Main Content Tabs -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
-        <div class="card-header bg-dark text-white p-3">
+        <div class="card-header bg-dark text-white p-2 px-3">
             <ul class="nav nav-tabs card-header-tabs border-0" id="journalTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold text-white px-4" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-pane" type="button" role="tab">
-                        <i class="fa-solid fa-bag-shopping me-2 text-warning"></i> Orders & Sold Items ({{ count($orders) }})
+                    <button class="nav-link active fw-bold text-white px-3 py-1.5 small" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-pane" type="button" role="tab">
+                        <i class="fa-solid fa-circle-check me-1.5 text-success"></i> Successful Orders ({{ count($orders) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-4" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab">
-                        <i class="fa-solid fa-receipt me-2 text-danger"></i> Expenses ({{ count($expenses) }})
+                    <button class="nav-link fw-bold text-white px-3 py-1.5 small" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab">
+                        <i class="fa-solid fa-receipt me-1.5 text-danger"></i> Expenses ({{ count($expenses) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-4" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-pane" type="button" role="tab">
-                        <i class="fa-solid fa-rotate-left me-2 text-info"></i> Refunds & Operations ({{ count($refunds) + count($operations) }})
+                    <button class="nav-link fw-bold text-white px-3 py-1.5 small" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-pane" type="button" role="tab">
+                        <i class="fa-solid fa-rotate-left me-1.5 text-info"></i> Refunds & Ops ({{ count($refunds) + count($operations) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-4" id="booked-tab" data-bs-toggle="tab" data-bs-target="#booked-pane" type="button" role="tab">
-                        <i class="fa-solid fa-bookmark me-2 text-warning"></i> Booked / Reserved Products ({{ count($bookedProductSizes) }})
+                    <button class="nav-link fw-bold text-white px-3 py-1.5 small" id="booked-tab" data-bs-toggle="tab" data-bs-target="#booked-pane" type="button" role="tab">
+                        <i class="fa-solid fa-bookmark me-1.5 text-warning"></i> Booked Products ({{ count($bookedProductSizes) }})
                     </button>
                 </li>
             </ul>
@@ -285,25 +285,25 @@
                             <h5 class="fw-bold text-muted">No expenses recorded on this date.</h5>
                         </div>
                     @else
-                        <div class="p-3">
-                            <div class="row g-3">
+                        <div class="p-2 p-md-3">
+                            <div class="row g-2">
                                 @foreach($expenses as $exp)
                                     <div class="col-12 col-md-6 col-lg-4">
-                                        <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-danger bg-white">
-                                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-3 border-danger bg-white">
+                                            <div class="card-body p-2 px-3 d-flex flex-column justify-content-between">
                                                 <div>
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <span class="badge bg-danger-subtle text-danger font-monospace border border-danger-subtle px-2 py-1">
+                                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                                        <span class="badge bg-danger-subtle text-danger font-monospace border border-danger-subtle px-1.5 py-0.5 extra-small" style="font-size: 0.68rem;">
                                                             <i class="fa-solid fa-tag me-1"></i> {{ $exp->category ?? 'General' }}
                                                         </span>
-                                                        <span class="fw-bold text-danger fs-5">₹{{ number_format($exp->amount, 2) }}</span>
+                                                        <span class="fw-bold text-danger fs-6">₹{{ number_format($exp->amount, 2) }}</span>
                                                     </div>
-                                                    <h6 class="fw-bold text-dark mb-1">{{ $exp->title }}</h6>
+                                                    <h6 class="fw-bold text-dark mb-1 small">{{ $exp->title }}</h6>
                                                     @if($exp->description)
-                                                        <p class="text-muted small mb-2" style="font-size: 0.82rem;">{{ $exp->description }}</p>
+                                                        <p class="text-muted extra-small mb-1 text-truncate" style="font-size: 0.75rem;">{{ $exp->description }}</p>
                                                     @endif
                                                 </div>
-                                                <div class="pt-2 border-top d-flex align-items-center justify-content-between extra-small text-muted mt-2" style="font-size: 0.75rem;">
+                                                <div class="pt-1.5 border-top d-flex align-items-center justify-content-between extra-small text-muted mt-1" style="font-size: 0.70rem;">
                                                     <span><i class="fa-regular fa-user me-1"></i> {{ $exp->spent_by ?: 'Admin' }}</span>
                                                     <span><i class="fa-regular fa-clock me-1"></i> {{ $exp->created_at ? $exp->created_at->format('h:i A') : '' }}</span>
                                                 </div>

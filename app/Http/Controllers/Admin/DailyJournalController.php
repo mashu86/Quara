@@ -35,7 +35,7 @@ class DailyJournalController extends Controller
         // Inactive test orders & operation filter
         $inactiveOrderIds = OrderOperation::where('status', 'inactive')->pluck('order_id')->toArray();
 
-        // 1. Orders placed / created on the selected date
+        // 1. Successful / Paid Orders on the selected date
         $ordersQuery = Order::with(['items.product.images', 'payment'])
             ->whereNotIn('id', $inactiveOrderIds)
             ->where(function ($q) {
@@ -43,6 +43,8 @@ class DailyJournalController extends Controller
                   ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
             })
             ->whereDate(DB::raw('COALESCE(sale_date, created_at)'), $selectedDateStr)
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
             ->orderBy('id', 'desc');
 
         $orders = $ordersQuery->get();

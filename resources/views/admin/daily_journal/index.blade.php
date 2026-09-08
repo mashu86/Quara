@@ -150,22 +150,22 @@
         <div class="card-header bg-dark text-white p-1.5 px-2 px-md-3">
             <ul class="nav nav-tabs card-header-tabs border-0 nav-tabs-scrollable" id="journalTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold text-white px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-pane" type="button" role="tab">
+                    <button class="nav-link active fw-bold px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-pane" type="button" role="tab">
                         <i class="fa-solid fa-circle-check me-1 text-success"></i> Successful Orders ({{ count($orders) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab">
+                    <button class="nav-link fw-bold px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab">
                         <i class="fa-solid fa-receipt me-1 text-danger"></i> Expenses ({{ count($expenses) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-pane" type="button" role="tab">
+                    <button class="nav-link fw-bold px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-pane" type="button" role="tab">
                         <i class="fa-solid fa-rotate-left me-1 text-info"></i> Refunds & Ops ({{ count($refunds) + count($operations) }})
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-white px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="booked-tab" data-bs-toggle="tab" data-bs-target="#booked-pane" type="button" role="tab">
+                    <button class="nav-link fw-bold px-2.5 px-md-3 py-1.5 extra-small text-nowrap" id="booked-tab" data-bs-toggle="tab" data-bs-target="#booked-pane" type="button" role="tab">
                         <i class="fa-solid fa-bookmark me-1 text-warning"></i> Booked Products ({{ count($bookedProductSizes) }})
                     </button>
                 </li>
@@ -497,6 +497,21 @@
     }
     .nav-tabs-scrollable::-webkit-scrollbar {
         display: none;
+    }
+    .nav-tabs-scrollable .nav-link {
+        color: rgba(255, 255, 255, 0.85) !important;
+        border: none !important;
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs-scrollable .nav-link:hover {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .nav-tabs-scrollable .nav-link.active {
+        color: #1a1a1a !important;
+        background-color: #ffffff !important;
+        font-weight: 700 !important;
     }
     .product-img-thumbnail {
         transition: transform 0.2s ease, box-shadow 0.2s ease;

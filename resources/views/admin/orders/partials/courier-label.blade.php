@@ -65,51 +65,80 @@
         min-height: 145mm;
         max-height: 145mm;
         box-sizing: border-box;
-        padding: 8mm 8mm 6mm;
+        padding: 6mm 7mm 5mm;
         overflow: hidden;
         background: #fff;
         color: #000;
-        font: 12.5pt/1.25 Arial, "Segoe UI", Helvetica, sans-serif;
+        font-family: Arial, "Segoe UI", Helvetica, sans-serif;
         display: flex;
         flex-direction: column;
-        gap: 5mm;
+        justify-content: space-between;
         break-inside: avoid;
         page-break-inside: avoid;
     }
 
     .courier-parcel-sheet * { box-sizing: border-box; }
+    
     .courier-parcel-sheet .parcel-to-section {
         display: flex;
         flex-direction: column;
-        flex: 0 0 auto;
+        flex: 1 1 auto;
     }
+    
     .courier-parcel-sheet .parcel-label {
         flex-shrink: 0;
-        font-size: 15pt;
-        font-weight: 700;
+        font-size: 18pt;
+        font-weight: 800;
         margin-bottom: 2mm;
+        color: #000;
+        font-family: Arial, "Segoe UI", sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
+    
     .courier-parcel-sheet .parcel-indent-box {
-        margin-left: 5mm;
-        font-weight: 400;
+        margin-left: 4mm;
+        font-weight: 700;
+        font-size: 14pt;
+        line-height: 1.4;
+        color: #000;
+        font-family: Arial, "Segoe UI", sans-serif;
         overflow-wrap: anywhere;
     }
+    
     .courier-parcel-sheet .parcel-to-space {
-        flex: 0 0 auto;
-        min-height: 32mm;
-        max-height: 75mm;
+        flex: 1 1 auto;
+        min-height: 50mm;
+        max-height: 85mm;
         overflow: hidden;
     }
+
+    .courier-parcel-sheet .parcel-to-address {
+        font-size: 16.5pt;
+        font-weight: 700;
+        line-height: 1.4;
+        color: #000;
+        font-family: Arial, "Segoe UI", sans-serif;
+        letter-spacing: 0.2px;
+    }
+
     .courier-parcel-sheet .parcel-from-container {
         display: flex;
         justify-content: flex-end;
         flex-shrink: 0;
-        margin-top: 4mm;
+        margin-top: 3mm;
+        padding-top: 3mm;
+        border-top: 2px dashed #000;
     }
-    .courier-parcel-sheet .parcel-from-wrapper { width: 75mm; }
+    
+    .courier-parcel-sheet .parcel-from-wrapper { 
+        width: 80mm; 
+    }
+
     #courierAddressPreviewModalBody .courier-parcel-sheet {
         margin: 0 auto;
-        outline: 1px dashed #ccc;
+        outline: 2px solid #000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     }
 
     @media print {
@@ -151,9 +180,9 @@ function formatOrderToAddressHtml(order) {
     if (!order) return '';
     let lines = [];
 
-    // Line 1: Name
+    // Line 1: Customer Name (Bold & Upper Case)
     if (order.customer_name) {
-        lines.push(escapeHtml(order.customer_name));
+        lines.push('<strong>' + escapeHtml(order.customer_name).toUpperCase() + '</strong>');
     }
 
     // Line 2: House/Building Name/No - Street/Road
@@ -186,14 +215,14 @@ function formatOrderToAddressHtml(order) {
     let line4Parts = [];
     if (district) line4Parts.push(district);
     if (state) line4Parts.push(state);
-    if (pin) line4Parts.push(pin);
+    if (pin) line4Parts.push('PIN: ' + pin);
     if (line4Parts.length > 0) {
         lines.push(escapeHtml(line4Parts.join(', ')));
     }
 
-    // Line 5: Phone Number
+    // Line 5: Phone Number (Large & Bold)
     if (order.customer_phone) {
-        lines.push('PHN:' + escapeHtml(order.customer_phone));
+        lines.push('PH: ' + escapeHtml(order.customer_phone));
     }
 
     return lines.join('<br>');
@@ -206,12 +235,14 @@ document.body.appendChild(courierPrintArea);
 function fitCourierAddress(sheet) {
     const address = sheet.querySelector('.parcel-to-address');
     const space = sheet.querySelector('.parcel-to-space');
-    address.style.fontSize = '12.5pt';
+    address.style.fontSize = '16.5pt';
+    address.style.fontWeight = '700';
+    address.style.lineHeight = '1.4';
     if (!space.clientHeight || address.scrollHeight <= space.clientHeight) return;
 
-    // Reduce only overflowing recipient text; retain every address line.
-    let low = 0;
-    let high = 12.5;
+    // Reduce only if recipient text overflows max height
+    let low = 12;
+    let high = 16.5;
     for (let step = 0; step < 16; step++) {
         const size = (low + high) / 2;
         address.style.fontSize = size + 'pt';
@@ -229,7 +260,7 @@ function setCourierAddress(order) {
     if (order) {
         addressEl.innerHTML = formatOrderToAddressHtml(order);
     } else {
-        // Reserve 5 lines of vertical space for handwriting an address on blank label
+        // Reserve vertical space for handwriting an address on blank label
         addressEl.innerHTML = '<br><br><br><br><br>';
     }
     fitCourierAddress(courierPrintArea.querySelector('.courier-parcel-sheet'));

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Daily Journal & Operations (ദിനാന്ത വിവരണം) - ' . $siteName)
+@section('title', 'Daily Journal & Operations - ' . $siteName)
 
 @section('content')
 <div class="container-fluid px-2 px-md-4 py-3">
@@ -13,7 +13,7 @@
                         <i class="fa-solid fa-calendar-check text-primary"></i> Daily Business Journal
                     </h3>
                     <p class="text-muted small mb-0">
-                        തിരഞ്ഞെടുത്ത ദിവസത്തെ വിൽപ്പന, ഓർഡറുകൾ, ഉൽപ്പന്നങ്ങൾ, ചിലവുകൾ, റിട്ടേണുകൾ എന്നിവയുടെ സമ്പൂർണ്ണ വിവരണം (ദിനാന്ത വിവരണം).
+                        Comprehensive daily log of sales, orders, products, expenses, and returns.
                     </p>
                 </div>
 
@@ -65,7 +65,7 @@
             <div class="stat-card border-start border-4 border-success bg-white shadow-sm p-3 rounded-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Sales (തുക)</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Sales</div>
                         <h3 class="fw-bold mb-0 text-success mt-1">₹{{ number_format($grossSales, 2) }}</h3>
                         <div class="text-muted extra-small mt-1">Net: ₹{{ number_format($netSales, 2) }}</div>
                     </div>
@@ -113,7 +113,7 @@
             <div class="stat-card border-start border-4 border-danger bg-white shadow-sm p-3 rounded-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Expenses (ചിലവ്)</div>
+                        <div class="text-muted extra-small text-uppercase font-monospace fw-bold">Total Expenses</div>
                         <h3 class="fw-bold mb-0 text-danger mt-1">₹{{ number_format($totalExpenses, 2) }}</h3>
                         <div class="text-muted extra-small mt-1">{{ count($expenses) }} expense items</div>
                     </div>
@@ -353,6 +353,7 @@
                                 </div>
                             @else
                                 <p class="text-muted small">No refunds issued on this date.</p>
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -371,7 +372,7 @@
                                 <div>
                                     <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i>
                                     <strong>Booked / Reserved Inventory Notice:</strong> 
-                                    ഇവിടെ കാണിച്ചിരിക്കുന്ന ഉൽപ്പന്നങ്ങളുടെ സ്റ്റോക്ക് Internal Reserved Pool-ൽ ആണ് (പൊതുജനങ്ങൾക്ക് ലൈവായി വാങ്ങാൻ കഴിയില്ല). ബുക്കിംഗ് ഒഴിവാക്കാൻ <strong>[ Release / Unbook (ബുക്കിംഗ് ഒഴിവാക്കുക) ]</strong> അടിക്കുക.
+                                    Stock items listed here are locked in the Internal Reserved Pool. Click <strong>[ Release / Unbook Stock ]</strong> to restore public availability on the shop.
                                 </div>
                             </div>
 
@@ -429,11 +430,11 @@
                                                     </span>
                                                 </td>
                                                 <td class="pe-3 text-end">
-                                                    <form action="{{ route('admin.daily-journal.release-reserved-stock') }}" method="POST" onsubmit="return confirm('ഈ പ്രൊഡക്റ്റിന്റെ ബുക്കിംഗ് ഒഴിവാക്കി Public Store-ലേക്ക് അവൈലബിൾ ആക്കണോ?');">
+                                                    <form action="{{ route('admin.daily-journal.release-reserved-stock') }}" method="POST" onsubmit="return confirm('Are you sure you want to release this reserved stock back into public inventory?');">
                                                         @csrf
                                                         <input type="hidden" name="product_size_id" value="{{ $bps->id }}">
                                                         <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
-                                                            <i class="fa-solid fa-lock-open me-1"></i> Release / Unbook (ബുക്കിംഗ് ഒഴിവാക്കുക)
+                                                            <i class="fa-solid fa-lock-open me-1"></i> Release / Unbook Stock
                                                         </button>
                                                     </form>
                                                 </td>

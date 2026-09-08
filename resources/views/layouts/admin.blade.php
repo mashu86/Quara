@@ -436,7 +436,7 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.daily-journal.index') }}" class="nav-link {{ request()->routeIs('admin.daily-journal.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-calendar-check me-2 text-info"></i> Daily Journal (ദിനാന്ത വിവരണം)
+                        <i class="fa-solid fa-calendar-check me-2 text-info"></i> Daily Journal
                     </a>
                 </li>
                 <li class="nav-item">

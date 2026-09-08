@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesControll
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
+use App\Http\Controllers\Admin\PaymentDiscrepancyController as AdminPaymentDiscrepancyController;
 use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\Admin\ContractualPostController;
 use App\Http\Controllers\StorageFileController;
@@ -154,6 +155,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/orders/{order}/increment-wa-count', [AdminOrderController::class, 'incrementWaCount'])->name('orders.increment-wa-count');
         Route::post('/orders/{order}/recheck-razorpay', [AdminOrderController::class, 'recheckRazorpayStatus'])->name('orders.recheck-razorpay');
         Route::post('/orders/auto-sync-pending', [AdminOrderController::class, 'autoSyncPendingOrdersAjax'])->name('orders.auto-sync-pending');
+
+        // Razorpay Payment Discrepancies & Reconciliation Audit Module
+        Route::get('/payment-discrepancies', [AdminPaymentDiscrepancyController::class, 'index'])->name('payment-discrepancies.index');
+        Route::post('/payment-discrepancies/{order}/reconcile', [AdminPaymentDiscrepancyController::class, 'reconcile'])->name('payment-discrepancies.reconcile');
+        Route::post('/payment-discrepancies/reconcile-all', [AdminPaymentDiscrepancyController::class, 'reconcile-all'])->name('payment-discrepancies.reconcile-all');
 
         Route::get('/manual-sales', [AdminManualSalesController::class, 'index'])->name('manual-sales.index');
         Route::get('/manual-sales/create', [AdminManualSalesController::class, 'create'])->name('manual-sales.create');

@@ -616,6 +616,37 @@ class ProductController extends Controller
                 ], 400);
             }
 
+            // Downscale image in memory to max 800px for super-fast base64 upload & instant Gemini Vision processing
+            if (function_exists('imagecreatefromstring')) {
+                $srcImg = @imagecreatefromstring($fileData);
+                if ($srcImg !== false) {
+                    $width = imagesx($srcImg);
+                    $height = imagesy($srcImg);
+                    $maxDim = 800;
+
+                    if ($width > $maxDim || $height > $maxDim) {
+                        $ratio = min($maxDim / $width, $maxDim / $height);
+                        $newW = max(1, (int) ($width * $ratio));
+                        $newH = max(1, (int) ($height * $ratio));
+
+                        $dstImg = imagecreatetruecolor($newW, $newH);
+                        imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $width, $height);
+                        imagedestroy($srcImg);
+                        $srcImg = $dstImg;
+                    }
+
+                    ob_start();
+                    imagejpeg($srcImg, null, 82);
+                    $compressedData = ob_get_clean();
+                    imagedestroy($srcImg);
+
+                    if (!empty($compressedData)) {
+                        $fileData = $compressedData;
+                        $mimeType = 'image/jpeg';
+                    }
+                }
+            }
+
             $base64Data = base64_encode($fileData);
 
             $prompt = implode("\n", [
@@ -623,7 +654,7 @@ class ProductController extends Controller
                 'Examine this uploaded dress image in detail.',
                 'Detect garment type (e.g. Abaya, Maxi Dress, Kurti, Salwar Set, Kaftan, Gown, Tops, Saree), color, fabric/material (e.g. Chiffon, Georgette, Silk, Cotton, Rayon), neckline, sleeve style, pattern (floral, printed, embroidered, solid), silhouette & embellishments.',
                 'Return ONLY a valid JSON object strictly matching this format:',
-                '{"name": "Short e-commerce title (STRICTLY MAXIMUM 2 TO 4 WORDS ONLY, e.g. Floral Chiffon Maxi Dress)", "description": "Beautiful e-commerce product description formatted with section headers (FABRIC & DETAILS, SILHOUETTE & FIT, STYLING & OCCASION, CARE INSTRUCTIONS) and clear bullet points."}',
+                '{"name": "Short e-commerce title (STRICTLY MAXIMUM 2 TO 4 WORDS ONLY, e.g. Floral Chiffon Maxi Dress)", "description": "Beautiful e-commerce product description written as an elegant 3 to 4 line continuous paragraph of sentences. STRICTLY DO NOT use bullet points, list items, or section headers. Write it purely as a smooth, attractive 3-4 sentence paragraph highlighting fabric, silhouette, fit, and occasion."}',
             ]);
 
             $payload = [
@@ -640,15 +671,18 @@ class ProductController extends Controller
                         ],
                     ],
                 ],
+                'generationConfig' => [
+                    'temperature' => 0.2,
+                    'maxOutputTokens' => 800,
+                    'responseMimeType' => 'application/json',
+                ],
             ];
 
             $modelsToTry = [
-                'gemma-4-26b-a4b-it',
-                'gemini-1.5-flash-latest',
-                'gemini-2.0-flash',
-                'gemini-1.5-flash',
-                'gemini-2.5-flash',
-                'gemini-1.5-pro',
+                'gemini-3.5-flash-lite',
+                'gemini-3.7-flash',
+                'gemini-3.6-flash',
+                'gemini-flash-latest',
             ];
 
             // Put cached working model first if available
@@ -671,8 +705,8 @@ class ProductController extends Controller
                     CURLOPT_POST => true,
                     CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_CONNECTTIMEOUT => 10,
-                    CURLOPT_TIMEOUT => 45,
+                    CURLOPT_CONNECTTIMEOUT => 4,
+                    CURLOPT_TIMEOUT => 12,
                 ]);
 
                 $response = curl_exec($curl);

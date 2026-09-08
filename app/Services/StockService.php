@@ -78,6 +78,7 @@ class StockService
 
     /**
      * Deduct stock inside a database transaction with pessimistic locking.
+     * Prioritizes deducting from reserved_stock first, then public stock.
      */
     public function deductStockForOrderItems(array $items): bool
     {
@@ -93,36 +94,97 @@ class StockService
                     ->lockForUpdate()
                     ->first();
 
-                if (!$productSize || $productSize->stock < $qty) {
-                    throw new Exception("Stock validation failed for product ID {$productId} size {$size}. Available: " . ($productSize ? $productSize->stock : 0));
+                if (!$productSize) {
+                    throw new Exception("Product size variant not found for product ID {$productId} size {$size}.");
                 }
 
                 $prevStock = $productSize->stock;
-                $newStock = max(0, $prevStock - $qty);
+                $prevReserved = $productSize->reserved_stock ?? 0;
 
-                $productSize->update(['stock' => $newStock]);
+                // 1. Deduct from reserved_stock if available
+                if ($prevReserved >= $qty) {
+                    $newReserved = $prevReserved - $qty;
+                    $productSize->update(['reserved_stock' => $newReserved]);
 
-                // Record movement history
-                StockMovement::create([
-                    'product_id' => $productId,
-                    'product_size_id' => $productSize->id,
-                    'size' => $size,
-                    'previous_stock' => $prevStock,
-                    'new_stock' => $newStock,
-                    'difference' => -$qty,
-                    'reason' => 'Customer Order Purchase',
-                    'admin_name' => 'System (Order Processing)',
-                ]);
+                    StockMovement::create([
+                        'product_id' => $productId,
+                        'product_size_id' => $productSize->id,
+                        'size' => $size,
+                        'previous_stock' => $prevStock,
+                        'new_stock' => $prevStock,
+                        'difference' => 0,
+                        'reason' => 'Customer Paid Order (Fulfilled from Reserved Stock)',
+                        'admin_name' => 'System (Payment Reconciliation)',
+                    ]);
+                }
+                // 2. Otherwise deduct from public stock
+                else {
+                    $remainder = $qty - $prevReserved;
+                    if ($prevReserved > 0) {
+                        $productSize->update(['reserved_stock' => 0]);
+                    }
+                    $newStock = max(0, $prevStock - $remainder);
+                    $productSize->update(['stock' => $newStock]);
 
-                // Automatically convert Booked status to Official Sale
+                    StockMovement::create([
+                        'product_id' => $productId,
+                        'product_size_id' => $productSize->id,
+                        'size' => $size,
+                        'previous_stock' => $prevStock,
+                        'new_stock' => $newStock,
+                        'difference' => -$remainder,
+                        'reason' => 'Customer Paid Order Purchase',
+                        'admin_name' => 'System (Order Processing)',
+                    ]);
+                }
+
+                // Automatically update out of stock flag if total stock is 0
                 $product = Product::find($productId);
                 if ($product) {
                     $totalStockRemaining = ProductSize::where('product_id', $productId)->sum('stock');
                     $product->update([
-                        'is_out_of_stock' => false,
+                        'is_out_of_stock' => $totalStockRemaining <= 0,
                         'booked_by' => null,
                         'booked_by_admin_id' => null,
                         'booked_at' => null,
+                    ]);
+                }
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Move item stock into Internal Reserved Pool (hidden from public shop).
+     */
+    public function reserveStockForOrderItems(array $items, string $reason = 'Internal Payment Reservation'): bool
+    {
+        return DB::transaction(function () use ($items, $reason) {
+            foreach ($items as $item) {
+                $productId = $item['product_id'];
+                $size = $item['size'];
+                $qty = $item['quantity'];
+
+                $productSize = ProductSize::where('product_id', $productId)
+                    ->where('size', $size)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($productSize) {
+                    $prevReserved = $productSize->reserved_stock ?? 0;
+                    $newReserved = $prevReserved + $qty;
+
+                    $productSize->update(['reserved_stock' => $newReserved]);
+
+                    StockMovement::create([
+                        'product_id' => $productId,
+                        'product_size_id' => $productSize->id,
+                        'size' => $size,
+                        'previous_stock' => $productSize->stock,
+                        'new_stock' => $productSize->stock,
+                        'difference' => $qty,
+                        'reason' => $reason,
+                        'admin_name' => auth()->check() ? auth()->user()->name : 'System (Internal Stock Reservation)',
                     ]);
                 }
             }

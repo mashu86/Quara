@@ -736,15 +736,20 @@ class OrderController extends Controller
                         ]);
 
                     if ($response->successful()) {
+                        $orderNum = trim($order->order_number ?? '');
+
                         foreach ($response->json('items', []) as $item) {
+                            if (!in_array($item['status'] ?? '', ['captured', 'authorized'])) {
+                                continue;
+                            }
+
                             $notes = $item['notes'] ?? [];
-                            $receipt = $notes['order_number'] ?? ($item['description'] ?? '');
-                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                                if (str_contains($receipt, $order->order_number) ||
-                                   ((float)($item['amount'] / 100) == (float)$order->grand_total && abs(strtotime($order->created_at) - ($item['created_at'] ?? 0)) < 14400)) {
-                                    $capturedPayment = $item;
-                                    break;
-                                }
+                            $receipt = $notes['order_number'] ?? ($notes['order_id'] ?? ($item['description'] ?? ''));
+
+                            // Strictly match on exact Order Number (e.g. QW-20260908-00004) in Razorpay receipt/notes
+                            if (!empty($orderNum) && str_contains($receipt, $orderNum)) {
+                                $capturedPayment = $item;
+                                break;
                             }
                         }
                     }

@@ -595,12 +595,17 @@ class ProductController extends Controller
             'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:10240',
         ]);
 
-        $geminiKey = Setting::decryptSecret(Setting::get('gemini_api_key')) ?: (string) config('services.gemini.api_key', '');
+        $rawKey = Setting::get('gemini_api_key');
+        $geminiKey = is_string($rawKey) ? Setting::decryptSecret($rawKey) : null;
+        if (empty($geminiKey)) {
+            $geminiKey = config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
+        }
+        $geminiKey = trim((string) $geminiKey);
 
         if (empty($geminiKey)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Google Gemini API Key is not configured. Please add it under Master Settings (/admin/settings).'
+                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) and click Save.'
             ], 422);
         }
 
@@ -679,6 +684,10 @@ class ProductController extends Controller
             ];
 
             $modelsToTry = [
+                'gemini-1.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-pro',
+                'gemini-2.0-flash-lite',
                 'gemini-3.5-flash-lite',
                 'gemini-3.7-flash',
                 'gemini-3.6-flash',

@@ -24,6 +24,79 @@
             }
             return $maskedUser . '@' . $domain;
         };
+
+        // Format Public Address Helper: Displays ONLY District and Pin Code for user privacy
+        $formatPublicAddress = function($address) {
+            if (!$address) return '';
+
+            // Extract 6-digit pin code (Indian pincode format)
+            $pincode = null;
+            if (preg_match('/\b\d{6}\b/', $address, $matches)) {
+                $pincode = $matches[0];
+            }
+
+            // Split address by commas or newlines
+            $rawParts = preg_split('/[,\n]+/', $address);
+            $parts = array_values(array_filter(array_map('trim', $rawParts)));
+
+            // Known Districts in Kerala and nearby region (case-insensitive)
+            $knownDistricts = [
+                'Thiruvananthapuram', 'Trivandrum', 'Kollam', 'Pathanamthitta', 'Alappuzha', 
+                'Kottayam', 'Idukki', 'Ernakulam', 'Cochin', 'Kochi', 'Thrissur', 'Trichur',
+                'Palakkad', 'Palghat', 'Malappuram', 'Kozhikode', 'Calicut', 'Wayanad', 
+                'Kannur', 'Cannanore', 'Kasaragod', 'Kasargod', 'Coimbatore', 'Nilgiris',
+                'Dakshina Kannada', 'Mangalore', 'Kanyakumari', 'Theni', 'Tirunelveli'
+            ];
+
+            $matchedDistrict = null;
+
+            // 1. Check if any known district name is in the address string
+            foreach ($knownDistricts as $kd) {
+                if (preg_match('/\b' . preg_quote($kd, '/') . '\b/i', $address)) {
+                    $matchedDistrict = ucfirst(strtolower($kd));
+                    // Normalize alternative / legacy names
+                    if (in_array(strtolower($matchedDistrict), ['trivandrum'])) $matchedDistrict = 'Thiruvananthapuram';
+                    if (in_array(strtolower($matchedDistrict), ['cochin', 'kochi'])) $matchedDistrict = 'Ernakulam';
+                    if (in_array(strtolower($matchedDistrict), ['trichur'])) $matchedDistrict = 'Thrissur';
+                    if (in_array(strtolower($matchedDistrict), ['palghat'])) $matchedDistrict = 'Palakkad';
+                    if (in_array(strtolower($matchedDistrict), ['calicut'])) $matchedDistrict = 'Kozhikode';
+                    if (in_array(strtolower($matchedDistrict), ['cannanore'])) $matchedDistrict = 'Kannur';
+                    if (in_array(strtolower($matchedDistrict), ['kasargod'])) $matchedDistrict = 'Kasaragod';
+                    break;
+                }
+            }
+
+            // 2. If no known district matched, filter out pincode, state names, country, house details to find district
+            if (!$matchedDistrict) {
+                $ignoreTerms = [
+                    'kerala', 'tamil nadu', 'karnataka', 'india', 'pin', 'pincode', 'code', 'post', 'po', 'dist', 'district'
+                ];
+                $filtered = [];
+                foreach ($parts as $p) {
+                    $clean = trim(preg_replace('/[^\w\s]/', '', $p));
+                    $lower = strtolower($clean);
+                    if (empty($clean)) continue;
+                    if (preg_match('/^\d{6}$/', $clean)) continue;
+                    if (in_array($lower, $ignoreTerms)) continue;
+                    if (preg_match('/^(house|door|flat|no|room|building|street|road|nagar|lane|apartments|villa)\b/i', $clean)) continue;
+                    $filtered[] = $clean;
+                }
+                if (!empty($filtered)) {
+                    $matchedDistrict = end($filtered);
+                }
+            }
+
+            // Construct output: "District - Pin Code" or "District" or "Pin Code"
+            if ($matchedDistrict && $pincode) {
+                return $matchedDistrict . ' - ' . $pincode;
+            } elseif ($matchedDistrict) {
+                return $matchedDistrict;
+            } elseif ($pincode) {
+                return 'Pin Code: ' . $pincode;
+            }
+
+            return 'Verified Location';
+        };
     @endphp
 
     <style>
@@ -240,10 +313,15 @@
 
                                             <h6 class="fw-bold text-dark mb-1 text-truncate winner-name" style="font-size: 0.95rem;" title="{{ $winner->customer_name }}">{{ $winner->customer_name }}</h6>
                                             
-                                            <!-- Full Address (No limit / No truncation) -->
-                                            <div class="small text-muted mb-2 winner-address" style="font-size: 0.76rem; line-height: 1.4; word-break: break-word; white-space: normal;">
-                                                <i class="fa-solid fa-location-dot text-danger me-1 flex-shrink-0"></i>{{ $winner->customer_address }}
-                                            </div>
+                                            <!-- District & Pin Code Only (Privacy Protected) -->
+                                            @php
+                                                $publicAddress = $formatPublicAddress($winner->customer_address);
+                                            @endphp
+                                            @if($publicAddress)
+                                                <div class="small text-muted mb-2 winner-address" style="font-size: 0.76rem; line-height: 1.4; word-break: break-word; white-space: normal;">
+                                                    <i class="fa-solid fa-location-dot text-danger me-1 flex-shrink-0"></i>{{ $publicAddress }}
+                                                </div>
+                                            @endif
 
                                             <div class="d-flex flex-wrap gap-1.5 align-items-center mt-2 pt-2 border-top">
                                                 @php

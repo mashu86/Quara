@@ -304,7 +304,45 @@
         <div class="col-lg-6">
             <div class="card border-0 rounded-4 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-user text-warning me-2"></i> Customer Details</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-user text-warning me-2"></i> Customer Details</h5>
+                        <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.75rem;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Address Scanner</span>
+                    </div>
+
+                    <!-- AI Address Screenshot / Photo Upload Box -->
+                    <div class="card border-2 border-warning-subtle bg-warning-subtle bg-opacity-10 rounded-3 mb-4 p-3 shadow-xs">
+                        <div class="d-flex align-items-start gap-2.5">
+                            <div class="rounded-circle bg-warning bg-opacity-20 p-2 text-warning flex-shrink-0 d-none d-sm-block mt-1">
+                                <i class="fa-solid fa-file-invoice fa-lg"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5 flex-wrap">
+                                    <span><i class="fa-solid fa-camera text-warning me-1"></i> Auto-Fill Customer Address from Image / Screenshot</span>
+                                    <span class="badge bg-dark text-warning" style="font-size: 0.65rem;">Gemini AI</span>
+                                </div>
+                                <p class="text-muted mb-2.5" style="font-size: 0.73rem;">
+                                    Upload or snap a screenshot/photo of customer's WhatsApp chat, Instagram message, order label, or paper receipt. AI will extract & fill customer name, phone, address, district & PIN code!
+                                </p>
+
+                                <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+                                    <input type="file" id="addressScreenshotInput" accept="image/*" class="d-none" onchange="processAddressScreenshot(this)">
+                                    <button type="button" class="btn btn-warning text-dark fw-bold btn-sm rounded-3 px-3 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="document.getElementById('addressScreenshotInput').click()" id="scanAddressBtn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Scan Screenshot / Image</span>
+                                    </button>
+                                    
+                                    <div id="scanAddressStatus" class="small fw-semibold text-muted d-none align-items-center gap-2">
+                                        <span class="spinner-border spinner-border-sm text-warning" role="status" aria-hidden="true"></span>
+                                        <span style="font-size: 0.76rem;">Analyzing screenshot with AI...</span>
+                                    </div>
+
+                                    <div id="scanAddressPreview" class="d-none align-items-center gap-2">
+                                        <img id="scanAddressThumb" src="" class="rounded-2 border shadow-xs" style="width: 36px; height: 36px; object-fit: cover;">
+                                        <span class="badge bg-success text-white fw-bold" style="font-size: 0.72rem;"><i class="fa-solid fa-check me-1"></i> Address Auto-Filled!</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Customer Full Name <span class="text-danger">*</span></label>
@@ -1080,6 +1118,106 @@
         document.getElementById('imagePreviewModalTitle').textContent = title || 'Product Image Preview';
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
+    }
+
+    function processAddressScreenshot(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+        const btn = document.getElementById('scanAddressBtn');
+        const status = document.getElementById('scanAddressStatus');
+        const preview = document.getElementById('scanAddressPreview');
+        const thumb = document.getElementById('scanAddressThumb');
+
+        // Show thumbnail preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (thumb) thumb.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+
+        // Show loading state
+        if (btn) btn.disabled = true;
+        if (status) {
+            status.classList.remove('d-none');
+            status.classList.add('d-flex');
+        }
+        if (preview) preview.classList.add('d-none');
+
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('image', file);
+
+        fetch('{{ route('admin.manual-sales.parse-address') }}', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btn) btn.disabled = false;
+            if (status) {
+                status.classList.add('d-none');
+                status.classList.remove('d-flex');
+            }
+
+            if (data.success && data.data) {
+                const addr = data.data;
+
+                const fieldsMap = {
+                    'customer_name': addr.customer_name,
+                    'customer_phone': addr.customer_phone,
+                    'customer_email': addr.customer_email,
+                    'house_building': addr.house_building,
+                    'street': addr.street,
+                    'city': addr.city,
+                    'district': addr.district,
+                    'state': addr.state,
+                    'pin_code': addr.pin_code
+                };
+
+                let filledCount = 0;
+                for (const [fieldName, val] of Object.entries(fieldsMap)) {
+                    if (val) {
+                        const inputElem = document.querySelector(`[name="${fieldName}"]`);
+                        if (inputElem) {
+                            inputElem.value = val;
+                            filledCount++;
+
+                            // Add glowing highlight effect to filled input
+                            inputElem.style.transition = 'all 0.4s ease';
+                            inputElem.style.backgroundColor = '#fff9e6';
+                            inputElem.style.borderColor = '#ffc107';
+                            inputElem.style.boxShadow = '0 0 10px rgba(255, 193, 7, 0.5)';
+                            setTimeout(() => {
+                                inputElem.style.backgroundColor = '';
+                                inputElem.style.borderColor = '';
+                                inputElem.style.boxShadow = '';
+                            }, 2500);
+                        }
+                    }
+                }
+
+                if (preview) {
+                    preview.classList.remove('d-none');
+                    preview.classList.add('d-flex');
+                }
+
+                alert(`✨ AI Address Extracted Successfully!\n\n${filledCount} Customer Detail fields auto-filled from image.\nName: ${addr.customer_name || 'N/A'}\nPhone: ${addr.customer_phone || 'N/A'}\nCity: ${addr.city || 'N/A'}\nDistrict: ${addr.district || 'N/A'}\nPIN: ${addr.pin_code || 'N/A'}`);
+            } else {
+                alert('⚠️ ' + (data.message || 'AI could not find clear customer address details in this photo. Please try a clearer screenshot.'));
+            }
+        })
+        .catch(err => {
+            if (btn) btn.disabled = false;
+            if (status) {
+                status.classList.add('d-none');
+                status.classList.remove('d-flex');
+            }
+            alert('❌ An unexpected error occurred while scanning the image. Please try again.');
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

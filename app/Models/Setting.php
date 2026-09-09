@@ -81,7 +81,12 @@ class Setting extends Model
         try {
             return Crypt::decryptString($value);
         } catch (Throwable) {
-            // Backwards compatibility if a value was stored before encryption was added.
+            // If decryption fails and string is an encrypted JSON payload (starts with 'eyJ'), return null
+            if (str_starts_with(trim($value), 'eyJ')) {
+                return null;
+            }
+
+            // Backwards compatibility if a plain unencrypted secret was stored before encryption was added.
             return $value;
         }
     }

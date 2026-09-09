@@ -217,4 +217,34 @@ class LuckyWinnerTest extends TestCase
         $this->assertDatabaseCount('lucky_draws', 2);
         $this->assertSame(2, LuckyDraw::distinct()->count('draw_number'));
     }
+
+    public function test_lucky_winners_modal_privacy_displays_only_district_and_pincode(): void
+    {
+        $this->order([
+            'customer_name' => 'Privacy User',
+            'house_building' => 'Secret House No 999',
+            'street' => 'Confidential Street',
+            'area' => 'Private Colony',
+            'city' => 'Ernakulam',
+            'district' => 'Ernakulam',
+            'state' => 'Kerala',
+            'pin_code' => '682030',
+        ]);
+
+        $draft = $this->prepare();
+        $this->postJson(route('luckywinner.select', $draft['token']), ['gift_count' => 1, 'position' => 1])->assertOk();
+        $this->postJson(route('luckywinner.store', $draft['token']))->assertOk();
+
+        $latestLuckyDraw = LuckyDraw::with('winners')->latest('id')->first();
+
+        $view = $this->view('frontend.partials.lucky_winners_modal', [
+            'showLastLuckyDraw' => '1',
+            'latestLuckyDraw' => $latestLuckyDraw,
+        ]);
+
+        $view->assertSee('Ernakulam - 682030');
+        $view->assertDontSee('Secret House No 999');
+        $view->assertDontSee('Confidential Street');
+        $view->assertDontSee('Private Colony');
+    }
 }

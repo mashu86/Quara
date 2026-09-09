@@ -22,7 +22,14 @@
                 </div>
             @endforeach
         </td>
-        <td class="fw-bold text-dark">₹{{ number_format($order->grand_total, 2) }}</td>
+        <td class="fw-bold text-dark">
+            ₹{{ number_format($order->grand_total, 2) }}
+            @if((float)$order->discount > 0)
+                <div class="small text-danger fw-semibold" style="font-size: 0.72rem;" title="Discount given on this sale">
+                    <i class="fa-solid fa-tag me-0.5"></i> -₹{{ number_format($order->discount, 2) }} disc.
+                </div>
+            @endif
+        </td>
         <td>
             <span class="badge bg-uppercase bg-{{ $order->payment_method === 'cash' ? 'success' : 'info' }} me-1">{{ $order->payment_method }}</span>
             <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'warning' }}">{{ ucfirst($order->payment_status) }}</span>

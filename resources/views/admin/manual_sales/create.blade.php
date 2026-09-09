@@ -149,9 +149,83 @@
                         </button>
                     </div>
 
-                    <!-- Order Summary & Common Delivery Charge -->
-                    <div class="p-3 bg-light rounded-4 border">
-                        <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-calculator text-warning me-2"></i> Order Pricing Summary</h6>
+                    <!-- Order Summary & Common Delivery Charge & Discount -->
+                    <div class="p-3 p-md-4 bg-light rounded-4 border">
+                        <h6 class="fw-bold mb-3 border-bottom pb-2 d-flex align-items-center justify-content-between">
+                            <span><i class="fa-solid fa-calculator text-warning me-2"></i> Order Pricing Summary</span>
+                            <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.75rem;">Offline Discount Available</span>
+                        </h6>
+
+                        <!-- DISCOUNT SELECTION SECTION -->
+                        <div class="card border-0 shadow-xs mb-3 rounded-3 bg-white">
+                            <div class="card-body p-3">
+                                <label class="form-label fw-bold text-dark mb-2">
+                                    <i class="fa-solid fa-tags text-warning me-1.5"></i> Common Discount Options
+                                </label>
+                                
+                                <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="discount_option" id="discountOptNone" value="none" checked onchange="toggleDiscountFields()">
+                                        <label class="form-check-label small fw-semibold text-dark" for="discountOptNone">
+                                            No Discount
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="discount_option" id="discountOptSetTotal" value="set_total" onchange="toggleDiscountFields()">
+                                        <label class="form-check-label small fw-semibold text-dark" for="discountOptSetTotal">
+                                            Option 1: Set Final Product Price (Grand Subtotal)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="discount_option" id="discountOptCalc" value="calculate_discount" onchange="toggleDiscountFields()">
+                                        <label class="form-check-label small fw-semibold text-dark" for="discountOptCalc">
+                                            Option 2: Calculate Based on Discount
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Option 1 Box: Set Final Product Total -->
+                                <div id="setTotalBox" class="p-2.5 rounded-3 bg-light border d-none mb-2">
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-md-7">
+                                            <label class="form-label small fw-bold text-dark mb-1">Set Desired Product Total (₹) <span class="text-muted fw-normal">(Excluding Shipping)</span></label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white border-end-0 fw-bold">₹</span>
+                                                <input type="number" step="0.01" name="desired_subtotal" id="desiredSubtotalInput" class="form-control border-start-0 rounded-end-3" placeholder="e.g. 1000" min="0" oninput="calcTotals()">
+                                            </div>
+                                            <div class="form-text text-muted" style="font-size: 0.72rem;">Enter total price for products (e.g. Total is ₹1200, enter ₹1000 => ₹200 discount).</div>
+                                        </div>
+                                        <div class="col-md-5 text-md-end">
+                                            <div class="small text-muted">Calculated Discount:</div>
+                                            <div class="fw-bold text-danger fs-6" id="setTotalDiscountDisplay">- ₹0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Option 2 Box: Calculate Based on Discount (Input + Currency/Percentage Dropdown) -->
+                                <div id="calcDiscountBox" class="p-2.5 rounded-3 bg-light border d-none mb-2">
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-md-7">
+                                            <label class="form-label small fw-bold text-dark mb-1">Discount Amount / Percentage</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" name="discount_value" id="discountValueInput" class="form-control rounded-start-3" placeholder="e.g. 300 or 10" min="0" oninput="calcTotals()">
+                                                <select name="discount_type" id="discountTypeSelect" class="form-select bg-dark text-warning fw-bold border-0" style="max-width: 85px; cursor: pointer;" onchange="calcTotals()">
+                                                    <option value="fixed">₹</option>
+                                                    <option value="percentage">%</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-text text-muted" style="font-size: 0.72rem;">Select ₹ for price discount, or % for percentage discount.</div>
+                                        </div>
+                                        <div class="col-md-5 text-md-end">
+                                            <div class="small text-muted">Applied Discount:</div>
+                                            <div class="fw-bold text-danger fs-6" id="calcDiscountDisplay">- ₹0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Charge & Summary Totals -->
                         <div class="row g-3 align-items-center">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Common Delivery Charge (₹)</label>
@@ -159,7 +233,8 @@
                                 <div class="form-text small text-muted">Order-wide shipping fee (Leave 0.00 for counter sales).</div>
                             </div>
                             <div class="col-md-6 text-end">
-                                <div class="small text-muted mb-1">Items Subtotal: <strong id="subtotalDisplay" class="text-dark">₹0.00</strong></div>
+                                <div class="small text-muted mb-1">Product Original Total: <strong id="subtotalDisplay" class="text-dark">₹0.00</strong></div>
+                                <div class="small text-danger mb-1 d-none" id="discountRowDisplay">Discount / Savings: <strong id="discountDisplay" class="text-danger">- ₹0.00</strong></div>
                                 <div class="small text-muted mb-1">Delivery Charge: <strong id="deliveryDisplay" class="text-dark">₹0.00</strong></div>
                                 <div class="fw-bold text-dark fs-6 mt-2">Grand Total Amount:</div>
                                 <div class="fs-2 fw-bold text-warning" id="grandTotalDisplay">₹0.00</div>
@@ -716,6 +791,20 @@
         filterProductsByCategory();
     }
 
+    function toggleDiscountFields() {
+        const opt = document.querySelector('input[name="discount_option"]:checked')?.value || 'none';
+        const setTotalBox = document.getElementById('setTotalBox');
+        const calcDiscountBox = document.getElementById('calcDiscountBox');
+
+        if (setTotalBox) {
+            setTotalBox.classList.toggle('d-none', opt !== 'set_total');
+        }
+        if (calcDiscountBox) {
+            calcDiscountBox.classList.toggle('d-none', opt !== 'calculate_discount');
+        }
+        calcTotals();
+    }
+
     function calcTotals() {
         const cards = document.querySelectorAll('.product-item-card');
         let totalSubtotal = 0;
@@ -759,11 +848,51 @@
             }
         });
 
+        const discountOpt = document.querySelector('input[name="discount_option"]:checked')?.value || 'none';
+        let calculatedDiscount = 0;
+
+        if (discountOpt === 'set_total') {
+            const desiredInput = document.getElementById('desiredSubtotalInput');
+            if (desiredInput && desiredInput.value !== '') {
+                const desiredVal = parseFloat(desiredInput.value) || 0;
+                calculatedDiscount = Math.max(0, totalSubtotal - desiredVal);
+            }
+            const setTotalDisp = document.getElementById('setTotalDiscountDisplay');
+            if (setTotalDisp) setTotalDisp.innerText = '- ₹' + calculatedDiscount.toFixed(2);
+        } else if (discountOpt === 'calculate_discount') {
+            const valInput = document.getElementById('discountValueInput');
+            const typeSelect = document.getElementById('discountTypeSelect');
+            const discVal = parseFloat(valInput ? valInput.value : 0) || 0;
+            const discType = typeSelect ? typeSelect.value : 'fixed';
+
+            if (discType === 'percentage') {
+                calculatedDiscount = (totalSubtotal * (discVal / 100));
+            } else {
+                calculatedDiscount = discVal;
+            }
+            calculatedDiscount = Math.min(totalSubtotal, Math.max(0, calculatedDiscount));
+
+            const calcDisp = document.getElementById('calcDiscountDisplay');
+            if (calcDisp) calcDisp.innerText = '- ₹' + calculatedDiscount.toFixed(2);
+        }
+
         const deliveryInput = document.getElementById('deliveryChargeInput');
         const shipping = parseFloat(deliveryInput ? deliveryInput.value : 0) || 0;
-        const grandTotal = totalSubtotal + shipping;
+        const grandTotal = Math.max(0, (totalSubtotal - calculatedDiscount) + shipping);
 
         document.getElementById('subtotalDisplay').innerText = '₹' + totalSubtotal.toFixed(2);
+        
+        const discRow = document.getElementById('discountRowDisplay');
+        const discDisp = document.getElementById('discountDisplay');
+        if (discRow && discDisp) {
+            if (calculatedDiscount > 0) {
+                discDisp.innerText = '- ₹' + calculatedDiscount.toFixed(2);
+                discRow.classList.remove('d-none');
+            } else {
+                discRow.classList.add('d-none');
+            }
+        }
+
         document.getElementById('deliveryDisplay').innerText = '₹' + shipping.toFixed(2);
         document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
 

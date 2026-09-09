@@ -39,7 +39,15 @@
                 @endforeach
             </div>
             <div class="manual-sale-total-row">
-                <div><span class="manual-sale-section-label">Total amount</span><strong class="manual-sale-total">&#8377;{{ number_format($order->grand_total, 2) }}</strong></div>
+                <div>
+                    <span class="manual-sale-section-label">Total amount</span>
+                    <strong class="manual-sale-total">&#8377;{{ number_format($order->grand_total, 2) }}</strong>
+                    @if((float)$order->discount > 0)
+                        <div class="small text-danger fw-semibold" style="font-size: 0.72rem;">
+                            <i class="fa-solid fa-tag me-0.5"></i> (-&#8377;{{ number_format($order->discount, 2) }} disc.)
+                        </div>
+                    @endif
+                </div>
                 <span class="badge {{ $order->payment_status === 'paid' ? 'bg-success' : 'bg-warning text-dark' }} manual-sale-payment">{{ ucfirst($order->payment_status) }}</span>
             </div>
         </div>

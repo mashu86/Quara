@@ -99,6 +99,11 @@ class ManualSalesController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
 
             'delivery_charge' => 'nullable|numeric|min:0',
+            'discount_option' => 'nullable|string|in:none,set_total,calculate_discount',
+            'desired_subtotal' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|string|in:fixed,percentage',
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|in:cash,upi,bank_transfer',
             'payment_status' => 'required|in:paid,pending',
             'sale_date' => 'nullable|date',
@@ -139,8 +144,27 @@ class ManualSalesController extends Controller
             $affectedProducts[$product->id] = $product;
         }
 
+        $discountOption = $request->input('discount_option', 'none');
+        $discountAmount = 0.00;
+
+        if ($discountOption === 'set_total' && $request->filled('desired_subtotal')) {
+            $desiredSubtotal = (float) $request->input('desired_subtotal');
+            $discountAmount = max(0, $calculatedSubtotal - $desiredSubtotal);
+        } elseif ($discountOption === 'calculate_discount' && $request->filled('discount_value')) {
+            $discVal = (float) $request->input('discount_value');
+            $discType = $request->input('discount_type', 'fixed');
+            if ($discType === 'percentage') {
+                $discountAmount = round($calculatedSubtotal * ($discVal / 100), 2);
+            } else {
+                $discountAmount = $discVal;
+            }
+            $discountAmount = min($calculatedSubtotal, max(0, $discountAmount));
+        } elseif ($request->filled('discount')) {
+            $discountAmount = max(0, (float) $request->input('discount'));
+        }
+
         $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
-        $grandTotal = $calculatedSubtotal + $shipping;
+        $grandTotal = max(0, round($calculatedSubtotal - $discountAmount + $shipping, 2));
         $orderNumber = 'QW-MAN-' . strtoupper(str_shuffle(substr(uniqid(), -5)));
 
         $nowInIst = \Carbon\Carbon::now('Asia/Kolkata');
@@ -151,7 +175,7 @@ class ManualSalesController extends Controller
             $saleDate = $nowInIst;
         }
 
-        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $shipping, $grandTotal, $orderNumber, $saleDate) {
+        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $discountAmount, $shipping, $grandTotal, $orderNumber, $saleDate) {
             $order = Order::create([
                 'user_id' => null,
                 'order_number' => $orderNumber,
@@ -166,7 +190,7 @@ class ManualSalesController extends Controller
                 'state' => $validated['state'] ?? 'Kerala',
                 'pin_code' => $validated['pin_code'] ?? '670582',
                 'subtotal' => $calculatedSubtotal,
-                'discount' => 0.00,
+                'discount' => $discountAmount,
                 'shipping' => $shipping,
                 'grand_total' => $grandTotal,
                 'payment_method' => $validated['payment_method'],
@@ -261,6 +285,11 @@ class ManualSalesController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
 
             'delivery_charge' => 'nullable|numeric|min:0',
+            'discount_option' => 'nullable|string|in:none,set_total,calculate_discount',
+            'desired_subtotal' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|string|in:fixed,percentage',
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|in:cash,upi,bank_transfer',
             'payment_status' => 'required|in:paid,pending',
             'sale_date' => 'nullable|date',
@@ -278,7 +307,7 @@ class ManualSalesController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($order, $oldItems, $validated, $saleDate) {
+            DB::transaction(function () use ($request, $order, $oldItems, $validated, $saleDate) {
                 foreach ($oldItems as $oldItem) {
                     if ($oldItem->product_size_id) {
                         $pSize = ProductSize::find($oldItem->product_size_id);
@@ -349,6 +378,25 @@ class ManualSalesController extends Controller
                     ]);
                 }
 
+                $discountOption = $request->input('discount_option', 'none');
+                $discountAmount = 0.00;
+
+                if ($discountOption === 'set_total' && $request->filled('desired_subtotal')) {
+                    $desiredSubtotal = (float) $request->input('desired_subtotal');
+                    $discountAmount = max(0, $calculatedSubtotal - $desiredSubtotal);
+                } elseif ($discountOption === 'calculate_discount' && $request->filled('discount_value')) {
+                    $discVal = (float) $request->input('discount_value');
+                    $discType = $request->input('discount_type', 'fixed');
+                    if ($discType === 'percentage') {
+                        $discountAmount = round($calculatedSubtotal * ($discVal / 100), 2);
+                    } else {
+                        $discountAmount = $discVal;
+                    }
+                    $discountAmount = min($calculatedSubtotal, max(0, $discountAmount));
+                } elseif ($request->filled('discount')) {
+                    $discountAmount = max(0, (float) $request->input('discount'));
+                }
+
                 $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
 
                 $order->update([
@@ -363,6 +411,7 @@ class ManualSalesController extends Controller
                     'state' => $validated['state'] ?? 'Kerala',
                     'pin_code' => $validated['pin_code'] ?? '670582',
                     'subtotal' => $calculatedSubtotal,
+                    'discount' => $discountAmount,
                     'shipping' => $shipping,
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $validated['payment_status'],

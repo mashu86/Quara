@@ -160,7 +160,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Razorpay Payment Discrepancies & Reconciliation Audit Module
         Route::get('/payment-discrepancies', [AdminPaymentDiscrepancyController::class, 'index'])->name('payment-discrepancies.index');
         Route::post('/payment-discrepancies/{order}/reconcile', [AdminPaymentDiscrepancyController::class, 'reconcile'])->name('payment-discrepancies.reconcile');
-        Route::post('/payment-discrepancies/reconcile-all', [AdminPaymentDiscrepancyController::class, 'reconcile-all'])->name('payment-discrepancies.reconcile-all');
+        Route::post('/payment-discrepancies/reconcile-all', [AdminPaymentDiscrepancyController::class, 'reconcileAll'])->name('payment-discrepancies.reconcile-all');
 
         // Daily Business Operations & Summary Journal Module
         Route::get('/daily-journal', [AdminDailyJournalController::class, 'index'])->name('daily-journal.index');

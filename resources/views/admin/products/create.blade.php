@@ -189,6 +189,8 @@
                         </div>
                     </div>
 
+                    @include('admin.products.partials.size_suggestion_controls')
+
                     <div id="sizeRowsContainer">
                         <div class="p-3 border rounded-3 bg-light mb-2 size-row">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -321,6 +323,7 @@
 @endsection
 
 @section('scripts')
+<script type="module" src="{{ asset('js/product-size-suggestion.js') }}"></script>
 <script>
     function calcDiscount() {
         const price = parseFloat(document.getElementById('priceInput').value) || 0;

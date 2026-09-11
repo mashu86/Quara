@@ -198,6 +198,8 @@
                         <label class="form-label small fw-bold text-uppercase d-block mb-2">
                             Existing Sizes & Measurements (Inches)
                         </label>
+                        @include('admin.products.partials.size_suggestion_controls')
+
                         @foreach($product->sizes as $pSize)
                             <div class="p-3 border rounded-3 bg-light mb-2">
                                 <div class="row g-2 align-items-center">
@@ -477,6 +479,7 @@
 @endsection
 
 @section('scripts')
+<script type="module" src="{{ asset('js/product-size-suggestion.js') }}"></script>
 <script>
     function calcDiscount() {
         const price = parseFloat(document.getElementById('priceInput').value) || 0;

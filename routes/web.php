@@ -42,6 +42,7 @@ Route::prefix('luckywinner')->name('luckywinner.')->middleware(LuckyWinnerAccess
 Route::prefix('admin/luckywinner')->name('admin.luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
     Route::get('/history', [LuckyWinnerController::class, 'history'])->name('history');
     Route::get('/history/{draw}', [LuckyWinnerController::class, 'show'])->name('show');
+    Route::delete('/history/{draw}', [LuckyWinnerController::class, 'destroy'])->name('destroy');
     Route::post('/history/{draw}/update-title', [LuckyWinnerController::class, 'updateTitle'])->name('update-title');
     Route::post('/toggle-visibility', [LuckyWinnerController::class, 'toggleVisibility'])->name('toggle-visibility');
 });

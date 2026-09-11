@@ -135,6 +135,14 @@ class LuckyWinnerDrafts
         return ['draw_number' => $draw->draw_number, 'url' => route('admin.luckywinner.show', $draw)];
     }
 
+    public function delete(LuckyDraw $draw): void
+    {
+        $this->cache()->lock($this->key($draw->draft_token).':lock', 60)->block(5, function () use ($draw) {
+            $this->cache()->forget($this->key($draw->draft_token));
+            $draw->delete();
+        });
+    }
+
     public function publicState(array $draft): array
     {
         $display = fn ($entry) => [

@@ -218,6 +218,56 @@ class LuckyWinnerTest extends TestCase
         $this->assertSame(2, LuckyDraw::distinct()->count('draw_number'));
     }
 
+    public function test_admin_can_delete_a_history_row_without_changing_orders_or_other_draws(): void
+    {
+        $order = $this->order();
+        $draws = [];
+        foreach (range(1, 2) as $position) {
+            $draft = $this->prepare();
+            $this->postJson(route('luckywinner.select', $draft['token']), ['gift_count' => 1, 'position' => 1])->assertOk();
+            $this->postJson(route('luckywinner.store', $draft['token']))->assertOk();
+            $draws[] = LuckyDraw::where('draft_token', $draft['token'])->firstOrFail();
+        }
+
+        $originalOrder = $order->fresh()->getAttributes();
+        $this->get(route('admin.luckywinner.history'))->assertOk()
+            ->assertSee(route('admin.luckywinner.destroy', $draws[0]), false)
+            ->assertSee('value="DELETE"', false);
+        $this->delete(route('admin.luckywinner.destroy', $draws[0]))
+            ->assertRedirect(route('admin.luckywinner.history'))->assertSessionHas('success');
+        $this->assertDatabaseMissing('lucky_draws', ['id' => $draws[0]->id]);
+        $this->assertDatabaseMissing('lucky_draw_winners', ['lucky_draw_id' => $draws[0]->id]);
+        $this->assertDatabaseHas('lucky_draws', ['id' => $draws[1]->id]);
+        $this->assertDatabaseHas('lucky_draw_winners', ['lucky_draw_id' => $draws[1]->id]);
+        $this->assertSame($originalOrder, $order->fresh()->getAttributes());
+        $this->postJson(route('luckywinner.store', $draws[0]->draft_token))->assertGone();
+        $this->get(route('admin.luckywinner.show', $draws[0]))->assertNotFound();
+        $this->assertSame($draws[1]->draft_token, session('luckywinner.active_draft'));
+
+        $this->delete(route('admin.luckywinner.destroy', $draws[1]))
+            ->assertRedirect(route('admin.luckywinner.history'))->assertSessionMissing('luckywinner.active_draft');
+        $this->assertDatabaseCount('lucky_draws', 0);
+        $this->assertDatabaseCount('lucky_draw_winners', 0);
+        $this->get(route('admin.luckywinner.history'))->assertOk()->assertSee('No Saved Lucky Draws Yet');
+        $this->delete(route('admin.luckywinner.destroy', $draws[1]))->assertNotFound();
+    }
+
+    public function test_history_deletion_requires_an_admin(): void
+    {
+        $this->order();
+        $draft = $this->prepare();
+        $this->postJson(route('luckywinner.select', $draft['token']), ['gift_count' => 1, 'position' => 1])->assertOk();
+        $this->postJson(route('luckywinner.store', $draft['token']))->assertOk();
+        $draw = LuckyDraw::where('draft_token', $draft['token'])->firstOrFail();
+        $url = route('admin.luckywinner.destroy', $draw);
+
+        $this->app['auth']->forgetGuards();
+        $this->deleteJson($url)->assertUnauthorized();
+        $this->actingAs(User::factory()->create(['role' => 'customer']))->deleteJson($url)->assertForbidden();
+        $this->assertDatabaseHas('lucky_draws', ['id' => $draw->id]);
+        $this->assertDatabaseHas('lucky_draw_winners', ['lucky_draw_id' => $draw->id]);
+    }
+
     public function test_lucky_winners_modal_privacy_displays_only_district_and_pincode(): void
     {
         $this->order([

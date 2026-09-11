@@ -104,6 +104,18 @@ class LuckyWinnerController extends Controller
         return view('admin.luckywinner.show', compact('draw'));
     }
 
+    public function destroy(Request $request, LuckyDraw $draw, LuckyWinnerDrafts $drafts)
+    {
+        $drafts->delete($draw);
+
+        if ($request->session()->get('luckywinner.active_draft') === $draw->draft_token) {
+            $request->session()->forget('luckywinner.active_draft');
+        }
+
+        return redirect()->route('admin.luckywinner.history')
+            ->with('success', 'Lucky draw and its winner history deleted successfully.');
+    }
+
     public function updateTitle(Request $request, LuckyDraw $draw)
     {
         $validated = $request->validate([

@@ -111,9 +111,18 @@
                             </div>
                         </td>
                         <td class="pe-4 py-3 text-end">
-                            <a href="{{ route('admin.luckywinner.show', $draw) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold text-nowrap">
-                                <i class="fa-solid fa-eye me-1"></i> View Details
-                            </a>
+                            <div class="d-flex flex-column align-items-end gap-2">
+                                <a href="{{ route('admin.luckywinner.show', $draw) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold text-nowrap">
+                                    <i class="fa-solid fa-eye me-1"></i> View Details
+                                </a>
+                                <form action="{{ route('admin.luckywinner.destroy', $draw) }}" method="POST" onsubmit="return confirm('Delete this draw and its winner history? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold text-nowrap" aria-label="Delete draw {{ $draw->draw_number }}">
+                                        <i class="fa-solid fa-trash me-1" aria-hidden="true"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

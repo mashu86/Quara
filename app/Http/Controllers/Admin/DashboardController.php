@@ -9,13 +9,24 @@ use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductSize;
+use App\Services\BusinessStatistics;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request, BusinessStatistics $businessStatistics)
     {
         $todayStr = Carbon::now('Asia/Kolkata')->toDateString();
+        $filters = $request->validate([
+            'period' => 'sometimes|in:today,all,week,month,range',
+            'start_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:'.config('business.start_date').'|before_or_equal:'.$todayStr,
+            'end_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:start_date|before_or_equal:'.$todayStr,
+            'metrics' => 'sometimes|array',
+            'metrics.*' => 'in:sales,expense,revenue',
+            'metrics_submitted' => 'sometimes|in:1',
+        ]);
+        $selectedMetrics = $request->has('metrics_submitted') ? ($filters['metrics'] ?? []) : ['sales', 'expense', 'revenue'];
 
         $totalProducts = Product::count();
         $activeProducts = Product::where('status', 'active')->count();
@@ -47,9 +58,6 @@ class DashboardController extends Controller
         $allTimeActiveOps = \App\Models\OrderOperation::where('status', 'active');
         $allTimeOperationRefunds = (float) \App\Models\OrderRefund::sum('refund_amount');
         $allTimeOperationExpenses = (float) (clone $allTimeActiveOps)->sum('additional_expense_total');
-
-        $grossSales = (float) (clone $realOrdersQuery)->where('payment_status', 'paid')->sum('grand_total');
-        $totalSales = max(0, $grossSales - $allTimeOperationRefunds);
 
         // Success Orders (Paid / Completed orders, excluding cancelled)
         $successOrdersQuery = (clone $realOrdersQuery)
@@ -118,6 +126,8 @@ class DashboardController extends Controller
 
         $allTimeNetProfitLoss = $allTimeTotalRevenue - $allTimeTotalExpenses;
         $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
+        $businessStats = $businessStatistics->report($filters);
+        $totalSales = $businessStats['totalSales'];
 
         // Low stock products (size stock <= 3)
         $lowStockSizes = ProductSize::with('product')
@@ -140,6 +150,8 @@ class DashboardController extends Controller
         $unreadNotifications = Notification::where('is_read', false)->orderBy('id', 'desc')->get();
 
         return view('admin.dashboard', compact(
+            'businessStats',
+            'selectedMetrics',
             'totalProducts',
             'activeProducts',
             'totalCategories',

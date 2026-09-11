@@ -170,7 +170,7 @@
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Sales</span>
             <h6 class="admin-dash-stat-val fw-bold text-dark">₹{{ number_format($totalSales, 2) }}</h6>
-            <span class="admin-dash-stat-sub text-muted">Gross Realized</span>
+            <span class="admin-dash-stat-sub text-muted">Paid sales since {{ \Illuminate\Support\Carbon::parse($businessStats['businessStart'])->format('d M Y') }}</span>
         </div>
     </div>
 
@@ -182,6 +182,8 @@
         </div>
     </div>
 </div>
+
+@include('admin.partials.business-statistics')
 
 <div class="row g-4">
     <!-- Prominent New Orders Section with Tabs -->
@@ -352,4 +354,8 @@
     </div>
     --}}
 </div>
+@endsection
+
+@section('scripts')
+<script src="{{ asset('js/business-statistics.js') }}" defer></script>
 @endsection

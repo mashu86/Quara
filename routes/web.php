@@ -124,6 +124,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Product Master
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
+        Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');
         Route::get('products-booked-conflicts', [AdminProductController::class, 'bookedConflicts'])->name('products.booked-conflicts');
         Route::post('products/{product}/resolve-conflict', [AdminProductController::class, 'resolveConflict'])->name('products.resolve-conflict');
         Route::post('products/{product}/toggle-out-of-stock', [AdminProductController::class, 'toggleOutOfStock'])->name('products.toggle-out-of-stock');

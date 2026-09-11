@@ -395,6 +395,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.products.booked') }}" class="nav-link {{ request()->routeIs('admin.products.booked') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-lock me-2 text-warning"></i> Booked Products
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.products.booked-conflicts') }}" class="nav-link {{ request()->routeIs('admin.products.booked-conflicts') ? 'active' : '' }}">
                         <i class="fa-solid fa-wrench me-2 text-warning"></i> Booked Conflict Resolver
                     </a>

@@ -579,10 +579,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Check Window / Mobile Scroll Position
-        const windowScrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-        if (windowScrollBottom < 300) {
-            shouldLoad = true;
+        // Mobile cards scroll with the page. Fetch before reaching the end of the list.
+        if (mobileContainer && mobileContainer.offsetParent !== null) {
+            const listBottom = mobileContainer.getBoundingClientRect().bottom;
+            if (listBottom < window.innerHeight + 300) {
+                shouldLoad = true;
+            }
         }
 
         if (shouldLoad) {
@@ -601,7 +603,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Could not load more orders.');
+            return response.json();
+        })
         .then(data => {
             if (data.desktop_html && desktopTbody) {
                 desktopTbody.insertAdjacentHTML('beforeend', data.desktop_html);
@@ -618,6 +623,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!hasMore && endNotice) {
                 endNotice.classList.remove('d-none');
             }
+
+            // Continue if the appended page still does not fill the visible area.
+            window.requestAnimationFrame(checkAndLoadMore);
         })
         .catch(err => {
             console.error('Error fetching more orders:', err);
@@ -627,8 +635,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (desktopContainer) {
-        desktopContainer.addEventListener('scroll', checkAndLoadMore);
+        desktopContainer.addEventListener('scroll', checkAndLoadMore, { passive: true });
     }
+    window.addEventListener('scroll', checkAndLoadMore, { passive: true });
+    window.addEventListener('resize', checkAndLoadMore);
+    window.requestAnimationFrame(checkAndLoadMore);
     // Zero-Lag Background Auto-Sync (Runs 1.2s after page load - Zero impact on page load speed)
     setTimeout(() => {
         fetch("{{ route('admin.orders.auto-sync-pending') }}", {

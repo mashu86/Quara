@@ -8,15 +8,15 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <h3 class="fw-bold mb-1 text-dark">
-                <i class="fa-solid fa-scale-balanced text-warning me-2"></i> Razorpay Payment Reconciliation (പെയ്മെന്റ് ഓഡിറ്റ്)
+                <i class="fa-solid fa-scale-balanced text-warning me-2"></i> Razorpay Payment Reconciliation
             </h3>
             <p class="text-muted small mb-0">
-                Razorpay API-യുമായി ഓർഡറുകളുടെ പെയ്മെന്റ് സ്റ്റാറ്റസ് ഒത്തുനോക്കി വൈരുധ്യങ്ങൾ (mismatches) കണ്ടെത്താനും ഒറ്റ ക്ലിക്കിൽ ശരിയാക്കാനുമുള്ള പേജ്.
+                Compare order payment statuses with Razorpay to identify and resolve payment mismatches.
             </p>
         </div>
         <div>
             @if($totalDiscrepancyCount > 0)
-                <form action="{{ route('admin.payment-discrepancies.reconcile-all') }}" method="POST" onsubmit="return confirm('എല്ലാ വൈരുധ്യമുള്ള ഓർഡറുകളും Razorpay-യുമായി ഓട്ടോമാറ്റിക്കായി ഒത്തുനോക്കി ശരിയാക്കണോ?');">
+                <form action="{{ route('admin.payment-discrepancies.reconcile-all') }}" method="POST" onsubmit="return confirm('Check pending orders against Razorpay and reconcile matching payments?');">
                     @csrf
                     <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark shadow-sm">
                         <i class="fa-solid fa-arrows-rotate me-2"></i> Sync & Fix All Discrepancies
@@ -24,7 +24,7 @@
                 </form>
             @else
                 <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success rounded-pill">
-                    <i class="fa-solid fa-circle-check me-1"></i> All Razorpay Payments 100% Reconciled!
+                    <i class="fa-solid fa-circle-check me-1"></i> No Payment Mismatches Found
                 </span>
             @endif
         </div>
@@ -79,7 +79,7 @@
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-dark text-white p-3 d-flex align-items-center justify-content-between">
             <h5 class="mb-0 font-serif fw-bold text-warning fs-6">
-                <i class="fa-solid fa-list-check me-2"></i> Flagged Payment Mismatches (ശ്രദ്ധിക്കേണ്ട ഓർഡറുകൾ)
+                <i class="fa-solid fa-list-check me-2"></i> Flagged Payment Mismatches
             </h5>
             <span class="badge bg-secondary rounded-pill">{{ count($discrepancies) }} Items</span>
         </div>
@@ -89,7 +89,7 @@
                 <div class="text-center py-5">
                     <div class="display-6 text-success mb-3"><i class="fa-solid fa-shield-halved"></i></div>
                     <h5 class="fw-bold text-dark mb-1">No Discrepancies Found!</h5>
-                    <p class="text-muted small mb-0">System-ലെ എല്ലാ ഓൺലൈൻ ഓർഡറുകളും Razorpay പെയ്മെന്റുകളുമായി 100% കൃത്യതയോടെ ചേർന്നുനിൽക്കുന്നു.</p>
+                    <p class="text-muted small mb-0">No payment mismatches were found in the available records.</p>
                 </div>
             @else
                 <div class="table-responsive">
@@ -99,7 +99,7 @@
                                 <th class="ps-3">Order Number & Date</th>
                                 <th>Customer Details</th>
                                 <th>Grand Total</th>
-                                <th>Current DB Status</th>
+                                <th>Current Status</th>
                                 <th>Discrepancy Details</th>
                                 <th class="pe-3 text-end">Action</th>
                             </tr>
@@ -158,7 +158,7 @@
                                             <form action="{{ route('admin.payment-discrepancies.reconcile', $ord->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <input type="hidden" name="force_reset_pending" value="1">
-                                                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="return confirm('ഈ ഓർഡർ Pending ആക്കി മാറ്റുകയും സ്റ്റോക്ക് Internal Reserved Pool-ലേക്ക് മാറ്റുകയും ചെയ്യണോ?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="return confirm('Check this payment and, if no captured payment is found, reset the order to Pending and reserve its stock?');">
                                                     <i class="fa-solid fa-lock-open me-1"></i> Reset & Reserve Stock
                                                 </button>
                                             </form>

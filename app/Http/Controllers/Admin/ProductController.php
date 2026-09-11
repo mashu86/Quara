@@ -94,6 +94,26 @@ class ProductController extends Controller
         return view('admin.products.index', compact('products', 'categories'));
     }
 
+    public function bookedProducts(Request $request)
+    {
+        $query = Product::with(['category', 'sizes', 'images'])
+            ->where('is_out_of_stock', true)
+            ->whereNotNull('booked_by')
+            ->whereRaw("TRIM(booked_by) <> ''");
+
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('booked_by', 'like', '%'.$search.'%');
+            });
+        }
+
+        $products = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(20)->withQueryString();
+
+        return view('admin.products.booked', compact('products', 'search'));
+    }
+
     public function toggleOutOfStock(Request $request, Product $product)
     {
         if ($request->has('is_out_of_stock')) {

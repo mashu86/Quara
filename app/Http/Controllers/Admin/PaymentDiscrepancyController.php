@@ -89,14 +89,14 @@ class PaymentDiscrepancyController extends Controller
             // Type 1: Razorpay has Captured payment, but DB order is Pending
             if ($hasCapturedOnRzp && $order->payment_status !== 'paid') {
                 $type = 'captured_but_pending';
-                $issueTitle = 'Razorpay-ൽ Paid ആണ്, പക്ഷെ System-ൽ Pending';
-                $issueDescription = "Customer Razorpay-ൽ ₹{$order->grand_total} വിജയകരമായി അടച്ചു (Payment ID: " . ($rzpDetails['id'] ?? 'N/A') . "), പക്ഷെ System-ൽ ഇനിയും Pending ആയി നിൽക്കുന്നു.";
+                $issueTitle = 'Paid on Razorpay, but not marked Paid here';
+                $issueDescription = "Razorpay shows a captured payment of ₹{$order->grand_total} (Payment ID: " . ($rzpDetails['id'] ?? 'N/A') . "), but this order has not been marked Paid in the system.";
             }
             // Type 2: DB order is marked Paid, but NO captured payment found on Razorpay & no razorpay_payment_id
             elseif ($order->payment_status === 'paid' && !$hasCapturedOnRzp && empty($rzpPaymentId)) {
                 $type = 'paid_without_razorpay_id';
-                $issueTitle = 'System-ൽ Paid ആണ്, Razorpay Payment ID ഇല്ല';
-                $issueDescription = 'ഓർഡർ system-ൽ Paid ആയി മാർക്ക് ചെയ്തിട്ടുണ്ട്, പക്ഷെ Razorpay Payment ID കാണുന്നില്ല.';
+                $issueTitle = 'Marked Paid without a Razorpay Payment ID';
+                $issueDescription = 'This order is marked Paid in the system, but no Razorpay Payment ID is recorded.';
             }
 
             if ($type) {

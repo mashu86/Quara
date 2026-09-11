@@ -87,6 +87,29 @@
                         </div>
                     @endif
 
+                    @if($order->order_status !== 'cancelled')
+                        <div class="p-3 p-md-4 rounded-4 border mb-4">
+                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-location-dot text-gold me-2"></i>Track on India Post</h6>
+                            <p class="small text-muted mb-3">For parcels sent through India Post, open Track 'N' Trace on their website to check the latest location and delivery updates.</p>
+                            @if(filled(trim((string) $order->tracking_number)))
+                                <label for="india-post-consignment" class="form-label small fw-bold">India Post Consignment Number</label>
+                                <div class="input-group mb-2">
+                                    <input id="india-post-consignment" type="text" class="form-control font-monospace" value="{{ trim($order->tracking_number) }}" readonly>
+                                    <button id="copy-india-post-consignment" type="button" class="btn btn-outline-dark">
+                                        <i class="fa-regular fa-copy me-1" aria-hidden="true"></i> Copy
+                                    </button>
+                                </div>
+                                <p id="india-post-copy-status" class="small text-muted mb-3" role="status" aria-live="polite">Copy this number and paste it into India Post's Consignment Number field. Complete the verification shown there to view tracking.</p>
+                            @else
+                                <p class="small text-muted mb-3">Your consignment number has not been added yet. It will appear here after the shipment details are updated.</p>
+                            @endif
+                            <a href="https://www.indiapost.gov.in/" target="_blank" rel="noopener noreferrer" class="btn btn-qw-gold rounded-pill px-4">
+                                <i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i> Track on India Post
+                                <span class="visually-hidden">(opens in a new tab)</span>
+                            </a>
+                        </div>
+                    @endif
+
                     <!-- Visual Timeline -->
                     @php
                         $statuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'delivered'];
@@ -144,4 +167,23 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.getElementById('copy-india-post-consignment')?.addEventListener('click', async function () {
+    const input = document.getElementById('india-post-consignment');
+    const status = document.getElementById('india-post-copy-status');
+    try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(input.value);
+        status.textContent = 'Consignment number copied. Open India Post and paste it into Track N Trace.';
+    } catch (error) {
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, input.value.length);
+        status.textContent = 'Select Copy from your device menu, then paste this number on the India Post website.';
+    }
+});
+</script>
 @endsection

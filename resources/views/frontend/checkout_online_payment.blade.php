@@ -48,7 +48,9 @@
 @section('scripts')
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+    const reservationExpiresAt = @js($order->reserved_until?->getTimestamp() * 1000);
     const options = {
+        "timeout": Math.max(1, Math.floor((reservationExpiresAt - Date.now()) / 1000)),
         "key": "{{ $paymentResult['razorpay_key'] }}",
         "amount": "{{ $paymentResult['amount'] ?? ($order->grand_total * 100) }}",
         "currency": "INR",
@@ -86,19 +88,34 @@
 
     const rzp = new Razorpay(options);
 
+    function openPayment() {
+        if (Date.now() >= reservationExpiresAt) {
+            document.getElementById('rzp-button').disabled = true;
+            alert('Your stock reservation has expired. Please return to checkout to check availability. If money was debited, do not pay again; contact us with your order number.');
+            return;
+        }
+        rzp.open();
+    }
+
+    setTimeout(() => {
+        rzp.close();
+        document.getElementById('rzp-button').disabled = true;
+        document.getElementById('rzp-button').textContent = 'Reservation expired — return to checkout';
+    }, Math.max(0, reservationExpiresAt - Date.now()));
+
     rzp.on('payment.failed', function (response){
         alert('Payment Failed: ' + (response.error.description || 'Transaction failed or bank error'));
         window.location.href = "{{ route('checkout.index') }}";
     });
 
     document.getElementById('rzp-button').onclick = function(e){
-        rzp.open();
+        openPayment();
         e.preventDefault();
     }
 
     // Auto trigger on page load
     window.onload = function() {
-        rzp.open();
+        openPayment();
     };
 </script>
 @endsection

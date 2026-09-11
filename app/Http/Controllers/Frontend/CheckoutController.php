@@ -94,6 +94,7 @@ class CheckoutController extends Controller
 
         try {
             $order = DB::transaction(function () use ($validated, $cart, $summary) {
+                $this->stockService->lockAndValidateCheckoutStock($cart);
                 $orderNumber = Order::generateOrderNumber();
 
                 $order = Order::create([
@@ -120,8 +121,6 @@ class CheckoutController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
-                $itemsForDeduction = [];
-
                 foreach ($cart as $item) {
                     $productSize = ProductSize::where('product_id', $item['product_id'])
                         ->where('size', $item['size'])
@@ -140,16 +139,11 @@ class CheckoutController extends Controller
                         'subtotal' => $item['subtotal'],
                     ]);
 
-                    $itemsForDeduction[] = [
-                        'product_id' => $item['product_id'],
-                        'size' => $item['size'],
-                        'quantity' => $item['quantity'],
-                    ];
                 }
 
                 // If Cash on Delivery, deduct stock immediately on order creation
                 if ($validated['payment_method'] === 'cod') {
-                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
+                    $this->stockService->deductStockForOrder($order);
 
                     // Create Admin Notification
                     Notification::create([
@@ -167,7 +161,7 @@ class CheckoutController extends Controller
                 ]);
 
                 return $order;
-            });
+            }, 3);
 
             // Process Payment Response
             $paymentResult = $this->paymentService->initiatePayment($order, $validated['payment_method']);
@@ -210,39 +204,29 @@ class CheckoutController extends Controller
 
         $order = Order::where('order_number', $request->order_number)->firstOrFail();
 
-        // Lock order to prevent duplicate processing
-        if ($order->payment_status === 'paid') {
+        // Fast path; the payment service locks and rechecks before changing stock.
+        if ($order->payment_status === 'paid' && !in_array($order->order_status, ['pending', 'cancelled'])) {
             return redirect()->route('checkout.success', ['order_number' => $order->order_number]);
         }
 
-        $verified = $this->paymentService->verifyOnlinePayment(
-            $order,
-            $request->razorpay_payment_id,
-            $request->razorpay_order_id,
-            $request->razorpay_signature
-        );
+        try {
+            $verified = $this->paymentService->verifyOnlinePayment(
+                $order,
+                $request->razorpay_payment_id,
+                $request->razorpay_order_id,
+                $request->razorpay_signature
+            );
+
+        } catch (Exception $e) {
+            \Log::error('Payment verification error', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            $verified = false;
+        }
+        $order->refresh();
+        if ($order->order_status === 'cancelled' || ($order->payment_status === 'paid' && $order->order_status === 'pending')) {
+            return redirect()->route('checkout.success', ['order_number' => $order->order_number]);
+        }
 
         if ($verified) {
-            // Deduct stock after successful payment verification
-            $itemsForDeduction = $order->items->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'size' => $item->size,
-                    'quantity' => $item->quantity,
-                ];
-            })->toArray();
-
-            $this->stockService->deductStockForOrderItems($itemsForDeduction);
-
-            // Create Admin Notification
-            Notification::create([
-                'title' => 'New Paid Order',
-                'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Online Paid",
-                'type' => 'new_order',
-                'order_id' => $order->id,
-                'is_read' => false,
-            ]);
-
             $this->cartService->clear();
             $this->whatsAppService->sendOrderConfirmation($order);
 
@@ -258,7 +242,7 @@ class CheckoutController extends Controller
                 ->with('success', 'Payment successful! Your order has been placed.');
         }
 
-        return redirect()->route('checkout.index')->with('error', 'Payment verification failed. Please try again or choose COD.');
+        return redirect()->route('checkout.success', ['order_number' => $order->order_number]);
     }
 
     public function success(string $order_number)

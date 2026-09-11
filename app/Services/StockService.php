@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Models\Order;
 use App\Models\ProductSize;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,47 @@ use Exception;
 
 class StockService
 {
+    /** Called inside the checkout transaction, before creating any order/items. */
+    public function lockAndValidateCheckoutStock(array $items): void
+    {
+        $items = collect($items)->sortBy(fn ($item) => sprintf('%020d:%s', $item['product_id'], $item['size']));
+        $requested = [];
+        foreach ($items as $item) {
+            $size = ProductSize::where('product_id', $item['product_id'])
+                ->where('size', $item['size'])->lockForUpdate()->first();
+            $key = $item['product_id'].':'.$item['size'];
+            $requested[$key] = ($requested[$key] ?? 0) + (int) $item['quantity'];
+            if (!$size || $item['quantity'] < 1 || $size->available_stock < $requested[$key]) {
+                throw new Exception('Stock validation failed: this item is sold out or reserved by another customer.');
+            }
+        }
+    }
+
+    /** Deduct physical stock without consuming another order's reservation. */
+    public function deductStockForOrder(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            foreach ($order->items()->orderBy('product_id')->orderBy('size')->get() as $item) {
+                $size = ProductSize::where('product_id', $item->product_id)
+                    ->where('size', $item->size)->lockForUpdate()->first();
+                if (!$size || $size->availableStockForOrder($order->id) < $item->quantity) {
+                    throw new \App\Exceptions\InsufficientOrderStock('Stock validation failed: '.$item->product_name.' ('.$item->size.') is unavailable.');
+                }
+                $previous = (int) $size->stock;
+                $size->update(['stock' => $previous - $item->quantity]);
+                StockMovement::create([
+                    'product_id' => $item->product_id, 'product_size_id' => $size->id,
+                    'size' => $item->size, 'previous_stock' => $previous,
+                    'new_stock' => $size->stock, 'difference' => -$item->quantity,
+                    'reason' => 'Order #'.$order->order_number.' purchase', 'admin_name' => 'System',
+                ]);
+                Product::whereKey($item->product_id)->update([
+                    'is_out_of_stock' => ProductSize::where('product_id', $item->product_id)->sum('stock') <= 0,
+                ]);
+            }
+        });
+    }
+
     /**
      * Revalidate item availability against current stock.
      */
@@ -123,7 +165,10 @@ class StockService
                     if ($prevReserved > 0) {
                         $productSize->update(['reserved_stock' => 0]);
                     }
-                    $newStock = max(0, $prevStock - $remainder);
+                    if ($productSize->available_stock < $remainder) {
+                        throw new Exception('Stock validation failed: insufficient stock for this order.');
+                    }
+                    $newStock = $prevStock - $remainder;
                     $productSize->update(['stock' => $newStock]);
 
                     StockMovement::create([
@@ -224,6 +269,7 @@ class StockService
                         'reason' => $reason,
                         'admin_name' => auth()->check() ? auth()->user()->name : 'System (Order Cancellation)',
                     ]);
+                    Product::whereKey($productId)->update(['is_out_of_stock' => false]);
                 }
             }
             return true;

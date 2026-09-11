@@ -7,7 +7,13 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border text-center">
-                @if($order->payment_status === 'paid' || $order->payment_method === 'cod')
+                @if($order->order_status === 'cancelled')
+                    <h1 class="font-serif fw-bold display-6 mb-2">ORDER CANCELLED</h1>
+                    <p class="text-muted mb-4">This order has been cancelled. If you made a payment, please contact us with your order number.</p>
+                @elseif($order->payment_status === 'paid' && $order->order_status === 'pending')
+                    <h1 class="font-serif fw-bold display-6 mb-2">PAYMENT RECEIVED — ORDER UNDER REVIEW</h1>
+                    <p class="text-muted mb-4">We received your payment, but need to check item availability before confirming your order. Please contact us with your order number. Do not pay again.</p>
+                @elseif($order->payment_status === 'paid' || $order->payment_method === 'cod')
                     <div class="mb-4">
                         <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 40px;">
                             <i class="fa-solid fa-check"></i>
@@ -33,7 +39,7 @@
                     </div>
 
                     <h1 class="font-serif fw-bold display-6 mb-2">PAYMENT PENDING</h1>
-                    <p class="text-muted fs-5 mb-4">Your payment is currently pending verification.</p>
+                    <p class="text-muted fs-5 mb-4">Your payment is currently pending verification. If money was debited, do not pay again. Please contact us with your order number.</p>
                 @endif
 
                 <div class="alert alert-light border rounded-3 p-4 text-start mb-4">

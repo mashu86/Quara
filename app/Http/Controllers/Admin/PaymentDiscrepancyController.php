@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\StockService;
@@ -29,6 +28,7 @@ class PaymentDiscrepancyController extends Controller
         // Fetch online orders
         $orders = Order::with(['items.product', 'payment'])
             ->where('payment_method', 'online')
+            ->where('order_status', '!=', 'cancelled')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -44,7 +44,7 @@ class PaymentDiscrepancyController extends Controller
 
                 if ($response->successful()) {
                     foreach ($response->json('items', []) as $pItem) {
-                        if (in_array($pItem['status'] ?? '', ['captured', 'authorized'])) {
+                        if (in_array($pItem['status'] ?? '', ['captured'])) {
                             $notes = $pItem['notes'] ?? [];
                             $orderNum = $notes['order_number'] ?? ($notes['order_id'] ?? ($pItem['description'] ?? ''));
                             $rzpOrdId = $pItem['order_id'] ?? null;
@@ -125,120 +125,17 @@ class PaymentDiscrepancyController extends Controller
 
     public function reconcile(Request $request, Order $order)
     {
-        $razorpayKey = config('services.razorpay.key');
-        $razorpaySecret = config('services.razorpay.secret');
-
-        if (empty($razorpayKey) || empty($razorpaySecret)) {
-            return back()->with('error', 'Razorpay API credentials are not configured.');
+        if ($order->order_status === 'cancelled') {
+            return back()->with('info', 'Cancelled orders are excluded from Razorpay checks.');
         }
-
         $payment = $order->payment;
-        $capturedPayment = null;
-
         try {
-            // 1. Check by explicit payment ID if set
-            $paymentIdToCheck = $payment ? $payment->razorpay_payment_id : null;
-            if ($paymentIdToCheck && str_starts_with($paymentIdToCheck, 'pay_')) {
-                $response = Http::withoutVerifying()
-                    ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/payments/{$paymentIdToCheck}");
-
-                if ($response->successful() && in_array($response->json('status'), ['captured', 'authorized'])) {
-                    $capturedPayment = $response->json();
-                }
-            }
-
-            // 2. Check by Razorpay Order ID
-            if (!$capturedPayment && $payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_')) {
-                $response = Http::withoutVerifying()
-                    ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/orders/{$payment->razorpay_order_id}/payments");
-
-                if ($response->successful()) {
-                    foreach ($response->json('items', []) as $item) {
-                        if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                            $capturedPayment = $item;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // 3. Check by exact Order Number in notes/receipt
-            if (!$capturedPayment) {
-                $response = Http::withoutVerifying()
-                    ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get('https://api.razorpay.com/v1/payments', [
-                        'count' => 50,
-                    ]);
-
-                if ($response->successful()) {
-                    $orderNum = trim($order->order_number ?? '');
-
-                    foreach ($response->json('items', []) as $item) {
-                        if (!in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                            continue;
-                        }
-
-                        $notes = $item['notes'] ?? [];
-                        $receipt = $notes['order_number'] ?? ($notes['order_id'] ?? ($item['description'] ?? ''));
-
-                        if (!empty($orderNum) && str_contains($receipt, $orderNum)) {
-                            $capturedPayment = $item;
-                            break;
-                        }
-                    }
-                }
-            }
-
+            $service = app(\App\Services\RazorpayOrderService::class);
+            $capturedPayment = $service->findCapturedPayment($order);
             if ($capturedPayment) {
-                // Deduct stock if marking as paid from pending
-                if ($order->payment_status !== 'paid') {
-                    $itemsForDeduction = $order->items->map(fn($item) => [
-                        'product_id' => $item->product_id,
-                        'size' => $item->size,
-                        'quantity' => $item->quantity,
-                    ])->toArray();
-
-                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
-                }
-
-                if (!$payment) {
-                    $payment = Payment::create([
-                        'order_id' => $order->id,
-                        'payment_method' => 'online',
-                        'amount' => $order->grand_total,
-                    ]);
-                }
-
-                $payment->update([
-                    'razorpay_payment_id' => $capturedPayment['id'],
-                    'razorpay_order_id' => $capturedPayment['order_id'] ?? $payment->razorpay_order_id,
-                    'status' => 'paid',
-                    'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
-                        'reconciled_at' => now()->toIso8601String(),
-                        'razorpay_details' => $capturedPayment,
-                    ]),
-                ]);
-
-                $order->update([
-                    'payment_status' => 'paid',
-                    'order_status' => 'confirmed',
-                    'reserved_until' => null,
-                    'is_legacy_pending' => false,
-                ]);
-
-                $order->calculateRazorpayCharge();
-
-                Notification::create([
-                    'title' => 'Order Reconciled (Paid)',
-                    'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Reconciled with Razorpay",
-                    'type' => 'new_order',
-                    'order_id' => $order->id,
-                    'is_read' => false,
-                ]);
-
-                return back()->with('success', "Order #{$order->order_number} successfully reconciled with Razorpay! Marked as Paid & Confirmed (Payment ID: {$capturedPayment['id']}).");
+                $result = $service->confirm($order, $capturedPayment, 'Reconciliation', true);
+                return back()->with(in_array($result, ['confirmed', 'already_processed']) ? 'success' : 'warning',
+                    'Reconciliation: '.str_replace('_', ' ', $result).'.');
             } else {
                 // If not paid on Razorpay and currently pending, confirm it stays pending
                 if ($order->payment_status === 'pending') {

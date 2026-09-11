@@ -270,52 +270,62 @@ class OrderController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $prevOrderStatus = $order->order_status;
-        $newOrderStatus = $validated['order_status'];
+        return DB::transaction(function () use ($request, $order, $validated) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $prevOrderStatus = $order->order_status;
+            $newOrderStatus = $validated['order_status'];
+            if (!empty($order->payment?->response_payload['stock_review']) && !in_array($newOrderStatus, ['pending', 'cancelled'])) {
+                return back()->with('error', 'This paid order needs stock review. Verify actual inventory and use Razorpay Sync to confirm it.');
+            }
 
-        // Enforce Cancellation Restriction: If order cancellation is locked by admin
-        if ($order->is_cancellation_disabled && $newOrderStatus === 'cancelled') {
-            return back()->withErrors(['order_status' => "This order (#{$order->order_number}) is locked and CANNOT be cancelled."])->withInput();
-        }
+            // Enforce Cancellation Restriction: If order cancellation is locked by admin
+            if ($order->is_cancellation_disabled && $newOrderStatus === 'cancelled') {
+                return back()->withErrors(['order_status' => "This order (#{$order->order_number}) is locked and CANNOT be cancelled."])->withInput();
+            }
 
-        // Stock restoration if cancelled
-        if ($newOrderStatus === 'cancelled' && $prevOrderStatus !== 'cancelled') {
-            $items = $order->items->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'size' => $item->size,
-                    'quantity' => $item->quantity,
-                ];
-            })->toArray();
+            // Stock restoration if cancelled
+            if ($newOrderStatus === 'cancelled' && $prevOrderStatus !== 'cancelled') {
+                $items = $order->items->map(function ($item) {
+                    return [
+                        'product_id' => $item->product_id,
+                        'size' => $item->size,
+                        'quantity' => $item->quantity,
+                    ];
+                })->toArray();
 
-            $this->stockService->restoreStockForOrderItems($items, "Order #{$order->order_number} Cancelled by Admin");
+                if (($order->payment_status === 'paid' || ($order->payment_method === 'cod' && $prevOrderStatus !== 'pending'))
+                    && empty($order->payment?->response_payload['stock_review'])) {
+                    $this->stockService->restoreStockForOrderItems($items, "Order #{$order->order_number} Cancelled by Admin");
+                }
+                $validated['reserved_until'] = null;
 
-            if ($order->customer_email) {
-                try {
-                    Mail::to($order->customer_email)->send(new OrderCancelledMail($order));
-                } catch (Exception $e) {
-                    \Log::error('Order Cancelled Email Error: ' . $e->getMessage());
+                if ($order->customer_email) {
+                    try {
+                        Mail::to($order->customer_email)->send(new OrderCancelledMail($order));
+                    } catch (Exception $e) {
+                        \Log::error('Order Cancelled Email Error: ' . $e->getMessage());
+                    }
                 }
             }
-        }
 
-        $validated['is_cancellation_disabled'] = $request->has('is_cancellation_disabled');
-        $isDispatched = $request->has('is_dispatched_to_courier');
-        $validated['is_dispatched_to_courier'] = $isDispatched;
-        if ($isDispatched && !$order->dispatched_at) {
-            $validated['dispatched_at'] = now();
-        }
-        if (!empty($validated['sale_date'])) {
-            $validated['sale_date'] = \Carbon\Carbon::parse($validated['sale_date']);
-        }
+            $validated['is_cancellation_disabled'] = $request->has('is_cancellation_disabled');
+            $isDispatched = $request->has('is_dispatched_to_courier');
+            $validated['is_dispatched_to_courier'] = $isDispatched;
+            if ($isDispatched && !$order->dispatched_at) {
+                $validated['dispatched_at'] = now();
+            }
+            if (!empty($validated['sale_date'])) {
+                $validated['sale_date'] = \Carbon\Carbon::parse($validated['sale_date']);
+            }
 
-        $newShipping = $request->filled('shipping') ? (float) $request->input('shipping') : (float) $order->shipping;
-        unset($validated['shipping']);
+            $newShipping = $request->filled('shipping') ? (float) $request->input('shipping') : (float) $order->shipping;
+            unset($validated['shipping']);
 
-        $order->update($validated);
-        $order->recalculateTotals($newShipping);
+            $order->update($validated);
+            $order->recalculateTotals($newShipping);
 
-        return redirect()->route('admin.orders.show', $order->id)->with('success', "Order #{$order->order_number} updated successfully!");
+            return redirect()->route('admin.orders.show', $order->id)->with('success', "Order #{$order->order_number} updated successfully!");
+        }, 3);
     }
 
     public function updateStatus(Request $request, Order $order)
@@ -325,39 +335,49 @@ class OrderController extends Controller
             'payment_status' => 'required|in:pending,paid,failed,refunded',
         ]);
 
-        $prevOrderStatus = $order->order_status;
-        $newOrderStatus = $validated['order_status'];
+        return DB::transaction(function () use ($request, $order, $validated) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $prevOrderStatus = $order->order_status;
+            $newOrderStatus = $validated['order_status'];
+            if (!empty($order->payment?->response_payload['stock_review']) && !in_array($newOrderStatus, ['pending', 'cancelled'])) {
+                return back()->with('error', 'This paid order needs stock review. Verify actual inventory and use Razorpay Sync to confirm it.');
+            }
 
-        // Enforce Cancellation Restriction: If order cancellation is locked by admin
-        if ($order->is_cancellation_disabled && $newOrderStatus === 'cancelled') {
-            return back()->withErrors(['order_status' => "This order (#{$order->order_number}) is locked and CANNOT be cancelled."])->withInput();
-        }
+            // Enforce Cancellation Restriction: If order cancellation is locked by admin
+            if ($order->is_cancellation_disabled && $newOrderStatus === 'cancelled') {
+                return back()->withErrors(['order_status' => "This order (#{$order->order_number}) is locked and CANNOT be cancelled."])->withInput();
+            }
 
-        // If order is changed to cancelled and was previously confirmed/processing, restore stock
-        if ($newOrderStatus === 'cancelled' && $prevOrderStatus !== 'cancelled') {
-            $items = $order->items->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'size' => $item->size,
-                    'quantity' => $item->quantity,
-                ];
-            })->toArray();
+            // If order is changed to cancelled and was previously confirmed/processing, restore stock
+            if ($newOrderStatus === 'cancelled' && $prevOrderStatus !== 'cancelled') {
+                $items = $order->items->map(function ($item) {
+                    return [
+                        'product_id' => $item->product_id,
+                        'size' => $item->size,
+                        'quantity' => $item->quantity,
+                    ];
+                })->toArray();
 
-            $this->stockService->restoreStockForOrderItems($items, "Order #{$order->order_number} Cancelled by Admin");
+                if (($order->payment_status === 'paid' || ($order->payment_method === 'cod' && $prevOrderStatus !== 'pending'))
+                    && empty($order->payment?->response_payload['stock_review'])) {
+                    $this->stockService->restoreStockForOrderItems($items, "Order #{$order->order_number} Cancelled by Admin");
+                }
+                $validated['reserved_until'] = null;
 
-            // Dispatch Order Cancellation Email if email is present
-            if ($order->customer_email) {
-                try {
-                    Mail::to($order->customer_email)->send(new OrderCancelledMail($order));
-                } catch (Exception $e) {
-                    \Log::error('Order Cancelled Email Error: ' . $e->getMessage());
+                // Dispatch Order Cancellation Email if email is present
+                if ($order->customer_email) {
+                    try {
+                        Mail::to($order->customer_email)->send(new OrderCancelledMail($order));
+                    } catch (Exception $e) {
+                        \Log::error('Order Cancelled Email Error: ' . $e->getMessage());
+                    }
                 }
             }
-        }
 
-        $order->update($validated);
+            $order->update($validated);
 
-        return redirect()->route('admin.orders.show', $order->id)->with('success', 'Order status updated successfully!');
+            return redirect()->route('admin.orders.show', $order->id)->with('success', 'Order status updated successfully!');
+        }, 3);
     }
 
     public function updateCourierDispatch(Request $request, Order $order)
@@ -461,6 +481,9 @@ class OrderController extends Controller
             'auto_confirm_order' => 'nullable|boolean',
         ]);
 
+        if (!empty($order->payment?->response_payload['stock_review']) && $validated['payment_status'] === 'paid') {
+            return back()->with('error', 'This paid order needs stock review. Verify actual inventory and use Razorpay Sync to confirm it.');
+        }
         $previousPaymentStatus = $order->payment_status;
 
         // If marking as PAID when previously NOT paid, first check if stock is available
@@ -553,278 +576,45 @@ class OrderController extends Controller
 
     public function recheckRazorpayStatus(Request $request, Order $order)
     {
-        $payment = $order->payment;
-        $razorpayKey = config('services.razorpay.key');
-        $razorpaySecret = config('services.razorpay.secret');
-        $inputPaymentId = trim($request->input('razorpay_payment_id', ''));
-
-        if (empty($razorpayKey) || empty($razorpaySecret)) {
-            return back()->with('error', 'Razorpay API credentials are not configured.');
+        if ($order->order_status === 'cancelled') {
+            return back()->with('info', 'Cancelled orders are excluded from Razorpay checks.');
         }
-
         try {
-            $capturedPayment = null;
-
-            // 1. If explicit payment ID is passed (e.g. pay_TYh3nf3uOMSipQ)
-            $paymentIdToCheck = $inputPaymentId ?: ($payment ? $payment->razorpay_payment_id : null);
-            if ($paymentIdToCheck && str_starts_with($paymentIdToCheck, 'pay_')) {
-                $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                    ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/payments/{$paymentIdToCheck}");
-
-                if ($response->successful()) {
-                    $pData = $response->json();
-                    if (in_array($pData['status'] ?? '', ['captured', 'authorized'])) {
-                        $capturedPayment = $pData;
-                    }
-                }
+            $service = app(\App\Services\RazorpayOrderService::class);
+            $payment = $service->findCapturedPayment($order, trim($request->input('razorpay_payment_id', '')));
+            if (!$payment) {
+                return back()->with('info', 'No matching captured payment found. Order unchanged.');
             }
-
-            // 2. Try fetching by Razorpay Order ID
-            if (!$capturedPayment) {
-                $razorpayOrderId = ($payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_'))
-                    ? $payment->razorpay_order_id
-                    : null;
-
-                if ($razorpayOrderId) {
-                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                        ->withBasicAuth($razorpayKey, $razorpaySecret)
-                        ->get("https://api.razorpay.com/v1/orders/{$razorpayOrderId}/payments");
-
-                    if ($response->successful()) {
-                        $items = $response->json('items', []);
-                        foreach ($items as $item) {
-                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                                $capturedPayment = $item;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Fallback: Search Razorpay Payments list strictly by exact Order Number in notes/receipt
-            if (!$capturedPayment) {
-                $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                    ->withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/payments", [
-                        'count' => 50,
-                    ]);
-
-                if ($response->successful()) {
-                    $items = $response->json('items', []);
-                    $orderNum = trim($order->order_number ?? '');
-
-                    foreach ($items as $item) {
-                        if (!in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                            continue;
-                        }
-
-                        $notes = $item['notes'] ?? [];
-                        $receipt = $notes['order_number'] ?? ($notes['order_id'] ?? ($item['description'] ?? ''));
-
-                        // Strictly match exact Order Number (e.g. QW-XXXX) in Razorpay notes/description
-                        if (!empty($orderNum) && str_contains($receipt, $orderNum)) {
-                            $capturedPayment = $item;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if ($capturedPayment) {
-                if ($order->payment_status !== 'paid') {
-                    $itemsForDeduction = $order->items->map(function ($item) {
-                        return [
-                            'product_id' => $item->product_id,
-                            'size' => $item->size,
-                            'quantity' => $item->quantity,
-                        ];
-                    })->toArray();
-
-                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
-
-                    if (!$payment) {
-                        $payment = \App\Models\Payment::create([
-                            'order_id' => $order->id,
-                            'payment_method' => 'online',
-                            'amount' => $order->grand_total,
-                        ]);
-                    }
-
-                    $payment->update([
-                        'razorpay_payment_id' => $capturedPayment['id'],
-                        'razorpay_order_id' => $capturedPayment['order_id'] ?? $payment->razorpay_order_id,
-                        'status' => 'paid',
-                        'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
-                            'rechecked_at' => now()->toIso8601String(),
-                            'razorpay_details' => $capturedPayment,
-                        ]),
-                    ]);
-
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'order_status' => 'confirmed',
-                        'reserved_until' => null,
-                        'is_legacy_pending' => false,
-                    ]);
-
-                    $order->calculateRazorpayCharge();
-
-                    // Create Admin Notification
-                    Notification::create([
-                        'title' => 'Order Paid (Razorpay Synced)',
-                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Synced with Razorpay",
-                        'type' => 'new_order',
-                        'order_id' => $order->id,
-                        'is_read' => false,
-                    ]);
-
-                    return back()->with('success', "Razorpay Verified! Order #{$order->order_number} (Payment ID: {$capturedPayment['id']}) marked as Paid & Confirmed.");
-                }
-
-                return back()->with('info', "Order #{$order->order_number} is already marked as Paid.");
-            }
-
-            return back()->with('info', "Checked Razorpay API. No captured payment found for Order #{$order->order_number}.");
+            $result = $service->confirm($order, $payment, 'Razorpay Sync', true);
+            return back()->with(in_array($result, ['confirmed', 'already_processed']) ? 'success' : 'warning',
+                'Razorpay check: '.str_replace('_', ' ', $result).'.');
         } catch (\Exception $e) {
-            $msg = $e->getMessage();
-            if (str_contains($msg, 'Stock validation failed')) {
-                return back()->with('error', "Razorpay Payment Verified! However, order cannot be confirmed automatically because: {$msg}. Please add 1 stock to this product in Admin -> Products, then click Sync again to confirm.");
-            }
-            return back()->with('error', 'Razorpay Sync Status: ' . $msg);
+            return back()->with('error', 'Razorpay Sync: '.$e->getMessage());
         }
     }
 
     public function autoSyncPendingOrdersAjax(Request $request)
     {
+        $orders = Order::where('payment_method', 'online')
+            ->where('payment_status', 'pending')
+            ->where('order_status', '!=', 'cancelled')
+            ->where('created_at', '>=', now()->subHours(48))
+            ->orderBy('id')->take(5)->get();
         $syncedCount = 0;
-        try {
-            $pendingOrders = Order::where('payment_method', 'online')
-                ->where('payment_status', 'pending')
-                ->where('created_at', '>=', now()->subHours(48))
-                ->take(5)
-                ->get();
-
-            if ($pendingOrders->isEmpty()) {
-                return response()->json(['success' => true, 'synced_count' => 0]);
+        $reviewCount = 0;
+        $service = app(\App\Services\RazorpayOrderService::class);
+        foreach ($orders as $order) {
+            try {
+                $payment = $service->findCapturedPayment($order);
+                if ($payment) {
+                    $result = $service->confirm($order, $payment, 'Auto Sync');
+                    $syncedCount += $result === 'confirmed' ? 1 : 0;
+                    $reviewCount += $result === 'stock_review' ? 1 : 0;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Auto Sync Pending Online Orders Error', ['order_id' => $order->id, 'error' => $e->getMessage()]);
             }
-
-            $razorpayKey = config('services.razorpay.key');
-            $razorpaySecret = config('services.razorpay.secret');
-
-            if (empty($razorpayKey) || empty($razorpaySecret)) {
-                return response()->json(['success' => false, 'message' => 'API credentials missing'], 400);
-            }
-
-            foreach ($pendingOrders as $order) {
-                $payment = $order->payment;
-                $capturedPayment = null;
-
-                $paymentIdToCheck = $payment ? $payment->razorpay_payment_id : null;
-                if ($paymentIdToCheck && str_starts_with($paymentIdToCheck, 'pay_')) {
-                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                        ->withBasicAuth($razorpayKey, $razorpaySecret)
-                        ->get("https://api.razorpay.com/v1/payments/{$paymentIdToCheck}");
-
-                    if ($response->successful() && in_array($response->json('status'), ['captured', 'authorized'])) {
-                        $capturedPayment = $response->json();
-                    }
-                }
-
-                if (!$capturedPayment && $payment && !empty($payment->razorpay_order_id) && !str_starts_with($payment->razorpay_order_id, 'rzp_order_')) {
-                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                        ->withBasicAuth($razorpayKey, $razorpaySecret)
-                        ->get("https://api.razorpay.com/v1/orders/{$payment->razorpay_order_id}/payments");
-
-                    if ($response->successful()) {
-                        foreach ($response->json('items', []) as $item) {
-                            if (in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                                $capturedPayment = $item;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (!$capturedPayment) {
-                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                        ->withBasicAuth($razorpayKey, $razorpaySecret)
-                        ->get("https://api.razorpay.com/v1/payments", [
-                            'count' => 30,
-                        ]);
-
-                    if ($response->successful()) {
-                        $orderNum = trim($order->order_number ?? '');
-
-                        foreach ($response->json('items', []) as $item) {
-                            if (!in_array($item['status'] ?? '', ['captured', 'authorized'])) {
-                                continue;
-                            }
-
-                            $notes = $item['notes'] ?? [];
-                            $receipt = $notes['order_number'] ?? ($notes['order_id'] ?? ($item['description'] ?? ''));
-
-                            // Strictly match on exact Order Number (e.g. QW-20260908-00004) in Razorpay receipt/notes
-                            if (!empty($orderNum) && str_contains($receipt, $orderNum)) {
-                                $capturedPayment = $item;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if ($capturedPayment) {
-                    $itemsForDeduction = $order->items->map(fn($item) => [
-                        'product_id' => $item->product_id,
-                        'size' => $item->size,
-                        'quantity' => $item->quantity,
-                    ])->toArray();
-
-                    $this->stockService->deductStockForOrderItems($itemsForDeduction);
-
-                    if (!$payment) {
-                        $payment = \App\Models\Payment::create([
-                            'order_id' => $order->id,
-                            'payment_method' => 'online',
-                            'amount' => $order->grand_total,
-                        ]);
-                    }
-
-                    $payment->update([
-                        'razorpay_payment_id' => $capturedPayment['id'],
-                        'status' => 'paid',
-                        'response_payload' => array_merge((array) ($payment->response_payload ?? []), [
-                            'auto_synced_at' => now()->toIso8601String(),
-                            'razorpay_details' => $capturedPayment,
-                        ]),
-                    ]);
-
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'order_status' => 'confirmed',
-                        'reserved_until' => null,
-                        'is_legacy_pending' => false,
-                    ]);
-
-                    $order->calculateRazorpayCharge();
-
-                    Notification::create([
-                        'title' => 'Order Auto-Synced (Paid)',
-                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - Auto-Synced as Paid",
-                        'type' => 'new_order',
-                        'order_id' => $order->id,
-                        'is_read' => false,
-                    ]);
-
-                    $syncedCount++;
-                }
-            }
-
-            return response()->json(['success' => true, 'synced_count' => $syncedCount]);
-        } catch (\Exception $e) {
-            \Log::error('Auto Sync Pending Online Orders Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+        return response()->json(['success' => true, 'synced_count' => $syncedCount, 'review_count' => $reviewCount]);
     }
 }

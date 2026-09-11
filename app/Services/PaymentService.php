@@ -49,6 +49,7 @@ class PaymentService
                     'receipt' => $order->order_number,
                     'notes' => [
                         'order_id' => (string) $order->id,
+                        'order_number' => $order->order_number,
                         'customer_name' => (string) $order->customer_name,
                     ]
                 ]);
@@ -60,6 +61,11 @@ class PaymentService
             }
         } catch (\Exception $e) {
             Log::error('Razorpay API Order Creation Exception: ' . $e->getMessage());
+        }
+
+        if (!is_string($realRazorpayOrderId) || !str_starts_with($realRazorpayOrderId, 'order_')) {
+            $order->update(['reserved_until' => null]);
+            throw new \RuntimeException('Unable to start payment. Please try checkout again.');
         }
 
         $payment = Payment::create([
@@ -90,60 +96,20 @@ class PaymentService
      */
     public function verifyOnlinePayment(Order $order, string $paymentId, string $razorpayOrderId, string $signature): bool
     {
-        $razorpaySecret = config('services.razorpay.secret');
-
-        if (empty($razorpaySecret) || empty($signature) || empty($paymentId) || empty($razorpayOrderId)) {
-            Log::warning('Razorpay verification missing credentials or payload', [
-                'order_number' => $order->order_number,
-                'payment_id' => $paymentId,
-                'razorpay_order_id' => $razorpayOrderId,
-            ]);
-            $this->markPaymentFailed($order);
+        if ($order->order_status === 'cancelled') {
             return false;
         }
-
-        // Strict Razorpay HMAC SHA256 Signature Verification
-        $expectedSignature = hash_hmac('sha256', $razorpayOrderId . '|' . $paymentId, $razorpaySecret);
-
-        if (hash_equals($expectedSignature, $signature)) {
-            $payment = $order->payment;
-            if ($payment) {
-                $payment->update([
-                    'razorpay_payment_id' => $paymentId,
-                    'razorpay_signature' => $signature,
-                    'status' => 'paid',
-                    'response_payload' => [
-                        'verified_at' => now()->toIso8601String(),
-                        'payment_id' => $paymentId,
-                    ]
-                ]);
-            }
-            $order->update([
-                'payment_status' => 'paid',
-                'order_status' => 'confirmed',
-                'reserved_until' => null,
-            ]);
-
-            // Calculate and record Razorpay payment gateway charges
-            $order->calculateRazorpayCharge();
-
-            return true;
+        $secret = (string) config('services.razorpay.secret');
+        $storedOrderId = $order->payment?->razorpay_order_id;
+        if ($secret === '' || !$storedOrderId || !hash_equals($storedOrderId, $razorpayOrderId)
+            || !hash_equals(hash_hmac('sha256', $storedOrderId.'|'.$paymentId, $secret), $signature)) {
+            return false;
         }
-
-        Log::error('Razorpay signature mismatch for Order #' . $order->order_number);
-        $this->markPaymentFailed($order);
-
-        return false;
-    }
-
-    private function markPaymentFailed(Order $order): void
-    {
-        if ($order->payment) {
-            $order->payment->update(['status' => 'failed']);
+        $service = app(RazorpayOrderService::class);
+        $payment = $service->findCapturedPayment($order, $paymentId);
+        if (!$payment) {
+            return false;
         }
-        $order->update([
-            'payment_status' => 'failed',
-            'reserved_until' => null,
-        ]);
+        return in_array($service->confirm($order, $payment, 'Checkout'), ['confirmed', 'already_processed']);
     }
 }

@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success && data.synced_count > 0) {
+            if (data.success && (data.synced_count > 0 || data.review_count > 0)) {
                 window.location.reload();
             }
         })

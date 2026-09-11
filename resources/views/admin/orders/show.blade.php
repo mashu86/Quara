@@ -3,6 +3,7 @@
 @section('title', 'Order Details - ' . $siteName . ' Admin')
 
 @section('content')
+@include('admin.orders.partials.stock_review')
 <script>
 window.openImagePreviewModal = function(imageUrl, title) {
     var imgEl = document.getElementById('productImagePreviewModalImg');

@@ -33,6 +33,27 @@ class ProductSize extends Model
 
     public function getAvailableStockAttribute(): int
     {
-        return max(0, (int) $this->stock - (int) ($this->attributes['reserved_stock'] ?? 0));
+        return $this->availableStockForOrder();
+    }
+
+    public function availableStockForOrder(?int $excludeOrderId = null): int
+    {
+        $query = OrderItem::query()->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('order_items.product_id', $this->product_id)
+            ->where('order_items.size', $this->size)
+            ->where('orders.payment_method', 'online')
+            ->where('orders.payment_status', 'pending')
+            ->where('orders.order_status', 'pending')
+            ->where('orders.reserved_until', '>', now());
+        if ($excludeOrderId !== null) {
+            $query->where('orders.id', '!=', $excludeOrderId);
+        }
+        // Use a current read after waiting for a stock lock (including MySQL REPEATABLE READ).
+        if (\Illuminate\Support\Facades\DB::transactionLevel() > 0) {
+            $query->lockForUpdate();
+        }
+        $held = $query->get(['order_items.quantity'])->sum('quantity');
+
+        return max(0, (int) $this->stock - (int) ($this->attributes['reserved_stock'] ?? 0) - $held);
     }
 }

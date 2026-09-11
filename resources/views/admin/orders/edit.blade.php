@@ -3,6 +3,7 @@
 @section('title', 'Edit Order #' . $order->order_number . ' - ' . $siteName . ' Admin')
 
 @section('content')
+@include('admin.orders.partials.stock_review')
 <div class="mb-3 mb-md-4">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
         <h4 class="fw-bold mb-0 text-truncate fs-5 fs-sm-4">

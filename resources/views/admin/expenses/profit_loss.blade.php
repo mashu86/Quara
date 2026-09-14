@@ -146,22 +146,28 @@
             </div>
             <div class="col-12 col-md-7">
                 <div class="row g-2">
-                    <div class="col-6 col-sm-4">
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
+                            <span class="text-white-50 small d-block mb-1">Total Capital</span>
+                            <span class="fw-bold fs-6 text-warning">₹{{ number_format($totalCapital, 2) }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
                         <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
                             <span class="text-white-50 small d-block mb-1">Total Revenue</span>
                             <span class="fw-bold fs-6 text-success">₹{{ number_format($allTimeCombinedRevenue, 2) }}</span>
                         </div>
                     </div>
-                    <div class="col-6 col-sm-4">
+                    <div class="col-6 col-sm-3">
                         <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
                             <span class="text-white-50 small d-block mb-1">Total Expenses</span>
                             <span class="fw-bold fs-6 text-danger">₹{{ number_format($allTimeTotalExpenses, 2) }}</span>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-4">
+                    <div class="col-6 col-sm-3">
                         <div class="p-2.5 p-md-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
-                            <span class="text-white-50 small d-block mb-1">Total Refunds</span>
-                            <span class="fw-bold fs-6 text-warning">₹{{ number_format($allTimeOperationRefunds, 2) }}</span>
+                            <span class="text-white-50 small d-block mb-1">Cash in Bank/Hand</span>
+                            <span class="fw-bold fs-6 text-info">₹{{ number_format($cashInBank, 2) }}</span>
                         </div>
                     </div>
                 </div>

@@ -497,10 +497,17 @@ class ExpenseController extends Controller
         $allTimeActiveIncomes = \App\Models\Income::where('status', 'active');
         $allTimeAdditionalIncome = (float) (clone $allTimeActiveIncomes)->sum('total_income_amount');
 
+        $totalCapital = (float) \App\Models\Capital::sum('amount');
+        $periodCapital = (float) \App\Models\Capital::whereBetween('capital_date', [$startDate, $endDate])->sum('amount');
+
         $allTimeCombinedRevenue = $allTimeGrossRevenue + $allTimeAdditionalIncome;
         $allTimeTotalExpenses = $allTimeProductCost + $allTimeRazorpayCharges + $allTimeOtherExpenses + $allTimeOperationExpenses + $allTimeOperationRefunds;
-        $allTimeNetProfitLoss = $allTimeCombinedRevenue - $allTimeTotalExpenses;
+
+        $cashInBank = ($totalCapital + $allTimeCombinedRevenue) - $allTimeTotalExpenses;
+        $allTimeNetProfitLoss = $cashInBank - $totalCapital;
         $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
+
+        $periodCashInBank = ($periodCapital + $totalCombinedRevenue) - $totalExpenses;
 
         return view('admin.expenses.profit_loss', compact(
             'startDate',
@@ -530,6 +537,10 @@ class ExpenseController extends Controller
             'totalCombinedRevenue',
             'netProfitLoss',
             'isProfit',
+            'totalCapital',
+            'periodCapital',
+            'cashInBank',
+            'periodCashInBank',
             'allTimeCombinedRevenue',
             'allTimeTotalExpenses',
             'allTimeOperationRefunds',

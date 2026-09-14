@@ -14,6 +14,7 @@ use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\ProductDetailController;
 use App\Http\Controllers\Frontend\ShopController;
+use App\Http\Controllers\Admin\CapitalController as AdminCapitalController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\IncomeController as AdminIncomeController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
@@ -194,7 +195,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Shipping Policy (Delivery Price Master)
         Route::resource('shipping-policies', \App\Http\Controllers\Admin\ShippingPolicyController::class);
 
-        // Expenses & Profit/Loss Financial Management
+        // Capital Investment & Expenses Financial Management
+        Route::resource('capitals', AdminCapitalController::class);
         Route::resource('expenses', AdminExpenseController::class);
         Route::resource('incomes', AdminIncomeController::class);
         Route::post('incomes/{income}/toggle-status', [AdminIncomeController::class, 'toggleStatus'])->name('incomes.toggle-status');

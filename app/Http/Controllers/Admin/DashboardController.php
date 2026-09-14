@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Capital;
 use App\Models\Expense;
 use App\Models\Notification;
 use App\Models\Order;
@@ -116,6 +117,7 @@ class DashboardController extends Controller
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled');
 
+        $allTimeCapital = (float) Capital::sum('amount');
         $allTimeGrossRevenue = (float) (clone $allTimePaidOrdersQuery)->sum('grand_total');
         $allTimeNetSalesRevenue = max(0, $allTimeGrossRevenue - $allTimeOperationRefunds);
         $allTimeAdditionalIncome = (float) \App\Models\Income::where('status', 'active')->sum('total_income_amount');
@@ -124,7 +126,8 @@ class DashboardController extends Controller
         $allTimeExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary();
         $allTimeTotalExpenses = $allTimeExpensesData['total'];
 
-        $allTimeNetProfitLoss = $allTimeTotalRevenue - $allTimeTotalExpenses;
+        $cashInBank = ($allTimeCapital + $allTimeTotalRevenue) - $allTimeTotalExpenses;
+        $allTimeNetProfitLoss = $cashInBank - $allTimeCapital;
         $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
         $businessStats = $businessStatistics->report($filters);
         $totalSales = $businessStats['totalSales'];
@@ -169,8 +172,10 @@ class DashboardController extends Controller
             'todayExpenses',
             'todayOrdersCount',
             'todayBookingsCount',
+            'allTimeCapital',
             'allTimeTotalRevenue',
             'allTimeTotalExpenses',
+            'cashInBank',
             'allTimeNetProfitLoss',
             'allTimeIsProfit',
             'lowStockSizes',

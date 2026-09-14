@@ -460,6 +460,11 @@
 
                 <li class="nav-heading">Accounts & Financials</li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.capitals.index') }}" class="nav-link {{ request()->routeIs('admin.capitals.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-building-columns me-2 text-warning"></i> Capital Investments
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.employees.index') }}" class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-users-gear me-2 text-info"></i> Employee Master
                     </a>

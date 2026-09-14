@@ -26,7 +26,19 @@
         line-height: 1.15 !important;
         display: block;
     }
+    @media (min-width: 992px) {
+        .col-lg-5-card {
+            flex: 0 0 auto;
+            width: 20% !important;
+        }
+    }
     @media (max-width: 576px) {
+        .col-lg-5-card {
+            width: 50% !important;
+        }
+        .col-lg-5-card-full-mobile {
+            width: 100% !important;
+        }
         .admin-dash-mobile-btn {
             font-size: 0.74rem !important;
             padding: 6px 10px !important;
@@ -110,9 +122,17 @@
     </div>
 </div>
 
-<!-- Overall Financial Performance Section (Total Revenue, Total Expense, Net Profit / Loss) -->
+<!-- Overall Financial Performance Section (Total Capital, Revenue, Expense, Cash in Bank/Hand, Profit & Loss) -->
 <div class="row g-3 mb-3">
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-4 col-lg-5-card">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-warning">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Capital</span>
+            <h6 class="admin-dash-stat-val fw-bold text-warning-emphasis">₹{{ number_format($allTimeCapital, 2) }}</h6>
+            <a href="{{ route('admin.capitals.index') }}" class="admin-dash-stat-sub text-warning fw-bold text-decoration-none">Investment &rarr;</a>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-5-card">
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-success">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Revenue</span>
             <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($allTimeTotalRevenue, 2) }}</h6>
@@ -120,15 +140,23 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-4 col-lg-5-card">
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-danger">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Expense</span>
             <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($allTimeTotalExpenses, 2) }}</h6>
-            <a href="{{ route('admin.expenses.index') }}" class="admin-dash-stat-sub text-danger fw-bold text-decoration-none">COGS, Fees & Expenses &rarr;</a>
+            <a href="{{ route('admin.expenses.index') }}" class="admin-dash-stat-sub text-danger fw-bold text-decoration-none">COGS & Expenses &rarr;</a>
         </div>
     </div>
 
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-6 col-lg-5-card">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-info">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Cash in Bank / Hand</span>
+            <h6 class="admin-dash-stat-val fw-bold text-info">₹{{ number_format($cashInBank, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">(Capital + Rev) - Exp</span>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-5-card col-lg-5-card-full-mobile">
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 {{ $allTimeIsProfit ? 'border-success' : 'border-danger' }}">
             <div class="d-flex align-items-center justify-content-between">
                 <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Profit & Loss</span>
@@ -142,7 +170,7 @@
                 {{ $allTimeIsProfit ? '+' : '-' }}₹{{ number_format(abs($allTimeNetProfitLoss), 2) }}
             </h6>
             <a href="{{ route('admin.reports.profit-loss') }}" class="admin-dash-stat-sub {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }} fw-bold text-decoration-none">
-                View P&L Report &rarr;
+                Cash in Bank - Capital &rarr;
             </a>
         </div>
     </div>

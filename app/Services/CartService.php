@@ -265,12 +265,16 @@ class CartService
             }
         }
 
-        $grandTotal = $cartSubtotal + $shipping;
+        $rawGrandTotal = max(0, $cartSubtotal + $shipping);
+        $grandTotal = (float) ceil($rawGrandTotal);
+        $roundingAdjustment = round($grandTotal - $rawGrandTotal, 2);
 
         return [
             'subtotal' => round($subtotal, 2),
             'discount' => round($totalDiscount, 2),
             'shipping' => round($shipping, 2),
+            'raw_grand_total' => round($rawGrandTotal, 2),
+            'rounding_adjustment' => round($roundingAdjustment, 2),
             'grand_total' => round($grandTotal, 2),
             'item_count' => $cartCount,
             'matched_policy' => $comboFreeShipping ? $matchedPolicyName : ($matchedPolicy ? $matchedPolicy->name : null),

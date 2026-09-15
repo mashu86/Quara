@@ -10,10 +10,10 @@
 <section class="py-4 py-md-5 bg-white border-top border-bottom" id="all-products-section">
     <div class="container">
         <!-- Section Header & Sorting -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 pb-2 border-bottom gap-2">
             <div>
                 <span class="text-gold text-uppercase fw-bold small">TRENDING NOW</span>
-                <h2 class="font-serif display-6 fw-bold mb-1 fs-3 fs-md-2">
+                <h2 class="font-serif display-6 fw-bold mb-0 fs-4 fs-md-2">
                     @if($currentCategory)
                         {{ $currentCategory->name }}
                     @elseif(request()->filled('search'))
@@ -22,52 +22,38 @@
                         OUR COLLECTION
                     @endif
                 </h2>
-                <p id="productCountText" class="text-muted small mb-0">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces at Quara Wardrobe</p>
+                <p id="productCountText" class="text-muted small mb-0 d-none d-md-block">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces at Quara Wardrobe</p>
             </div>
 
-            <div class="d-flex align-items-center gap-3 mt-3 mt-md-0">
-                <!-- Sorting dropdown -->
-                <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-2 mb-0">
+            <div class="d-flex align-items-center gap-2 mt-1 mt-md-0 ms-auto qw-sort-filter-bar">
+                <!-- Sorting dropdown (75% on Mobile) -->
+                <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-1.5 mb-0 qw-sort-form">
                     @foreach(request()->except(['sort', 'page']) as $key => $val)
                         <input type="hidden" name="{{ $key }}" value="{{ $val }}">
                     @endforeach
-                    <label for="sort" class="small fw-semibold text-nowrap">Sort By:</label>
-                    <select name="sort" id="sort" class="form-select form-select-sm rounded-pill shadow-sm" onchange="this.form.submit()">
+                    <label for="sort" class="small fw-semibold text-nowrap d-none d-sm-inline">Sort By:</label>
+                    <select name="sort" id="sort" class="form-select form-select-sm rounded-pill shadow-sm py-1 w-100" style="font-size: 0.78rem;" onchange="this.form.submit()">
                         <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
                         <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
                         <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
                         <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
                     </select>
                 </form>
-            </div>
-        </div>
 
-        <style>
-            .filter-trigger-btn {
-                width: 100%;
-            }
-            @media (min-width: 768px) {
-                .filter-trigger-btn {
-                    width: auto !important;
-                }
-            }
-        </style>
-
-        <!-- Universal Filter Button Bar (Right-aligned on Desktop, White & Gold style) -->
-        <div class="d-flex justify-content-end mb-4">
-            <div class="d-flex gap-2 w-100 justify-content-end align-items-center">
-                <button type="button" class="btn rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2 filter-trigger-btn"
+                <!-- Filter & Search Button (25% Icon on Mobile) -->
+                <button type="button" class="btn rounded-pill px-2.5 px-md-3 py-1 shadow-sm d-inline-flex align-items-center justify-content-center gap-1.5 qw-filter-btn"
                         data-bs-toggle="modal" data-bs-target="#homeFilterModal"
-                        style="background-color: #ffffff; border: 2px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease;">
-                    <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 1.05rem;"></i>
-                    <span class="fw-bold" style="color: #D4AF37; letter-spacing: 0.3px;">Filter & Search</span>
+                        style="background-color: #ffffff; border: 1.5px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease; height: 32px;"
+                        title="Filter & Search Products">
+                    <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 0.88rem;"></i>
+                    <span class="d-none d-md-inline fw-bold" style="color: #D4AF37; font-size: 0.78rem; letter-spacing: 0.3px;">Filter & Search</span>
                     @if($activeFilterCount > 0)
-                        <span class="badge rounded-pill text-white ms-1" style="background-color: #D4AF37;">{{ $activeFilterCount }}</span>
+                        <span class="badge rounded-pill text-white" style="background-color: #D4AF37; font-size: 0.65rem; padding: 2px 5px;">{{ $activeFilterCount }}</span>
                     @endif
                 </button>
                 @if($activeFilterCount > 0)
-                    <a href="{{ route('home') }}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center" title="Clear Filters" style="border-color: #ddd;">
-                        <i class="fa-solid fa-rotate-left"></i>
+                    <a href="{{ route('home') }}" class="btn btn-outline-secondary rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-color: #ddd;" title="Clear Filters">
+                        <i class="fa-solid fa-rotate-left" style="font-size: 0.75rem;"></i>
                     </a>
                 @endif
             </div>
@@ -167,7 +153,7 @@
         <div class="row g-4">
             <!-- Product Grid (Full Width col-12) -->
             <div class="col-12">
-                <div class="row g-4" id="productGridContainer">
+                <div class="row g-2 g-sm-3 g-md-4" id="productGridContainer">
                     @include('frontend.partials.product_grid_items')
                 </div>
 

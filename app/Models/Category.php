@@ -18,16 +18,24 @@ class Category extends Model
         'text_color',
         'status',
         'sort_order',
+        'is_offer_category',
+        'offer_type',
         'is_combo_offer',
         'min_count',
         'combo_price',
+        'discount_value',
+        'discount_type',
+        'is_active_offer',
         'delivery_charge',
     ];
 
     protected $casts = [
+        'is_offer_category' => 'boolean',
         'is_combo_offer' => 'boolean',
+        'is_active_offer' => 'boolean',
         'min_count' => 'integer',
         'combo_price' => 'float',
+        'discount_value' => 'float',
         'delivery_charge' => 'float',
     ];
 
@@ -39,6 +47,22 @@ class Category extends Model
     public function comboProducts()
     {
         return $this->hasMany(Product::class, 'combo_category_id');
+    }
+
+    public function getIsComboOfferAttribute(): bool
+    {
+        return (bool) ($this->attributes['is_combo_offer'] ?? false) || 
+               (($this->attributes['is_offer_category'] ?? false) && ($this->attributes['offer_type'] ?? '') === 'combo');
+    }
+
+    public function getIsDiscountOfferAttribute(): bool
+    {
+        return (bool) (($this->attributes['is_offer_category'] ?? false) && ($this->attributes['offer_type'] ?? '') === 'discount');
+    }
+
+    public static function getActiveOfferCategory(): ?Category
+    {
+        return static::where('is_offer_category', true)->where('is_active_offer', true)->first();
     }
 
     public function getUnitOfferPriceAttribute(): float

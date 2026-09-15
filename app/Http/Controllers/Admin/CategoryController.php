@@ -48,17 +48,37 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories,name',
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
-            'status' => 'required|in:active,inactive',
-            'is_combo_offer' => 'nullable|boolean',
-            'min_count' => 'required_if:is_combo_offer,1|nullable|integer|min:1',
-            'combo_price' => 'required_if:is_combo_offer,1|nullable|numeric|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'is_offer_category' => 'nullable|boolean',
+            'offer_type' => 'required_if:is_offer_category,1|nullable|in:combo,discount',
+            'min_count' => 'required_if:offer_type,combo|nullable|integer|min:1',
+            'combo_price' => 'required_if:offer_type,combo|nullable|numeric|min:0',
+            'discount_value' => 'required_if:offer_type,discount|nullable|numeric|min:0',
+            'discount_type' => 'required_if:offer_type,discount|nullable|in:percentage,flat',
             'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_combo_offer'] = $request->has('is_combo_offer') ? (bool) $request->is_combo_offer : false;
-        $validated['min_count'] = $validated['is_combo_offer'] ? ($request->min_count ?? null) : null;
-        $validated['combo_price'] = $validated['is_combo_offer'] ? ($request->combo_price ?? null) : null;
+        $validated['is_offer_category'] = $request->has('is_offer_category') ? (bool) $request->is_offer_category : false;
+        
+        if ($validated['is_offer_category']) {
+            $validated['offer_type'] = $request->get('offer_type', 'combo');
+            $validated['is_combo_offer'] = ($validated['offer_type'] === 'combo');
+            $validated['min_count'] = ($validated['offer_type'] === 'combo') ? ($request->min_count ?? null) : null;
+            $validated['combo_price'] = ($validated['offer_type'] === 'combo') ? ($request->combo_price ?? null) : null;
+            $validated['discount_value'] = ($validated['offer_type'] === 'discount') ? ($request->discount_value ?? null) : null;
+            $validated['discount_type'] = ($validated['offer_type'] === 'discount') ? ($request->discount_type ?? 'percentage') : 'percentage';
+            // Offer categories have status managed via Offer Sale Manager
+            $validated['status'] = 'inactive';
+        } else {
+            $validated['offer_type'] = 'combo';
+            $validated['is_combo_offer'] = false;
+            $validated['min_count'] = null;
+            $validated['combo_price'] = null;
+            $validated['discount_value'] = null;
+            $validated['status'] = $request->status ?? 'active';
+        }
+
         $validated['delivery_charge'] = $request->filled('delivery_charge') ? (float) $request->delivery_charge : 0.00;
 
         if ($request->hasFile('background_image')) {
@@ -87,17 +107,38 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
-            'status' => 'required|in:active,inactive',
-            'is_combo_offer' => 'nullable|boolean',
-            'min_count' => 'required_if:is_combo_offer,1|nullable|integer|min:1',
-            'combo_price' => 'required_if:is_combo_offer,1|nullable|numeric|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'is_offer_category' => 'nullable|boolean',
+            'offer_type' => 'required_if:is_offer_category,1|nullable|in:combo,discount',
+            'min_count' => 'required_if:offer_type,combo|nullable|integer|min:1',
+            'combo_price' => 'required_if:offer_type,combo|nullable|numeric|min:0',
+            'discount_value' => 'required_if:offer_type,discount|nullable|numeric|min:0',
+            'discount_type' => 'required_if:offer_type,discount|nullable|in:percentage,flat',
             'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_combo_offer'] = $request->has('is_combo_offer') ? (bool) $request->is_combo_offer : false;
-        $validated['min_count'] = $validated['is_combo_offer'] ? ($request->min_count ?? null) : null;
-        $validated['combo_price'] = $validated['is_combo_offer'] ? ($request->combo_price ?? null) : null;
+        $validated['is_offer_category'] = $request->has('is_offer_category') ? (bool) $request->is_offer_category : false;
+
+        if ($validated['is_offer_category']) {
+            $validated['offer_type'] = $request->get('offer_type', 'combo');
+            $validated['is_combo_offer'] = ($validated['offer_type'] === 'combo');
+            $validated['min_count'] = ($validated['offer_type'] === 'combo') ? ($request->min_count ?? null) : null;
+            $validated['combo_price'] = ($validated['offer_type'] === 'combo') ? ($request->combo_price ?? null) : null;
+            $validated['discount_value'] = ($validated['offer_type'] === 'discount') ? ($request->discount_value ?? null) : null;
+            $validated['discount_type'] = ($validated['offer_type'] === 'discount') ? ($request->discount_type ?? 'percentage') : 'percentage';
+        } else {
+            $validated['offer_type'] = 'combo';
+            $validated['is_combo_offer'] = false;
+            $validated['min_count'] = null;
+            $validated['combo_price'] = null;
+            $validated['discount_value'] = null;
+            $validated['is_active_offer'] = false;
+            if ($request->filled('status')) {
+                $validated['status'] = $request->status;
+            }
+        }
+
         $validated['delivery_charge'] = $request->filled('delivery_charge') ? (float) $request->delivery_charge : 0.00;
 
         if ($request->hasFile('background_image')) {
@@ -116,18 +157,21 @@ class CategoryController extends Controller
 
     public function toggleStatus(Request $request, Category $category)
     {
+        if ($category->is_offer_category || $category->is_combo_offer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status for offer categories is managed centrally in Offer Sale Manager.'
+            ], 422);
+        }
+
         $category->status = ($category->status === 'active') ? 'inactive' : 'active';
         $category->save();
 
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'status' => $category->status,
-                'message' => 'Category status updated successfully to ' . ucfirst($category->status)
-            ]);
-        }
-
-        return back()->with('success', 'Category status updated.');
+        return response()->json([
+            'success' => true,
+            'status' => $category->status,
+            'message' => 'Category status updated successfully to ' . ucfirst($category->status)
+        ]);
     }
 
     public function destroy(Category $category)

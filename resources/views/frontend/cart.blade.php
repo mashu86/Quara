@@ -106,7 +106,7 @@
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-3 small">
+                    <div class="d-flex justify-content-between mb-2 small">
                         <span class="text-muted">Shipping Charge</span>
                         @if($summary['shipping'] > 0)
                             <span class="fw-bold text-dark">₹{{ number_format($summary['shipping'], 2) }}</span>
@@ -114,6 +114,13 @@
                             <span class="text-success fw-semibold">FREE</span>
                         @endif
                     </div>
+
+                    @if(!empty($summary['rounding_adjustment']) && $summary['rounding_adjustment'] > 0)
+                        <div class="d-flex justify-content-between mb-2 small text-muted">
+                            <span>Rounded Paisa (Round Off)</span>
+                            <span class="fw-semibold text-primary">+₹{{ number_format($summary['rounding_adjustment'], 2) }}</span>
+                        </div>
+                    @endif
 
                     <hr class="my-2">
 

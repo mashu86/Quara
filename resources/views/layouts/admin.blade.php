@@ -410,8 +410,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('admin.bulk-combo-offer.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-combo-offer.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-crown me-2 text-warning"></i> Bulk Combo Manager
+                    <a href="{{ route('admin.offer-sale.index') }}" class="nav-link {{ request()->routeIs('admin.offer-sale.*') || request()->routeIs('admin.bulk-combo-offer.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-tags me-2 text-warning"></i> Offer Sale
                     </a>
                 </li>
                 <li class="nav-item">

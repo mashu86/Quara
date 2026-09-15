@@ -28,6 +28,7 @@ class Order extends Model
         'subtotal',
         'discount',
         'shipping',
+        'rounding_adjustment',
         'grand_total',
         'payment_method',
         'payment_status',
@@ -59,6 +60,7 @@ class Order extends Model
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'shipping' => 'decimal:2',
+        'rounding_adjustment' => 'decimal:2',
         'grand_total' => 'decimal:2',
         'razorpay_fee_percent' => 'decimal:2',
         'razorpay_gst_percent' => 'decimal:2',
@@ -142,7 +144,9 @@ class Order extends Model
         $discount = (float) ($this->discount_amount ?? $this->discount ?? 0);
         $shipping = (float) $this->shipping;
 
-        $this->grand_total = max(0, round($subtotal + $shipping - $discount, 2));
+        $rawGrandTotal = max(0, $subtotal + $shipping - $discount);
+        $this->grand_total = (float) ceil($rawGrandTotal);
+        $this->rounding_adjustment = round($this->grand_total - $rawGrandTotal, 2);
         $this->save();
 
         if ($this->payment_method === 'online' || $this->payment_status === 'paid' || (float) $this->razorpay_total_charge > 0) {

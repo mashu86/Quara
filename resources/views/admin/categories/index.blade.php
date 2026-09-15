@@ -104,7 +104,7 @@
                         <th class="cat-sticky-col text-center" style="min-width: 105px;">Image / Category</th>
                         <th>Text Color</th>
                         <th>Products Count</th>
-                        <th>Combo Offer?</th>
+                        <th>Offer Sale Category?</th>
                         <th>Status Toggle</th>
                         <th class="text-end pe-3">Actions</th>
                     </tr>
@@ -117,6 +117,7 @@
                                     @php
                                         $hasBg = !empty($category->background_image);
                                         $imgSrc = $hasBg ? $category->background_image_url : '';
+                                        $isOffer = $category->is_offer_category || $category->is_combo_offer;
                                     @endphp
                                     <div class="cat-img-wrapper border shadow-xs mb-1" onclick="openCategoryPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($category->name) }}')" title="Click to preview category image">
                                         @if($hasBg)
@@ -131,8 +132,8 @@
                                         </div>
                                     </div>
                                     <div class="fw-bold text-dark lh-sm text-truncate d-flex align-items-center gap-1" style="font-size: 0.78rem; max-width: 110px;" title="{{ $category->name }}">
-                                        @if($category->is_combo_offer)
-                                            <span title="Combo Offer Category" style="color: #d4af37;">👑</span>
+                                        @if($isOffer)
+                                            <span title="Offer Sale Category" style="color: #d4af37;">{{ ($category->offer_type ?? 'combo') === 'combo' ? '👑' : '🏷️' }}</span>
                                         @endif
                                         <span>{{ $category->name }}</span>
                                     </div>
@@ -147,14 +148,23 @@
                                 <span class="badge bg-secondary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;">{{ $category->products_count }}</span>
                             </td>
                             <td>
-                                @if($category->is_combo_offer)
-                                    <span class="badge bg-warning text-dark border border-warning rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.74rem; background-color: #fff3cd !important;">
-                                        <i class="fa-solid fa-crown text-warning me-1"></i> YES
-                                    </span>
-                                    <div class="small text-muted mt-1" style="font-size: 0.7rem;">
-                                        Min: <strong>{{ $category->min_count }}</strong> | ₹<strong>{{ number_format($category->combo_price, 2) }}</strong><br>
-                                        Del: <strong>{{ $category->delivery_charge == 0 ? 'FREE' : '₹'.number_format($category->delivery_charge, 2) }}</strong>
-                                    </div>
+                                @if($isOffer)
+                                    @if(($category->offer_type ?? 'combo') === 'combo')
+                                        <span class="badge bg-warning text-dark border border-warning rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.74rem; background-color: #fff3cd !important;">
+                                            <i class="fa-solid fa-crown text-warning me-1"></i> YES (👑 Combo Offer)
+                                        </span>
+                                        <div class="small text-muted mt-1" style="font-size: 0.7rem;">
+                                            Min: <strong>{{ $category->min_count }} Pcs</strong> | ₹<strong>{{ number_format($category->combo_price, 2) }}</strong><br>
+                                            Del: <strong>{{ $category->delivery_charge == 0 ? 'FREE' : '₹'.number_format($category->delivery_charge, 2) }}</strong>
+                                        </div>
+                                    @else
+                                        <span class="badge bg-warning text-dark border border-warning rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.74rem; background-color: #fff3cd !important;">
+                                            <i class="fa-solid fa-tags text-warning me-1"></i> YES (🏷️ Product Discount)
+                                        </span>
+                                        <div class="small text-muted mt-1" style="font-size: 0.7rem;">
+                                            Discount: <strong>{{ $category->discount_type === 'percentage' ? $category->discount_value . '%' : '₹' . number_format($category->discount_value, 2) }}</strong>
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.74rem;">
                                         NO
@@ -162,17 +172,29 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="form-check form-switch mb-0 d-inline-block">
-                                    <input class="form-check-input category-status-switch" type="checkbox" role="switch"
-                                           data-category-id="{{ $category->id }}"
-                                           data-url="{{ route('admin.categories.toggle-status', $category->id) }}"
-                                           id="switch_cat_{{ $category->id }}"
-                                           {{ $category->status === 'active' ? 'checked' : '' }}
-                                           style="cursor: pointer; width: 2.5em; height: 1.25em;">
-                                    <label class="form-check-label small fw-bold ms-1" id="label_cat_{{ $category->id }}" for="switch_cat_{{ $category->id }}" style="font-size: 0.75rem;">
-                                        {{ ucfirst($category->status) }}
-                                    </label>
-                                </div>
+                                @if($isOffer)
+                                    @if($category->is_active_offer)
+                                        <span class="badge bg-warning text-dark border border-dark rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.74rem;">
+                                            <i class="fa-solid fa-crown me-1"></i> ★ Active Offer
+                                        </span>
+                                    @else
+                                        <span class="badge bg-light text-muted border rounded-pill px-2.5 py-1" style="font-size: 0.72rem;" title="Status managed centrally in Offer Sale Manager">
+                                            Inactive (Offer Sale)
+                                        </span>
+                                    @endif
+                                @else
+                                    <div class="form-check form-switch mb-0 d-inline-block">
+                                        <input class="form-check-input category-status-switch" type="checkbox" role="switch"
+                                               data-category-id="{{ $category->id }}"
+                                               data-url="{{ route('admin.categories.toggle-status', $category->id) }}"
+                                               id="switch_cat_{{ $category->id }}"
+                                               {{ $category->status === 'active' ? 'checked' : '' }}
+                                               style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                                        <label class="form-check-label small fw-bold ms-1" id="label_cat_{{ $category->id }}" for="switch_cat_{{ $category->id }}" style="font-size: 0.75rem;">
+                                            {{ ucfirst($category->status) }}
+                                        </label>
+                                    </div>
+                                @endif
                             </td>
                             <td class="text-end pe-2 pe-sm-3">
                                 <div class="d-flex align-items-center justify-content-end gap-2 gap-sm-2.5 flex-nowrap">
@@ -180,19 +202,21 @@
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
 
-                                    <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this category?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm cat-action-btn" title="Delete Category" {{ $category->products_count > 0 ? 'disabled' : '' }}>
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    @if(!$isOffer)
+                                        <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this category?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm cat-action-btn" title="Delete Category" {{ $category->products_count > 0 ? 'disabled' : '' }}>
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No categories found.</td>
+                            <td colspan="6" class="text-center py-4 text-muted">No categories found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -236,7 +260,7 @@
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application.json',
+                        'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     }
                 })
@@ -249,7 +273,7 @@
                         }
                     } else {
                         this.checked = !isChecked;
-                        alert('Failed to update category status.');
+                        alert(data.message || 'Failed to update category status.');
                     }
                 })
                 .catch(error => {

@@ -15,6 +15,7 @@ class DisplayOrderController extends Controller
         $categories = Category::withCount(['products' => function ($q) {
             $q->where('status', 'active');
         }])
+        ->orderByRaw('is_active_offer DESC')
         ->orderBy('sort_order', 'asc')
         ->orderBy('id', 'desc')
         ->get();
@@ -24,12 +25,13 @@ class DisplayOrderController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        $comboCategories = Category::where('is_combo_offer', true)
+        $comboCategories = Category::where('is_offer_category', true)
             ->with(['comboProducts' => function ($q) {
                 $q->with(['category', 'images', 'sizes'])
                   ->orderBy('combo_sort_order', 'asc')
                   ->orderBy('id', 'desc');
             }])
+            ->orderByRaw('is_active_offer DESC')
             ->orderBy('sort_order', 'asc')
             ->get();
 

@@ -225,28 +225,31 @@
             font-size: 0.7rem !important;
         }
         .combo-size-display-bar {
-            padding: 4px 6px !important;
-            margin-bottom: 6px !important;
+            padding: 3px 5px !important;
+            margin-bottom: 5px !important;
             border-radius: 6px !important;
         }
         .btn-add-combo-main, .btn-combo-remove {
-            font-size: 0.74rem !important;
-            padding: 8px 6px !important;
-            letter-spacing: 0px;
+            font-size: 0.65rem !important;
+            padding: 4px 6px !important;
+            letter-spacing: 0.2px;
             border-radius: 50rem !important;
-            min-height: 36px;
+            min-height: 28px !important;
+        }
+        .btn-add-combo-main i, .btn-combo-remove i {
+            font-size: 0.68rem !important;
         }
         .combo-badge-top-left {
-            font-size: 0.58rem !important;
-            padding: 3px 6px !important;
+            font-size: 0.55rem !important;
+            padding: 2px 5px !important;
             max-width: 48%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .combo-badge-top-right {
-            font-size: 0.58rem !important;
-            padding: 3px 6px !important;
+            font-size: 0.55rem !important;
+            padding: 2px 5px !important;
             max-width: 48%;
             white-space: nowrap;
             overflow: hidden;
@@ -258,7 +261,21 @@
             -webkit-backdrop-filter: blur(12px) !important;
             border-top: 1.5px solid #D4AF37 !important;
             box-shadow: 0 -6px 20px rgba(0,0,0,0.3) !important;
-            padding: 10px 14px !important;
+            padding: 8px 10px !important;
+        }
+        .mobile-combo-sticky-bar .submit-combo-btn {
+            font-size: 0.70rem !important;
+            padding: 6px 12px !important;
+        }
+        .mobile-combo-sticky-bar .combo-count-badge {
+            font-size: 0.60rem !important;
+            padding: 2px 6px !important;
+        }
+        .combo-header-banner h4 {
+            font-size: 0.95rem !important;
+        }
+        .combo-header-banner p {
+            font-size: 0.72rem !important;
         }
         .product-combo-card.is-selected {
             border-color: #D4AF37 !important;
@@ -280,9 +297,9 @@
                          style="background: rgba(212, 175, 55, 0.18); color: #F3E5AB; border: 1px solid rgba(212, 175, 55, 0.4); font-size: 0.65rem; letter-spacing: 0.3px;">
                         <span>👑 OFFER COMBO PACKAGE</span>
                     </div>
-                    <h1 class="fw-bold text-white mb-1.5" style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; line-height: 1.3;">
+                    <h4 class="fw-bold text-white mb-1.5" style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; line-height: 1.3;">
                         {{ $category->name }}
-                    </h1>
+                    </h4>
                     <p class="text-white-50 mb-2" style="font-size: 0.82rem; line-height: 1.4;">
                         Pick any <strong class="text-warning fw-bold">{{ $category->min_count }} items</strong> from this collection for only 
                         <strong class="text-gold fw-bold ms-0.5" style="font-size: 0.98rem;">₹{{ number_format($category->combo_price, 2) }}</strong>!
@@ -423,7 +440,7 @@
                                                 data-product-name="{{ $product->name }}"
                                                 data-product-image="{{ $product->primary_image_url }}"
                                                 data-original-price="{{ $product->final_price }}">
-                                            <i class="fa-solid fa-plus fs-6"></i> <span>Add to Combo</span>
+                                            <i class="fa-solid fa-plus"></i> <span>Add to Combo</span>
                                         </button>
                                     @endif
                                 </div>
@@ -728,7 +745,7 @@
             } else {
                 btn.disabled = false;
                 btn.className = 'btn btn-add-combo-main add-to-combo-btn';
-                btn.innerHTML = `<i class="fa-solid fa-plus fs-6"></i> <span>Add to Combo</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> <span>Add to Combo</span>`;
                 btn.removeAttribute('title');
                 if (card) card.classList.remove('is-selected');
             }

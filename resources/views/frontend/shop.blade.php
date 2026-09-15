@@ -28,36 +28,6 @@
 @endsection
 
 @section('content')
-<div class="container py-4">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
-        <div>
-            <h1 class="font-serif fw-bold display-6 mb-1 fs-2">
-                @if($currentCategory)
-                    {{ $currentCategory->name }}
-                @elseif(request()->filled('search'))
-                    Search Results for "{{ request()->search }}"
-                @else
-                    ALL PRODUCTS
-                @endif
-            </h1>
-            <p class="text-muted small mb-0">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces at Quara Wardrobe</p>
-        </div>
-
-        <!-- Sorting dropdown -->
-        <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-2 mt-3 mt-md-0 mb-2 mb-md-0">
-            @foreach(request()->except(['sort', 'page']) as $key => $val)
-                <input type="hidden" name="{{ $key }}" value="{{ $val }}">
-            @endforeach
-            <label for="sort" class="small fw-semibold text-nowrap">Sort By:</label>
-            <select name="sort" id="sort" class="form-select form-select-sm rounded-pill shadow-sm" onchange="this.form.submit()">
-                <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
-                <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
-                <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
-                <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
-            </select>
-        </form>
-    </div>
-
 @php
     $activeShopFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('category') ? 1 : 0)
@@ -66,37 +36,118 @@
         + (request()->filled('size') ? 1 : 0)
         + (request()->filled('stock') ? 1 : 0);
 @endphp
+<div class="container py-4">
+@if($currentCategory)
+    <!-- Luxury Category Banner Header -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden position-relative qw-category-hero text-white">
+        @if($currentCategory->background_image_url)
+            <img src="{{ $currentCategory->background_image_url }}" alt="{{ $currentCategory->name }}" class="position-absolute w-100 h-100 top-0 start-0 object-fit-cover" style="opacity: 0.25;">
+        @endif
+        <div class="card-body p-4 p-md-5 position-relative z-1 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <span class="badge bg-gold text-dark rounded-pill fw-bold px-3 py-1 mb-2 text-uppercase" style="font-size: 0.70rem; letter-spacing: 0.5px;">
+                    Category Collection
+                </span>
+                <h1 class="font-serif fw-bold display-5 mb-2 text-white">
+                    @if($currentCategory->is_offer_category) <span title="Offer Category">👑</span> @endif
+                    {{ $currentCategory->name }}
+                </h1>
+                <p class="text-white-50 small mb-0">
+                    Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} exclusive pieces
+                </p>
 
-    <style>
-        .filter-trigger-btn {
-            width: 100%;
-        }
-        @media (min-width: 768px) {
-            .filter-trigger-btn {
-                width: auto !important;
-            }
-        }
-    </style>
+                <!-- Active Offer Banner Tag -->
+                @if($currentCategory->is_active_offer)
+                    <div class="mt-3">
+                        @if($currentCategory->offer_type === 'combo')
+                            <span class="badge bg-warning text-dark border border-warning rounded-pill px-3 py-2 fw-bold shadow-sm fs-6">
+                                👑 LIVE OFFER: Pick any {{ $currentCategory->min_count }} items for ₹{{ number_format($currentCategory->combo_price, 0) }}!
+                            </span>
+                        @elseif($currentCategory->offer_type === 'discount')
+                            <span class="badge bg-danger text-white rounded-pill px-3 py-2 fw-bold shadow-sm fs-6">
+                                🏷️ LIVE OFFER: {{ $currentCategory->discount_type === 'percentage' ? $currentCategory->discount_value . '% OFF' : '₹' . number_format($currentCategory->discount_value, 0) . ' OFF' }} on all items!
+                            </span>
+                        @endif
+                    </div>
+                @endif
+            </div>
 
-    <!-- Universal Filter Button Bar (Right-aligned on Desktop, White & Gold style) -->
-    <div class="d-flex justify-content-end mt-3 mb-4">
-        <div class="d-flex gap-2 w-100 justify-content-end align-items-center">
-            <button type="button" class="btn rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2 filter-trigger-btn"
+            <!-- Sorting Dropdown & Filter in Hero -->
+            <div class="d-flex align-items-center gap-2 mt-3 mt-md-0 qw-sort-filter-bar">
+                <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-1.5 bg-dark bg-opacity-75 p-1.5 px-2 rounded-pill border border-secondary shadow-sm mb-0 qw-sort-form">
+                    @foreach(request()->except(['sort', 'page']) as $key => $val)
+                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                    @endforeach
+                    <label for="sort" class="small fw-semibold text-white text-nowrap ms-1 d-none d-sm-inline">Sort By:</label>
+                    <select name="sort" id="sort" class="form-select form-select-sm rounded-pill border-0 text-dark font-bold px-2 py-1 w-100" style="font-size: 0.78rem;" onchange="this.form.submit()">
+                        <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
+                        <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
+                        <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                        <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
+                    </select>
+                </form>
+
+                <button type="button" class="btn rounded-pill px-2.5 px-md-3 py-1 shadow-sm d-inline-flex align-items-center justify-content-center gap-1.5 qw-filter-btn"
+                        data-bs-toggle="modal" data-bs-target="#shopFilterModal"
+                        style="background-color: #ffffff; border: 1.5px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease; height: 32px;"
+                        title="Filter & Search Products">
+                    <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 0.88rem;"></i>
+                    <span class="d-none d-md-inline fw-bold" style="color: #D4AF37; font-size: 0.78rem; letter-spacing: 0.3px;">Filter & Search</span>
+                    @if($activeShopFilterCount > 0)
+                        <span class="badge rounded-pill text-white" style="background-color: #D4AF37; font-size: 0.65rem; padding: 2px 5px;">{{ $activeShopFilterCount }}</span>
+                    @endif
+                </button>
+            </div>
+        </div>
+    </div>
+@else
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 pb-2 border-bottom gap-2">
+        <div>
+            <h1 class="font-serif fw-bold display-6 mb-0 fs-3 fs-md-2">
+                @if(request()->filled('search'))
+                    Search Results for "{{ request()->search }}"
+                @else
+                    ALL PRODUCTS
+                @endif
+            </h1>
+            <p class="text-muted small mb-0 d-none d-md-block">Showing {{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }} of {{ $products->total() }} trendy pieces at Quara Wardrobe</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 mt-1 mt-md-0 ms-auto qw-sort-filter-bar">
+            <!-- Sorting dropdown (75% on Mobile) -->
+            <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-1.5 mb-0 qw-sort-form">
+                @foreach(request()->except(['sort', 'page']) as $key => $val)
+                    <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                @endforeach
+                <label for="sort" class="small fw-semibold text-nowrap d-none d-sm-inline">Sort By:</label>
+                <select name="sort" id="sort" class="form-select form-select-sm rounded-pill shadow-sm py-1 w-100" style="font-size: 0.78rem;" onchange="this.form.submit()">
+                    <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
+                    <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
+                    <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                    <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
+                </select>
+            </form>
+
+            <!-- Filter & Search Button (25% Icon on Mobile) -->
+            <button type="button" class="btn rounded-pill px-2.5 px-md-3 py-1 shadow-sm d-inline-flex align-items-center justify-content-center gap-1.5 qw-filter-btn"
                     data-bs-toggle="modal" data-bs-target="#shopFilterModal"
-                    style="background-color: #ffffff; border: 2px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease;">
-                <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 1.05rem;"></i>
-                <span class="fw-bold" style="color: #D4AF37; letter-spacing: 0.3px;">Filter & Search</span>
+                    style="background-color: #ffffff; border: 1.5px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease; height: 32px;"
+                    title="Filter & Search Products">
+                <i class="fa-solid fa-sliders" style="color: #D4AF37; font-size: 0.88rem;"></i>
+                <span class="d-none d-md-inline fw-bold" style="color: #D4AF37; font-size: 0.78rem; letter-spacing: 0.3px;">Filter & Search</span>
                 @if($activeShopFilterCount > 0)
-                    <span class="badge rounded-pill text-white ms-1" style="background-color: #D4AF37;">{{ $activeShopFilterCount }}</span>
+                    <span class="badge rounded-pill text-white" style="background-color: #D4AF37; font-size: 0.65rem; padding: 2px 5px;">{{ $activeShopFilterCount }}</span>
                 @endif
             </button>
             @if($activeShopFilterCount > 0)
-                <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center" title="Clear Filters" style="border-color: #ddd;">
-                    <i class="fa-solid fa-rotate-left"></i>
+                <a href="{{ route('shop') }}" class="btn btn-outline-secondary rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-color: #ddd;" title="Clear Filters">
+                    <i class="fa-solid fa-rotate-left" style="font-size: 0.75rem;"></i>
                 </a>
             @endif
         </div>
     </div>
+@endif
+
 
     <!-- Universal Filter Modal (Pop-up on all screens) -->
     <div class="modal fade" id="shopFilterModal" tabindex="-1" aria-labelledby="shopFilterModalLabel" aria-hidden="true">
@@ -192,7 +243,7 @@
     <div class="row g-4">
         <!-- Product Grid (Full Width col-12) -->
         <div class="col-12">
-            <div class="row g-4" id="productGridContainer">
+            <div class="row g-2 g-sm-3 g-md-4" id="productGridContainer">
                 @include('frontend.partials.product_grid_items')
             </div>
 

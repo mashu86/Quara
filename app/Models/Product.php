@@ -93,6 +93,23 @@ class Product extends Model
         return (int) $this->sizes->sum('stock');
     }
 
+    public function getEffectiveFinalPriceAttribute(): float
+    {
+        $activeOffer = Category::getActiveOfferCategory();
+        if ($activeOffer && $activeOffer->offer_type === 'discount' && ($this->combo_category_id == $activeOffer->id || $this->category_id == $activeOffer->id)) {
+            $basePrice = (float) $this->price;
+            $discVal = (float) $activeOffer->discount_value;
+            if ($activeOffer->discount_type === 'percentage') {
+                $final = $basePrice - ($basePrice * ($discVal / 100));
+            } else {
+                $final = $basePrice - $discVal;
+            }
+            return max(0, round($final, 2));
+        }
+
+        return (float) $this->final_price;
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active')
@@ -100,6 +117,8 @@ class Product extends Model
                 $q->whereHas('category', function ($catQ) {
                     $catQ->where('status', 'active');
                 })->orWhereHas('categories', function ($catQ) {
+                    $catQ->where('status', 'active');
+                })->orWhereHas('comboCategory', function ($catQ) {
                     $catQ->where('status', 'active');
                 });
             });

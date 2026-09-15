@@ -9,6 +9,15 @@
         transition: transform 0.15s ease, box-shadow 0.15s ease;
         user-select: none;
         touch-action: none;
+        margin-bottom: 8px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04) !important;
+    }
+    .bulk-product-card:last-child {
+        margin-bottom: 0 !important;
+    }
+    .bulk-product-card:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08) !important;
     }
     .bulk-product-card:active {
         cursor: grabbing;
@@ -28,14 +37,17 @@
         border: 2px dashed #dee2e6;
         border-radius: 0.85rem;
         background-color: #fcfcfc;
-        padding: 0.6rem;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
     .product-list-container.drag-over {
         border-color: #ffc107;
         background-color: #fffdf5;
     }
 
-    /* Mobile 2-Column Responsive Styles */
+    /* Mobile 2-Column Responsive Styles: Compact Image on Top, Details Below */
     @media (max-width: 767.98px) {
         .bulk-manager-page {
             padding: 0 !important;
@@ -44,29 +56,75 @@
             min-height: 380px;
             max-height: 60vh;
             padding: 0.35rem;
+            gap: 6px;
         }
         .bulk-product-card {
-            padding: 0.4rem !important;
+            padding: 0.35rem !important;
+            margin-bottom: 6px !important;
+            border-radius: 8px !important;
+        }
+        .bulk-card-inner {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 4px !important;
+        }
+        .bulk-card-info-wrap {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center;
+            width: 100% !important;
+            margin-right: 0 !important;
+            gap: 3px !important;
+        }
+        .bulk-card-img-container {
+            width: 100% !important;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2px;
         }
         .bulk-card-img {
-            width: 36px !important;
-            height: 36px !important;
+            width: 52px !important;
+            height: 52px !important;
+            object-fit: cover !important;
+            border-radius: 6px !important;
+        }
+        .bulk-card-details {
+            width: 100% !important;
+            text-align: center;
         }
         .bulk-card-title {
-            font-size: 0.72rem !important;
-            line-height: 1.2;
+            font-size: 0.68rem !important;
+            line-height: 1.18;
             margin-bottom: 2px !important;
+            white-space: normal !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+        .bulk-card-price-stock {
+            justify-content: center !important;
+            gap: 3px !important;
         }
         .bulk-card-price {
-            font-size: 0.68rem !important;
+            font-size: 0.65rem !important;
         }
         .bulk-card-stock {
-            font-size: 0.6rem !important;
-            padding: 2px 4px !important;
+            font-size: 0.58rem !important;
+            padding: 1.5px 3.5px !important;
         }
         .bulk-action-btn {
-            font-size: 0.65rem !important;
-            padding: 2px 6px !important;
+            width: 100% !important;
+            font-size: 0.62rem !important;
+            padding: 3px 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-top: 2px;
+        }
+        .bulk-action-btn span.d-none.d-sm-inline {
+            display: inline !important;
         }
     }
 </style>
@@ -84,13 +142,6 @@
         </a>
     </div>
 </div>
-
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
-        <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
 
 <!-- Category Selector & Search Header -->
 <div class="card border-0 rounded-4 shadow-sm mb-3">
@@ -158,7 +209,7 @@
                     Drag cards to the right column or click <strong>"+ Add"</strong>.
                 </p>
 
-                <div class="product-list-container d-flex flex-column gap-1.5" id="availableProductsList" data-column="available">
+                <div class="product-list-container d-flex flex-column gap-2" id="availableProductsList" data-column="available">
                     @forelse($availableProducts as $prod)
                         @php
                             $totalStock = $prod->sizes->sum('stock');
@@ -166,15 +217,15 @@
                         <div class="card border rounded-3 p-1.5 bulk-product-card bg-white shadow-xs position-relative" 
                              data-product-id="{{ $prod->id }}" 
                              id="product_card_{{ $prod->id }}">
-                            <div class="d-flex align-items-center justify-content-between gap-1">
-                                <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1">
+                            <div class="d-flex align-items-center justify-content-between gap-1 bulk-card-inner">
+                                <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1 bulk-card-info-wrap">
                                     <!-- Image with Eye overlay button -->
-                                    <div class="position-relative flex-shrink-0">
+                                    <div class="position-relative flex-shrink-0 bulk-card-img-container">
                                         <img src="{{ $prod->primary_image_url }}" alt="{{ $prod->name }}" 
                                              class="rounded-2 object-fit-cover bulk-card-img" style="width: 44px; height: 44px; cursor: pointer;"
                                              onclick="openProductDetailModal(this.nextElementSibling)">
-                                        <button type="button" class="btn btn-dark btn-sm rounded-circle p-0 position-absolute bottom-0 end-0 shadow-sm border border-light" 
-                                                style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; transform: translate(3px, 3px);"
+                                        <button type="button" class="btn p-0 position-absolute top-50 start-50 translate-middle border-0 rounded-circle" 
+                                                style="width: 17px; height: 17px; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); color: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.3);"
                                                 data-product-name="{{ $prod->name }}"
                                                 data-product-image="{{ $prod->primary_image_url }}"
                                                 data-product-price="₹{{ number_format($prod->final_price, 2) }}"
@@ -184,12 +235,12 @@
                                                 data-product-sizes='@json($prod->sizes)'
                                                 onclick="openProductDetailModal(this)"
                                                 title="View Details">
-                                            <i class="fa-solid fa-eye text-warning" style="font-size: 0.55rem;"></i>
+                                            <i class="fa-solid fa-eye" style="font-size: 0.5rem; color: #ffffff; opacity: 0.95;"></i>
                                         </button>
                                     </div>
-                                    <div class="overflow-hidden">
+                                    <div class="overflow-hidden bulk-card-details">
                                         <h6 class="fw-bold text-dark mb-0 text-truncate bulk-card-title" title="{{ $prod->name }}">{{ $prod->name }}</h6>
-                                        <div class="d-flex flex-wrap align-items-center gap-1">
+                                        <div class="d-flex flex-wrap align-items-center gap-1 bulk-card-price-stock">
                                             <span class="fw-bold text-gold bulk-card-price" style="font-size: 0.72rem;">₹{{ number_format($prod->final_price, 0) }}</span>
                                             <span class="badge bg-dark bulk-card-stock">Stk: {{ $totalStock }}</span>
                                         </div>
@@ -230,7 +281,7 @@
                     Products currently in <strong>{{ $selectedCategory->name }}</strong>.
                 </p>
 
-                <div class="product-list-container d-flex flex-column gap-1.5" id="assignedProductsList" data-column="assigned">
+                <div class="product-list-container d-flex flex-column gap-2" id="assignedProductsList" data-column="assigned">
                     @forelse($assignedProducts as $prod)
                         @php
                             $totalStock = $prod->sizes->sum('stock');
@@ -238,16 +289,16 @@
                         <div class="card border border-warning rounded-3 p-1.5 bulk-product-card bg-white shadow-xs position-relative" 
                              data-product-id="{{ $prod->id }}" 
                              id="product_card_{{ $prod->id }}">
-                            <div class="d-flex align-items-center justify-content-between gap-1">
-                                <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1">
+                            <div class="d-flex align-items-center justify-content-between gap-1 bulk-card-inner">
+                                <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1 bulk-card-info-wrap">
                                     <span class="text-muted small me-0.5 cursor-grab d-none d-sm-inline" title="Drag to reorder/remove"><i class="fa-solid fa-grip-vertical"></i></span>
                                     <!-- Image with Eye overlay button -->
-                                    <div class="position-relative flex-shrink-0">
+                                    <div class="position-relative flex-shrink-0 bulk-card-img-container">
                                         <img src="{{ $prod->primary_image_url }}" alt="{{ $prod->name }}" 
                                              class="rounded-2 object-fit-cover bulk-card-img" style="width: 44px; height: 44px; cursor: pointer;"
                                              onclick="openProductDetailModal(this.nextElementSibling)">
-                                        <button type="button" class="btn btn-dark btn-sm rounded-circle p-0 position-absolute bottom-0 end-0 shadow-sm border border-light" 
-                                                style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; transform: translate(3px, 3px);"
+                                        <button type="button" class="btn p-0 position-absolute top-50 start-50 translate-middle border-0 rounded-circle" 
+                                                style="width: 17px; height: 17px; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); color: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.3);"
                                                 data-product-name="{{ $prod->name }}"
                                                 data-product-image="{{ $prod->primary_image_url }}"
                                                 data-product-price="₹{{ number_format($prod->final_price, 2) }}"
@@ -257,12 +308,12 @@
                                                 data-product-sizes='@json($prod->sizes)'
                                                 onclick="openProductDetailModal(this)"
                                                 title="View Details">
-                                            <i class="fa-solid fa-eye text-warning" style="font-size: 0.55rem;"></i>
+                                            <i class="fa-solid fa-eye" style="font-size: 0.5rem; color: #ffffff; opacity: 0.95;"></i>
                                         </button>
                                     </div>
-                                    <div class="overflow-hidden">
+                                    <div class="overflow-hidden bulk-card-details">
                                         <h6 class="fw-bold text-dark mb-0 text-truncate bulk-card-title" title="{{ $prod->name }}">{{ $prod->name }}</h6>
-                                        <div class="d-flex flex-wrap align-items-center gap-1">
+                                        <div class="d-flex flex-wrap align-items-center gap-1 bulk-card-price-stock">
                                             <span class="fw-bold text-gold bulk-card-price" style="font-size: 0.72rem;">₹{{ number_format($prod->final_price, 0) }}</span>
                                             <span class="badge bg-dark bulk-card-stock">Stk: {{ $totalStock }}</span>
                                         </div>

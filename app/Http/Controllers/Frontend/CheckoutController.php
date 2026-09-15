@@ -113,6 +113,7 @@ class CheckoutController extends Controller
                     'subtotal' => $summary['subtotal'],
                     'discount' => $summary['discount'],
                     'shipping' => $summary['shipping'],
+                    'rounding_adjustment' => $summary['rounding_adjustment'] ?? 0.00,
                     'grand_total' => $summary['grand_total'],
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => ($validated['payment_method'] === 'cod') ? 'pending' : 'pending',

@@ -173,45 +173,47 @@
         }
 
         .product-title {
-            font-size: 1.45rem !important;
-            line-height: 1.25;
-            margin-bottom: 0.75rem !important;
+            font-size: 1.18rem !important;
+            line-height: 1.3;
+            margin-bottom: 0.5rem !important;
             overflow-wrap: anywhere;
         }
 
         .product-price-row {
             gap: 0.45rem !important;
-            margin-bottom: 0.85rem !important;
-            padding-bottom: 0.85rem !important;
+            margin-bottom: 0.65rem !important;
+            padding-bottom: 0.65rem !important;
         }
 
         .product-current-price {
-            font-size: 1.65rem !important;
+            font-size: 1.35rem !important;
         }
 
         .product-original-price {
-            font-size: 1rem !important;
+            font-size: 0.82rem !important;
         }
 
         .product-save-badge {
-            padding: 0.4rem 0.65rem !important;
-            font-size: 0.7rem !important;
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.65rem !important;
         }
 
         .product-description {
-            margin-bottom: 1rem !important;
-            font-size: 0.9rem;
+            margin-bottom: 0.85rem !important;
+            font-size: 0.82rem !important;
+            line-height: 1.5;
         }
 
         .product-size-section,
         .product-quantity-section {
-            margin-bottom: 1rem !important;
+            margin-bottom: 0.85rem !important;
         }
 
         .product-size-heading {
             align-items: flex-start !important;
             flex-direction: column;
             gap: 0.25rem;
+            font-size: 0.78rem !important;
         }
 
         #stockStatusNotice {
@@ -225,16 +227,37 @@
             display: grid !important;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             width: 100%;
+            gap: 0.4rem !important;
         }
 
         .product-size-option {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.25rem;
-            min-height: 42px;
+            gap: 0.2rem;
+            min-height: 38px;
             min-width: 0;
-            padding: 0.45rem 0.5rem !important;
+            padding: 0.35rem 0.45rem !important;
+            font-size: 0.80rem !important;
+        }
+
+        /* Modern light size buttons without black background */
+        .qw-size-btn-option {
+            border: 1.5px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+            transition: all 0.2s ease !important;
+        }
+        .qw-size-btn-option:hover {
+            border-color: #d4af37 !important;
+            background-color: #fdfbf7 !important;
+            color: #aa7c11 !important;
+        }
+        .btn-check:checked + .qw-size-btn-option {
+            border-color: #d4af37 !important;
+            background-color: rgba(212, 175, 55, 0.12) !important;
+            color: #8b6508 !important;
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
         }
 
         .product-size-option .badge {
@@ -296,19 +319,6 @@
 @section('content')
 <div class="container py-4 product-detail-page">
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="fa-solid fa-circle-exclamation me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <div class="row g-4 g-lg-5 product-detail-row">
         <!-- Image Gallery -->
         <div class="col-lg-6">
@@ -335,13 +345,13 @@
             </div>
             <div class="modal fade" id="imageZoomModal" tabindex="-1" aria-labelledby="imageZoomLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-xl">
-                    <div class="modal-content bg-dark border-0">
+                    <div class="modal-content bg-white border-0 shadow">
                         <div class="modal-header border-0 py-2">
-                            <h2 class="modal-title text-white fs-6" id="imageZoomLabel">{{ $product->name }}</h2>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h2 class="modal-title text-dark fs-6 fw-bold" id="imageZoomLabel">{{ $product->name }}</h2>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body text-center p-2">
-                            <img id="zoomedProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid" style="max-height: 80vh; object-fit: contain;">
+                            <img id="zoomedProductImage" src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3" style="max-height: 80vh; object-fit: contain;">
                         </div>
                     </div>
                 </div>
@@ -350,21 +360,26 @@
 
         <!-- Product Details & Buying Actions -->
         <div class="col-lg-6">
-            <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
-                <span class="text-gold text-uppercase fw-bold tracking-wider small mb-1">{{ $product->category->name }}</span>
-                <h1 class="font-serif fw-bold h2 mb-3 text-dark product-title">{{ $product->name }}</h1>
+            <div class="bg-white p-3 p-md-4 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
+                <span class="text-gold text-uppercase fw-bold tracking-wider mb-1" style="font-size: 0.70rem;">{{ $product->category->name }}</span>
+                <h1 class="fw-bold mb-2 text-dark product-title">{{ $product->name }}</h1>
 
                 <!-- Pricing Display -->
-                <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3 mb-3 pb-3 border-bottom product-price-row">
-                    <span class="fs-2 fw-bold text-gold mb-0 product-current-price">₹{{ number_format($product->final_price, 2) }}</span>
-                    @if($product->discount_type !== 'none' && $product->price > $product->final_price)
-                        <span class="fs-5 text-muted text-decoration-line-through mb-0 product-original-price">₹{{ number_format($product->price, 2) }}</span>
-                        <span class="badge bg-danger rounded-pill px-3 py-2 fw-semibold product-save-badge" style="font-size: 0.8rem;">Save ₹{{ number_format($product->price - $product->final_price, 2) }}</span>
+                <div class="d-flex flex-wrap align-items-baseline gap-2 gap-sm-3 mb-2.5 pb-2.5 border-bottom product-price-row">
+                    @php
+                        $hasDiscountDetail = ($product->discount_type !== 'none' && $product->price > $product->final_price);
+                        $finalDetailFormatted = $product->final_price == floor($product->final_price) ? number_format($product->final_price, 0) : number_format($product->final_price, 2);
+                        $origDetailFormatted = $product->price == floor($product->price) ? number_format($product->price, 0) : number_format($product->price, 2);
+                    @endphp
+                    <span class="fw-bold text-gold mb-0 product-current-price">₹{{ $finalDetailFormatted }}</span>
+                    @if($hasDiscountDetail)
+                        <span class="qw-cut-price mb-0 product-original-price">₹{{ $origDetailFormatted }}</span>
+                        <span class="badge bg-danger rounded-pill px-2.5 py-1 fw-bold product-save-badge" style="font-size: 0.65rem;">Save ₹{{ number_format($product->price - $product->final_price, 0) }}</span>
                     @endif
                 </div>
 
                 <!-- Product Description -->
-                <div class="mb-4 text-secondary leading-relaxed product-description">
+                <div class="mb-3 text-secondary leading-relaxed product-description">
                     {!! $product->description !!}
                 </div>
 
@@ -373,16 +388,16 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
 
-                    <div class="mb-4 product-size-section">
+                    <div class="mb-3 product-size-section">
                         @php
                             $hasMeasurements = $product->sizes->contains(fn($sz) => !empty($sz->chest) || !empty($sz->waist) || !empty($sz->length));
                         @endphp
 
-                        <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading">
+                        <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading mb-1.5">
                             <span>
                                 Select Size <span class="text-danger">*</span>
                                 @if($hasMeasurements)
-                                    <button type="button" class="btn btn-link btn-sm text-warning p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#sizeChartModal" style="font-size: 0.78rem;">
+                                    <button type="button" class="btn btn-link btn-sm text-warning p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#sizeChartModal" style="font-size: 0.74rem;">
                                         <i class="fa-solid fa-ruler text-warning me-1"></i> Size Chart (inch)
                                     </button>
                                 @endif
@@ -417,26 +432,15 @@
                                        data-length="{{ $pSize->length }}"
                                        onchange="updateStockNotice(this)"
                                        {{ $shouldCheck ? 'checked' : '' }}>
-                                <label class="btn {{ $isAvailable ? 'btn-outline-dark' : 'btn-outline-secondary opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option text-center" for="size_{{ $pSize->id }}">
+                                <label class="btn {{ $isAvailable ? 'qw-size-btn-option' : 'btn-light text-muted border opacity-50' }} px-3 py-2 rounded-3 fw-semibold product-size-option text-center" for="size_{{ $pSize->id }}">
                                     <div>
-                                        <span>{{ $pSize->size }}</span>
-                                        @if($effectiveStock > 0 && $effectiveStock <= 3)
-                                            <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Only {{ $effectiveStock }} left</span>
-                                        @elseif($effectiveStock <= 0)
-                                            <span class="badge bg-secondary text-white ms-1" style="font-size:0.65rem;">Out</span>
+                                        <span class="fw-bold">{{ $pSize->size }}</span>
+                                        @if($effectiveStock > 0)
+                                            <span class="text-danger fw-semibold ms-1" style="font-size:0.68rem;">({{ $effectiveStock }} left)</span>
+                                        @else
+                                            <span class="text-muted fw-normal ms-1" style="font-size:0.68rem;">(Out)</span>
                                         @endif
                                     </div>
-                                    @php
-                                        $mParts = [];
-                                        if(!empty($pSize->chest)) $mParts[] = 'Chest: ' . $pSize->chest . '"';
-                                        if(!empty($pSize->waist)) $mParts[] = 'Waist: ' . $pSize->waist . '"';
-                                        if(!empty($pSize->length)) $mParts[] = 'Length: ' . $pSize->length . '"';
-                                    @endphp
-                                    @if(count($mParts) > 0)
-                                        <div class="small fw-normal mt-0.5 text-muted" style="font-size: 0.68rem; line-height: 1.2;">
-                                            {{ implode(' • ', $mParts) }}
-                                        </div>
-                                    @endif
                                 </label>
                             @empty
                                 <div class="alert alert-warning py-2 px-3 small">No size options available.</div>
@@ -444,38 +448,38 @@
                         </div>
 
                         <!-- Dynamic Size Measurement Display Box (Inches) -->
-                        <div id="sizeMeasurementBox" class="mt-2.5 p-3 bg-light border rounded-3 small d-none">
-                            <div class="fw-bold text-dark mb-1.5 d-flex align-items-center" style="font-size: 0.8rem;">
+                        <div id="sizeMeasurementBox" class="mt-2 p-2.5 bg-light border rounded-3 small d-none">
+                            <div class="fw-bold text-dark mb-1 d-flex align-items-center" style="font-size: 0.78rem;">
                                 <i class="fa-solid fa-ruler-horizontal text-warning me-1.5"></i>
                                 <span>Selected Size <strong id="selectedSizeNameText" class="text-warning fs-6"></strong> Fit Details:</span>
                             </div>
-                            <div class="d-flex flex-wrap gap-2 text-secondary mb-2" id="selectedSizeMeasurementsBadges"></div>
+                            <div class="d-flex flex-wrap gap-2 text-secondary mb-1" id="selectedSizeMeasurementsBadges"></div>
                         </div>
 
                         @if($hasMeasurements)
-                            <div class="form-text small fw-bold text-dark mt-2" style="font-size: 0.74rem;">
+                            <div class="form-text small fw-bold text-dark mt-1.5" style="font-size: 0.72rem;">
                                 <i class="fa-solid fa-ruler me-1 text-warning"></i> <span>Note: All product & body measurements above are in Inches (in).</span>
                             </div>
                         @endif
                     </div>
 
                     <!-- Quantity Selector -->
-                    <div class="mb-4 product-quantity-section">
-                        <label class="form-label font-bold text-uppercase">Quantity</label>
-                        <div class="input-group" style="max-width: 140px;">
-                            <button type="button" class="btn btn-outline-dark" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                    <div class="mb-3 product-quantity-section">
+                        <label class="form-label font-bold text-uppercase small" style="font-size: 0.78rem;">Quantity</label>
+                        <div class="input-group" style="max-width: 130px;">
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
                             <input type="number" name="quantity" id="quantityInput" class="form-control text-center fw-bold" value="1" min="1" max="50">
-                            <button type="button" class="btn btn-outline-dark" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
 
                     <!-- Actions -->
                     @if($totalProductStock > 0)
-                        <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-4 product-purchase-actions">
-                            <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 py-md-3">
+                        <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-3 product-purchase-actions">
+                            <button type="submit" formaction="{{ route('cart.add') }}" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
                             </button>
-                            <button type="submit" formaction="{{ route('cart.buy_now') }}" class="btn btn-dark flex-grow-1 shadow-sm purchase-action py-2 py-md-3">
+                            <button type="submit" formaction="{{ route('cart.buy_now') }}" class="btn btn-qw-outline-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bolt me-2 text-warning"></i> BUY NOW
                             </button>
                         </div>
@@ -508,12 +512,12 @@
                         </span>
                     </div>
                     
-                    <div class="d-flex gap-2 mb-2 product-share-actions">
-                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill font-semibold py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center gap-1" title="Share on WhatsApp">
+                    <div class="d-flex gap-2 mb-2 product-share-actions justify-content-center text-center">
+                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill font-semibold py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center text-center gap-1 w-100" title="Share on WhatsApp">
                             <i class="fa-brands fa-whatsapp fs-5"></i>
                             <span class="product-share-label"><span class="d-none d-sm-inline">Share on </span>WhatsApp</span>
                         </a>
-                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center gap-1" title="Copy Link">
+                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center justify-content-center text-center gap-1 w-100" title="Copy Link">
                             <i class="fa-solid fa-link text-gold"></i>
                             <span class="product-share-label">Copy Link</span>
                         </button>
@@ -531,7 +535,7 @@
     @if($relatedProducts->count() > 0)
         <div class="mt-5 pt-4 product-related-section">
             <h3 class="font-serif fw-bold mb-4">YOU MAY ALSO LIKE</h3>
-            <div class="row g-4 product-related-grid">
+            <div class="row g-2 g-sm-3 g-md-4 product-related-grid">
                 @foreach($relatedProducts as $relProduct)
                     @if($relProduct->total_stock > 0 && !$relProduct->is_out_of_stock)
                         <div class="col-6 col-md-3">
@@ -543,7 +547,17 @@
                                 </a>
                                 <div class="p-3 product-related-card-body">
                                     <h6 class="font-serif fw-bold text-dark text-truncate mb-1">{{ $relProduct->name }}</h6>
-                                    <span class="fs-6 fw-bold text-gold">₹{{ number_format($relProduct->final_price, 2) }}</span>
+                                    <div class="d-flex flex-wrap align-items-baseline gap-1.5 mb-1">
+                                        @php
+                                            $relHasDiscount = ($relProduct->discount_type !== 'none' && $relProduct->price > $relProduct->final_price);
+                                            $relFinalFormatted = $relProduct->final_price == floor($relProduct->final_price) ? number_format($relProduct->final_price, 0) : number_format($relProduct->final_price, 2);
+                                            $relOrigFormatted = $relProduct->price == floor($relProduct->price) ? number_format($relProduct->price, 0) : number_format($relProduct->price, 2);
+                                        @endphp
+                                        <span class="qw-product-price">₹{{ $relFinalFormatted }}</span>
+                                        @if($relHasDiscount)
+                                            <span class="qw-cut-price">₹{{ $relOrigFormatted }}</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>

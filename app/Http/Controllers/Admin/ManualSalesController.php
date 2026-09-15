@@ -66,7 +66,7 @@ class ManualSalesController extends Controller
     public function create()
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'sizes', 'images'])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
         return view('admin.manual_sales.create', compact('products', 'categories'));
     }
 
@@ -167,7 +167,10 @@ class ManualSalesController extends Controller
         }
 
         $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
-        $grandTotal = max(0, round($calculatedSubtotal - $discountAmount + $shipping, 2));
+        $rawGrandTotal = max(0, $calculatedSubtotal - $discountAmount + $shipping);
+        $grandTotal = (float) ceil($rawGrandTotal);
+        $roundingAdjustment = round($grandTotal - $rawGrandTotal, 2);
+
         $orderNumber = 'QW-MAN-' . strtoupper(str_shuffle(substr(uniqid(), -5)));
 
         $nowInIst = \Carbon\Carbon::now('Asia/Kolkata');
@@ -178,7 +181,7 @@ class ManualSalesController extends Controller
             $saleDate = $nowInIst;
         }
 
-        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $discountAmount, $shipping, $grandTotal, $orderNumber, $saleDate) {
+        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $discountAmount, $shipping, $roundingAdjustment, $grandTotal, $orderNumber, $saleDate) {
             $order = Order::create([
                 'user_id' => null,
                 'order_number' => $orderNumber,
@@ -195,6 +198,7 @@ class ManualSalesController extends Controller
                 'subtotal' => $calculatedSubtotal,
                 'discount' => $discountAmount,
                 'shipping' => $shipping,
+                'rounding_adjustment' => $roundingAdjustment,
                 'grand_total' => $grandTotal,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => $validated['payment_status'],
@@ -247,7 +251,7 @@ class ManualSalesController extends Controller
 
         $order->load(['items.product', 'items.productSize']);
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'sizes', 'images'])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
 
         return view('admin.manual_sales.edit', compact('order', 'products', 'categories'));
     }

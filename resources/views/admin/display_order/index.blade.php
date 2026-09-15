@@ -33,32 +33,32 @@
         object-fit: cover;
         border-radius: 8px;
     }
-    @media (max-width: 576px) {
+    @media (max-width: 767.98px) {
         .display-order-nav-pills {
-            flex-wrap: nowrap !important;
+            flex-wrap: wrap !important;
             gap: 6px !important;
         }
         .display-order-nav-pills .nav-item {
-            flex: 1 1 50% !important;
-            min-width: 0 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
         }
         .display-order-nav-pills .nav-link {
-            font-size: 0.68rem !important;
-            padding: 5px 6px !important;
-            white-space: nowrap !important;
-            text-overflow: ellipsis !important;
-            overflow: hidden !important;
+            font-size: 0.75rem !important;
+            padding: 7px 12px !important;
+            white-space: normal !important;
+            text-align: center !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             width: 100% !important;
+            border-radius: 10px !important;
         }
         .display-order-nav-pills .nav-link i {
-            font-size: 0.65rem !important;
-            margin-right: 3px !important;
+            font-size: 0.72rem !important;
+            margin-right: 4px !important;
         }
         .display-order-card-header {
-            padding: 8px 10px !important;
+            padding: 10px 12px !important;
         }
         .grid-thumb-img {
             height: 95px;
@@ -309,7 +309,11 @@
                                         <h6 class="fw-bold text-dark mb-1 text-truncate order-card-title" title="{{ $cat->name }}">{{ $cat->name }}</h6>
                                         <div class="d-flex justify-content-center align-items-center gap-1 mt-auto">
                                             <span class="badge bg-light text-dark border" style="font-size: 0.62rem;">{{ $cat->products_count }} Prods</span>
-                                            @if($cat->status === 'active')
+                                            @if($cat->is_active_offer)
+                                                <span class="badge bg-warning text-dark border border-dark" style="font-size: 0.62rem;"><i class="fa-solid fa-crown me-1"></i> Active Offer</span>
+                                            @elseif($cat->is_offer_category)
+                                                <span class="badge bg-info text-dark" style="font-size: 0.62rem;">Offer Category</span>
+                                            @elseif($cat->status === 'active')
                                                 <span class="badge bg-success" style="font-size: 0.62rem;">Active</span>
                                             @else
                                                 <span class="badge bg-secondary" style="font-size: 0.62rem;">Inactive</span>

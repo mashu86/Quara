@@ -243,6 +243,7 @@
                                 <div class="small text-muted mb-1">Product Original Total: <strong id="subtotalDisplay" class="text-dark">₹0.00</strong></div>
                                 <div class="small text-danger mb-1 {{ !$hasExistingDiscount ? 'd-none' : '' }}" id="discountRowDisplay">Discount / Savings: <strong id="discountDisplay" class="text-danger">- ₹{{ number_format($existingDiscount, 2) }}</strong></div>
                                 <div class="small text-muted mb-1">Delivery Charge: <strong id="deliveryDisplay" class="text-dark">₹0.00</strong></div>
+                                <div class="small text-muted mb-1 d-none" id="roundingRowDisplay">Rounded Paisa (Round Off): <strong id="roundingDisplay" class="text-primary">+ ₹0.00</strong></div>
                                 <div class="fw-bold text-dark fs-6 mt-2">Original Grand Total: <span id="grandTotalDisplay" class="fw-bold">₹0.00</span></div>
                                 @if($totRefund > 0)
                                     <div class="small text-danger fw-bold mt-1">Refund Deducted: -₹{{ number_format($totRefund, 2) }}</div>
@@ -419,7 +420,8 @@
             {
                 id: {{ $prod->id }},
                 name: @json($prod->name),
-                price: {{ (float) $prod->final_price }},
+                price: {{ (float) $prod->effective_final_price }},
+                originalPrice: {{ (float) $prod->price }},
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
                 sizes: @json($prod->sizes),
@@ -491,7 +493,8 @@
                 if (!isSelected) disabledAttr = 'disabled';
             }
             const selectedAttr = isSelected ? 'selected' : '';
-            html += `<option value="${prod.id}" data-price="${prod.price}" data-image="${prod.image}" data-categories='${JSON.stringify(prod.categories)}' data-out-of-stock="${prod.isOut ? '1' : '0'}" data-physical-stock="${prod.physicalStock}" ${disabledAttr} ${selectedAttr}>${prod.name} (Price: ₹${prod.price.toFixed(2)})${labelSuffix}</option>`;
+            let offerLabel = (prod.originalPrice > prod.price) ? ` (Offer: ₹${prod.price.toFixed(2)} [Was ₹${prod.originalPrice.toFixed(2)}])` : ` (Price: ₹${prod.price.toFixed(2)})`;
+            html += `<option value="${prod.id}" data-price="${prod.price}" data-image="${prod.image}" data-categories='${JSON.stringify(prod.categories)}' data-out-of-stock="${prod.isOut ? '1' : '0'}" data-physical-stock="${prod.physicalStock}" ${disabledAttr} ${selectedAttr}>${prod.name}${offerLabel}${labelSuffix}</option>`;
         });
         return html;
     }
@@ -881,7 +884,10 @@
                         <div class="card-body p-2 d-flex flex-column justify-content-between">
                             <div>
                                 <h6 class="fw-bold small text-dark mb-1 text-truncate" title="${prod.name}">${prod.name}</h6>
-                                <div class="fw-bold text-success small">₹${prod.price.toFixed(2)}</div>
+                                <div class="fw-bold text-success small">
+                                    ₹${prod.price.toFixed(2)}
+                                    ${prod.originalPrice > prod.price ? `<span class="text-muted text-decoration-line-through ms-1" style="font-size: 0.68rem;">₹${prod.originalPrice.toFixed(2)}</span> <span class="badge bg-danger text-white ms-0.5" style="font-size: 0.58rem;">OFFER</span>` : ''}
+                                </div>
                                 <div class="mt-1">${badgeHtml}</div>
                             </div>
                             <button type="button" class="btn btn-sm btn-warning text-dark fw-bold w-100 mt-2 py-1" style="font-size: 0.72rem;">
@@ -1201,7 +1207,9 @@
 
         const deliveryInput = document.getElementById('deliveryChargeInput');
         const shipping = parseFloat(deliveryInput ? deliveryInput.value : 0) || 0;
-        const grandTotal = Math.max(0, (totalSubtotal - calculatedDiscount) + shipping);
+        const rawGrandTotal = Math.max(0, (totalSubtotal - calculatedDiscount) + shipping);
+        const grandTotal = Math.ceil(rawGrandTotal);
+        const roundingAdjustment = Math.round((grandTotal - rawGrandTotal) * 100) / 100;
 
         document.getElementById('subtotalDisplay').innerText = '₹' + totalSubtotal.toFixed(2);
 
@@ -1217,6 +1225,18 @@
         }
 
         document.getElementById('deliveryDisplay').innerText = '₹' + shipping.toFixed(2);
+
+        const roundingRow = document.getElementById('roundingRowDisplay');
+        const roundingDisp = document.getElementById('roundingDisplay');
+        if (roundingRow && roundingDisp) {
+            if (roundingAdjustment > 0) {
+                roundingDisp.innerText = '+ ₹' + roundingAdjustment.toFixed(2);
+                roundingRow.classList.remove('d-none');
+            } else {
+                roundingRow.classList.add('d-none');
+            }
+        }
+
         document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
 
         const netElem = document.getElementById('netRealizedDisplay');

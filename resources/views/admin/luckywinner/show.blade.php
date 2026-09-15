@@ -3,13 +3,6 @@
 @section('title', ($draw->title ?: $draw->draw_number) . ' - Lucky Winner Details')
 
 @section('content')
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show rounded-3 small py-2.5 px-3 mb-4" role="alert">
-        <i class="fa-solid fa-circle-check me-1"></i> {{ session('success') }}
-        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold mb-1">

@@ -72,9 +72,9 @@
             </style>
             <div class="d-flex flex-nowrap overflow-x-auto gap-3 py-2 px-1 qw-category-scroll-container" style="scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory;">
                 @foreach($categories as $category)
-                    <div class="flex-shrink-0" style="width: 175px; scroll-snap-align: start;">
+                    <div class="flex-shrink-0" style="width: 135px; scroll-snap-align: start;">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
-                            <div class="qw-category-card rounded-4 shadow-sm position-relative" style="height: 180px;">
+                            <div class="qw-category-card rounded-3 shadow-sm position-relative" style="height: 105px;">
                                 @if($category->is_combo_offer)
                                     <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm fw-bold" style="font-size: 0.65rem; z-index: 2;">👑 COMBO OFFER</span>
                                 @endif
@@ -106,13 +106,13 @@
 
         @else
             <!-- OPTION 1: DEFAULT GRID CARDS VIEW -->
-            <div class="row g-3">
+            <div class="row g-1.5 g-sm-2 g-md-3">
                 @foreach($categories as $category)
-                    <div class="col-6 col-md-4 col-lg-3">
+                    <div class="col-4 col-md-4 col-lg-3">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                             <div class="qw-category-card position-relative">
                                 @if($category->is_combo_offer)
-                                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm fw-bold text-truncate rounded-pill" style="font-size: 0.65rem; max-width: calc(100% - 16px); z-index: 2; letter-spacing: 0.3px;">
+                                    <span class="badge bg-dark text-warning border border-warning position-absolute top-0 start-0 m-1.5 shadow-sm fw-bold text-truncate rounded-pill px-2 py-0.5" style="font-size: 0.55rem; max-width: calc(100% - 12px); z-index: 2; letter-spacing: 0.2px;">
                                         👑 COMBO OFFER
                                     </span>
                                 @endif
@@ -121,11 +121,11 @@
                                 @else
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
-                                <div class="qw-category-overlay p-2 p-sm-3">
-                                    <h4 class="font-serif fw-bold mb-1 fs-6 fs-sm-5 fs-md-4 text-center text-wrap" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6); word-break: break-word;">
+                                <div class="qw-category-overlay p-2 p-sm-2.5 text-center">
+                                    <h6 class="fw-bold mb-1 text-white w-100 text-truncate px-1" style="color: {{ $category->text_color ?? '#FFFFFF' }}; text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 0.85rem; letter-spacing: 0.2px;">
                                         @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
-                                    </h4>
-                                    <span class="badge bg-gold rounded-pill px-2.5 py-1.5 px-sm-3 py-sm-2 small shadow-sm text-wrap" style="font-size: 0.68rem;">
+                                    </h6>
+                                    <span class="badge rounded-pill px-2.5 py-1 shadow-sm text-truncate" style="background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%); color: #111111; font-weight: 700; font-size: 0.60rem; letter-spacing: 0.2px;">
                                         @if($category->is_combo_offer)
                                             Min {{ $category->min_count }} for ₹{{ number_format($category->combo_price) }}
                                         @else

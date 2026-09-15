@@ -164,13 +164,6 @@
     </div>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show rounded-4 mb-4" role="alert">
-        <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
-
 @php
     $activeExpenseFilterCount = (request()->filled('search') ? 1 : 0)
         + (request()->filled('start_date') ? 1 : 0)

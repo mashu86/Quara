@@ -168,13 +168,30 @@
             color: var(--qw-black);
             font-weight: 600;
             border-radius: 50px;
-            padding: 10px 24px;
+            padding: 8px 20px;
             transition: all 0.3s ease;
         }
         .btn-qw-outline:hover {
             background-color: var(--qw-black);
             color: var(--qw-white);
             transform: translateY(-2px);
+        }
+
+        .btn-qw-outline-gold {
+            border: 1.5px solid #b8860b;
+            color: #b8860b !important;
+            font-weight: 700;
+            border-radius: 50px;
+            padding: 4px 14px;
+            transition: all 0.25s ease;
+            background: transparent;
+        }
+        .btn-qw-outline-gold:hover {
+            background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);
+            color: #FFFFFF !important;
+            border-color: #AA7C11;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
         }
 
         /* Navbar Header */
@@ -230,19 +247,19 @@
             border-radius: 16px;
         }
 
-        /* Product Cards */
+        /* Product Cards & Prices */
         .qw-product-card {
-            background: var(--qw-white);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 16px;
-            overflow: hidden;
-            transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.07) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
         }
         .qw-product-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.08);
-            border-color: rgba(212, 175, 55, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08), 0 0 1px rgba(212, 175, 55, 0.5) !important;
+            border-color: rgba(212, 175, 55, 0.45) !important;
         }
         .qw-product-img-wrapper {
             position: relative;
@@ -258,24 +275,100 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.6s ease;
+            transition: transform 0.5s ease;
         }
         .qw-product-card:hover .qw-product-img {
-            transform: scale(1.06);
+            transform: scale(1.05);
         }
         .qw-discount-badge {
             position: absolute;
-            top: 12px;
-            left: 12px;
-            background: #E53935;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
             color: #FFFFFF;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 700;
             padding: 4px 10px;
             border-radius: 50rem;
             z-index: 2;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3);
+        }
+
+        /* Product Card Price Styling & Red Cut Price */
+        .qw-product-price {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #b8860b;
+            line-height: 1.2;
+            letter-spacing: -0.3px;
+        }
+        .qw-cut-price {
+            font-size: 0.78rem !important;
+            color: #dc3545 !important;
+            text-decoration: line-through !important;
+            text-decoration-color: #dc3545 !important;
+            font-weight: 600;
+            line-height: 1.2;
+            opacity: 0.95;
+            display: inline-block;
+            margin-left: 5px !important;
+        }
+        .product-original-price {
+            color: #dc3545 !important;
+            text-decoration: line-through !important;
+            text-decoration-color: #dc3545 !important;
+        }
+
+        /* Luxury Product Card Title & Elements */
+        .qw-product-title {
+            font-weight: 700;
+            color: #111111;
+            font-size: 0.84rem;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.35rem;
+        }
+        .qw-share-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            color: var(--qw-gold) !important;
+            transition: all 0.2s ease;
+        }
+        .qw-share-btn:hover {
+            background: var(--qw-gold);
+            color: #111111 !important;
+            transform: scale(1.1);
+        }
+        .qw-share-btn-floating:hover {
+            background: #ffffff !important;
+            transform: scale(1.12);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.18) !important;
+            color: #AA7C11 !important;
+        }
+        .qw-offer-tag-badge {
+            background: linear-gradient(135deg, #111111 0%, #2a220b 100%);
+            color: var(--qw-gold);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 50rem;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            letter-spacing: 0.3px;
+        }
+        .qw-category-hero {
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #292008 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
         }
 
         /* Interactive Tap / Pulse Animated Button */
@@ -376,24 +469,28 @@
         /* Category Card Grid */
         .qw-category-card {
             position: relative;
-            border-radius: 20px;
+            border-radius: 12px;
             overflow: hidden;
-            height: 230px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-            transition: transform 0.35s ease;
+            height: 130px;
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
         }
         .qw-category-card:hover {
-            transform: scale(1.02);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+            border-color: rgba(212, 175, 55, 0.6);
         }
         .qw-category-bg {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: brightness(0.68);
-            transition: filter 0.4s ease;
+            filter: brightness(0.75);
+            transition: transform 0.5s ease, filter 0.5s ease;
         }
         .qw-category-card:hover .qw-category-bg {
-            filter: brightness(0.58);
+            transform: scale(1.07);
+            filter: brightness(0.62);
         }
         .qw-category-overlay {
             position: absolute;
@@ -401,9 +498,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            justify-content: flex-end;
+            padding: 16px;
             text-align: center;
+            background: linear-gradient(to top, rgba(15, 15, 15, 0.9) 0%, rgba(15, 15, 15, 0.4) 55%, rgba(15, 15, 15, 0.05) 100%);
         }
 
         /* Floating WhatsApp Button */
@@ -418,24 +516,23 @@
             border-radius: 50px;
             text-align: center;
             font-size: 32px;
-            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.45);
-            z-index: 1050;
+            box-shadow: 0 4px 18px rgba(37, 211, 102, 0.4);
+            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-decoration: none;
             transition: all 0.3s ease;
         }
         .qw-floating-whatsapp:hover {
-            transform: scale(1.12);
             color: #FFF;
-            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.6);
+            transform: scale(1.08);
+            box-shadow: 0 6px 24px rgba(37, 211, 102, 0.6);
         }
 
-        /* Footer */
+        /* Standard Footer */
         .qw-footer {
-            background-color: #0E0E10;
-            color: #FFFFFF !important;
+            background-color: var(--qw-black);
+            color: var(--qw-white);
             border-top: 3px solid var(--qw-gold);
         }
         .qw-footer .text-muted {
@@ -451,13 +548,51 @@
         }
 
         /* Responsive Mobile Utilities */
+        @media (max-width: 991.98px) {
+            .qw-header .btn-link { padding: 3px 5px !important; }
+            .qw-header .btn-link i { font-size: 0.95rem !important; }
+            .qw-header .cart-badge {
+                top: -3px !important;
+                right: -4px !important;
+                width: 17px !important;
+                height: 17px !important;
+                font-size: 0.60rem !important;
+            }
+            .navbar-toggler { padding: 2px 4px !important; }
+            .navbar-toggler-icon { width: 1.15em !important; height: 1.15em !important; }
+        }
+        @media (max-width: 767.98px) {
+            .qw-logo-img { max-height: 52px !important; }
+            .qw-share-btn-floating { width: 26px !important; height: 26px !important; border-radius: 6px !important; margin-right: 10px !important; }
+            .qw-share-btn-floating i { font-size: 0.65rem !important; }
+        }
         @media (max-width: 576px) {
-            .qw-logo-img { max-height: 68px; }
-            .qw-category-card { height: 170px; }
-            .qw-category-overlay { padding: 10px !important; }
-            .qw-floating-whatsapp { width: 52px; height: 52px; font-size: 28px; bottom: 18px; right: 18px; }
-            .qw-btn-card { font-size: 0.72rem !important; padding: 6px 8px !important; letter-spacing: 0.2px !important; }
+            .qw-logo-img { max-height: 44px !important; }
+            .qw-card-body { padding: 9px 10px !important; }
+            .qw-category-card { height: 85px !important; border-radius: 8px !important; }
+            .qw-category-overlay { padding: 6px 4px !important; }
+            .qw-category-overlay h6 { font-size: 0.72rem !important; margin-bottom: 2px !important; }
+            .qw-category-overlay .badge { font-size: 0.52rem !important; padding: 1px 4px !important; }
+            .qw-floating-whatsapp { width: 38px; height: 38px; font-size: 20px; bottom: 14px; right: 14px; box-shadow: 0 3px 10px rgba(37, 211, 102, 0.4); }
+            .qw-btn-card { font-size: 0.66rem !important; padding: 3px 6px !important; letter-spacing: 0.2px !important; }
             .purchase-action { font-size: 0.85rem !important; padding: 10px 14px !important; letter-spacing: 0.3px; }
+            .qw-product-price { font-size: 0.92rem !important; }
+            .qw-cut-price { font-size: 0.70rem !important; color: #dc3545 !important; }
+            .qw-share-btn-floating { width: 24px !important; height: 24px !important; border-radius: 5px !important; margin-right: 8px !important; }
+            .qw-share-btn-floating i { font-size: 0.60rem !important; }
+            .qw-discount-badge {
+                top: 6px !important;
+                left: 6px !important;
+                bottom: auto !important;
+                font-size: 0.55rem !important;
+                padding: 1px 5px !important;
+                border-radius: 4px !important;
+                letter-spacing: 0.2px !important;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+            }
+            .qw-sort-filter-bar { width: 100% !important; }
+            .qw-sort-form { flex: 0 0 74% !important; max-width: 74% !important; }
+            .qw-filter-btn { flex: 0 0 calc(26% - 8px) !important; max-width: calc(26% - 8px) !important; padding-left: 0 !important; padding-right: 0 !important; }
         }
     </style>
     @yield('styles')
@@ -472,15 +607,15 @@
                     <img src="{{ $siteLogoUrl }}" alt="{{ $siteName }}" class="qw-logo-img">
                 </a>
 
-                <div class="d-flex align-items-center d-lg-none ms-auto me-2 gap-1">
-                    <button type="button" class="btn btn-link text-gold p-2" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="Visual Search / Search by Photo">
-                        <i class="fa-solid fa-camera fs-5"></i>
+                <div class="d-flex align-items-center d-lg-none ms-auto me-1 gap-0.5">
+                    <button type="button" class="btn btn-link text-gold p-1" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="Visual Search / Search by Photo">
+                        <i class="fa-solid fa-camera"></i>
                     </button>
-                    <a href="#" class="btn btn-link text-dark p-2" data-bs-toggle="modal" data-bs-target="#searchModal">
-                        <i class="fa-solid fa-magnifying-glass fs-5"></i>
+                    <a href="#" class="btn btn-link text-dark p-1" data-bs-toggle="modal" data-bs-target="#searchModal">
+                        <i class="fa-solid fa-magnifying-glass"></i>
                     </a>
-                    <a href="{{ route('cart.index') }}" class="btn btn-link text-dark p-2 position-relative">
-                        <i class="fa-solid fa-bag-shopping fs-5"></i>
+                    <a href="{{ route('cart.index') }}" class="btn btn-link text-dark p-1 position-relative">
+                        <i class="fa-solid fa-bag-shopping"></i>
                         @php $cartCount = count(session('cart', [])); @endphp
                         @if($cartCount > 0)
                             <span class="cart-badge">{{ $cartCount }}</span>
@@ -488,7 +623,7 @@
                     </a>
                 </div>
 
-                <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#qwNavbar">
+                <button class="navbar-toggler border-0 shadow-none p-1" type="button" data-bs-toggle="collapse" data-bs-target="#qwNavbar">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 

@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesControll
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
+use App\Http\Controllers\Admin\OfferSaleController as AdminOfferSaleController;
 use App\Http\Controllers\Admin\BulkComboCategoryController as AdminBulkComboCategoryController;
 use App\Http\Controllers\Admin\PaymentDiscrepancyController as AdminPaymentDiscrepancyController;
 use App\Http\Controllers\Admin\DailyJournalController as AdminDailyJournalController;
@@ -143,9 +144,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/display-order/update-product-order', [AdminDisplayOrderController::class, 'updateProductOrder'])->name('display-order.update-product-order');
         Route::post('/display-order/update-combo-product-order', [AdminDisplayOrderController::class, 'updateComboProductOrder'])->name('display-order.update-combo-product-order');
 
-        // Bulk Offer Combo Category Manager
-        Route::get('/bulk-combo-offer', [AdminBulkComboCategoryController::class, 'index'])->name('bulk-combo-offer.index');
-        Route::post('/bulk-combo-offer/assign', [AdminBulkComboCategoryController::class, 'assign'])->name('bulk-combo-offer.assign');
+        // Offer Sale Manager
+        Route::get('/offer-sale', [AdminOfferSaleController::class, 'index'])->name('offer-sale.index');
+        Route::post('/offer-sale/assign', [AdminOfferSaleController::class, 'assign'])->name('offer-sale.assign');
+        Route::post('/offer-sale/activate', [AdminOfferSaleController::class, 'activateOfferCategory'])->name('offer-sale.activate');
+        Route::post('/offer-sale/remove-offers', [AdminOfferSaleController::class, 'removeOfferFromAllAvailableProducts'])->name('offer-sale.remove-offers');
+        
+        // Legacy bulk-combo-offer route alias
+        Route::get('/bulk-combo-offer', fn() => redirect()->route('admin.offer-sale.index'))->name('bulk-combo-offer.index');
+        Route::post('/bulk-combo-offer/assign', [AdminOfferSaleController::class, 'assign'])->name('bulk-combo-offer.assign');
 
         // Home Main Content Master
         Route::resource('home-content', AdminHomeContentController::class)->parameters(['home-content' => 'home_content']);

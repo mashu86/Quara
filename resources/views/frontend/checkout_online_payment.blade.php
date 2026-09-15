@@ -26,10 +26,20 @@
                     </div>
                 </div>
 
-                <button id="rzp-button" class="btn btn-qw-gold rounded-pill w-100 shadow-sm py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem; letter-spacing: 0.3px;">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span>PAY NOW WITH RAZORPAY (₹{{ number_format($order->grand_total, 2) }})</span>
-                </button>
+                @if(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_'))
+                    <div class="alert alert-info border-0 rounded-3 p-3 mb-4 text-start">
+                        <div class="fw-bold text-dark mb-1"><i class="fa-solid fa-flask text-primary me-2"></i> Local Development Test Mode</div>
+                        <div class="small text-muted mb-3">Razorpay Live API is bypassed in local environment so you can test checkout & orders safely.</div>
+                        <button type="button" onclick="submitMockLocalPayment()" class="btn btn-primary rounded-pill w-100 fw-bold py-2 shadow-sm">
+                            <i class="fa-solid fa-circle-check me-2"></i> COMPLETE LOCAL TEST PAYMENT (₹{{ number_format($order->grand_total, 2) }})
+                        </button>
+                    </div>
+                @else
+                    <button id="rzp-button" class="btn btn-qw-gold rounded-pill w-100 shadow-sm py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem; letter-spacing: 0.3px;">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>PAY NOW WITH RAZORPAY (₹{{ number_format($order->grand_total, 2) }})</span>
+                    </button>
+                @endif
 
                 <!-- Hidden Verification Form -->
                 <form action="{{ route('checkout.verify_online_payment') }}" method="POST" id="razorpayForm">
@@ -48,6 +58,13 @@
 @section('scripts')
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+    function submitMockLocalPayment() {
+        document.getElementById('razorpay_payment_id').value = 'pay_mock_local_' + Date.now();
+        document.getElementById('razorpay_order_id').value = '{{ $paymentResult["razorpay_order_id"] ?? "" }}';
+        document.getElementById('razorpay_signature').value = 'mock_signature_local';
+        document.getElementById('razorpayForm').submit();
+    }
+
     const reservationExpiresAt = @js($order->reserved_until?->getTimestamp() * 1000);
     const options = {
         "timeout": Math.max(1, Math.floor((reservationExpiresAt - Date.now()) / 1000)),

@@ -141,6 +141,19 @@
                             @enderror
                         </div>
 
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Combo Offer Category (Optional)</label>
+                            <select name="combo_category_id" class="form-select rounded-3">
+                                <option value="">-- None (Normal Product) --</option>
+                                @foreach($comboCategories as $cCat)
+                                    <option value="{{ $cCat->id }}" {{ old('combo_category_id') == $cCat->id ? 'selected' : '' }}>
+                                        👑 {{ $cCat->name }} (Min: {{ $cCat->min_count }} | ₹{{ number_format($cCat->combo_price, 2) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text small">Assign this product to a special Combo Offer Category if applicable.</div>
+                        </div>
+
                         <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" name="price" id="priceInput" class="form-control rounded-3" placeholder="999.00" value="{{ old('price') }}" required oninput="calcDiscount()" autocomplete="off">

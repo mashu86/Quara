@@ -410,6 +410,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.bulk-combo-offer.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-combo-offer.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-crown me-2 text-warning"></i> Bulk Combo Manager
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.shipping-policies.index') }}" class="nav-link {{ request()->routeIs('admin.shipping-policies.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-truck-ramp-box me-2"></i> Delivery Price Master
                     </a>

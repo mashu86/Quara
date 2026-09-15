@@ -27,6 +27,8 @@ class Product extends Model
         'delivery_charge_type',
         'weight_kg',
         'sort_order',
+        'combo_category_id',
+        'combo_sort_order',
     ];
 
     protected $casts = [
@@ -35,11 +37,17 @@ class Product extends Model
         'final_price' => 'decimal:2',
         'weight_kg' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
+        'combo_sort_order' => 'integer',
     ];
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function comboCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'combo_category_id');
     }
 
     public function categories()

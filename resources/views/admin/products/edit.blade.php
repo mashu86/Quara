@@ -148,6 +148,37 @@
                             @enderror
                         </div>
 
+                        @php
+                            $isSoldOutOrBooked = ($product->is_out_of_stock || !empty($product->booked_by) || $product->sizes->sum('stock') <= 0);
+                        @endphp
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Combo Offer Category (Optional)</label>
+                            @if($isSoldOutOrBooked)
+                                <input type="hidden" name="combo_category_id" value="{{ $product->combo_category_id }}">
+                                <select class="form-select rounded-3 bg-light text-muted" disabled>
+                                    <option value="">-- None (Normal Product) --</option>
+                                    @foreach($comboCategories as $cCat)
+                                        <option value="{{ $cCat->id }}" {{ $product->combo_category_id == $cCat->id ? 'selected' : '' }}>
+                                            👑 {{ $cCat->name }} (Min: {{ $cCat->min_count }} | ₹{{ number_format($cCat->combo_price, 2) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="text-danger small mt-1 fw-bold">
+                                    <i class="fa-solid fa-lock me-1"></i> Combo Offer Category cannot be modified because this product is Sold Out or Booked.
+                                </div>
+                            @else
+                                <select name="combo_category_id" class="form-select rounded-3">
+                                    <option value="">-- None (Normal Product) --</option>
+                                    @foreach($comboCategories as $cCat)
+                                        <option value="{{ $cCat->id }}" {{ old('combo_category_id', $product->combo_category_id) == $cCat->id ? 'selected' : '' }}>
+                                            👑 {{ $cCat->name }} (Min: {{ $cCat->min_count }} | ₹{{ number_format($cCat->combo_price, 2) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text small">Assign this product to a special Combo Offer Category if applicable.</div>
+                            @endif
+                        </div>
+
                         <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" name="price" id="priceInput" class="form-control rounded-3" value="{{ old('price', $product->price) }}" required oninput="calcDiscount()" autocomplete="off">

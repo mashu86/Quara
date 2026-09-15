@@ -51,6 +51,30 @@ class CartController extends Controller
         return redirect()->route('cart.index')->with('success', $result['message']);
     }
 
+    public function addCombo(Request $request)
+    {
+        $request->validate([
+            'combo_category_id' => 'required|exists:categories,id',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.size' => 'required|string',
+            'items.*.quantity' => 'nullable|integer|min:1',
+        ]);
+
+        $comboCategory = \App\Models\Category::findOrFail($request->combo_category_id);
+        $result = $this->cartService->addComboItems($request->items, $comboCategory);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
+        }
+
+        if (!$result['success']) {
+            return back()->with('error', $result['message'])->withInput();
+        }
+
+        return redirect()->route('cart.index')->with('success', $result['message']);
+    }
+
     public function update(Request $request, string $cartKey)
     {
         $request->validate([

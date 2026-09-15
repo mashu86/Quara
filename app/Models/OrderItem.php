@@ -27,6 +27,9 @@ class OrderItem extends Model
         'refund_date',
         'refund_amount',
         'exchange_item_id',
+        'is_combo_offer',
+        'combo_unit_price',
+        'original_price',
     ];
 
     protected $casts = [
@@ -35,6 +38,9 @@ class OrderItem extends Model
         'final_unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'refund_amount' => 'decimal:2',
+        'combo_unit_price' => 'decimal:2',
+        'original_price' => 'decimal:2',
+        'is_combo_offer' => 'boolean',
         'return_date' => 'date',
         'refund_date' => 'date',
     ];

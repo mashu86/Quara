@@ -49,9 +49,17 @@ class CategoryController extends Controller
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
             'status' => 'required|in:active,inactive',
+            'is_combo_offer' => 'nullable|boolean',
+            'min_count' => 'required_if:is_combo_offer,1|nullable|integer|min:1',
+            'combo_price' => 'required_if:is_combo_offer,1|nullable|numeric|min:0',
+            'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+        $validated['is_combo_offer'] = $request->has('is_combo_offer') ? (bool) $request->is_combo_offer : false;
+        $validated['min_count'] = $validated['is_combo_offer'] ? ($request->min_count ?? null) : null;
+        $validated['combo_price'] = $validated['is_combo_offer'] ? ($request->combo_price ?? null) : null;
+        $validated['delivery_charge'] = $request->filled('delivery_charge') ? (float) $request->delivery_charge : 0.00;
 
         if ($request->hasFile('background_image')) {
             $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
@@ -80,9 +88,17 @@ class CategoryController extends Controller
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'text_color' => 'required|string|max:10',
             'status' => 'required|in:active,inactive',
+            'is_combo_offer' => 'nullable|boolean',
+            'min_count' => 'required_if:is_combo_offer,1|nullable|integer|min:1',
+            'combo_price' => 'required_if:is_combo_offer,1|nullable|numeric|min:0',
+            'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+        $validated['is_combo_offer'] = $request->has('is_combo_offer') ? (bool) $request->is_combo_offer : false;
+        $validated['min_count'] = $validated['is_combo_offer'] ? ($request->min_count ?? null) : null;
+        $validated['combo_price'] = $validated['is_combo_offer'] ? ($request->combo_price ?? null) : null;
+        $validated['delivery_charge'] = $request->filled('delivery_charge') ? (float) $request->delivery_charge : 0.00;
 
         if ($request->hasFile('background_image')) {
             if ($category->background_image && str_contains($category->background_image, 'storage/')) {
@@ -98,10 +114,18 @@ class CategoryController extends Controller
         return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully!');
     }
 
-    public function toggleStatus(Category $category)
+    public function toggleStatus(Request $request, Category $category)
     {
         $category->status = ($category->status === 'active') ? 'inactive' : 'active';
         $category->save();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'status' => $category->status,
+                'message' => 'Category status updated successfully to ' . ucfirst($category->status)
+            ]);
+        }
 
         return back()->with('success', 'Category status updated.');
     }

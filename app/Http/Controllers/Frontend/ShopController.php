@@ -144,7 +144,42 @@ class ShopController extends Controller
     {
         $category = Category::where('slug', $slug)->where('status', 'active')->firstOrFail();
 
+        if ($category->is_combo_offer) {
+            return $this->showComboBuilder($category, $request);
+        }
+
         $request->merge(['category' => $slug]);
         return $this->index($request);
+    }
+
+    protected function showComboBuilder(Category $category, Request $request)
+    {
+        $products = Product::active()
+            ->where(function ($q) use ($category) {
+                $q->where('combo_category_id', $category->id)
+                  ->orWhere('category_id', $category->id)
+                  ->orWhereHas('categories', function ($cq) use ($category) {
+                      $cq->where('categories.id', $category->id);
+                  });
+            })
+            ->with(['images', 'sizes'])
+            ->inStockFirst()
+            ->orderBy('combo_sort_order', 'asc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $unitComboPrice = $category->min_count > 0 ? round($category->combo_price / $category->min_count, 2) : 0;
+        $seoTitle = '👑 ' . $category->name . ' - Offer Combo Package | Quara Wardrobe';
+        $seoDescription = 'Choose ' . $category->min_count . '+ items for just ₹' . number_format($category->combo_price, 2) . ' in our ' . $category->name . ' offer combo. Select your sizes & enjoy fast pan-India shipping.';
+        $canonicalUrl = route('category.products', $category->slug);
+
+        return view('frontend.combo_builder', compact(
+            'category',
+            'products',
+            'unitComboPrice',
+            'seoTitle',
+            'seoDescription',
+            'canonicalUrl'
+        ));
     }
 }

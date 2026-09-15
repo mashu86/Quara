@@ -104,7 +104,12 @@
                                                     </div>
                                                 @endif
                                                 <div>
-                                                    <h6 class="fw-bold mb-0 text-dark">{{ $item->product_name }}</h6>
+                                                    <h6 class="fw-bold mb-0 text-dark">
+                                                        {{ $item->product_name }}
+                                                        @if($item->is_combo_offer)
+                                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.68rem;">👑 Offer Combo Sale</span>
+                                                        @endif
+                                                    </h6>
                                                     <span class="small text-muted">Size: <strong class="text-dark">{{ $item->size }}</strong> &bull; Qty: {{ $item->quantity }} &bull; Price: ₹{{ number_format($item->final_unit_price, 2) }}</span>
                                                 </div>
                                             </div>

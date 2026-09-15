@@ -454,6 +454,7 @@
         @media (max-width: 576px) {
             .qw-logo-img { max-height: 68px; }
             .qw-category-card { height: 170px; }
+            .qw-category-overlay { padding: 10px !important; }
             .qw-floating-whatsapp { width: 52px; height: 52px; font-size: 28px; bottom: 18px; right: 18px; }
             .qw-btn-card { font-size: 0.72rem !important; padding: 6px 8px !important; letter-spacing: 0.2px !important; }
             .purchase-action { font-size: 0.85rem !important; padding: 10px 14px !important; letter-spacing: 0.3px; }

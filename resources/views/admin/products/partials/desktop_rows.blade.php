@@ -7,13 +7,21 @@
     <tr>
         <td class="prod-sticky-col text-center py-2 px-2">
             <div class="d-flex flex-column align-items-center justify-content-center">
-                <div class="prod-img-wrapper border shadow-xs mb-1" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}')" title="Click to preview product image">
+                <div class="prod-img-wrapper border shadow-xs mb-1 position-relative" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}')" title="Click to preview product image">
                     <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-100 h-100" style="object-fit: cover;">
+                    @if(!empty($product->combo_category_id))
+                        <span class="position-absolute top-0 start-0 bg-dark text-warning px-1 py-0.5 rounded-end shadow-sm" style="font-size: 0.65rem; z-index: 4;" title="Offer Combo Category Product">
+                            👑
+                        </span>
+                    @endif
                     <div class="prod-img-overlay">
                         <i class="fa-solid fa-eye text-white" style="font-size: 0.72rem;"></i>
                     </div>
                 </div>
                 <div class="fw-bold text-dark text-center lh-xs" style="font-size: 0.75rem; max-width: 110px;" title="{{ $product->name }}">
+                    @if(!empty($product->combo_category_id))
+                        <span class="text-warning me-0.5" title="Offer Combo Category Product">👑</span>
+                    @endif
                     {{ $displayName }}
                 </div>
             </div>

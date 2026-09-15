@@ -295,15 +295,6 @@
 
 @section('content')
 <div class="container py-4 product-detail-page">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4 product-detail-nav">
-        <ol class="breadcrumb small product-detail-breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('shop') }}" class="text-decoration-none text-muted">Shop</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}" class="text-decoration-none text-muted">{{ $product->category->name }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($product->name, 30) }}</li>
-        </ol>
-    </nav>
 
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">

@@ -116,7 +116,12 @@ window.openImagePreviewModal = function(imageUrl, title) {
                                     </span>
                                 </div>
                                 <div class="flex-grow-1 min-w-0">
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.82rem; line-height: 1.3;">{{ $itemName }}</div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.82rem; line-height: 1.3;">
+                                        {{ $itemName }}
+                                        @if($item->is_combo_offer)
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.62rem;">👑 Offer Combo Sale</span>
+                                        @endif
+                                    </div>
                                     <div class="d-flex align-items-center flex-wrap gap-1 mb-1.5">
                                         <span class="badge bg-dark" style="font-size: 0.65rem;">Size: {{ $item->size }}</span>
                                         <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.65rem;">Qty: {{ $item->quantity }}</span>
@@ -248,7 +253,12 @@ window.openImagePreviewModal = function(imageUrl, title) {
                                     @endphp
                                     <tr class="{{ $isReturned ? 'table-danger border-start border-4 border-danger' : '' }}">
                                         <td>
-                                            <div class="fw-bold text-dark mb-0" style="font-size: 0.82rem;">{{ $itemName }}</div>
+                                            <div class="fw-bold text-dark mb-0" style="font-size: 0.82rem;">
+                                                {{ $itemName }}
+                                                @if($item->is_combo_offer)
+                                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.62rem;">👑 Offer Combo Sale</span>
+                                                @endif
+                                            </div>
                                             @if($itemProduct)
                                                 <a href="{{ route('admin.products.edit', $itemProduct->id) }}" target="_blank" class="text-muted small text-decoration-none d-inline-block mb-1" style="font-size: 0.7rem;">
                                                     Master Link <i class="fa-solid fa-arrow-up-right-from-square ms-0.5" style="font-size: 0.65rem;"></i>

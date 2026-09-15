@@ -154,8 +154,9 @@ class ProductController extends Controller
     public function create(Request $request)
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
+        $comboCategories = Category::where('status', 'active')->where('is_combo_offer', true)->orderBy('name', 'asc')->get();
         $retainedCategoryIds = (array) $request->input('category_ids', []);
-        return view('admin.products.create', compact('categories', 'retainedCategoryIds'));
+        return view('admin.products.create', compact('categories', 'comboCategories', 'retainedCategoryIds'));
     }
 
     public function store(Request $request)
@@ -165,6 +166,7 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'category_id' => 'nullable|exists:categories,id',
+            'combo_category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
             'discount_type' => 'required|in:none,fixed,percentage',
@@ -270,7 +272,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements']);
+        $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements', 'comboCategory']);
 
         // Auto-ensure single primary image if images exist
         if ($product->images->isNotEmpty()) {
@@ -283,7 +285,8 @@ class ProductController extends Controller
         }
 
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $comboCategories = Category::where('status', 'active')->where('is_combo_offer', true)->orderBy('name', 'asc')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'comboCategories'));
     }
 
     public function update(Request $request, Product $product)
@@ -292,6 +295,7 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'category_id' => 'nullable|exists:categories,id',
+            'combo_category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
             'discount_type' => 'required|in:none,fixed,percentage',
@@ -326,6 +330,12 @@ class ProductController extends Controller
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+
+        // If product was originally sold out or booked, do not allow changing combo_category_id
+        $wasSoldOutOrBooked = ($product->is_out_of_stock || !empty($product->booked_by) || $product->sizes->sum('stock') <= 0);
+        if ($wasSoldOutOrBooked) {
+            $validated['combo_category_id'] = $product->combo_category_id;
+        }
 
         if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
             return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();

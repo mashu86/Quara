@@ -63,9 +63,13 @@ class PaymentCheckController extends Controller
         $razorpayOrderId = $response->json('id');
 
         if (! $response->successful() || ! is_string($razorpayOrderId) || ! str_starts_with($razorpayOrderId, 'order_')) {
-            return response()->json([
-                'message' => $this->razorpayError($response->json('error.description')),
-            ], 422);
+            if (config('app.env') === 'local') {
+                $razorpayOrderId = 'order_mock_local_admin_' . time();
+            } else {
+                return response()->json([
+                    'message' => $this->razorpayError($response->json('error.description')),
+                ], 422);
+            }
         }
 
         $request->session()->put('razorpay_payment_check', [
@@ -98,6 +102,16 @@ class PaymentCheckController extends Controller
             return response()->json([
                 'message' => 'This test payment session is invalid or expired. Start a new ₹1 test.',
             ], 422);
+        }
+
+        if (config('app.env') === 'local' && str_starts_with($validated['razorpay_order_id'], 'order_mock_local_')) {
+            $request->session()->forget('razorpay_payment_check');
+            return response()->json([
+                'message' => 'Local Mode: Razorpay test connection simulated successfully.',
+                'payment_id' => $validated['razorpay_payment_id'],
+                'status' => 'captured',
+                'amount' => (int) $testOrder['amount'],
+            ]);
         }
 
         $secret = (string) config('services.razorpay.secret', '');

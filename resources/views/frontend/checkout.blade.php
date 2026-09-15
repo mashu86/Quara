@@ -87,16 +87,32 @@
                 <div class="bg-white p-4 rounded-4 shadow-sm border">
                     <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom"><i class="fa-solid fa-wallet me-2 text-gold"></i> Payment Method</h5>
 
-                    <input type="hidden" name="payment_method" value="online">
-                    <div class="p-3 rounded-3 border border-warning bg-light d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
-                        <div>
-                            <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
-                            <div class="text-muted small">Pay securely using UPI, cards, netbanking or wallets via Razorpay</div>
-                        </div>
-                        <span class="badge bg-success rounded-pill px-3 py-2 mt-1 mt-sm-0"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay Secure</span>
+                    <div class="d-flex flex-column gap-2">
+                        <label class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between cursor-pointer" style="cursor: pointer;">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" name="payment_method" value="online" checked class="form-check-input">
+                                <div>
+                                    <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
+                                    <div class="text-muted small">Pay securely using UPI, cards, netbanking or wallets via Razorpay</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay</span>
+                        </label>
+
+                        <label class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between cursor-pointer" style="cursor: pointer;">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" name="payment_method" value="cod" class="form-check-input">
+                                <div>
+                                    <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-hand-holding-dollar text-success me-2"></i> Cash on Delivery (COD)</div>
+                                    <div class="text-muted small">Pay in cash when your order is delivered</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary rounded-pill px-3 py-2">COD</span>
+                        </label>
                     </div>
                 </div>
             </div>
+
 
             <!-- Order Review Sidebar -->
             <div class="col-lg-5">

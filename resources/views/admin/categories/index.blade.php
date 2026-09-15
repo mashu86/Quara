@@ -104,7 +104,8 @@
                         <th class="cat-sticky-col text-center" style="min-width: 105px;">Image / Category</th>
                         <th>Text Color</th>
                         <th>Products Count</th>
-                        <th>Status</th>
+                        <th>Combo Offer?</th>
+                        <th>Status Toggle</th>
                         <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
@@ -129,8 +130,11 @@
                                             <i class="fa-solid fa-eye text-white" style="font-size: 0.72rem;"></i>
                                         </div>
                                     </div>
-                                    <div class="fw-bold text-dark lh-sm text-truncate" style="font-size: 0.78rem; max-width: 95px;" title="{{ $category->name }}">
-                                        {{ $category->name }}
+                                    <div class="fw-bold text-dark lh-sm text-truncate d-flex align-items-center gap-1" style="font-size: 0.78rem; max-width: 110px;" title="{{ $category->name }}">
+                                        @if($category->is_combo_offer)
+                                            <span title="Combo Offer Category" style="color: #d4af37;">👑</span>
+                                        @endif
+                                        <span>{{ $category->name }}</span>
                                     </div>
                                 </div>
                             </td>
@@ -143,12 +147,32 @@
                                 <span class="badge bg-secondary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;">{{ $category->products_count }}</span>
                             </td>
                             <td>
-                                <form action="{{ route('admin.categories.toggle-status', $category->id) }}" method="POST" class="d-inline mb-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm badge bg-{{ $category->status === 'active' ? 'success' : 'danger' }} border-0 px-3 py-1.5" style="font-size: 0.74rem;">
+                                @if($category->is_combo_offer)
+                                    <span class="badge bg-warning text-dark border border-warning rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.74rem; background-color: #fff3cd !important;">
+                                        <i class="fa-solid fa-crown text-warning me-1"></i> YES
+                                    </span>
+                                    <div class="small text-muted mt-1" style="font-size: 0.7rem;">
+                                        Min: <strong>{{ $category->min_count }}</strong> | ₹<strong>{{ number_format($category->combo_price, 2) }}</strong><br>
+                                        Del: <strong>{{ $category->delivery_charge == 0 ? 'FREE' : '₹'.number_format($category->delivery_charge, 2) }}</strong>
+                                    </div>
+                                @else
+                                    <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.74rem;">
+                                        NO
+                                    </span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="form-check form-switch mb-0 d-inline-block">
+                                    <input class="form-check-input category-status-switch" type="checkbox" role="switch"
+                                           data-category-id="{{ $category->id }}"
+                                           data-url="{{ route('admin.categories.toggle-status', $category->id) }}"
+                                           id="switch_cat_{{ $category->id }}"
+                                           {{ $category->status === 'active' ? 'checked' : '' }}
+                                           style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                                    <label class="form-check-label small fw-bold ms-1" id="label_cat_{{ $category->id }}" for="switch_cat_{{ $category->id }}" style="font-size: 0.75rem;">
                                         {{ ucfirst($category->status) }}
-                                    </button>
-                                </form>
+                                    </label>
+                                </div>
                             </td>
                             <td class="text-end pe-2 pe-sm-3">
                                 <div class="d-flex align-items-center justify-content-end gap-2 gap-sm-2.5 flex-nowrap">
@@ -198,6 +222,45 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.category-status-switch').forEach(function (switchEl) {
+            switchEl.addEventListener('change', function () {
+                const categoryId = this.dataset.categoryId;
+                const toggleUrl = this.dataset.url;
+                const labelEl = document.getElementById('label_cat_' + categoryId);
+                const isChecked = this.checked;
+
+                this.disabled = true;
+
+                fetch(toggleUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application.json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.disabled = false;
+                    if (data.success) {
+                        if (labelEl) {
+                            labelEl.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                        }
+                    } else {
+                        this.checked = !isChecked;
+                        alert('Failed to update category status.');
+                    }
+                })
+                .catch(error => {
+                    this.disabled = false;
+                    this.checked = !isChecked;
+                    alert('An error occurred while updating category status.');
+                });
+            });
+        });
+    });
+
     function openCategoryPreview(imageUrl, title) {
         const modalEl = document.getElementById('categoryPreviewModal');
         const titleEl = document.getElementById('categoryPreviewTitle');

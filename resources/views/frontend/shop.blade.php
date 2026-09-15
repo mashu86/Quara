@@ -29,19 +29,6 @@
 
 @section('content')
 <div class="container py-4">
-    <!-- Breadcrumb & Header -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Home</a></li>
-            @if($currentCategory)
-                <li class="breadcrumb-item"><a href="{{ route('shop') }}" class="text-decoration-none text-muted">Shop</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ $currentCategory->name }}</li>
-            @else
-                <li class="breadcrumb-item active" aria-current="page">Shop</li>
-            @endif
-        </ol>
-    </nav>
-
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
         <div>
             <h1 class="font-serif fw-bold display-6 mb-1 fs-2">

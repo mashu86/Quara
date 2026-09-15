@@ -137,6 +137,8 @@ class CheckoutController extends Controller
                         'final_unit_price' => $item['final_price'],
                         'quantity' => $item['quantity'],
                         'subtotal' => $item['subtotal'],
+                        'is_combo_offer' => $item['is_combo_offer'] ?? false,
+                        'combo_category_id' => $item['combo_category_id'] ?? null,
                     ]);
 
                 }

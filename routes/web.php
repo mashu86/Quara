@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesControll
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
+use App\Http\Controllers\Admin\BulkComboCategoryController as AdminBulkComboCategoryController;
 use App\Http\Controllers\Admin\PaymentDiscrepancyController as AdminPaymentDiscrepancyController;
 use App\Http\Controllers\Admin\DailyJournalController as AdminDailyJournalController;
 use App\Http\Controllers\Frontend\SitemapController;
@@ -70,6 +71,7 @@ Route::get('/storage/{path}', [StorageFileController::class, 'show'])->where('pa
 // Cart Routes
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/add-combo', [CartController::class, 'addCombo'])->name('cart.add_combo');
 Route::post('/cart/update/{cartKey}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/remove/{cartKey}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_now');
@@ -139,6 +141,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/display-order/update-preference', [AdminDisplayOrderController::class, 'updatePreference'])->name('display-order.update-preference');
         Route::post('/display-order/update-category-order', [AdminDisplayOrderController::class, 'updateCategoryOrder'])->name('display-order.update-category-order');
         Route::post('/display-order/update-product-order', [AdminDisplayOrderController::class, 'updateProductOrder'])->name('display-order.update-product-order');
+        Route::post('/display-order/update-combo-product-order', [AdminDisplayOrderController::class, 'updateComboProductOrder'])->name('display-order.update-combo-product-order');
+
+        // Bulk Offer Combo Category Manager
+        Route::get('/bulk-combo-offer', [AdminBulkComboCategoryController::class, 'index'])->name('bulk-combo-offer.index');
+        Route::post('/bulk-combo-offer/assign', [AdminBulkComboCategoryController::class, 'assign'])->name('bulk-combo-offer.assign');
 
         // Home Main Content Master
         Route::resource('home-content', AdminHomeContentController::class)->parameters(['home-content' => 'home_content']);

@@ -260,6 +260,11 @@
                         <i class="fa-solid fa-shirt me-1"></i> Product Order ({{ $products->count() }})
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-2.5 px-md-4 py-1.5 py-md-2 small text-nowrap" id="combo-products-tab" data-bs-toggle="tab" data-bs-target="#combo-products-content" type="button" role="tab">
+                        👑 Offer Combo Sorting ({{ $comboCategories->sum(fn($c) => $c->comboProducts->count()) }})
+                    </button>
+                </li>
             </ul>
         </div>
         <div class="card-body p-3 p-md-4">
@@ -391,6 +396,73 @@
                             <div class="col-12 p-4 text-center text-muted">No products found.</div>
                         @endforelse
                     </div>
+                </div>
+
+                <!-- COMBO OFFER PRODUCTS TAB -->
+                <div class="tab-pane fade" id="combo-products-content" role="tabpanel">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                        <div class="small text-muted" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-crown text-warning me-1"></i> Drag products within each Offer Combo Category to set their display sequence on the storefront.
+                        </div>
+                        <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" id="saveComboProdOrderBtn" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-check me-1"></i> Save Combo Product Order
+                        </button>
+                    </div>
+
+                    @forelse($comboCategories as $cCat)
+                        <div class="card border border-warning border-opacity-50 rounded-4 mb-4 shadow-sm">
+                            <div class="card-header bg-warning bg-opacity-10 py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    👑 {{ $cCat->name }}
+                                    <span class="badge bg-dark ms-2" style="font-size: 0.7rem;">Min: {{ $cCat->min_count }} | Price: ₹{{ number_format($cCat->combo_price, 2) }}</span>
+                                </h6>
+                                <span class="badge bg-light text-dark border">{{ $cCat->comboProducts->count() }} Products</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-2 g-md-3 sortable-combo-container" id="sortableCombo_{{ $cCat->id }}">
+                                    @forelse($cCat->comboProducts as $cIndex => $cProd)
+                                        @php
+                                            $isAvail = (!$cProd->is_out_of_stock && $cProd->status === 'active' && empty($cProd->booked_by) && $cProd->total_stock > 0);
+                                        @endphp
+                                        <div class="col-6 col-md-4 col-lg-3 combo-product-order-item" data-id="{{ $cProd->id }}">
+                                            <div class="card h-100 border rounded-4 shadow-sm overflow-hidden product-grid-card position-relative">
+                                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <span class="order-badge combo-order-badge">#{{ $cIndex + 1 }}</span>
+                                                    </div>
+                                                    <div class="drag-handle text-secondary p-1" title="Drag to reorder">
+                                                        <i class="fa-solid fa-up-down-left-right"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="position-relative text-center p-1.5 bg-light">
+                                                    <img src="{{ $cProd->primary_image_url }}" alt="{{ $cProd->name }}" class="img-fluid rounded-3 grid-thumb-img" loading="lazy" onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
+                                                    @if(!$isAvail)
+                                                        <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size: 0.58rem;">
+                                                            @if($cProd->is_out_of_stock || $cProd->total_stock <= 0)
+                                                                OUT OF STOCK
+                                                            @elseif(!empty($cProd->booked_by))
+                                                                BOOKED
+                                                            @else
+                                                                INACTIVE
+                                                            @endif
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <div class="p-2 text-center d-flex flex-column flex-grow-1">
+                                                    <h6 class="fw-bold text-dark mb-1 text-truncate order-card-title" title="{{ $cProd->name }}">{{ $cProd->name }}</h6>
+                                                    <div class="small fw-bold text-warning mb-1" style="font-size: 0.78rem;">₹{{ number_format($cProd->final_price, 2) }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="col-12 text-center text-muted py-3 small">No products assigned to this combo category yet.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="alert alert-info text-center py-3">No active Combo Offer categories created yet.</div>
+                    @endforelse
                 </div>
 
             </div>
@@ -646,6 +718,52 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBadges('#sortableProducts', 'prod-order-badge');
         saveProductOrder(false);
         showAlert('success', 'Available products placed first successfully! Remember you can still drag cards or edit positions as needed.');
+    });
+
+    // 5. Initialize Sortable for Offer Combo Products Containers
+    document.querySelectorAll('.sortable-combo-container').forEach(container => {
+        new Sortable(container, {
+            handle: '.drag-handle',
+            animation: 150,
+            touchStartThreshold: 5,
+            delay: 150,
+            delayOnTouchOnly: true,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            onEnd: function() {
+                updateBadges(`#${container.id}`, 'combo-order-badge');
+                saveComboProductOrder(false);
+            }
+        });
+    });
+
+    function saveComboProductOrder(showAlertMsg = true) {
+        const order = Array.from(document.querySelectorAll('.sortable-combo-container .combo-product-order-item'))
+            .map(item => item.getAttribute('data-id'));
+
+        fetch('{{ route("admin.display-order.update-combo-product-order") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ order: order })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && showAlertMsg) {
+                showAlert('success', data.message);
+            }
+        })
+        .catch(err => {
+            showAlert('danger', 'Failed to save combo product order.');
+        });
+    }
+
+    document.getElementById('saveComboProdOrderBtn')?.addEventListener('click', function() {
+        saveComboProductOrder(true);
     });
 
     // 4. Direct Numerical Position Change Modal Handler

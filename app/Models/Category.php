@@ -18,12 +18,37 @@ class Category extends Model
         'text_color',
         'status',
         'sort_order',
+        'is_combo_offer',
+        'min_count',
+        'combo_price',
+        'delivery_charge',
+    ];
+
+    protected $casts = [
+        'is_combo_offer' => 'boolean',
+        'min_count' => 'integer',
+        'combo_price' => 'float',
+        'delivery_charge' => 'float',
     ];
 
     public function products()
     {
         return $this->belongsToMany(Product::class, 'category_product')->withTimestamps();
     }
+
+    public function comboProducts()
+    {
+        return $this->hasMany(Product::class, 'combo_category_id');
+    }
+
+    public function getUnitOfferPriceAttribute(): float
+    {
+        if ($this->is_combo_offer && $this->min_count > 0 && $this->combo_price > 0) {
+            return round($this->combo_price / $this->min_count, 2);
+        }
+        return 0.0;
+    }
+
 
     public function activeProducts()
     {

@@ -64,8 +64,12 @@ class PaymentService
         }
 
         if (!is_string($realRazorpayOrderId) || !str_starts_with($realRazorpayOrderId, 'order_')) {
-            $order->update(['reserved_until' => null]);
-            throw new \RuntimeException('Unable to start payment. Please try checkout again.');
+            if (config('app.env') === 'local') {
+                $realRazorpayOrderId = 'order_mock_local_' . $order->id . '_' . time();
+            } else {
+                $order->update(['reserved_until' => null]);
+                throw new \RuntimeException('Unable to start payment. Please try checkout again.');
+            }
         }
 
         $payment = Payment::create([
@@ -99,6 +103,30 @@ class PaymentService
         if ($order->order_status === 'cancelled') {
             return false;
         }
+
+        // Local testing simulation bypass
+        if (config('app.env') === 'local' && str_starts_with($razorpayOrderId, 'order_mock_local_')) {
+            Payment::updateOrCreate(
+                ['order_id' => $order->id],
+                [
+                    'payment_method' => 'online',
+                    'razorpay_order_id' => $razorpayOrderId,
+                    'razorpay_payment_id' => $paymentId,
+                    'razorpay_signature' => $signature,
+                    'status' => 'paid',
+                    'amount' => $order->grand_total,
+                ]
+            );
+            $stockService = app(\App\Services\StockService::class);
+            $stockService->deductStockForOrder($order);
+            $order->update([
+                'payment_status' => 'paid',
+                'order_status' => 'confirmed',
+                'reserved_until' => null
+            ]);
+            return true;
+        }
+
         $secret = (string) config('services.razorpay.secret');
         $storedOrderId = $order->payment?->razorpay_order_id;
         if ($secret === '' || !$storedOrderId || !hash_equals($storedOrderId, $razorpayOrderId)

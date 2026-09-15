@@ -51,6 +51,8 @@ class Order extends Model
         'razorpay_net_amount',
         'reserved_until',
         'is_legacy_pending',
+        'is_combo_offer',
+        'combo_category_id',
     ];
 
     protected $casts = [
@@ -67,10 +69,16 @@ class Order extends Model
         'is_cancellation_disabled' => 'boolean',
         'is_dispatched_to_courier' => 'boolean',
         'is_legacy_pending' => 'boolean',
+        'is_combo_offer' => 'boolean',
         'dispatched_at' => 'datetime',
         'sale_date' => 'datetime',
         'reserved_until' => 'datetime',
     ];
+
+    public function comboCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'combo_category_id');
+    }
 
     public function scopeExcludeLegacyPending($query)
     {

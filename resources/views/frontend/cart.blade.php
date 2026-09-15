@@ -52,6 +52,9 @@
                                                     <h6 class="font-serif fw-bold mb-0 small">
                                                         <a href="{{ route('product.detail', $item['slug']) }}" class="text-dark text-decoration-none">{{ $item['name'] }}</a>
                                                     </h6>
+                                                    @if(!empty($item['is_combo_offer']))
+                                                        <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">👑 Offer Combo Item</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>

@@ -24,10 +24,19 @@ class DisplayOrderController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        $comboCategories = Category::where('is_combo_offer', true)
+            ->with(['comboProducts' => function ($q) {
+                $q->with(['category', 'images', 'sizes'])
+                  ->orderBy('combo_sort_order', 'asc')
+                  ->orderBy('id', 'desc');
+            }])
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
         $defaultOrderBy = Setting::get('default_display_order_by', 'category');
         $categoryDisplayStyle = Setting::get('category_display_style', 'grid');
 
-        return view('admin.display_order.index', compact('categories', 'products', 'defaultOrderBy', 'categoryDisplayStyle'));
+        return view('admin.display_order.index', compact('categories', 'products', 'comboCategories', 'defaultOrderBy', 'categoryDisplayStyle'));
     }
 
     public function updatePreference(Request $request)
@@ -83,6 +92,23 @@ class DisplayOrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Product position order updated successfully!',
+        ]);
+    }
+
+    public function updateComboProductOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'order' => ['required', 'array'],
+            'order.*' => ['integer', 'exists:products,id'],
+        ]);
+
+        foreach ($validated['order'] as $index => $productId) {
+            Product::where('id', $productId)->update(['combo_sort_order' => $index + 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Combo Offer product position order updated successfully!',
         ]);
     }
 }

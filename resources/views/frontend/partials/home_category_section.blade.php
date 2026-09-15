@@ -43,8 +43,17 @@
                                         </div>
                                     @endif
                                     <div>
-                                        <h6 class="fw-bold text-dark mb-0 small" style="color: {{ $category->text_color }};">{{ $category->name }}</h6>
-                                        <span class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;">{{ $category->products_count }} Products</span>
+                                        <h6 class="fw-bold text-dark mb-0 small d-flex align-items-center gap-1" style="color: {{ $category->text_color }};">
+                                            @if($category->is_combo_offer) <span title="Offer Combo Category">👑</span> @endif
+                                            {{ $category->name }}
+                                        </h6>
+                                        <span class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;">
+                                            @if($category->is_combo_offer)
+                                                <span class="text-warning fw-bold">Min {{ $category->min_count }} for ₹{{ number_format($category->combo_price) }}</span>
+                                            @else
+                                                {{ $category->products_count }} Products
+                                            @endif
+                                        </span>
                                     </div>
                                 </div>
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>
@@ -65,7 +74,10 @@
                 @foreach($categories as $category)
                     <div class="flex-shrink-0" style="width: 175px; scroll-snap-align: start;">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
-                            <div class="qw-category-card rounded-4 shadow-sm" style="height: 180px;">
+                            <div class="qw-category-card rounded-4 shadow-sm position-relative" style="height: 180px;">
+                                @if($category->is_combo_offer)
+                                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm fw-bold" style="font-size: 0.65rem; z-index: 2;">👑 COMBO OFFER</span>
+                                @endif
                                 @if($category->background_image)
                                     <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">
                                 @else
@@ -73,10 +85,14 @@
                                 @endif
                                 <div class="qw-category-overlay p-2 text-center">
                                     <h6 class="font-serif fw-bold mb-1 small text-truncate w-100" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
-                                        {{ $category->name }}
+                                        @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h6>
                                     <span class="badge bg-gold rounded-pill px-2.5 py-1" style="font-size: 0.65rem;">
-                                        {{ $category->products_count }} Items
+                                        @if($category->is_combo_offer)
+                                            {{ $category->min_count }} for ₹{{ number_format($category->combo_price) }}
+                                        @else
+                                            {{ $category->products_count }} Items
+                                        @endif
                                     </span>
                                 </div>
                             </div>
@@ -94,18 +110,27 @@
                 @foreach($categories as $category)
                     <div class="col-6 col-md-4 col-lg-3">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
-                            <div class="qw-category-card">
+                            <div class="qw-category-card position-relative">
+                                @if($category->is_combo_offer)
+                                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm fw-bold text-truncate rounded-pill" style="font-size: 0.65rem; max-width: calc(100% - 16px); z-index: 2; letter-spacing: 0.3px;">
+                                        👑 COMBO OFFER
+                                    </span>
+                                @endif
                                 @if($category->background_image)
                                     <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">
                                 @else
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
-                                <div class="qw-category-overlay">
-                                    <h4 class="font-serif fw-bold mb-1" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
-                                        {{ $category->name }}
+                                <div class="qw-category-overlay p-2 p-sm-3">
+                                    <h4 class="font-serif fw-bold mb-1 fs-6 fs-sm-5 fs-md-4 text-center text-wrap" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6); word-break: break-word;">
+                                        @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h4>
-                                    <span class="badge bg-gold rounded-pill px-3 py-2 small shadow-sm">
-                                        {{ $category->products_count }} Items
+                                    <span class="badge bg-gold rounded-pill px-2.5 py-1.5 px-sm-3 py-sm-2 small shadow-sm text-wrap" style="font-size: 0.68rem;">
+                                        @if($category->is_combo_offer)
+                                            Min {{ $category->min_count }} for ₹{{ number_format($category->combo_price) }}
+                                        @else
+                                            {{ $category->products_count }} Items
+                                        @endif
                                     </span>
                                 </div>
                             </div>

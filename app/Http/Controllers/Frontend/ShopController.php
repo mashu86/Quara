@@ -37,6 +37,8 @@ class ShopController extends Controller
                     $cq->where('slug', $categorySlug);
                 })->orWhereHas('categories', function ($cq) use ($categorySlug) {
                     $cq->where('slug', $categorySlug);
+                })->orWhereHas('comboCategory', function ($cq) use ($categorySlug) {
+                    $cq->where('slug', $categorySlug);
                 });
             });
         }
@@ -110,7 +112,7 @@ class ShopController extends Controller
             ]);
         }
 
-        $categories = Category::where('status', 'active')->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
+        $categories = Category::publicActive()->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
         $allSizes = ProductSize::select('size')->distinct()->pluck('size');
 
         // Dynamic SEO Metadata & Canonical URL Handling
@@ -142,7 +144,7 @@ class ShopController extends Controller
 
     public function categoryProducts(Request $request, string $slug)
     {
-        $category = Category::where('slug', $slug)->where('status', 'active')->firstOrFail();
+        $category = Category::publicActive()->where('slug', $slug)->firstOrFail();
 
         if ($category->is_combo_offer) {
             return $this->showComboBuilder($category, $request);

@@ -26,21 +26,7 @@
             </div>
 
             <div class="d-flex align-items-center gap-2 mt-1 mt-md-0 ms-auto qw-sort-filter-bar">
-                <!-- Sorting dropdown (75% on Mobile) -->
-                <form action="{{ url()->current() }}" method="GET" class="d-flex align-items-center gap-1.5 mb-0 qw-sort-form">
-                    @foreach(request()->except(['sort', 'page']) as $key => $val)
-                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
-                    @endforeach
-                    <label for="sort" class="small fw-semibold text-nowrap d-none d-sm-inline">Sort By:</label>
-                    <select name="sort" id="sort" class="form-select form-select-sm rounded-pill shadow-sm py-1 w-100" style="font-size: 0.78rem;" onchange="this.form.submit()">
-                        <option value="newest" {{ request()->sort == 'newest' ? 'selected' : '' }}>Newest First</option>
-                        <option value="price_low" {{ request()->sort == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
-                        <option value="price_high" {{ request()->sort == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
-                        <option value="oldest" {{ request()->sort == 'oldest' ? 'selected' : '' }}>Oldest First</option>
-                    </select>
-                </form>
-
-                <!-- Filter & Search Button (25% Icon on Mobile) -->
+                <!-- Filter & Search Button -->
                 <button type="button" class="btn rounded-pill px-2.5 px-md-3 py-1 shadow-sm d-inline-flex align-items-center justify-content-center gap-1.5 qw-filter-btn"
                         data-bs-toggle="modal" data-bs-target="#homeFilterModal"
                         style="background-color: #ffffff; border: 1.5px solid #D4AF37; color: #D4AF37; transition: all 0.2s ease; height: 32px;"

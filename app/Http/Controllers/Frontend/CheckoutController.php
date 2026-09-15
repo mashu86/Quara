@@ -79,6 +79,12 @@ class CheckoutController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $isLocalTesting = app()->environment('local', 'development', 'testing') || in_array($request->getHost(), ['127.0.0.1', 'localhost'], true) || str_contains($request->getHost(), '127.0.0.1') || str_contains($request->getHost(), 'localhost');
+
+        if ($validated['payment_method'] === 'cod' && ! $isLocalTesting) {
+            return back()->withInput()->with('error', 'Cash on Delivery is disabled in live store mode. Please select Online Payment.');
+        }
+
         $cart = $this->cartService->getCart();
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Your cart is empty.');

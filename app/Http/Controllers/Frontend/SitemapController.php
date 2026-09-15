@@ -14,7 +14,7 @@ class SitemapController extends Controller
      */
     public function index(): Response
     {
-        $categories = Category::where('status', 'active')->select(['id', 'slug', 'updated_at'])->get();
+        $categories = Category::publicActive()->select(['id', 'slug', 'updated_at'])->get();
         $products = Product::active()->select(['id', 'slug', 'updated_at'])->get();
 
         $content = view('frontend.sitemap', compact('categories', 'products'))->render();

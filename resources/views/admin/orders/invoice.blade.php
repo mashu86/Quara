@@ -237,9 +237,21 @@
                             <td class="text-center">
                                 <span class="badge bg-light text-dark border">{{ $item->size }}</span>
                             </td>
-                            <td class="text-center">₹{{ number_format($item->unit_price, 2) }}</td>
+                            <td class="text-center">
+                                @if($item->is_combo_offer)
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Item</span>
+                                @else
+                                    ₹{{ number_format($item->unit_price, 2) }}
+                                @endif
+                            </td>
                             <td class="text-center fw-bold">{{ $item->quantity }}</td>
-                            <td class="text-end fw-bold">₹{{ number_format($item->subtotal, 2) }}</td>
+                            <td class="text-end fw-bold">
+                                @if($item->is_combo_offer)
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Package</span>
+                                @else
+                                    ₹{{ number_format($item->subtotal, 2) }}
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

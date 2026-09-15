@@ -17,7 +17,104 @@ class CartService
 
     public function getCart(): array
     {
-        return Session::get('cart', []);
+        $cart = Session::get('cart', []);
+        if (empty($cart)) {
+            return [];
+        }
+
+        $updatedCart = [];
+        $hasChanges = false;
+
+        foreach ($cart as $key => $item) {
+            $productId = (int) ($item['product_id'] ?? 0);
+            $size = (string) ($item['size'] ?? '');
+            $quantity = (int) ($item['quantity'] ?? 1);
+
+            $product = Product::with(['sizes', 'category', 'categories', 'comboCategory'])->find($productId);
+
+            // 1. If product doesn't exist, is inactive, or category is inactive -> REMOVE FROM CART
+            if (!$product || $product->status !== 'active') {
+                $hasChanges = true;
+                continue;
+            }
+
+            // 2. Check stock for this specific size
+            $productSize = $product->sizes->firstWhere('size', $size);
+            $availableStock = $productSize ? (int) $productSize->stock : 0;
+
+            // If product is marked out of stock or size stock is 0 -> REMOVE FROM CART (Sold out)
+            if ($product->is_out_of_stock || $availableStock <= 0) {
+                $hasChanges = true;
+                continue;
+            }
+
+            // Adjust quantity if user requested more than available stock
+            if ($quantity > $availableStock) {
+                $quantity = $availableStock;
+                $hasChanges = true;
+            }
+
+            // 3. Handle Combo Offer vs Regular Product Price Sync
+            if (!empty($item['is_combo_offer'])) {
+                $comboCategoryId = (int) ($item['combo_category_id'] ?? 0);
+                $comboCategory = \App\Models\Category::find($comboCategoryId);
+
+                // If combo category was deleted, disabled or offer turned off -> revert to regular price
+                if (!$comboCategory || $comboCategory->status !== 'active' || !$comboCategory->is_combo_offer) {
+                    $effectivePrice = (float) $product->effective_final_price;
+                    $updatedCart[$key] = [
+                        'product_id' => $product->id,
+                        'name' => $product->name,
+                        'slug' => $product->slug,
+                        'size' => $size,
+                        'price' => (float) $product->price,
+                        'discount_amount' => max(0, (float) ($product->price - $effectivePrice)),
+                        'final_price' => $effectivePrice,
+                        'quantity' => $quantity,
+                        'image' => $product->primary_image_url,
+                        'subtotal' => round($effectivePrice * $quantity, 2),
+                        'is_combo_offer' => false,
+                    ];
+                    $hasChanges = true;
+                } else {
+                    $updatedCart[$key] = array_merge($item, [
+                        'name' => $product->name,
+                        'image' => $product->primary_image_url,
+                        'quantity' => $quantity,
+                        'subtotal' => round($item['final_price'] * $quantity, 2),
+                    ]);
+                }
+            } else {
+                // Regular Product: Dynamically re-verify effective price (reflecting active offer vs removed offer)
+                $effectivePrice = (float) $product->effective_final_price;
+                $originalPrice = (float) $product->price;
+                $discountAmount = max(0, round($originalPrice - $effectivePrice, 2));
+
+                if (($item['final_price'] ?? 0) != $effectivePrice || ($item['quantity'] ?? 0) != $quantity) {
+                    $hasChanges = true;
+                }
+
+                $updatedCart[$key] = [
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                    'size' => $size,
+                    'price' => $originalPrice,
+                    'discount_amount' => $discountAmount,
+                    'final_price' => $effectivePrice,
+                    'quantity' => $quantity,
+                    'image' => $product->primary_image_url,
+                    'subtotal' => round($effectivePrice * $quantity, 2),
+                    'is_combo_offer' => false,
+                ];
+            }
+        }
+
+        if ($hasChanges) {
+            Session::put('cart', $updatedCart);
+        }
+
+        return $updatedCart;
     }
 
     public function add(int $productId, string $size, int $quantity): array

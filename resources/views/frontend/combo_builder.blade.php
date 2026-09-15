@@ -10,6 +10,24 @@
         padding-bottom: 100px;
     }
 
+    .custom-sidebar-scroll {
+        overflow-y: auto;
+        max-height: calc(100vh - 170px);
+        scrollbar-width: thin;
+        scrollbar-color: #D4AF37 #F1F1F1;
+    }
+    .custom-sidebar-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-sidebar-scroll::-webkit-scrollbar-track {
+        background: #F1F1F1;
+        border-radius: 10px;
+    }
+    .custom-sidebar-scroll::-webkit-scrollbar-thumb {
+        background: #D4AF37;
+        border-radius: 10px;
+    }
+
     /* Header Luxury Banner */
     .combo-header-banner {
         background: linear-gradient(135deg, #111111 0%, #241c09 60%, #111111 100%);
@@ -461,14 +479,14 @@
 
         <!-- Desktop Sticky Sidebar Box -->
         <div class="col-lg-4 d-none d-lg-block">
-            <div class="card border-0 shadow-lg rounded-4 sticky-top" style="top: 90px; z-index: 10;">
-                <div class="card-header bg-dark text-white py-3 rounded-top-4 d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-lg rounded-4 sticky-top overflow-hidden" style="top: 90px; z-index: 10; max-height: calc(100vh - 110px); display: flex; flex-direction: column;">
+                <div class="card-header bg-dark text-white py-3 rounded-top-4 d-flex justify-content-between align-items-center flex-shrink-0">
                     <h6 class="font-serif fw-bold mb-0">
                         <i class="fa-solid fa-crown text-warning me-2"></i> Your Combo Box
                     </h6>
                     <span class="badge bg-warning text-dark rounded-pill fw-bold combo-count-badge">0 / {{ $category->min_count }} Items</span>
                 </div>
-                <div class="card-body p-3.5">
+                <div class="card-body p-3.5 custom-sidebar-scroll" style="overflow-y: auto; flex-grow: 1; max-height: calc(100vh - 170px);">
                     <!-- Progress Bar -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center small mb-1">
@@ -488,7 +506,7 @@
                     <hr class="my-3 opacity-25">
 
                     <!-- Selected Items Container -->
-                    <div class="selected-combo-items-list mb-3 combo-items-container" style="max-height: 260px; overflow-y: auto;">
+                    <div class="selected-combo-items-list mb-3 combo-items-container" style="max-height: 200px; overflow-y: auto;">
                         <div class="text-center text-muted py-4 small empty-combo-notice">
                             <i class="fa-solid fa-cart-flatbed fs-3 text-secondary mb-2 d-block opacity-50"></i>
                             Your combo box is currently empty.<br>Select sizes and click <strong>"+ Add to Combo"</strong>.
@@ -521,11 +539,11 @@
                         </div>
                     </div>
 
-                    <!-- Add to Cart Button -->
+                    <!-- Add to Cart / Buy Now Button -->
                     <button type="button" 
                             class="btn btn-add-combo-main w-100 py-2.5 shadow text-uppercase submit-combo-btn" 
                             disabled>
-                        <i class="fa-solid fa-bag-shopping me-1"></i> Add Combo to Cart
+                        <i class="fa-solid fa-bolt me-1"></i> Buy Combo Now
                     </button>
                 </div>
             </div>
@@ -555,7 +573,7 @@
                 class="btn btn-add-combo-main px-3 py-2 shadow-sm text-uppercase submit-combo-btn" 
                 style="width: auto; font-size: 0.76rem; min-width: 130px; border-radius: 50rem !important;" 
                 disabled>
-            <i class="fa-solid fa-bag-shopping me-1"></i> Add to Cart
+            <i class="fa-solid fa-bolt me-1"></i> Buy Now
         </button>
     </div>
 </div>
@@ -607,7 +625,7 @@
                 <button type="button" 
                         class="btn btn-add-combo-main w-100 py-2.5 shadow text-uppercase submit-combo-btn" 
                         disabled>
-                    <i class="fa-solid fa-bag-shopping me-1"></i> Add Combo to Cart
+                    <i class="fa-solid fa-bolt me-1"></i> Buy Combo Now
                 </button>
             </div>
         </div>
@@ -702,12 +720,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.href = "{{ route('cart.index') }}";
+                        window.location.href = "{{ route('checkout.index') }}";
                     } else {
-                        alert(data.message || 'Failed to add combo offer to cart.');
+                        alert(data.message || 'Failed to process combo offer.');
                         document.querySelectorAll('.submit-combo-btn').forEach(b => {
                             b.disabled = false;
-                            b.innerHTML = `<i class="fa-solid fa-bag-shopping me-1"></i> Add Combo to Cart`;
+                            b.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
                         });
                     }
                 })
@@ -715,7 +733,7 @@
                     alert('An error occurred. Please try again.');
                     document.querySelectorAll('.submit-combo-btn').forEach(b => {
                         b.disabled = false;
-                        b.innerHTML = `<i class="fa-solid fa-bag-shopping me-1"></i> Add Combo to Cart`;
+                        b.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
                     });
                 });
             });

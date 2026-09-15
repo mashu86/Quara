@@ -19,7 +19,7 @@ class HomeController extends Controller
             ->where('status', 'active')
             ->first();
 
-        $categories = Category::where('status', 'active')->withCount(['products' => function ($q) {
+        $categories = Category::publicActive()->withCount(['products' => function ($q) {
             $q->where('status', 'active');
         }])
         ->orderBy('sort_order', 'asc')

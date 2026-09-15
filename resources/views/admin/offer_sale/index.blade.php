@@ -673,10 +673,10 @@
                 </div>
                 <div class="modal-body p-4 text-center">
                     <i class="fa-solid fa-box-archive fs-1 text-danger mb-3 opacity-75"></i>
-                    <h6 class="fw-bold text-dark mb-2">Remove offer assignment from all unsold products?</h6>
+                    <h6 class="fw-bold text-dark mb-2">Clear offer assignment from Available & Booked products?</h6>
                     <p class="text-muted small mb-0">
-                        This will unassign all unsold products from offer categories. 
-                        <strong class="text-dark d-block mt-1">✓ Past sold orders and customer purchase history will remain 100% untouched and safe.</strong>
+                        This will unassign offers from available and booked products. 
+                        <strong class="text-success d-block mt-1">✓ Sold Out products will NEVER be affected and will keep their offer price intact.</strong>
                     </p>
                 </div>
                 <div class="modal-footer bg-light border-0 p-3 justify-content-center gap-2">

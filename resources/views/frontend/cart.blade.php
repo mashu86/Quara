@@ -60,9 +60,13 @@
                                         </td>
                                         <td><span class="badge bg-dark px-2 py-1" style="font-size: 0.7rem;">{{ $item['size'] }}</span></td>
                                         <td>
-                                            <span class="fw-bold">₹{{ number_format($item['final_price'], 2) }}</span>
-                                            @if($item['discount_amount'] > 0)
-                                                <div class="text-muted text-decoration-line-through style-small" style="font-size: 0.7rem;">₹{{ number_format($item['price'], 2) }}</div>
+                                            @if(!empty($item['is_combo_offer']))
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Item</span>
+                                            @else
+                                                <span class="fw-bold">₹{{ number_format($item['final_price'], 2) }}</span>
+                                                @if($item['discount_amount'] > 0)
+                                                    <div class="text-muted text-decoration-line-through style-small" style="font-size: 0.7rem;">₹{{ number_format($item['price'], 2) }}</div>
+                                                @endif
                                             @endif
                                         </td>
                                         <td>
@@ -71,7 +75,13 @@
                                                 <input type="number" name="quantity" class="form-control form-control-sm text-center font-bold me-1 py-1" value="{{ $item['quantity'] }}" min="1" onchange="this.form.submit()" style="font-size: 0.8rem;">
                                             </form>
                                         </td>
-                                        <td class="text-end fw-bold text-gold fs-6">₹{{ number_format($item['subtotal'], 2) }}</td>
+                                        <td class="text-end">
+                                            @if(!empty($item['is_combo_offer']))
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Package</span>
+                                            @else
+                                                <span class="fw-bold text-gold fs-6">₹{{ number_format($item['subtotal'], 2) }}</span>
+                                            @endif
+                                        </td>
                                         <td class="text-end">
                                             <form action="{{ route('cart.remove', $key) }}" method="POST">
                                                 @csrf

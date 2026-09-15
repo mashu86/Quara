@@ -175,9 +175,14 @@
                 <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
                         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                            <div class="modal-header bg-dark text-white py-2.5 px-3">
-                                <h5 class="modal-title fs-6 fw-bold text-truncate" id="imagePreviewModalTitle">Product Image Preview</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <div class="modal-header bg-dark text-white py-2.5 px-3 d-flex justify-content-between align-items-center">
+                                <h5 class="modal-title fs-6 fw-bold text-truncate me-2" id="imagePreviewModalTitle">Product Image Preview</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <a id="imagePreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark shadow-sm" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Image">
+                                        <i class="fa-solid fa-download me-1"></i> Download
+                                    </a>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
                             </div>
                             <div class="modal-body p-2 p-sm-3 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 0;">
                                 <img id="imagePreviewModalImg" src="" alt="Product Large Image" class="img-fluid rounded-3 shadow" style="max-height: 70vh; max-height: 70dvh; max-width: 100%; object-fit: contain;">
@@ -188,8 +193,16 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             modalEl = document.getElementById('imagePreviewModal');
         }
-        document.getElementById('imagePreviewModalImg').src = imageUrl;
-        document.getElementById('imagePreviewModalTitle').textContent = title || 'Product Image Preview';
+        const imgElem = document.getElementById('imagePreviewModalImg');
+        const titleElem = document.getElementById('imagePreviewModalTitle');
+        const downloadBtn = document.getElementById('imagePreviewModalDownloadBtn');
+        if (imgElem) imgElem.src = imageUrl;
+        if (titleElem) titleElem.textContent = title || 'Product Image Preview';
+        if (downloadBtn) {
+            downloadBtn.href = imageUrl;
+            const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-image') + '.jpg';
+            downloadBtn.setAttribute('download', cleanFileName);
+        }
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
     }

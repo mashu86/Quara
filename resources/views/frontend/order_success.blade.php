@@ -96,7 +96,13 @@
                                     </td>
                                     <td><span class="badge bg-dark">{{ $item['size'] }}</span></td>
                                     <td>{{ $item['quantity'] }}</td>
-                                    <td class="text-end fw-bold">₹{{ number_format($item['subtotal'], 2) }}</td>
+                                    <td class="text-end">
+                                        @if(!empty($item['is_combo_offer']) || !empty($item->is_combo_offer))
+                                            <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Item</span>
+                                        @else
+                                            <span class="fw-bold">₹{{ number_format($item['subtotal'], 2) }}</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

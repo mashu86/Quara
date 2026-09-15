@@ -65,6 +65,15 @@ class Category extends Model
         return static::where('is_offer_category', true)->where('is_active_offer', true)->first();
     }
 
+    public function scopePublicActive($query)
+    {
+        return $query->where('status', 'active')
+            ->where(function ($q) {
+                $q->where('is_offer_category', false)
+                  ->orWhere('is_active_offer', true);
+            });
+    }
+
     public function getUnitOfferPriceAttribute(): float
     {
         if ($this->is_combo_offer && $this->min_count > 0 && $this->combo_price > 0) {

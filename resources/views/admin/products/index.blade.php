@@ -271,9 +271,14 @@
 <div class="modal fade" id="productPreviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header bg-dark text-white py-2.5 px-3">
-                <h5 class="modal-title font-serif fw-bold small text-truncate" id="productPreviewModalLabel">Product Preview</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-dark text-white py-2.5 px-3 d-flex justify-content-between align-items-center">
+                <h5 class="modal-title font-serif fw-bold small text-truncate me-2" id="productPreviewModalLabel">Product Preview</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="productPreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark shadow-sm" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Image">
+                        <i class="fa-solid fa-download me-1"></i> Download
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 280px; max-height: 75vh;">
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
@@ -290,8 +295,14 @@ window.openProductPreview = function(imgSrc, title) {
     const modalElem = document.getElementById('productPreviewModal');
     const imgElem = document.getElementById('productPreviewModalImg');
     const titleElem = document.getElementById('productPreviewModalLabel');
+    const downloadBtn = document.getElementById('productPreviewModalDownloadBtn');
     if (imgElem) imgElem.src = imgSrc;
     if (titleElem) titleElem.textContent = title || 'Product Image';
+    if (downloadBtn) {
+        downloadBtn.href = imgSrc;
+        const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-main-image') + '.jpg';
+        downloadBtn.setAttribute('download', cleanFileName);
+    }
     if (modalElem) {
         const modalInstance = new bootstrap.Modal(modalElem);
         modalInstance.show();

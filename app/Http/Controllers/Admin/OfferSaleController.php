@@ -111,15 +111,15 @@ class OfferSaleController extends Controller
 
         $offerCategory = Category::find($offerCategoryId);
 
-        // Only affect products that are not booked and not sold out
-        $products = Product::whereIn('id', $productIds)
-            ->where('is_out_of_stock', false)
-            ->where(function($q) {
-                $q->whereNull('booked_by')->orWhere('booked_by', '');
-            })->get();
+        $products = Product::with('sizes')->whereIn('id', $productIds)->get();
 
         foreach ($products as $product) {
+            $totalStock = (int) $product->sizes->sum('stock');
+            $isSoldOut = ($product->is_out_of_stock && empty($product->booked_by)) || ($totalStock <= 0 && empty($product->booked_by));
+
             if ($action === 'add') {
+                if ($isSoldOut) continue;
+
                 $updateData = ['combo_category_id' => $offerCategoryId];
 
                 if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
@@ -139,6 +139,12 @@ class OfferSaleController extends Controller
                     $product->categories()->attach($offerCategoryId);
                 }
             } else {
+                // Action: remove
+                // If sold out, preserve its offer price & category!
+                if ($isSoldOut) {
+                    continue;
+                }
+
                 $updateData = ['combo_category_id' => null];
 
                 if ($offerCategory && $offerCategory->offer_type === 'discount') {
@@ -236,15 +242,24 @@ class OfferSaleController extends Controller
 
     public function removeOfferFromAllAvailableProducts(Request $request)
     {
-        // Past Sales Protection: Only clear combo_category_id for unsold available products
-        $assignedProducts = Product::whereNotNull('combo_category_id')
-            ->where('is_out_of_stock', false)
+        // Past Sales Protection: Only clear offer assignments for Available & Booked products.
+        // DO NOT touch Sold Out products (is_out_of_stock = 1 OR physical size stock <= 0).
+        $assignedProducts = Product::with('sizes')
             ->where(function($q) {
-                $q->whereNull('booked_by')->orWhere('booked_by', '');
+                $q->whereNotNull('combo_category_id')
+                  ->orWhere('discount_type', '!=', 'none');
             })->get();
 
         $updatedCount = 0;
         foreach ($assignedProducts as $prod) {
+            $totalStock = (int) $prod->sizes->sum('stock');
+            $isSoldOut = ($prod->is_out_of_stock && empty($prod->booked_by)) || ($totalStock <= 0 && empty($prod->booked_by));
+
+            // CRITICAL: Skip sold out products so their offer purchase history and offer price remain 100% untouched!
+            if ($isSoldOut) {
+                continue;
+            }
+
             $catId = $prod->combo_category_id;
             $prod->update([
                 'combo_category_id' => null,
@@ -258,7 +273,7 @@ class OfferSaleController extends Controller
             $updatedCount++;
         }
 
-        $msg = "Offer assignment removed from {$updatedCount} available product(s). Past sold orders remain 100% untouched.";
+        $msg = "Offer assignment removed from {$updatedCount} available/booked product(s). Past sold out products remain 100% untouched with their offer prices preserved.";
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([

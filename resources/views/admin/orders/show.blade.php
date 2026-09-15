@@ -8,10 +8,16 @@
 window.openImagePreviewModal = function(imageUrl, title) {
     var imgEl = document.getElementById('productImagePreviewModalImg');
     var titleEl = document.getElementById('productImagePreviewModalTitle');
+    var downloadBtn = document.getElementById('productImagePreviewModalDownloadBtn');
     if (imgEl && titleEl) {
         imgEl.src = imageUrl;
         var cleanTitle = (typeof escapeHtml === 'function') ? escapeHtml(title) : title;
         titleEl.innerHTML = '<i class="fa-solid fa-shirt text-warning me-2"></i> ' + cleanTitle;
+        if (downloadBtn) {
+            downloadBtn.href = imageUrl;
+            var cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-image') + '.jpg';
+            downloadBtn.setAttribute('download', cleanFileName);
+        }
         var modal = new bootstrap.Modal(document.getElementById('productImagePreviewModal'));
         modal.show();
     }
@@ -161,10 +167,17 @@ window.openImagePreviewModal = function(imageUrl, title) {
                                         @endif
                                     @endif
 
-                                    <div class="d-flex justify-content-between align-items-center pt-1 border-top mt-1">
-                                        <span class="text-muted" style="font-size: 0.72rem;">₹{{ number_format($itemUnitPrice, 2) }} × {{ $item->quantity }}</span>
-                                        <span class="fw-bold text-dark" style="font-size: 0.82rem;">₹{{ number_format($item->subtotal, 2) }}</span>
-                                    </div>
+                                    @if($item->is_combo_offer)
+                                        <div class="d-flex justify-content-between align-items-center pt-1 border-top mt-1">
+                                            <span class="badge bg-warning text-dark" style="font-size: 0.68rem;"><i class="fa-solid fa-crown me-1"></i> Combo Item</span>
+                                            <span class="text-muted small">Package Item</span>
+                                        </div>
+                                    @else
+                                        <div class="d-flex justify-content-between align-items-center pt-1 border-top mt-1">
+                                            <span class="text-muted" style="font-size: 0.72rem;">₹{{ number_format($itemUnitPrice, 2) }} × {{ $item->quantity }}</span>
+                                            <span class="fw-bold text-dark" style="font-size: 0.82rem;">₹{{ number_format($item->subtotal, 2) }}</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -301,9 +314,21 @@ window.openImagePreviewModal = function(imageUrl, title) {
                                                  title="Click to view large image">
                                         </td>
                                         <td><span class="badge bg-dark" style="font-size: 0.7rem;">{{ $item->size }}</span></td>
-                                        <td class="fw-semibold">₹{{ number_format($itemUnitPrice, 2) }}</td>
+                                        <td class="fw-semibold">
+                                            @if($item->is_combo_offer)
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Item</span>
+                                            @else
+                                                ₹{{ number_format($itemUnitPrice, 2) }}
+                                            @endif
+                                        </td>
                                         <td>{{ $item->quantity }}</td>
-                                        <td class="text-end fw-bold">₹{{ number_format($item->subtotal, 2) }}</td>
+                                        <td class="text-end fw-bold">
+                                            @if($item->is_combo_offer)
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Package</span>
+                                            @else
+                                                ₹{{ number_format($item->subtotal, 2) }}
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -653,7 +678,12 @@ window.openImagePreviewModal = function(imageUrl, title) {
                 <h6 class="modal-title font-serif fw-bold text-truncate me-2 mb-0" id="productImagePreviewModalTitle">
                     <i class="fa-solid fa-shirt text-warning me-2"></i> Product Photo
                 </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="productImagePreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark shadow-sm" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Product Image">
+                        <i class="fa-solid fa-download me-1"></i> Download Image
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body p-2 p-sm-3 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 350px;">
                 <img id="productImagePreviewModalImg" src="" alt="Product Large View" class="img-fluid rounded-3 shadow" style="max-height: 78vh; max-width: 100%; object-fit: contain;">

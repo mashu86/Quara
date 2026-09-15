@@ -75,14 +75,12 @@ class CheckoutController extends Controller
             'district' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'pin_code' => 'required|string|max:20',
-            'payment_method' => 'required|in:cod,online',
+            'payment_method' => 'required|in:online',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $isLocalTesting = app()->environment('local', 'development', 'testing') || in_array($request->getHost(), ['127.0.0.1', 'localhost'], true) || str_contains($request->getHost(), '127.0.0.1') || str_contains($request->getHost(), 'localhost');
-
-        if ($validated['payment_method'] === 'cod' && ! $isLocalTesting) {
-            return back()->withInput()->with('error', 'Cash on Delivery is disabled in live store mode. Please select Online Payment.');
+        if ($validated['payment_method'] === 'cod') {
+            return back()->withInput()->with('error', 'Cash on Delivery is disabled. Please select Online Payment.');
         }
 
         $cart = $this->cartService->getCart();

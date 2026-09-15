@@ -87,34 +87,16 @@
                 <div class="bg-white p-4 rounded-4 shadow-sm border">
                     <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom"><i class="fa-solid fa-wallet me-2 text-gold"></i> Payment Method</h5>
 
-                    @php
-                        $isLocalTesting = app()->environment('local', 'development', 'testing') || in_array(request()->getHost(), ['127.0.0.1', 'localhost'], true) || str_contains(request()->getHost(), '127.0.0.1') || str_contains(request()->getHost(), 'localhost');
-                    @endphp
-
-                    <div class="d-flex flex-column gap-2">
-                        <label class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between cursor-pointer" style="cursor: pointer;">
-                            <div class="d-flex align-items-center gap-3">
-                                <input type="radio" name="payment_method" value="online" checked class="form-check-input">
-                                <div>
-                                    <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
-                                    <div class="text-muted small">Pay securely using UPI, cards, netbanking or wallets via Razorpay</div>
-                                </div>
+                    <input type="hidden" name="payment_method" value="online">
+                    <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                            <div>
+                                <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
+                                <div class="text-muted small">Pay securely using UPI (Google Pay, PhonePe, Paytm), Cards, Netbanking or Wallets via Razorpay</div>
                             </div>
-                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay</span>
-                        </label>
-
-                        @if($isLocalTesting)
-                            <label class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between cursor-pointer" style="cursor: pointer;">
-                                <div class="d-flex align-items-center gap-3">
-                                    <input type="radio" name="payment_method" value="cod" class="form-check-input">
-                                    <div>
-                                        <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-hand-holding-dollar text-success me-2"></i> Cash on Delivery (COD) <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Local Test Only</span></div>
-                                        <div class="text-muted small">Pay in cash when your order is delivered (Local development mode)</div>
-                                    </div>
-                                </div>
-                                <span class="badge bg-secondary rounded-pill px-3 py-2">COD</span>
-                            </label>
-                        @endif
+                        </div>
+                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay</span>
                     </div>
                 </div>
             </div>

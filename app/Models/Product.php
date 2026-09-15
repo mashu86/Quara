@@ -157,7 +157,7 @@ class Product extends Model
         $price = (float) $price;
         $discountValue = (float) $discountValue;
 
-        if ($discountType === 'fixed') {
+        if ($discountType === 'fixed' || $discountType === 'flat') {
             $final = $price - $discountValue;
         } elseif ($discountType === 'percentage') {
             $final = $price - ($price * ($discountValue / 100));

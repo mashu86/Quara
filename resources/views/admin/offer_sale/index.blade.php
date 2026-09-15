@@ -73,6 +73,8 @@
         min-height: 400px;
         max-height: 68vh;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         border: 2px dashed #cbd5e1;
         border-radius: 10px;
         background-color: #f8fafc;
@@ -91,7 +93,7 @@
         cursor: grab;
         transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         user-select: none;
-        touch-action: none;
+        touch-action: pan-y;
         border-radius: 8px !important;
         background: #ffffff;
         border: 1px solid #e2e8f0 !important;
@@ -231,15 +233,19 @@
 
         /* Available & Assigned Product Containers */
         .product-list-container {
-            min-height: 180px !important;
-            max-height: 45vh !important;
-            padding: 4px !important;
-            gap: 4px !important;
-            border-radius: 6px !important;
+            min-height: 200px !important;
+            max-height: 48vh !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            padding: 5px !important;
+            gap: 5px !important;
+            border-radius: 8px !important;
         }
         .bulk-product-card {
-            padding: 4px 6px !important;
+            padding: 5px 6px !important;
             border-radius: 6px !important;
+            touch-action: pan-y !important;
         }
         .bulk-card-img {
             width: 32px !important;
@@ -755,33 +761,30 @@
         const assignedEl = document.getElementById('assignedProductsList');
 
         if (availableEl && assignedEl) {
-            new Sortable(availableEl, {
+            const sortableOptions = {
                 group: 'offerGroup',
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
-                delay: 0,
-                delayOnTouchOnly: false,
-                touchStartThreshold: 3,
+                delay: 150,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5,
+                direction: 'vertical'
+            };
+
+            new Sortable(availableEl, Object.assign({}, sortableOptions, {
                 onAdd: function(evt) {
                     const prodId = evt.item.getAttribute('data-product-id');
                     updateProductServer(prodId, 'remove');
                 }
-            });
+            }));
 
-            new Sortable(assignedEl, {
-                group: 'offerGroup',
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                delay: 0,
-                delayOnTouchOnly: false,
-                touchStartThreshold: 3,
+            new Sortable(assignedEl, Object.assign({}, sortableOptions, {
                 onAdd: function(evt) {
                     const prodId = evt.item.getAttribute('data-product-id');
                     updateProductServer(prodId, 'add');
                 }
-            });
+            }));
         }
     });
 

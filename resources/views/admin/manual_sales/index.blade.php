@@ -130,7 +130,7 @@
                             <th>Purchased Item(s)</th>
                             <th>Total Amount</th>
                             <th>Payment</th>
-                            <th>Date</th>
+                            <th>Date &amp; Time</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>

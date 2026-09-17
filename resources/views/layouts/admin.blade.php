@@ -415,6 +415,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.size-guide.index') }}" class="nav-link {{ request()->routeIs('admin.size-guide.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-ruler-combined me-2 text-info"></i> Size Guide Master
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.shipping-policies.index') }}" class="nav-link {{ request()->routeIs('admin.shipping-policies.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-truck-ramp-box me-2"></i> Delivery Price Master
                     </a>
@@ -579,7 +584,15 @@
                         <div class="p-2.5 p-sm-3 bg-light border-bottom d-flex align-items-center justify-content-between rounded-top-4">
                             <span class="fw-bold text-dark small notif-header-title"><i class="fa-solid fa-bell me-1 text-warning"></i> Notifications</span>
                             @if($unreadCount > 0)
-                                <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">{{ $unreadCount }} New</span>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">{{ $unreadCount }} New</span>
+                                    <form action="{{ route('admin.notifications.mark-all-read') }}" method="POST" class="m-0 p-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-link btn-sm text-decoration-none text-muted p-0 ms-1" style="font-size: 0.68rem;" title="Mark all notifications as read">
+                                            <i class="fa-solid fa-check-double text-success"></i> Clear
+                                        </button>
+                                    </form>
+                                </div>
                             @endif
                         </div>
                         <div class="list-group list-group-flush overflow-auto" style="max-height: 280px;">

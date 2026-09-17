@@ -9,6 +9,7 @@ class NotificationController extends Controller
 {
     public function index()
     {
+        Notification::where('is_read', false)->update(['is_read' => true]);
         $notifications = Notification::with('order')->orderBy('id', 'desc')->paginate(20);
         return view('admin.notifications.index', compact('notifications'));
     }

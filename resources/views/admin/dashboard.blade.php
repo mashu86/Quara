@@ -268,8 +268,8 @@
                                             </td>
                                             <small class="d-none"></small>
                                             <td class="small text-nowrap">
-                                                <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->created_at->format('M d, Y') }}</div>
-                                                <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->created_at->format('h:i A') }}</div>
+                                                <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->effective_date->format('M d, Y') }}</div>
+                                                <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->effective_date->format('h:i A') }}</div>
                                             </td>
                                             <td>
                                                 <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>
@@ -325,8 +325,8 @@
                                                     <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">TEST ORDER</span>
                                                 </td>
                                                 <td class="small text-nowrap">
-                                                    <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->created_at->format('M d, Y') }}</div>
-                                                    <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->created_at->format('h:i A') }}</div>
+                                                    <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $order->effective_date->format('M d, Y') }}</div>
+                                                    <div class="text-muted" style="font-size: 0.72rem;"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ $order->effective_date->format('h:i A') }}</div>
                                                 </td>
                                                 <td>
                                                     <div class="fw-bold text-dark admin-dash-stock-name">{{ $order->customer_name }}</div>

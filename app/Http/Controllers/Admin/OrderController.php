@@ -163,11 +163,15 @@ class OrderController extends Controller
             $query->whereDate(DB::raw('COALESCE(sale_date, created_at)'), $request->date);
         }
 
+        if (! $request->ajax()) {
+            Notification::where('is_read', false)->whereNotNull('order_id')->update(['is_read' => true]);
+        }
+
         $sort = $request->get('sort', 'newest');
         if ($sort === 'oldest') {
-            $query->orderBy('id', 'asc');
+            $query->orderBy(DB::raw('COALESCE(sale_date, created_at)'), 'asc')->orderBy('id', 'asc');
         } else {
-            $query->orderBy('id', 'desc');
+            $query->orderBy(DB::raw('COALESCE(sale_date, created_at)'), 'desc')->orderBy('id', 'desc');
         }
 
         $countBase = Order::query()->whereNotIn('id', $inactiveOrderIds);

@@ -3,6 +3,14 @@
 @section('title', 'Offer Sale Manager - ' . $siteName . ' Admin')
 
 @section('content')
+@php
+    $selectedProductCategoryIds = collect(request('product_category_ids', []))
+        ->map(fn ($id) => (int) $id)
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
+@endphp
 <style>
     :root {
         --qw-admin-card-bg: #ffffff;
@@ -451,7 +459,7 @@
                     <!-- Combo Offers Tab Pane -->
                     <div class="tab-pane fade {{ ($selectedCategory && $selectedCategory->offer_type === 'combo') || (!$selectedCategory && $comboCategories->isNotEmpty()) ? 'show active' : '' }}" id="combo-tab-pane" role="tabpanel">
                         <form action="{{ route('admin.offer-sale.index') }}" method="GET" id="comboCategorySelectForm" class="row g-2 align-items-center">
-                            <div class="col-12 col-md-6 col-lg-5">
+                            <div class="col-12 col-md-6 col-lg-3">
                                 <label class="form-label fw-bold small text-muted text-uppercase mb-1">Select Combo Category</label>
                                 <select name="offer_category_id" class="form-select form-select-sm rounded-3 fw-bold border-secondary-subtle" onchange="document.getElementById('comboCategorySelectForm').submit();">
                                     @forelse($comboCategories as $cCat)
@@ -463,14 +471,55 @@
                                     @endforelse
                                 </select>
                             </div>
-                            <div class="col-12 col-md-6 col-lg-5">
-                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Search Products</label>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Search / apply filters</label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" name="search" class="form-control rounded-start-3" placeholder="Search product by title..." value="{{ request('search') }}">
-                                    <button type="submit" class="btn btn-dark rounded-end-3 px-3">
+                                    <button type="submit" class="btn btn-dark rounded-end-3 px-3" title="Apply search and filters">
                                         <i class="fa-solid fa-magnifying-glass text-warning"></i>
                                     </button>
                                 </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3" data-category-filter>
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Filter available by category</label>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm w-100 text-start rounded-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-category-filter-label>All product categories</button>
+                                    <div class="dropdown-menu w-100 p-2 shadow" style="max-height: 245px; overflow-y: auto;">
+                                        <label class="dropdown-item-text form-check border-bottom pb-2 mb-1 px-1">
+                                            <input class="form-check-input me-1" type="checkbox" data-category-filter-all {{ empty($selectedProductCategoryIds) ? 'checked' : '' }}>
+                                            <span class="fw-bold">All product categories</span>
+                                        </label>
+                                        @foreach($productFilterCategories as $productCategory)
+                                            <label class="dropdown-item form-check px-1 py-1 mb-0">
+                                                <input class="form-check-input me-1" type="checkbox" name="product_category_ids[]" value="{{ $productCategory->id }}" data-category-filter-option {{ in_array($productCategory->id, $selectedProductCategoryIds, true) ? 'checked' : '' }}>
+                                                <span>{{ $productCategory->name }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Available price range (₹)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="min_price" min="0" step="0.01" class="form-control" placeholder="Min" value="{{ request('min_price') }}" aria-label="Minimum price">
+                                    <input type="number" name="max_price" min="0" step="0.01" class="form-control" placeholder="Max" value="{{ request('max_price') }}" aria-label="Maximum price">
+                                    @if(!empty($selectedProductCategoryIds) || request()->filled('min_price') || request()->filled('max_price') || request()->filled('search') || request('booked_filter', 'without') !== 'without')
+                                        <a href="{{ route('admin.offer-sale.index', ['offer_category_id' => $selectedCategoryId]) }}" class="btn btn-outline-secondary" title="Clear product filters"><i class="fa-solid fa-rotate-left"></i></a>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Booked products</label>
+                                <select name="booked_filter" class="form-select form-select-sm rounded-3">
+                                    <option value="without" {{ request('booked_filter', 'without') === 'without' ? 'selected' : '' }}>Without booked (default)</option>
+                                    <option value="include" {{ request('booked_filter') === 'include' ? 'selected' : '' }}>Include all booked</option>
+                                    <option value="only" {{ request('booked_filter') === 'only' ? 'selected' : '' }}>Only booked products</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark btn-sm rounded-pill px-4 fw-bold">
+                                    <i class="fa-solid fa-filter text-warning me-2"></i>Apply Filters
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -478,7 +527,7 @@
                     <!-- Product Discount Offers Tab Pane -->
                     <div class="tab-pane fade {{ $selectedCategory && $selectedCategory->offer_type === 'discount' ? 'show active' : '' }}" id="discount-tab-pane" role="tabpanel">
                         <form action="{{ route('admin.offer-sale.index') }}" method="GET" id="discountCategorySelectForm" class="row g-2 align-items-center">
-                            <div class="col-12 col-md-6 col-lg-5">
+                            <div class="col-12 col-md-6 col-lg-3">
                                 <label class="form-label fw-bold small text-muted text-uppercase mb-1">Select Discount Category</label>
                                 <select name="offer_category_id" class="form-select form-select-sm rounded-3 fw-bold border-secondary-subtle" onchange="document.getElementById('discountCategorySelectForm').submit();">
                                     @forelse($discountCategories as $dCat)
@@ -490,14 +539,55 @@
                                     @endforelse
                                 </select>
                             </div>
-                            <div class="col-12 col-md-6 col-lg-5">
-                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Search Products</label>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Search / apply filters</label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" name="search" class="form-control rounded-start-3" placeholder="Search product by title..." value="{{ request('search') }}">
-                                    <button type="submit" class="btn btn-dark rounded-end-3 px-3">
+                                    <button type="submit" class="btn btn-dark rounded-end-3 px-3" title="Apply search and filters">
                                         <i class="fa-solid fa-magnifying-glass text-warning"></i>
                                     </button>
                                 </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3" data-category-filter>
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Filter available by category</label>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm w-100 text-start rounded-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-category-filter-label>All product categories</button>
+                                    <div class="dropdown-menu w-100 p-2 shadow" style="max-height: 245px; overflow-y: auto;">
+                                        <label class="dropdown-item-text form-check border-bottom pb-2 mb-1 px-1">
+                                            <input class="form-check-input me-1" type="checkbox" data-category-filter-all {{ empty($selectedProductCategoryIds) ? 'checked' : '' }}>
+                                            <span class="fw-bold">All product categories</span>
+                                        </label>
+                                        @foreach($productFilterCategories as $productCategory)
+                                            <label class="dropdown-item form-check px-1 py-1 mb-0">
+                                                <input class="form-check-input me-1" type="checkbox" name="product_category_ids[]" value="{{ $productCategory->id }}" data-category-filter-option {{ in_array($productCategory->id, $selectedProductCategoryIds, true) ? 'checked' : '' }}>
+                                                <span>{{ $productCategory->name }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Available price range (₹)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="min_price" min="0" step="0.01" class="form-control" placeholder="Min" value="{{ request('min_price') }}" aria-label="Minimum price">
+                                    <input type="number" name="max_price" min="0" step="0.01" class="form-control" placeholder="Max" value="{{ request('max_price') }}" aria-label="Maximum price">
+                                    @if(!empty($selectedProductCategoryIds) || request()->filled('min_price') || request()->filled('max_price') || request()->filled('search') || request('booked_filter', 'without') !== 'without')
+                                        <a href="{{ route('admin.offer-sale.index', ['offer_category_id' => $selectedCategoryId]) }}" class="btn btn-outline-secondary" title="Clear product filters"><i class="fa-solid fa-rotate-left"></i></a>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-1">Booked products</label>
+                                <select name="booked_filter" class="form-select form-select-sm rounded-3">
+                                    <option value="without" {{ request('booked_filter', 'without') === 'without' ? 'selected' : '' }}>Without booked (default)</option>
+                                    <option value="include" {{ request('booked_filter') === 'include' ? 'selected' : '' }}>Include all booked</option>
+                                    <option value="only" {{ request('booked_filter') === 'only' ? 'selected' : '' }}>Only booked products</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark btn-sm rounded-pill px-4 fw-bold">
+                                    <i class="fa-solid fa-filter text-warning me-2"></i>Apply Filters
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -569,6 +659,9 @@
                                                 <div class="d-flex align-items-center gap-1.5">
                                                     <span class="fw-bold text-dark" style="font-size: 0.74rem;">₹{{ number_format($prod->final_price, 0) }}</span>
                                                     <span class="badge bg-secondary-subtle text-dark border rounded-pill" style="font-size: 0.60rem;">Stk: {{ $totalStock }}</span>
+                                                    @if(filled($prod->booked_by))
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.60rem;" title="This product is already booked"><i class="fa-solid fa-bookmark me-1"></i>Booked</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -642,6 +735,9 @@
                                                 <div class="d-flex align-items-center gap-1.5">
                                                     <span class="fw-bold text-dark" style="font-size: 0.74rem;">₹{{ number_format($prod->final_price, 0) }}</span>
                                                     <span class="badge bg-secondary-subtle text-dark border rounded-pill" style="font-size: 0.60rem;">Stk: {{ $totalStock }}</span>
+                                                    @if(filled($prod->booked_by))
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.60rem;" title="This product is already booked"><i class="fa-solid fa-bookmark me-1"></i>Booked</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -757,6 +853,28 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-category-filter]').forEach(function(filter) {
+            const allCheckbox = filter.querySelector('[data-category-filter-all]');
+            const options = Array.from(filter.querySelectorAll('[data-category-filter-option]'));
+            const label = filter.querySelector('[data-category-filter-label]');
+            const updateLabel = function() {
+                const selectedCount = options.filter(option => option.checked).length;
+                allCheckbox.checked = selectedCount === 0;
+                label.textContent = selectedCount === 0
+                    ? 'All product categories'
+                    : `${selectedCount} categor${selectedCount === 1 ? 'y' : 'ies'} selected`;
+            };
+
+            allCheckbox.addEventListener('change', function() {
+                if (allCheckbox.checked) {
+                    options.forEach(option => { option.checked = false; });
+                }
+                updateLabel();
+            });
+            options.forEach(option => option.addEventListener('change', updateLabel));
+            updateLabel();
+        });
+
         const availableEl = document.getElementById('availableProductsList');
         const assignedEl = document.getElementById('assignedProductsList');
 

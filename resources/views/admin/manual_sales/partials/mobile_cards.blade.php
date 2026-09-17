@@ -3,7 +3,7 @@
         <div class="manual-sale-header">
             <div class="manual-sale-reference">
                 <a href="{{ route('admin.orders.show', $order->id) }}" class="manual-sale-order-number">{{ $order->order_number }}</a>
-                <span class="manual-sale-date"><i class="fa-regular fa-calendar-check me-1" aria-hidden="true"></i>{{ ($order->sale_date ?? $order->created_at)->format('d M Y') }}</span>
+                <span class="manual-sale-date"><i class="fa-regular fa-clock me-1 text-warning" aria-hidden="true"></i>{{ $order->effective_date->format('d M Y • h:i A') }}</span>
             </div>
             <span class="badge bg-dark text-warning manual-sale-source"><i class="fa-solid fa-user-pen me-1" aria-hidden="true"></i>Manual sale</span>
         </div>

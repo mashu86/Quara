@@ -14,6 +14,7 @@ use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\ProductDetailController;
 use App\Http\Controllers\Frontend\ShopController;
+use App\Http\Controllers\Frontend\SizeGuideController;
 use App\Http\Controllers\Admin\CapitalController as AdminCapitalController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\IncomeController as AdminIncomeController;
@@ -62,6 +63,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/shop', [ShopController::class, 'index'])->name('shop');
+Route::get('/products/size-guide', [SizeGuideController::class, 'index'])->name('products.size-guide');
 Route::get('/category/{slug}', [ShopController::class, 'categoryProducts'])->name('category.products');
 Route::get('/product/{slug}', [ProductDetailController::class, 'show'])->name('product.detail');
 Route::get('/product/{slug}/check-shipping', [ProductDetailController::class, 'checkShipping'])->name('product.check-shipping');
@@ -127,6 +129,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('categories/{category}/toggle-status', [AdminCategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
 
         // Product Master
+        Route::get('products/size-guide', [AdminProductController::class, 'sizeGuide'])->name('size-guide.index');
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');

@@ -26,6 +26,13 @@ class ProductController extends Controller
         $this->stockService = $stockService;
     }
 
+    public function sizeGuide()
+    {
+        $siteName = Setting::get('site_name', config('app.name', 'Quara'));
+        $logoUrl = Setting::logoUrl();
+        return view('admin.products.size_guide', compact('siteName', 'logoUrl'));
+    }
+
     public function index(Request $request)
     {
         $query = Product::with(['category', 'categories', 'sizes', 'images']);
@@ -154,7 +161,12 @@ class ProductController extends Controller
     public function create(Request $request)
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $comboCategories = Category::where('status', 'active')->where('is_combo_offer', true)->orderBy('name', 'asc')->get();
+        $comboCategories = Category::where('status', 'active')
+            ->where(function ($q) {
+                $q->where('is_offer_category', true)->orWhere('is_combo_offer', true);
+            })
+            ->orderBy('name', 'asc')
+            ->get();
         $retainedCategoryIds = (array) $request->input('category_ids', []);
         return view('admin.products.create', compact('categories', 'comboCategories', 'retainedCategoryIds'));
     }
@@ -203,6 +215,22 @@ class ProductController extends Controller
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
         $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(4);
+
+        if (! empty($validated['combo_category_id'])) {
+            $offerCategory = Category::find($validated['combo_category_id']);
+            if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
+                $validated['discount_type'] = $offerCategory->discount_type ?? 'percentage';
+                $validated['discount_value'] = $offerCategory->discount_value;
+                $validated['final_price'] = Product::calculateFinalPrice(
+                    $validated['price'],
+                    $validated['discount_type'],
+                    $validated['discount_value']
+                );
+            }
+            if ($offerCategory && ! in_array((int) $offerCategory->id, array_map('intval', $categoryIds), true)) {
+                $categoryIds[] = (int) $offerCategory->id;
+            }
+        }
 
         DB::transaction(function () use ($validated, $request, $categoryIds) {
             $product = Product::create($validated);
@@ -285,7 +313,12 @@ class ProductController extends Controller
         }
 
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $comboCategories = Category::where('status', 'active')->where('is_combo_offer', true)->orderBy('name', 'asc')->get();
+        $comboCategories = Category::where('status', 'active')
+            ->where(function ($q) {
+                $q->where('is_offer_category', true)->orWhere('is_combo_offer', true);
+            })
+            ->orderBy('name', 'asc')
+            ->get();
         return view('admin.products.edit', compact('product', 'categories', 'comboCategories'));
     }
 
@@ -343,6 +376,33 @@ class ProductController extends Controller
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
+
+        $newComboCatId = $validated['combo_category_id'] ?? null;
+        if (! empty($newComboCatId)) {
+            $offerCategory = Category::find($newComboCatId);
+            if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
+                $validated['discount_type'] = $offerCategory->discount_type ?? 'percentage';
+                $validated['discount_value'] = $offerCategory->discount_value;
+                $validated['final_price'] = Product::calculateFinalPrice(
+                    $validated['price'],
+                    $validated['discount_type'],
+                    $validated['discount_value']
+                );
+            }
+            if ($offerCategory && ! in_array((int) $offerCategory->id, array_map('intval', $categoryIds), true)) {
+                $categoryIds[] = (int) $offerCategory->id;
+            }
+        } else {
+            // If combo_category_id was set to null and product was previously in a discount offer category (and not sold out/booked)
+            if (! $wasSoldOutOrBooked && $product->combo_category_id) {
+                $oldOfferCat = Category::find($product->combo_category_id);
+                if ($oldOfferCat && $oldOfferCat->offer_type === 'discount') {
+                    $validated['discount_type'] = 'none';
+                    $validated['discount_value'] = 0;
+                    $validated['final_price'] = $validated['price'];
+                }
+            }
+        }
 
         DB::transaction(function () use ($validated, $request, $product, $categoryIds) {
             $product->update($validated);

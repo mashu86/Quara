@@ -141,22 +141,39 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Combo Offer Category (Optional)</label>
-                            <select name="combo_category_id" class="form-select rounded-3">
-                                <option value="">-- None (Normal Product) --</option>
-                                @foreach($comboCategories as $cCat)
-                                    <option value="{{ $cCat->id }}" {{ old('combo_category_id') == $cCat->id ? 'selected' : '' }}>
-                                        👑 {{ $cCat->name }} (Min: {{ $cCat->min_count }} | ₹{{ number_format($cCat->combo_price, 2) }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <div class="form-text small">Assign this product to a special Combo Offer Category if applicable.</div>
-                        </div>
-
                         <div class="col-md-6" id="basePriceCol">
                             <label class="form-label fw-bold">Base Price (₹) <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" name="price" id="priceInput" class="form-control rounded-3" placeholder="999.00" value="{{ old('price') }}" required oninput="calcDiscount()" autocomplete="off">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">
+                                @if($comboCategories->isNotEmpty())
+                                    Offer Sale Category (Optional)
+                                @else
+                                    Combo Offer Category (Optional)
+                                @endif
+                            </label>
+                            <select name="combo_category_id" id="comboCategorySelect" class="form-select rounded-3" onchange="onOfferCategorySelectChange()">
+                                <option value="" data-offer-type="none">-- None (Normal Product) --</option>
+                                @foreach($comboCategories as $cCat)
+                                    <option value="{{ $cCat->id }}"
+                                        data-offer-type="{{ $cCat->offer_type }}"
+                                        data-disc-type="{{ $cCat->discount_type }}"
+                                        data-disc-val="{{ $cCat->discount_value }}"
+                                        data-min-count="{{ $cCat->min_count }}"
+                                        data-combo-price="{{ $cCat->combo_price }}"
+                                        data-name="{{ $cCat->name }}"
+                                        {{ old('combo_category_id') == $cCat->id ? 'selected' : '' }}>
+                                        @if($cCat->offer_type === 'discount')
+                                            🏷️ {{ $cCat->name }} (Discount Offer: {{ $cCat->discount_type === 'percentage' ? number_format($cCat->discount_value, 0).'%' : '₹'.number_format($cCat->discount_value, 2) }} OFF)
+                                        @else
+                                            👑 {{ $cCat->name }} (Combo Offer: Min {{ $cCat->min_count }} | ₹{{ number_format($cCat->combo_price, 2) }})
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text small">Assign this product to an active Offer Sale / Combo Category if applicable.</div>
                         </div>
 
                         <div class="col-md-6" id="discountTypeCol">
@@ -178,6 +195,7 @@
                                 <span class="fw-bold text-dark">Estimated Final Selling Price:</span>
                                 <span class="fs-4 fw-bold text-warning" id="finalPriceDisplay">₹0.00</span>
                             </div>
+                            <div id="offerSaleNoticeBanner" class="alert alert-warning border border-warning rounded-3 p-2.5 mt-2 d-none shadow-sm" style="font-size: 0.82rem;"></div>
                         </div>
 
                         <div class="col-12">
@@ -338,15 +356,108 @@
 @section('scripts')
 <script type="module" src="{{ asset('js/product-size-suggestion.js') }}"></script>
 <script>
+    function onOfferCategorySelectChange() {
+        calcDiscount();
+    }
+
     function calcDiscount() {
         const price = parseFloat(document.getElementById('priceInput').value) || 0;
         const typeSelect = document.getElementById('discountTypeSelect');
-        const type = typeSelect ? typeSelect.value : 'none';
         const valInput = document.getElementById('discountValueInput');
         const valContainer = document.getElementById('discountValueContainer');
         const priceCol = document.getElementById('basePriceCol');
         const typeCol = document.getElementById('discountTypeCol');
+        const comboSelect = document.getElementById('comboCategorySelect');
+        const noticeBanner = document.getElementById('offerSaleNoticeBanner');
 
+        const selectedOption = comboSelect ? comboSelect.options[comboSelect.selectedIndex] : null;
+        const offerType = selectedOption ? selectedOption.getAttribute('data-offer-type') : 'none';
+
+        if (selectedOption && offerType === 'discount') {
+            const discType = selectedOption.getAttribute('data-disc-type') || 'percentage';
+            const discVal = parseFloat(selectedOption.getAttribute('data-disc-val')) || 0;
+            const catName = selectedOption.getAttribute('data-name') || '';
+
+            if (typeSelect) {
+                typeSelect.value = (discType === 'fixed' || discType === 'flat') ? 'fixed' : 'percentage';
+                typeSelect.disabled = true;
+                typeSelect.classList.add('bg-light');
+            }
+            if (valInput) {
+                valInput.value = discVal;
+                valInput.readOnly = true;
+                valInput.classList.add('bg-light');
+            }
+
+            let finalPrice = price;
+            if (discType === 'fixed' || discType === 'flat') {
+                finalPrice = Math.max(0, price - discVal);
+            } else if (discType === 'percentage') {
+                finalPrice = Math.max(0, price - (price * (discVal / 100)));
+            }
+
+            if (valContainer) valContainer.classList.remove('d-none');
+            if (priceCol) priceCol.className = 'col-md-4';
+            if (typeCol) typeCol.className = 'col-md-4';
+
+            const display = document.getElementById('finalPriceDisplay');
+            if (display) display.innerText = '₹' + finalPrice.toFixed(2);
+
+            if (noticeBanner) {
+                const discLabel = discType === 'percentage' ? discVal + '%' : '₹' + discVal.toFixed(2);
+                noticeBanner.className = 'alert alert-success border border-success rounded-3 p-2.5 mt-2 shadow-sm';
+                noticeBanner.innerHTML = `<i class="fa-solid fa-tag me-1"></i> <strong>Offer Sale Applied: ${catName} (${discLabel} OFF)</strong><br><span class="text-dark">Base Price: ₹${price.toFixed(2)} → Final Offer Price: <strong>₹${finalPrice.toFixed(2)}</strong></span> <span class="badge bg-dark ms-1">Locked</span>`;
+                noticeBanner.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (selectedOption && offerType === 'combo') {
+            const catName = selectedOption.getAttribute('data-name') || '';
+            const minCount = selectedOption.getAttribute('data-min-count') || '1';
+            const comboPrice = parseFloat(selectedOption.getAttribute('data-combo-price')) || 0;
+            const unitPrice = (minCount > 0 && comboPrice > 0) ? (comboPrice / minCount).toFixed(2) : '0.00';
+
+            if (typeSelect) {
+                typeSelect.value = 'none';
+                typeSelect.disabled = true;
+                typeSelect.classList.add('bg-light');
+            }
+            if (valInput) {
+                valInput.value = 0;
+                valInput.readOnly = true;
+                valInput.classList.add('bg-light');
+            }
+
+            if (valContainer) valContainer.classList.add('d-none');
+            if (priceCol) priceCol.className = 'col-md-6';
+            if (typeCol) typeCol.className = 'col-md-6';
+
+            const display = document.getElementById('finalPriceDisplay');
+            if (display) display.innerText = '₹' + price.toFixed(2);
+
+            if (noticeBanner) {
+                noticeBanner.className = 'alert alert-warning border border-warning rounded-3 p-2.5 mt-2 shadow-sm';
+                noticeBanner.innerHTML = `<i class="fa-solid fa-crown me-1"></i> <strong>Combo Offer Category: ${catName}</strong><br><span class="text-dark">Offer Bundle: Buy ${minCount} @ <strong>₹${comboPrice.toFixed(2)}</strong> (Unit Rate: ₹${unitPrice})</span>`;
+                noticeBanner.classList.remove('d-none');
+            }
+            return;
+        }
+
+        // Standard Normal Product calculation
+        if (typeSelect) {
+            typeSelect.disabled = false;
+            typeSelect.classList.remove('bg-light');
+        }
+        if (valInput) {
+            valInput.readOnly = false;
+            valInput.classList.remove('bg-light');
+        }
+        if (noticeBanner) {
+            noticeBanner.classList.add('d-none');
+        }
+
+        const type = typeSelect ? typeSelect.value : 'none';
         let val = parseFloat(valInput ? valInput.value : 0) || 0;
 
         if (type === 'none') {

@@ -742,6 +742,7 @@
                     <ul class="list-unstyled small d-grid gap-2">
                         <li><a href="{{ route('home') }}"><i class="fa-solid fa-angle-right me-1"></i> Home</a></li>
                         <li><a href="{{ route('shop') }}"><i class="fa-solid fa-angle-right me-1"></i> Shop All</a></li>
+                        <li><a href="{{ route('products.size-guide') }}"><i class="fa-solid fa-angle-right me-1"></i> Size Guide</a></li>
                         <li><a href="{{ route('order.tracking') }}"><i class="fa-solid fa-angle-right me-1"></i> Track Order</a></li>
                         <li><a href="{{ route('cart.index') }}"><i class="fa-solid fa-angle-right me-1"></i> View Cart</a></li>
                     </ul>

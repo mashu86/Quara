@@ -1,19 +1,30 @@
 const garmentTypes = {
-    kurti: 'Kurti / Kurta / Salwar set',
-    top: 'Top / Shirt / Blouse',
-    dress: 'Dress / Gown / Maxi',
-    bottom: 'Pants / Skirt / Bottom',
-    abaya: 'Abaya',
+    korean_top: 'Korean top (regular fit)',
+    korean_crop_top: 'Korean crop top (fitted)',
+    normal_top: 'Normal top (regular fit)',
+    ladies_shirt: 'Ladies shirt (regular fit)',
+    overcoat: 'Overcoat / jacket (layering fit)',
 };
 
 const letterSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'];
+
+// Product entry uses FINISHED GARMENT chest circumference, not the customer's body bust.
+// Crop tops use about 2 inches ease, regular tops/shirts 4 inches, and outerwear 6 inches.
+const garmentChestStandards = {
+    korean_crop_top: [34, 36, 38, 40, 42, 44, 46, 48, 50, 52],
+    korean_top: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
+    normal_top: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
+    ladies_shirt: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
+    overcoat: [38, 40, 42, 44, 46, 48, 50, 52, 54, 56],
+};
+
 const unsupported = /\b(kids?|child(?:ren)?|baby|boys?|girls?|mens?|men's|sarees?|saris?|unstitched|kaftans?|caftans?|oversized?|free[ -]?size)\b/i;
 const typePatterns = [
-    ['abaya', /\babayas?\b/i],
-    ['kurti', /\b(kurt[ai]s?|kurtis|salwar|churidar|anarkali)\b/i],
-    ['dress', /\b(dress(?:es)?|gowns?|maxi|midi|frocks?)\b/i],
-    ['bottom', /\b(pants?|trousers?|jeans|skirts?|palazzos?|leggings?|bottoms?|shorts?)\b/i],
-    ['top', /\b(tops?|shirts?|blouses?|t[ -]?shirts?|tunics?)\b/i],
+    ['korean_crop_top', /\b(korean|korean-style)\b.*\b(crop|cropped)\b|\b(crop|cropped)\b.*\b(korean|korean-style)\b/i],
+    ['overcoat', /\b(overcoats?|coats?|jackets?|blazers?)\b/i],
+    ['ladies_shirt', /\b(ladies'?|women'?s?|womens?)\s+shirts?\b|\bshirts?\b/i],
+    ['korean_top', /\b(korean|korean-style)\b.*\btops?\b|\bkorean\b/i],
+    ['normal_top', /\b(tops?|blouses?|t[ -]?shirts?|tunics?)\b/i],
 ];
 
 export function detectGarmentType(name, categories = []) {
@@ -33,54 +44,47 @@ export function parseMeasurement(raw, label) {
     const match = value.match(/^(\d+(?:\.\d+)?|\.\d+)\s*(?:inches|inch|in|["″”])?$/i);
     const number = match ? Number(match[1]) : NaN;
     if (!Number.isFinite(number) || number <= 0 || number > 150) {
-        throw new Error(`${label}: enter one positive measurement in inches, e.g. 38 or 38.5. Ranges need a manual size label.`);
+        throw new Error(`${label}: enter one positive measurement in inches, e.g. 38 or 38.5.`);
     }
     return number;
+}
+
+function nearestSize(fullChest, standard) {
+    let closestIndex = 0;
+    for (let index = 1; index < standard.length; index += 1) {
+        if (Math.abs(standard[index] - fullChest) < Math.abs(standard[closestIndex] - fullChest)) closestIndex = index;
+    }
+    if (Math.abs(standard[closestIndex] - fullChest) > 1) return null;
+    return closestIndex;
 }
 
 export function suggestSize({ name, categories = [], type = 'auto', basis = 'circumference', chest, waist, length }) {
     const detectedType = type === 'auto' ? detectGarmentType(name, categories) : type;
     if (!Object.hasOwn(garmentTypes, detectedType)) {
-        throw new Error('Could not identify a supported adult garment type. Select the product type, or enter its supplier size manually.');
+        throw new Error('Select one of the supported ladieswear product types, or enter the supplier size manually.');
     }
-    if (!['circumference', 'flat'].includes(basis)) throw new Error('Choose how Chest / Waist were measured.');
+    if (!['circumference', 'flat'].includes(basis)) throw new Error('Choose how the finished garment was measured.');
     const multiplier = basis === 'flat' ? 2 : 1;
     const chestInches = parseMeasurement(chest, 'Chest');
     const waistInches = parseMeasurement(waist, 'Waist');
     const lengthInches = parseMeasurement(length, 'Length');
-    const fullChest = chestInches === null ? null : chestInches * multiplier;
-    const fullWaist = waistInches === null ? null : waistInches * multiplier;
-    const measurementText = [
-        fullChest === null ? null : `Chest ${fullChest}″`,
-        fullWaist === null ? null : `Waist ${fullWaist}″`,
-        lengthInches === null ? null : `Length ${lengthInches}″`,
-    ].filter(Boolean).join(', ');
-    let size;
-    let explanation;
+    if (chestInches === null) throw new Error('Enter the finished garment chest to suggest a size.');
 
-    if (detectedType === 'abaya') {
-        if (lengthInches === null) throw new Error('Enter Length to suggest an abaya size.');
-        if (lengthInches < 48 || lengthInches > 62) throw new Error('This length is outside the adult abaya guide (48–62 inches). Enter the supplier size manually.');
-        size = String(Math.round(lengthInches / 2) * 2);
-        explanation = 'Length-based abaya size; verify chest and waist fit with the supplier.';
-    } else if (detectedType === 'bottom') {
-        if (fullWaist === null) throw new Error('Enter Waist to suggest a bottom size.');
-        if (fullWaist < 24 || fullWaist > 52) throw new Error('This waist is outside the adult bottom guide (24–52 inches). Enter the supplier size manually.');
-        size = String(Math.ceil(fullWaist / 2) * 2);
-        explanation = 'Numeric waist size; length does not determine the waist label.';
-    } else {
-        if (fullChest === null) throw new Error('Enter Chest to suggest this garment size.');
-        if (fullChest < 34 || fullChest > 52) throw new Error('This chest is outside the suggested chart (34–52 inches). Check the measurement basis or enter the supplier size.');
-        const chestIndex = Math.ceil((fullChest - 34) / 2);
-        const waistIndex = fullWaist === null ? chestIndex : Math.ceil((fullWaist - 30) / 2);
-        if (fullWaist !== null && (fullWaist < 26 || fullWaist > 48 || Math.abs(chestIndex - waistIndex) > 2)) {
-            throw new Error('Chest and waist do not match this regular-fit chart. Check the measurements or enter the supplier size manually.');
-        }
-        size = letterSizes[Math.max(chestIndex, waistIndex)];
-        explanation = 'Approximate regular-fit size from chest and waist; length varies by style.';
+    const fullChest = chestInches * multiplier;
+    const standard = garmentChestStandards[detectedType];
+    const index = nearestSize(fullChest, standard);
+    if (index === null) {
+        throw new Error(`Finished garment chest ${fullChest}″ is outside this ${garmentTypes[detectedType]} chart. Check the measurement or use the supplier label.`);
     }
 
-    return { size, type: detectedType, message: `${garmentTypes[detectedType]} · ${measurementText}. ${explanation}` };
+    const measurementText = [`Finished chest ${fullChest}″`];
+    if (waistInches !== null) measurementText.push(`waist ${waistInches * multiplier}″`);
+    if (lengthInches !== null) measurementText.push(`length ${lengthInches}″`);
+    return {
+        size: letterSizes[index],
+        type: detectedType,
+        message: `${garmentTypes[detectedType]} · ${measurementText.join(', ')}. Matched to the finished-garment chart; supplier size label takes priority.`,
+    };
 }
 
 function initializeSizeSuggestions() {
@@ -91,10 +95,10 @@ function initializeSizeSuggestions() {
     const basisSelect = controls.querySelector('[data-size-basis]');
     const typeStatus = controls.querySelector('[data-size-type-status]');
     const categoryNames = () => Array.from(form.querySelectorAll('.category-checkbox:checked')).map((checkbox) => checkbox.closest('label').textContent.trim());
-    const currentName = () => form.querySelector('input[name="name"]').value;
+    const currentName = () => form.querySelector('input[name="name"]')?.value || '';
     const updateType = () => {
         const detected = typeSelect.value === 'auto' ? detectGarmentType(currentName(), categoryNames()) : typeSelect.value;
-        typeStatus.textContent = detected ? `Type: ${garmentTypes[detected]}` : 'Add a product name/category or select its type.';
+        typeStatus.textContent = detected ? `Type: ${garmentTypes[detected]}` : 'Add a product name/category or select its product type.';
     };
     const markChanged = () => {
         updateType();
@@ -102,7 +106,6 @@ function initializeSizeSuggestions() {
             if (message.textContent) message.textContent = 'Product details changed. Click the magic button again to update the suggestion.';
         });
     };
-
     const enhanceRows = () => {
         form.querySelectorAll('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]').forEach((input) => {
             if (input.dataset.sizeSuggestionReady) return;
@@ -120,8 +123,8 @@ function initializeSizeSuggestions() {
             button.className = 'btn btn-warning px-2';
             button.style.minWidth = '34px';
             button.style.minHeight = '32px';
-            button.title = 'Suggest size from product type and measurements';
-            button.setAttribute('aria-label', 'Suggest size from product type and measurements');
+            button.title = 'Suggest size from finished garment chest';
+            button.setAttribute('aria-label', 'Suggest size from finished garment chest');
             button.dataset.suggestSize = '1';
             button.innerHTML = '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 13 8-8 2 2-8 8z M9 7l2 2 M4 2v4 M2 4h4 M12 1v3 M10.5 2.5h3 M14 10v4 M12 12h4"/></svg>';
             group.append(button);
@@ -159,18 +162,16 @@ function initializeSizeSuggestions() {
                 }
             });
             grid.addEventListener('input', (event) => {
-                if (event.target === input) {
-                    message.textContent = '';
-                } else if (['chest', 'waist', 'length'].some((field) => event.target === measurement(field)) && message.textContent) {
+                if (event.target === input) message.textContent = '';
+                else if (['chest', 'waist', 'length'].some((field) => event.target === measurement(field)) && message.textContent) {
                     message.className = 'small mt-2 text-muted';
                     message.textContent = 'Measurements changed. Click the magic button again to update the size.';
                 }
             });
         });
     };
-
     controls.addEventListener('change', markChanged);
-    form.querySelector('input[name="name"]').addEventListener('input', markChanged);
+    form.querySelector('input[name="name"]')?.addEventListener('input', markChanged);
     form.querySelectorAll('.category-checkbox').forEach((checkbox) => checkbox.addEventListener('change', markChanged));
     enhanceRows();
     updateType();

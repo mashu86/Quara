@@ -26,7 +26,7 @@ class ManualSalesController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::where('order_source', 'manual')->with('items')->orderBy('id', 'desc');
+        $query = Order::where('order_source', 'manual')->with('items')->orderBy(DB::raw('COALESCE(sale_date, created_at)'), 'desc')->orderBy('id', 'desc');
 
         if ($request->filled('search')) {
             $search = $request->search;

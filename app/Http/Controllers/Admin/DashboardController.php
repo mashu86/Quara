@@ -144,11 +144,11 @@ class DashboardController extends Controller
             ->get();
 
         // Real Orders listing
-        $newOrders = (clone $realOrdersQuery)->orderBy('id', 'desc')->take(10)->get();
+        $newOrders = (clone $realOrdersQuery)->orderBy(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), 'desc')->orderBy('id', 'desc')->take(10)->get();
         $recentOrders = $newOrders;
 
         // Dummy / Test Orders listing for separate tab
-        $dummyOrders = (clone $dummyOrdersQuery)->orderBy('id', 'desc')->take(10)->get();
+        $dummyOrders = (clone $dummyOrdersQuery)->orderBy(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), 'desc')->orderBy('id', 'desc')->take(10)->get();
 
         $unreadNotifications = Notification::where('is_read', false)->orderBy('id', 'desc')->get();
 

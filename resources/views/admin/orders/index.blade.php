@@ -525,7 +525,7 @@
                             <th class="ps-3">Order #</th>
                             <th>Customer</th>
                             <th class="text-center" style="min-width: 110px;">Products</th>
-                            <th>Date</th>
+                            <th>Date &amp; Time</th>
                             <th>Items</th>
                             <th>Payment</th>
                             <th>Total</th>

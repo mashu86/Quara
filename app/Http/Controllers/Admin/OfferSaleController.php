@@ -28,7 +28,14 @@ class OfferSaleController extends Controller
 
         $selectedCategory = $selectedCategoryId ? $offerCategories->firstWhere('id', $selectedCategoryId) : null;
 
-        // Base query for valid products (Not sold out)
+        // These are store/product categories only. Offer categories are deliberately excluded
+        // so the Available Products filter stays meaningful while assigning an offer.
+        $productFilterCategories = Category::where('is_offer_category', false)
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name']);
+
+        // Base query for normal available products (not sold out and not booked).
+        // Assigned products continue to use this query, preserving the existing workflow.
         $validProductsQuery = Product::with(['sizes', 'category', 'comboCategory', 'images'])
             ->where('is_out_of_stock', false)
             ->where(function($q) {
@@ -43,20 +50,105 @@ class OfferSaleController extends Controller
             $validProductsQuery->where('name', 'LIKE', "%{$search}%");
         }
 
-        // 1. Available Products (Products not currently in the selected offer category)
-        $availableProducts = (clone $validProductsQuery)
+        // 1. Available Products (Products not currently in the selected offer category).
+        // Booked products can optionally be shown here so the admin can intentionally decide
+        // whether to include them in an offer. Products which are merely sold out remain hidden.
+        $bookedFilter = $request->input('booked_filter', 'without');
+        if (!in_array($bookedFilter, ['without', 'include', 'only'], true)) {
+            $bookedFilter = 'without';
+        }
+
+        if ($bookedFilter === 'without') {
+            $availableProductsQuery = clone $validProductsQuery;
+        } else {
+            $availableProductsQuery = Product::with(['sizes', 'category', 'comboCategory', 'images']);
+
+            if ($bookedFilter === 'only') {
+                $availableProductsQuery->whereNotNull('booked_by')->where('booked_by', '!=', '');
+            } else {
+                $availableProductsQuery->where(function ($query) {
+                    $query->where(function ($availableQuery) {
+                        $availableQuery->where('is_out_of_stock', false)
+                            ->where(function ($bookedQuery) {
+                                $bookedQuery->whereNull('booked_by')->orWhere('booked_by', '');
+                            })
+                            ->whereHas('sizes', function ($sizeQuery) {
+                                $sizeQuery->where('stock', '>', 0);
+                            });
+                    })->orWhere(function ($bookedQuery) {
+                        $bookedQuery->whereNotNull('booked_by')->where('booked_by', '');
+                    });
+                });
+            }
+
+            if ($request->filled('search')) {
+                $search = trim($request->search);
+                $availableProductsQuery->where('name', 'LIKE', "%{$search}%");
+            }
+        }
+
+        // Category and price filters intentionally apply only here; assigned products must
+        // remain visible so the current drag/remove workflow is never hidden by a filter.
+        $availableProductsQuery
             ->where(function($q) use ($selectedCategoryId) {
                 $q->whereNull('combo_category_id')
                   ->orWhere('combo_category_id', '!=', $selectedCategoryId);
-            })
+            });
+
+        $productCategoryIds = collect($request->input('product_category_ids', []))
+            ->filter(fn ($id) => filter_var($id, FILTER_VALIDATE_INT) !== false && (int) $id > 0)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($productCategoryIds->isNotEmpty()) {
+            $availableProductsQuery->where(function ($query) use ($productCategoryIds) {
+                $query->whereIn('category_id', $productCategoryIds->all())
+                    ->orWhereHas('categories', function ($categoryQuery) use ($productCategoryIds) {
+                        $categoryQuery->whereIn('categories.id', $productCategoryIds->all());
+                    });
+            });
+        }
+
+        if ($request->filled('min_price') && is_numeric($request->input('min_price'))) {
+            $availableProductsQuery->where('final_price', '>=', (float) $request->input('min_price'));
+        }
+
+        if ($request->filled('max_price') && is_numeric($request->input('max_price'))) {
+            $availableProductsQuery->where('final_price', '<=', (float) $request->input('max_price'));
+        }
+
+        $availableProducts = $availableProductsQuery
             ->orderBy('id', 'desc')
             ->get();
 
         // 2. Assigned Products (Products currently in the selected offer category)
         $assignedProducts = collect();
         if ($selectedCategoryId) {
-            $assignedProducts = (clone $validProductsQuery)
+            // Keep booked products visible after they are assigned. Otherwise a booked item
+            // added from the Available list disappears from both columns after page reload.
+            $assignedProductsQuery = Product::with(['sizes', 'category', 'comboCategory', 'images'])
                 ->where('combo_category_id', $selectedCategoryId)
+                ->where(function ($query) {
+                    $query->where(function ($availableQuery) {
+                        $availableQuery->where('is_out_of_stock', false)
+                            ->where(function ($bookedQuery) {
+                                $bookedQuery->whereNull('booked_by')->orWhere('booked_by', '');
+                            })
+                            ->whereHas('sizes', function ($sizeQuery) {
+                                $sizeQuery->where('stock', '>', 0);
+                            });
+                    })->orWhere(function ($bookedQuery) {
+                        $bookedQuery->whereNotNull('booked_by')->where('booked_by', '');
+                    });
+                });
+
+            if ($request->filled('search')) {
+                $search = trim($request->search);
+                $assignedProductsQuery->where('name', 'LIKE', "%{$search}%");
+            }
+
+            $assignedProducts = $assignedProductsQuery
                 ->orderBy('combo_sort_order', 'asc')
                 ->orderBy('id', 'desc')
                 ->get();
@@ -91,6 +183,7 @@ class OfferSaleController extends Controller
             'activeOfferCategory',
             'selectedCategoryId',
             'selectedCategory',
+            'productFilterCategories',
             'availableProducts',
             'assignedProducts'
         ));

@@ -22,6 +22,8 @@
         @include('partials.ladies_size_guide', ['guideId' => 'sizeGuideCard'])
     </div>
 </div>
+
+@include('partials.ladies_size_guide_export')
 @endsection
 
 @section('scripts')
@@ -29,7 +31,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 function exportSizeGuide(type) {
-    const element = document.getElementById('sizeGuideCard');
+    const element = document.getElementById('sizeGuideExport');
     const button = document.getElementById('sizeGuideDownload');
     const original = button.innerHTML;
     button.disabled = true;
@@ -41,7 +43,7 @@ function exportSizeGuide(type) {
         }).catch(() => { alert('Could not create the image. Please try again.'); finish(); });
         return;
     }
-    html2pdf().set({ margin: 0.25, filename: '{{ Str::slug($siteName) }}-ladies-size-guide.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).from(element).save().then(finish).catch(() => { alert('Could not create the PDF. Please try again.'); finish(); });
+    html2pdf().set({ margin: 0.25, filename: '{{ Str::slug($siteName) }}-ladies-size-guide.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).from(element).save().then(finish).catch(() => { alert('Could not create the PDF. Please try again.'); finish(); });
 }
 </script>
 @endsection

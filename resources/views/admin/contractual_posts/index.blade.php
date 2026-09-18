@@ -53,6 +53,12 @@
     .nav-pills .nav-link:hover {
         border-color: var(--qw-gold);
     }
+    .contractual-credential {
+        min-height: 42px;
+    }
+    .contractual-copy-btn {
+        white-space: nowrap;
+    }
     @media (max-width: 575.98px) {
         .nav-pills .nav-link {
             padding: 5px 8px !important;
@@ -117,17 +123,25 @@
             </h3>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <p class="text-muted small mb-0">Prepaid India Post wallet tracking, contractual courier operations & expense synchronization.</p>
-                <span class="badge bg-dark text-white rounded-pill px-3 py-1.5 small shadow-sm" style="font-size: 0.78rem;">
-                    <i class="fa-solid fa-id-card text-warning me-1.5"></i> Customer ID: <strong class="text-warning font-monospace">198300613</strong>
-                </span>
             </div>
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <div class="bg-white border rounded-pill px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2">
+            <div class="contractual-credential bg-white border rounded-pill px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2">
                 <i class="fa-solid fa-id-card text-gold"></i>
                 <span class="small text-muted">Customer ID:</span>
-                <span class="fw-bold text-dark font-monospace">198300613</span>
+                <span class="fw-bold text-dark font-monospace">1983006123</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 contractual-copy-btn" data-copy-value="1983006123" aria-label="Copy Customer ID" title="Copy Customer ID">
+                    <i class="fa-regular fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="contractual-credential bg-white border rounded-pill px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2">
+                <i class="fa-solid fa-key text-gold"></i>
+                <span class="small text-muted">Post Password:</span>
+                <span class="fw-bold text-dark font-monospace">Dop@1234</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 contractual-copy-btn" data-copy-value="Dop@1234" aria-label="Copy Post Password" title="Copy Post Password">
+                    <i class="fa-regular fa-copy"></i> Copy
+                </button>
             </div>
             <a href="https://app.indiapost.gov.in/customer-selfservice/login" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark rounded-pill px-3 py-2 fw-semibold small shadow-sm d-inline-flex align-items-center gap-2">
                 <i class="fa-solid fa-arrow-up-right-from-square text-warning"></i>
@@ -605,6 +619,48 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    function fallbackCopyText(value) {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        return copied;
+    }
+
+    document.querySelectorAll('.contractual-copy-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const originalContent = this.innerHTML;
+            let copied = false;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(this.dataset.copyValue);
+                    copied = true;
+                } else {
+                    copied = fallbackCopyText(this.dataset.copyValue);
+                }
+            } catch (error) {
+                copied = fallbackCopyText(this.dataset.copyValue);
+            }
+
+            if (copied) {
+                this.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                setTimeout(() => {
+                    this.innerHTML = originalContent;
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-secondary');
+                }, 1600);
+            }
+        });
+    });
 
     // Helper function for strict dd-mm-yyyy parsing in JavaScript
     function parseDdMmYyyy(dateStr) {

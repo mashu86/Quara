@@ -456,9 +456,63 @@
                             <div class="d-flex flex-wrap gap-2 text-secondary mb-1" id="selectedSizeMeasurementsBadges"></div>
                         </div>
 
+                        <!-- Collapsible Dynamic Size Chart Section (Controlled by Admin Toggle) -->
+                        @if(!empty($product->display_size_chart) && isset($displaySizeMaster) && $displaySizeMaster->rows->isNotEmpty())
+                            <div class="card border-0 shadow-sm rounded-3 mt-3 overflow-hidden border" id="collapsibleSizeChartCard">
+                                <div class="card-header bg-light border-0 py-2.5 px-3 d-flex align-items-center justify-content-between cursor-pointer" data-bs-toggle="collapse" data-bs-target="#collapseSizeChartBody" aria-expanded="true" style="cursor: pointer;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-ruler-combined text-warning fs-6"></i>
+                                        <span class="fw-bold text-dark small" style="font-size: 0.82rem;">{{ $displaySizeMaster->name }} - Size Chart Guide</span>
+                                    </div>
+                                    <span class="badge bg-dark text-warning fw-bold px-2 py-1" style="font-size: 0.68rem;">
+                                        SIZE MASTER <i class="fa-solid fa-chevron-down ms-1 text-white"></i>
+                                    </span>
+                                </div>
+                                <div id="collapseSizeChartBody" class="collapse show">
+                                    <div class="card-body p-2.5 bg-white">
+                                        <!-- Unit Switcher Toggle (Inch / Cm) -->
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small" style="font-size: 0.72rem;">
+                                                <i class="fa-solid fa-circle-info text-primary me-1"></i> Finished Garment Measurements
+                                            </span>
+                                            <div class="btn-group btn-group-sm" role="group" aria-label="Measurement Unit Switcher">
+                                                <input type="radio" class="btn-check" name="unit_toggle" id="unit_inch" value="inch" checked onchange="toggleSizeChartUnit('inch')">
+                                                <label class="btn btn-outline-dark py-0 px-2.5 small fw-bold" for="unit_inch" style="font-size: 0.72rem;">INCH</label>
+                                                <input type="radio" class="btn-check" name="unit_toggle" id="unit_cm" value="cm" onchange="toggleSizeChartUnit('cm')">
+                                                <label class="btn btn-outline-dark py-0 px-2.5 small fw-bold" for="unit_cm" style="font-size: 0.72rem;">CM</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="table-responsive rounded-3 border">
+                                            <table class="table table-striped table-hover align-middle text-center small mb-0" id="storefrontSizeChartTable">
+                                                <thead class="table-dark">
+                                                    <tr style="font-size: 0.75rem;">
+                                                        <th>Size</th>
+                                                        <th>Chest (<span class="unit-label">in</span>)</th>
+                                                        <th>Waist (<span class="unit-label">in</span>)</th>
+                                                        <th>Length (<span class="unit-label">in</span>)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody style="font-size: 0.78rem;">
+                                                    @foreach($displaySizeMaster->rows as $r)
+                                                        <tr>
+                                                            <td class="fw-bold text-dark">{{ $r->size_label }}</td>
+                                                            <td class="chest-val" data-inch="{{ $r->chest }}">{{ $r->chest ?: '-' }}</td>
+                                                            <td class="waist-val" data-inch="{{ $r->waist }}">{{ $r->waist ?: '-' }}</td>
+                                                            <td class="length-val" data-inch="{{ $r->length }}">{{ $r->length ?: '-' }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         @if($hasMeasurements)
                             <div class="form-text small fw-bold text-dark mt-1.5" style="font-size: 0.72rem;">
-                                <i class="fa-solid fa-ruler me-1 text-warning"></i> <span>Note: All product & body measurements above are in Inches (in).</span>
+                                <i class="fa-solid fa-ruler me-1 text-warning"></i> <span>Note: All product & body measurements above are specified in finished garment dimensions.</span>
                             </div>
                         @endif
                     </div>
@@ -704,6 +758,51 @@
                 setTimeout(() => toast.classList.add('d-none'), 2500);
             } else {
                 alert('Product link copied to clipboard!');
+            }
+        });
+    }
+
+    function convertInchStringToCm(str) {
+        if (!str || str.trim() === '-' || str.trim() === '') return '-';
+        let clean = str.replace(/["″]/g, '').trim();
+        if (clean.includes('–') || clean.includes('-')) {
+            let parts = clean.split(/[–-]/);
+            if (parts.length === 2) {
+                let n1 = parseFloat(parts[0]);
+                let n2 = parseFloat(parts[1]);
+                if (!isNaN(n1) && !isNaN(n2)) {
+                    let cm1 = Math.round(n1 * 2.54);
+                    let cm2 = Math.round(n2 * 2.54);
+                    return `${cm1}–${cm2} cm`;
+                }
+            }
+        }
+        let num = parseFloat(clean);
+        if (!isNaN(num)) {
+            let cm = Math.round(num * 2.54);
+            return `${cm} cm`;
+        }
+        return str;
+    }
+
+    function toggleSizeChartUnit(unit) {
+        const table = document.getElementById('storefrontSizeChartTable');
+        if (!table) return;
+
+        const unitLabels = table.querySelectorAll('.unit-label');
+        unitLabels.forEach(el => el.textContent = unit);
+
+        const cells = table.querySelectorAll('.chest-val, .waist-val, .length-val');
+        cells.forEach(cell => {
+            const inchVal = cell.getAttribute('data-inch');
+            if (!inchVal || inchVal.trim() === '-' || inchVal.trim() === '') {
+                cell.textContent = '-';
+                return;
+            }
+            if (unit === 'cm') {
+                cell.textContent = convertInchStringToCm(inchVal);
+            } else {
+                cell.textContent = inchVal.includes('"') ? inchVal : (inchVal + '"');
             }
         });
     }

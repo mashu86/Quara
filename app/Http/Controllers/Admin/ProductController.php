@@ -167,8 +167,9 @@ class ProductController extends Controller
             })
             ->orderBy('name', 'asc')
             ->get();
+        $sizeMasters = \App\Models\SizeMaster::with('rows')->orderBy('sort_order', 'asc')->get();
         $retainedCategoryIds = (array) $request->input('category_ids', []);
-        return view('admin.products.create', compact('categories', 'comboCategories', 'retainedCategoryIds'));
+        return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds'));
     }
 
     public function store(Request $request)
@@ -187,6 +188,8 @@ class ProductController extends Controller
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
             'booked_by' => 'nullable|string|max:255',
+            'display_size_chart' => 'nullable|boolean',
+            'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -207,6 +210,8 @@ class ProductController extends Controller
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $validated['display_size_chart'] = $request->boolean('display_size_chart');
+        $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
 
         if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
             return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
@@ -300,7 +305,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements', 'comboCategory']);
+        $product->load(['category', 'categories', 'sizes', 'images', 'stockMovements', 'comboCategory', 'sizeMaster']);
 
         // Auto-ensure single primary image if images exist
         if ($product->images->isNotEmpty()) {
@@ -319,7 +324,8 @@ class ProductController extends Controller
             })
             ->orderBy('name', 'asc')
             ->get();
-        return view('admin.products.edit', compact('product', 'categories', 'comboCategories'));
+        $sizeMasters = \App\Models\SizeMaster::with('rows')->orderBy('sort_order', 'asc')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'comboCategories', 'sizeMasters'));
     }
 
     public function update(Request $request, Product $product)
@@ -337,6 +343,8 @@ class ProductController extends Controller
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
             'booked_by' => 'nullable|string|max:255',
+            'display_size_chart' => 'nullable|boolean',
+            'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
             'weight_kg' => 'nullable|numeric|min:0.01',
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -363,6 +371,8 @@ class ProductController extends Controller
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $validated['display_size_chart'] = $request->boolean('display_size_chart');
+        $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
 
         // If product was originally sold out or booked, do not allow changing combo_category_id
         $wasSoldOutOrBooked = ($product->is_out_of_stock || !empty($product->booked_by) || $product->sizes->sum('stock') <= 0);

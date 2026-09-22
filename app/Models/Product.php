@@ -29,6 +29,8 @@ class Product extends Model
         'sort_order',
         'combo_category_id',
         'combo_sort_order',
+        'display_size_chart',
+        'size_master_id',
     ];
 
     protected $casts = [
@@ -37,8 +39,15 @@ class Product extends Model
         'final_price' => 'decimal:2',
         'weight_kg' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
+        'display_size_chart' => 'boolean',
         'combo_sort_order' => 'integer',
+        'size_master_id' => 'integer',
     ];
+
+    public function sizeMaster(): BelongsTo
+    {
+        return $this->belongsTo(SizeMaster::class, 'size_master_id');
+    }
 
     public function category(): BelongsTo
     {

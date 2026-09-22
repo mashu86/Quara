@@ -251,11 +251,24 @@
                         <label class="form-label small fw-bold text-uppercase d-block mb-2">
                             Existing Sizes & Measurements (Inches)
                         </label>
+
                         @include('admin.products.partials.size_suggestion_controls')
 
                         @foreach($product->sizes as $pSize)
-                            <div class="p-3 border rounded-3 bg-light mb-2">
-                                <div class="row g-2 align-items-center">
+                            <div class="p-3 border rounded-3 bg-light mb-2 size-row">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
+                                        <input type="text" name="existing_chests[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_chests.' . $pSize->id, $pSize->chest) }}" placeholder="e.g. 40&quot;">
+                                    </div>
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
+                                        <input type="text" name="existing_waists[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_waists.' . $pSize->id, $pSize->waist) }}" placeholder="e.g. 34&quot;">
+                                    </div>
+                                    <div class="col-4 col-md-2">
+                                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
+                                        <input type="text" name="existing_lengths[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_lengths.' . $pSize->id, $pSize->length) }}" placeholder="e.g. 42&quot;">
+                                    </div>
                                     <div class="col-6 col-md-3">
                                         <label class="form-label small fw-bold mb-1">Size Label *</label>
                                         <input type="text"
@@ -275,18 +288,6 @@
                                         @error('existing_stocks.' . $pSize->id)
                                             <div class="text-danger small mt-1">{{ $message }}</div>
                                         @enderror
-                                    </div>
-                                    <div class="col-4 col-md-2">
-                                        <label class="form-label small text-muted mb-1">Chest (inch)</label>
-                                        <input type="text" name="existing_chests[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_chests.' . $pSize->id, $pSize->chest) }}" placeholder="e.g. 40&quot;">
-                                    </div>
-                                    <div class="col-4 col-md-2">
-                                        <label class="form-label small text-muted mb-1">Waist (inch)</label>
-                                        <input type="text" name="existing_waists[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_waists.' . $pSize->id, $pSize->waist) }}" placeholder="e.g. 34&quot;">
-                                    </div>
-                                    <div class="col-4 col-md-2">
-                                        <label class="form-label small text-muted mb-1">Length (inch)</label>
-                                        <input type="text" name="existing_lengths[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_lengths.' . $pSize->id, $pSize->length) }}" placeholder="e.g. 42&quot;">
                                     </div>
                                 </div>
                             </div>
@@ -675,7 +676,19 @@
                     <i class="fa-solid fa-xmark me-1"></i> Remove
                 </button>
             </div>
-            <div class="row g-2 align-items-center">
+            <div class="row g-2 align-items-end">
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
+                    <input type="text" name="new_chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
+                    <input type="text" name="new_waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
+                    <input type="text" name="new_lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Size Label *</label>
                     <input type="text" name="new_sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
@@ -683,18 +696,6 @@
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
                     <input type="text" inputmode="numeric" pattern="[0-9]*" name="new_stocks[]" class="form-control form-control-sm rounded-3" value="5" required>
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
-                    <input type="text" name="new_chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
-                    <input type="text" name="new_waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Length (inch)</label>
-                    <input type="text" name="new_lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>
             </div>
         `;
@@ -911,6 +912,10 @@
 
                 if (nameInput && data.name) {
                     nameInput.value = data.name;
+                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (typeof window.autoDetectAndSelectSizeMaster === 'function') {
+                        window.autoDetectAndSelectSizeMaster(data.name);
+                    }
                     nameInput.style.transition = 'background 0.3s ease';
                     nameInput.style.backgroundColor = '#fffbe6';
                     setTimeout(() => nameInput.style.backgroundColor = '', 2500);

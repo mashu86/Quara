@@ -1,77 +1,206 @@
 <div class="p-3 p-md-5 bg-white" id="{{ $guideId ?? 'sizeGuideCard' }}">
-    <div class="d-flex flex-wrap align-items-center justify-content-between border-bottom pb-4 mb-4 gap-3">
+    <!-- Brand Header -->
+    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between border-bottom pb-3 mb-4 gap-3">
         <div class="d-flex align-items-center gap-3">
-            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="rounded-3 shadow-sm object-fit-contain" style="max-height: 55px; max-width: 180px;">
+            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="rounded-3 shadow-sm object-fit-contain" style="max-height: 48px; max-width: 150px;">
             <div>
-                <h2 class="h4 fw-bold mb-0 text-dark">{{ $siteName }}</h2>
-                <span class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-2.5 py-1 rounded-pill small">Ladieswear Size Guide</span>
+                <h2 class="h5 fw-bold mb-0 text-dark">{{ $siteName }}</h2>
+                <span class="badge bg-gold-subtle text-dark fw-bold text-uppercase px-2.5 py-1 rounded-pill" style="font-size: 0.68rem; background: rgba(212, 175, 55, 0.15); color: #8b6508;">
+                    <i class="fa-solid fa-crown me-1 text-warning"></i> Size Guide Master
+                </span>
             </div>
         </div>
-        <div class="text-md-end text-muted small">
-            <div><i class="fa-solid fa-ruler-combined me-1"></i> India / Kerala fit reference</div>
-            <div>All measurements are in inches</div>
+        <div class="text-start text-sm-end text-muted small mt-1 mt-sm-0">
+            <div class="fw-semibold text-dark" style="font-size: 0.78rem;">
+                <i class="fa-solid fa-ruler-combined me-1 text-warning"></i> Garment Measurement Guide
+            </div>
+            <div class="text-secondary" style="font-size: 0.72rem;">All measurements are in finished garment dimensions</div>
         </div>
     </div>
 
-    <div class="alert alert-info border border-info-subtle rounded-3 p-3 mb-4">
-        <div class="d-flex align-items-start gap-2">
-            <i class="fa-solid fa-circle-info fs-5 text-info mt-0.5"></i>
-            <div class="small"><strong>Choose by your body bust first.</strong> Measure around the fullest part of your bust while wearing light clothing, keeping the tape comfortably level. The garment-chest values below are the finished clothing measurement, so they are larger than the body bust for comfort and movement.</div>
+    @if(isset($sizeMasters) && $sizeMasters->isNotEmpty())
+        <!-- Mobile Dropdown Selector (Visible on Small Screens) -->
+        <div class="d-block d-md-none mb-3">
+            <label class="form-label fw-bold text-dark mb-1 small text-uppercase tracking-wider">
+                <i class="fa-solid fa-sliders me-1 text-warning"></i> Select Category:
+            </label>
+            <select class="form-select rounded-3 border-dark-subtle fw-semibold" onchange="window.location.href=this.value" style="font-size: 0.85rem;">
+                @foreach($sizeMasters as $m)
+                    <option value="{{ request()->fullUrlWithQuery(['category_id' => $m->id]) }}" {{ (isset($selectedMaster) && $selectedMaster->id === $m->id) ? 'selected' : '' }}>
+                        {{ $m->name }} ({{ $m->rows->count() }} sizes)
+                    </option>
+                @endforeach
+            </select>
         </div>
-    </div>
 
-    <section class="mb-5">
-        <h3 class="h5 fw-bold text-dark mb-2">1. Find your ladieswear size from your body measurement</h3>
-        <p class="small text-muted mb-3">Use the body-bust range below to select your usual Indian alpha size. If you fall between sizes, choose the larger size for a relaxed fit.</p>
-        <div class="table-responsive rounded-3 border">
-            <table class="table table-striped table-hover align-middle text-center mb-0">
-                <thead class="table-dark"><tr><th class="py-3">Indian size</th><th class="py-3">Your body bust</th><th class="py-3">Your body waist</th></tr></thead>
-                <tbody>
-                    @foreach ([
-                        ['XS', '32–33&quot;', '26–27&quot;'], ['S', '34–35&quot;', '28–29&quot;'], ['M', '36–37&quot;', '30–31&quot;'],
-                        ['L', '38–39&quot;', '32–33&quot;'], ['XL', '40–41&quot;', '34–35&quot;'], ['XXL', '42–43&quot;', '36–37&quot;'],
-                        ['3XL', '44–45&quot;', '38–39&quot;'], ['4XL', '46–47&quot;', '40–41&quot;'], ['5XL', '48–49&quot;', '42–43&quot;'], ['6XL', '50–51&quot;', '44–45&quot;'],
-                    ] as [$size, $bust, $waist])
-                        <tr>
-                            <td><span class="badge {{ in_array($size, ['M', 'L']) ? 'bg-primary text-white' : 'bg-secondary-subtle text-dark' }} px-3 py-1.5 rounded-pill fs-6">{{ $size }}</span></td>
-                            <td class="fw-bold text-primary">{!! $bust !!}</td>
-                            <td>{!! $waist !!}</td>
+        <!-- Horizontal Scrollable Category Pills (Desktop & Tablet) -->
+        <div class="mb-4">
+            <div class="d-none d-md-block fw-bold text-dark mb-2 small text-uppercase tracking-wider">
+                <i class="fa-solid fa-layer-group me-1 text-warning"></i> Product Size Category:
+            </div>
+            <div class="d-flex flex-nowrap overflow-x-auto pb-2 gap-2 scrollbar-hidden" style="-webkit-overflow-scrolling: touch;">
+                @foreach($sizeMasters as $m)
+                    @php $isActive = (isset($selectedMaster) && $selectedMaster->id === $m->id); @endphp
+                    <a href="{{ request()->fullUrlWithQuery(['category_id' => $m->id]) }}" 
+                       class="btn text-nowrap rounded-pill px-3 py-2 btn-sm fw-semibold text-decoration-none transition-all {{ $isActive ? 'btn-dark text-white shadow-sm border-dark' : 'btn-light text-dark border bg-white hover-bg-light' }}"
+                       style="font-size: 0.80rem; border-width: 1.5px;">
+                        @if($isActive)<i class="fa-solid fa-circle-check me-1.5 text-warning"></i>@endif
+                        {{ $m->name }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    @if(isset($selectedMaster) && $selectedMaster)
+        <section class="mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="p-2 rounded-circle bg-light border text-warning d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="fa-solid fa-shirt"></i>
+                    </span>
+                    <div>
+                        <h3 class="h6 fw-bold text-dark mb-0">{{ $selectedMaster->name }}</h3>
+                        <span class="text-muted" style="font-size: 0.72rem;">Finished garment size chart</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Unit Toggle (Inch / Cm) -->
+                <div class="btn-group btn-group-sm rounded-pill p-0.5 bg-light border" role="group" aria-label="Unit Switcher">
+                    <input type="radio" class="btn-check" name="sg_unit_toggle" id="sg_unit_inch" value="inch" checked onchange="toggleSizeGuideUnit('inch')">
+                    <label class="btn btn-outline-dark rounded-pill py-1 px-3 border-0 small fw-bold" for="sg_unit_inch" style="font-size: 0.72rem;">INCH</label>
+                    <input type="radio" class="btn-check" name="sg_unit_toggle" id="sg_unit_cm" value="cm" onchange="toggleSizeGuideUnit('cm')">
+                    <label class="btn btn-outline-dark rounded-pill py-1 px-3 border-0 small fw-bold" for="sg_unit_cm" style="font-size: 0.72rem;">CM</label>
+                </div>
+            </div>
+
+            <div class="table-responsive rounded-3 border shadow-sm bg-white">
+                <table class="table table-striped table-hover align-middle text-center mb-0" id="sgMasterTable">
+                    <thead class="table-dark">
+                        <tr style="font-size: 0.78rem;">
+                            <th class="py-2.5 px-2 px-sm-3">Size</th>
+                            <th class="py-2.5 px-2 px-sm-3">Chest (<span class="sg-unit-label">in</span>)</th>
+                            <th class="py-2.5 px-2 px-sm-3">Waist (<span class="sg-unit-label">in</span>)</th>
+                            <th class="py-2.5 px-2 px-sm-3">Length (<span class="sg-unit-label">in</span>)</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody style="font-size: 0.82rem;">
+                        @forelse($selectedMaster->rows as $r)
+                            <tr>
+                                <td class="py-2.5 px-2">
+                                    <span class="badge bg-dark text-warning border border-warning-subtle px-2.5 py-1.5 rounded-2 font-monospace fw-bold" style="font-size: 0.78rem;">
+                                        {{ $r->size_label }}
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-dark sg-chest" data-inch="{{ $r->chest }}">{{ $r->chest ?: '-' }}</td>
+                                <td class="fw-semibold text-secondary sg-waist" data-inch="{{ $r->waist }}">{{ $r->waist ?: '-' }}</td>
+                                <td class="fw-semibold text-secondary sg-length" data-inch="{{ $r->length }}">{{ $r->length ?: '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-4 text-muted small">No measurements added to this size category yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @else
+        <div class="alert alert-info border-0 rounded-3 p-3 small">
+            <i class="fa-solid fa-info-circle me-2"></i>Select a size category above to view finished garment measurements.
         </div>
-    </section>
+    @endif
 
-    <section class="mb-5">
-        <h3 class="h5 fw-bold text-dark mb-2">2. Finished garment chest guide for each style</h3>
-        <p class="small text-muted mb-3">For product listings, measure the actual garment around the chest. A crop top is closer-fitting; an overcoat needs extra room for layering. Values are nominal; a ±1&quot; production tolerance is normal.</p>
-        <div class="table-responsive rounded-3 border">
-            <table class="table table-striped table-hover align-middle text-center mb-0 small">
-                <thead class="table-dark"><tr><th class="py-3">Size</th><th class="py-3">Korean crop top<br><span class="fw-normal">fitted</span></th><th class="py-3">Korean top<br><span class="fw-normal">regular</span></th><th class="py-3">Normal top<br><span class="fw-normal">regular</span></th><th class="py-3">Ladies shirt<br><span class="fw-normal">regular</span></th><th class="py-3">Overcoat / jacket<br><span class="fw-normal">layering fit</span></th></tr></thead>
-                <tbody>
-                    @foreach (['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'] as $index => $size)
-                        <tr>
-                            <td class="fw-bold">{{ $size }}</td>
-                            <td class="text-primary fw-semibold">{{ 34 + ($index * 2) }}&quot;</td>
-                            <td>{{ 36 + ($index * 2) }}&quot;</td>
-                            <td>{{ 36 + ($index * 2) }}&quot;</td>
-                            <td>{{ 36 + ($index * 2) }}&quot;</td>
-                            <td class="fw-semibold">{{ 38 + ($index * 2) }}&quot;</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+    <!-- Visual Measurement Guide Cards -->
+    <section class="rounded-3 border bg-light p-3 p-md-4 mt-4">
+        <h4 class="h6 fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+            <i class="fa-solid fa-ruler text-warning"></i> How to Measure Your Garment
+        </h4>
+        <div class="row g-2.5 g-md-3">
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
+                    <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
+                        <span class="badge bg-primary text-white rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">C</span>
+                        Chest / Bust (C)
+                    </div>
+                    <p class="text-secondary mb-0" style="font-size: 0.75rem;">
+                        Lay garment flat, measure armpit-to-armpit, and multiply by 2 for full circumference.
+                    </p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
+                    <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
+                        <span class="badge bg-success text-white rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">W</span>
+                        Waist (W)
+                    </div>
+                    <p class="text-secondary mb-0" style="font-size: 0.75rem;">
+                        Measure across the narrowest waist area flat, and multiply by 2 for full circumference.
+                    </p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
+                    <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
+                        <span class="badge bg-dark text-warning rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">L</span>
+                        Length (L)
+                    </div>
+                    <p class="text-secondary mb-0" style="font-size: 0.75rem;">
+                        Measure straight from the highest shoulder seam down to the bottom hemline.
+                    </p>
+                </div>
+            </div>
         </div>
-    </section>
-
-    <section class="rounded-3 border bg-light p-3 p-md-4">
-        <h3 class="h6 fw-bold mb-3"><i class="fa-solid fa-clipboard-check text-success me-2"></i>How to get the right fit</h3>
-        <ol class="small text-secondary mb-0 ps-3">
-            <li class="mb-2">For customers: use the <strong>body bust</strong> chart, not a flat garment width.</li>
-            <li class="mb-2">For product entry: lay the garment flat, measure armpit-to-armpit, then multiply by 2 to get its <strong>finished garment chest</strong>.</li>
-            <li class="mb-2">If the supplier provides a size label or chart, use that label/chart even when it differs from this reference.</li>
-            <li>For a bust or waist between two sizes, select the larger size; fitted Korean crop styles should feel close but never restrictive.</li>
-        </ol>
+        <div class="mt-2.5 pt-2 border-top text-muted small d-flex align-items-center gap-2" style="font-size: 0.73rem;">
+            <i class="fa-solid fa-lightbulb text-warning"></i>
+            <span><strong>Fitting Tip:</strong> If your measurements fall between two size levels, choose the larger size for a relaxed, comfortable fit.</span>
+        </div>
     </section>
 </div>
+
+<script>
+function convertInchStringToCmSG(str) {
+    if (!str || str.trim() === '-' || str.trim() === '') return '-';
+    let clean = str.replace(/["″]/g, '').trim();
+    if (clean.includes('–') || clean.includes('-')) {
+        let parts = clean.split(/[–-]/);
+        if (parts.length === 2) {
+            let n1 = parseFloat(parts[0]);
+            let n2 = parseFloat(parts[1]);
+            if (!isNaN(n1) && !isNaN(n2)) {
+                let cm1 = Math.round(n1 * 2.54);
+                let cm2 = Math.round(n2 * 2.54);
+                return `${cm1}–${cm2} cm`;
+            }
+        }
+    }
+    let num = parseFloat(clean);
+    if (!isNaN(num)) {
+        let cm = Math.round(num * 2.54);
+        return `${cm} cm`;
+    }
+    return str;
+}
+
+function toggleSizeGuideUnit(unit) {
+    const table = document.getElementById('sgMasterTable');
+    if (!table) return;
+
+    const unitLabels = table.querySelectorAll('.sg-unit-label');
+    unitLabels.forEach(el => el.textContent = unit);
+
+    const cells = table.querySelectorAll('.sg-chest, .sg-waist, .sg-length');
+    cells.forEach(cell => {
+        const inchVal = cell.getAttribute('data-inch');
+        if (!inchVal || inchVal.trim() === '-' || inchVal.trim() === '') {
+            cell.textContent = '-';
+            return;
+        }
+        if (unit === 'cm') {
+            cell.textContent = convertInchStringToCmSG(inchVal);
+        } else {
+            cell.textContent = inchVal.includes('"') ? inchVal : (inchVal + '"');
+        }
+    });
+}
+</script>

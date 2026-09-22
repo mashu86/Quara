@@ -15,8 +15,34 @@ class ProductDetailController extends Controller
     {
         $product = Product::where('slug', $slug)
             ->active()
-            ->with(['category', 'images', 'sizes'])
+            ->with(['category', 'images', 'sizes', 'sizeMaster.rows'])
             ->firstOrFail();
+
+        $displaySizeMaster = null;
+        if ($product->display_size_chart) {
+            if ($product->sizeMaster && $product->sizeMaster->rows->isNotEmpty()) {
+                $displaySizeMaster = $product->sizeMaster;
+            } else {
+                // Fallback to auto-matching size master by product name
+                $name = strtolower($product->name);
+                $query = \App\Models\SizeMaster::with('rows');
+                if (str_contains($name, 'crop')) {
+                    $displaySizeMaster = (clone $query)->where('name', 'like', '%crop%')->first();
+                } elseif (str_contains($name, 'overcoat') || str_contains($name, 'coat')) {
+                    $displaySizeMaster = (clone $query)->where('name', 'like', '%overcoat%')->first();
+                } elseif (str_contains($name, 'shirt')) {
+                    $displaySizeMaster = (clone $query)->where('name', 'like', '%shirt%')->first();
+                } elseif (str_contains($name, 't-shirt') || str_contains($name, 'tshirt')) {
+                    $displaySizeMaster = (clone $query)->where('name', 'like', '%t-shirt%')->first();
+                } elseif (str_contains($name, 'top')) {
+                    $displaySizeMaster = (clone $query)->where('name', 'like', '%top%')->where('name', 'not like', '%crop%')->first();
+                }
+
+                if (!$displaySizeMaster) {
+                    $displaySizeMaster = \App\Models\SizeMaster::with('rows')->first();
+                }
+            }
+        }
 
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
@@ -67,7 +93,8 @@ class ProductDetailController extends Controller
             'seoTitle',
             'seoDescription',
             'canonicalUrl',
-            'ogImage'
+            'ogImage',
+            'displaySizeMaster'
         ));
     }
 

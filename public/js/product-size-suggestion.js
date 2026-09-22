@@ -1,185 +1,309 @@
-const garmentTypes = {
-    korean_top: 'Korean top (regular fit)',
-    korean_crop_top: 'Korean crop top (fitted)',
-    normal_top: 'Normal top (regular fit)',
-    ladies_shirt: 'Ladies shirt (regular fit)',
-    overcoat: 'Overcoat / jacket (layering fit)',
+/**
+ * Product Size Suggestion & Size Master Auto-Populator Logic
+ */
+
+// Auto-detect Size Master category from Product Name input (Ignoring product categories)
+export function autoDetectSizeMasterByName(productName, masterOptions) {
+    if (!productName || !masterOptions || masterOptions.length === 0) return null;
+    const name = productName.toLowerCase().trim();
+
+    // 1. Direct name match in option label
+    let matchedOption = Array.from(masterOptions).find(opt => {
+        const optName = (opt.dataset.name || opt.textContent || '').toLowerCase().trim();
+        return optName && (name.includes(optName) || optName.includes(name));
+    });
+
+    if (matchedOption) return matchedOption.value;
+
+    // 2. Matching patterns in priority order:
+    // Crop top
+    if (name.includes('crop top') || name.includes('croptop') || name.includes('crop')) {
+        matchedOption = Array.from(masterOptions).find(opt => opt.dataset.name && opt.dataset.name.includes('crop'));
+    }
+    
+    // Overcoat / Long coat / Jacket
+    if (!matchedOption && (name.includes('overcoat') || name.includes('long coat') || name.includes('coat') || name.includes('jacket'))) {
+        matchedOption = Array.from(masterOptions).find(opt => opt.dataset.name && (opt.dataset.name.includes('overcoat') || opt.dataset.name.includes('coat')));
+    }
+
+    // T-Shirt / Tee
+    if (!matchedOption && (name.includes('tshirt') || name.includes('t-shirt') || name.includes('tee'))) {
+        matchedOption = Array.from(masterOptions).find(opt => opt.dataset.name && (opt.dataset.name.includes('t-shirt') || opt.dataset.name.includes('tshirt')));
+    }
+
+    // Shirt / Shirting
+    if (!matchedOption && (name.includes('shirt') || name.includes('shirting'))) {
+        matchedOption = Array.from(masterOptions).find(opt => opt.dataset.name && opt.dataset.name.includes('shirt'));
+    }
+
+    // Top / Blouse / Tunic
+    if (!matchedOption && (name.includes('top') || name.includes('blouse') || name.includes('tunic'))) {
+        matchedOption = Array.from(masterOptions).find(opt => opt.dataset.name && opt.dataset.name.includes('top') && !opt.dataset.name.includes('crop'));
+    }
+
+    return matchedOption ? matchedOption.value : null;
+}
+
+window.autoDetectAndSelectSizeMaster = function(productName) {
+    const masterSelect = document.getElementById('size_master_id_select');
+    if (!masterSelect || !productName) return;
+
+    const masterOptions = masterSelect.querySelectorAll('option[value]:not([value=""])');
+    const detectedId = autoDetectSizeMasterByName(productName, masterOptions);
+    if (detectedId) {
+        masterSelect.value = detectedId;
+        masterSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+        masterSelect.style.transition = 'background 0.3s ease';
+        masterSelect.style.backgroundColor = '#fffbe6';
+        setTimeout(() => masterSelect.style.backgroundColor = '', 2500);
+    }
 };
 
-const letterSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'];
-
-// Product entry uses FINISHED GARMENT chest circumference, not the customer's body bust.
-// Crop tops use about 2 inches ease, regular tops/shirts 4 inches, and outerwear 6 inches.
-const garmentChestStandards = {
-    korean_crop_top: [34, 36, 38, 40, 42, 44, 46, 48, 50, 52],
-    korean_top: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
-    normal_top: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
-    ladies_shirt: [36, 38, 40, 42, 44, 46, 48, 50, 52, 54],
-    overcoat: [38, 40, 42, 44, 46, 48, 50, 52, 54, 56],
-};
-
-const unsupported = /\b(kids?|child(?:ren)?|baby|boys?|girls?|mens?|men's|sarees?|saris?|unstitched|kaftans?|caftans?|oversized?|free[ -]?size)\b/i;
-const typePatterns = [
-    ['korean_crop_top', /\b(korean|korean-style)\b.*\b(crop|cropped)\b|\b(crop|cropped)\b.*\b(korean|korean-style)\b/i],
-    ['overcoat', /\b(overcoats?|coats?|jackets?|blazers?)\b/i],
-    ['ladies_shirt', /\b(ladies'?|women'?s?|womens?)\s+shirts?\b|\bshirts?\b/i],
-    ['korean_top', /\b(korean|korean-style)\b.*\btops?\b|\bkorean\b/i],
-    ['normal_top', /\b(tops?|blouses?|t[ -]?shirts?|tunics?)\b/i],
-];
-
-export function detectGarmentType(name, categories = []) {
-    const title = String(name || '');
-    if (unsupported.test(title)) return null;
-    const namedType = typePatterns.find(([, pattern]) => pattern.test(title));
-    if (namedType) return namedType[0];
-    const categoryText = categories.join(' ');
-    if (unsupported.test(categoryText)) return null;
-    const matches = typePatterns.filter(([, pattern]) => pattern.test(categoryText));
-    return matches.length === 1 ? matches[0][0] : null;
-}
-
-export function parseMeasurement(raw, label) {
-    const value = String(raw ?? '').trim();
-    if (!value) return null;
-    const match = value.match(/^(\d+(?:\.\d+)?|\.\d+)\s*(?:inches|inch|in|["″”])?$/i);
-    const number = match ? Number(match[1]) : NaN;
-    if (!Number.isFinite(number) || number <= 0 || number > 150) {
-        throw new Error(`${label}: enter one positive measurement in inches, e.g. 38 or 38.5.`);
-    }
-    return number;
-}
-
-function nearestSize(fullChest, standard) {
-    let closestIndex = 0;
-    for (let index = 1; index < standard.length; index += 1) {
-        if (Math.abs(standard[index] - fullChest) < Math.abs(standard[closestIndex] - fullChest)) closestIndex = index;
-    }
-    if (Math.abs(standard[closestIndex] - fullChest) > 1) return null;
-    return closestIndex;
-}
-
-export function suggestSize({ name, categories = [], type = 'auto', basis = 'circumference', chest, waist, length }) {
-    const detectedType = type === 'auto' ? detectGarmentType(name, categories) : type;
-    if (!Object.hasOwn(garmentTypes, detectedType)) {
-        throw new Error('Select one of the supported ladieswear product types, or enter the supplier size manually.');
-    }
-    if (!['circumference', 'flat'].includes(basis)) throw new Error('Choose how the finished garment was measured.');
-    const multiplier = basis === 'flat' ? 2 : 1;
-    const chestInches = parseMeasurement(chest, 'Chest');
-    const waistInches = parseMeasurement(waist, 'Waist');
-    const lengthInches = parseMeasurement(length, 'Length');
-    if (chestInches === null) throw new Error('Enter the finished garment chest to suggest a size.');
-
-    const fullChest = chestInches * multiplier;
-    const standard = garmentChestStandards[detectedType];
-    const index = nearestSize(fullChest, standard);
-    if (index === null) {
-        throw new Error(`Finished garment chest ${fullChest}″ is outside this ${garmentTypes[detectedType]} chart. Check the measurement or use the supplier label.`);
-    }
-
-    const measurementText = [`Finished chest ${fullChest}″`];
-    if (waistInches !== null) measurementText.push(`waist ${waistInches * multiplier}″`);
-    if (lengthInches !== null) measurementText.push(`length ${lengthInches}″`);
-    return {
-        size: letterSizes[index],
-        type: detectedType,
-        message: `${garmentTypes[detectedType]} · ${measurementText.join(', ')}. Matched to the finished-garment chart; supplier size label takes priority.`,
-    };
-}
-
-function initializeSizeSuggestions() {
-    const controls = document.getElementById('product-size-suggestion-controls');
-    if (!controls) return;
-    const form = controls.closest('form');
-    const typeSelect = controls.querySelector('[data-size-type]');
-    const basisSelect = controls.querySelector('[data-size-basis]');
-    const typeStatus = controls.querySelector('[data-size-type-status]');
-    const categoryNames = () => Array.from(form.querySelectorAll('.category-checkbox:checked')).map((checkbox) => checkbox.closest('label').textContent.trim());
-    const currentName = () => form.querySelector('input[name="name"]')?.value || '';
-    const updateType = () => {
-        const detected = typeSelect.value === 'auto' ? detectGarmentType(currentName(), categoryNames()) : typeSelect.value;
-        typeStatus.textContent = detected ? `Type: ${garmentTypes[detected]}` : 'Add a product name/category or select its product type.';
-    };
-    const markChanged = () => {
-        updateType();
-        form.querySelectorAll('[data-size-suggestion-message]').forEach((message) => {
-            if (message.textContent) message.textContent = 'Product details changed. Click the magic button again to update the suggestion.';
+// Fetch Size Master chart rows by category ID
+export async function fetchSizeMasterChart(masterId) {
+    if (!masterId) return null;
+    try {
+        const response = await fetch(`/admin/size-masters/chart/${masterId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         });
-    };
-    const enhanceRows = () => {
-        form.querySelectorAll('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]').forEach((input) => {
-            if (input.dataset.sizeSuggestionReady) return;
-            input.dataset.sizeSuggestionReady = '1';
-            const grid = input.closest('.row');
-            const row = grid.parentElement;
-            const group = document.createElement('div');
-            group.className = 'input-group input-group-sm flex-nowrap';
-            input.before(group);
-            group.append(input);
-            input.classList.remove('rounded-3');
-            input.style.minWidth = '0';
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'btn btn-warning px-2';
-            button.style.minWidth = '34px';
-            button.style.minHeight = '32px';
-            button.title = 'Suggest size from finished garment chest';
-            button.setAttribute('aria-label', 'Suggest size from finished garment chest');
-            button.dataset.suggestSize = '1';
-            button.innerHTML = '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 13 8-8 2 2-8 8z M9 7l2 2 M4 2v4 M2 4h4 M12 1v3 M10.5 2.5h3 M14 10v4 M12 12h4"/></svg>';
-            group.append(button);
-            const message = document.createElement('div');
-            message.className = 'small mt-2';
-            message.dataset.sizeSuggestionMessage = '1';
-            message.setAttribute('role', 'status');
-            row.append(message);
-            const measurement = (field) => row.querySelector(`input[name="${field}s[]"], input[name="new_${field}s[]"], input[name^="existing_${field}s["]`);
-            button.addEventListener('click', () => {
-                updateType();
-                try {
-                    const result = suggestSize({ name: currentName(), categories: categoryNames(), type: typeSelect.value, basis: basisSelect.value, chest: measurement('chest')?.value, waist: measurement('waist')?.value, length: measurement('length')?.value });
-                    const previousSize = input.value;
-                    input.value = result.size;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                    message.className = 'small mt-2 text-success';
-                    message.textContent = `Suggested ${result.size}. ${result.message} `;
-                    if (previousSize !== result.size) {
-                        const undo = document.createElement('button');
-                        undo.type = 'button';
-                        undo.className = 'btn btn-link btn-sm p-0 align-baseline';
-                        undo.textContent = 'Undo';
-                        undo.addEventListener('click', () => {
-                            input.value = previousSize;
-                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                            message.textContent = 'Previous size restored.';
-                        });
-                        message.append(undo);
-                    }
-                } catch (error) {
-                    message.className = 'small mt-2 text-danger';
-                    message.textContent = error.message;
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (err) {
+        console.error('Error fetching size master chart:', err);
+        return null;
+    }
+}
+
+// Match closest numeric chest value
+function extractNumber(str) {
+    if (!str) return null;
+    const match = String(str).match(/\d+/);
+    return match ? parseInt(match[0], 10) : null;
+}
+
+export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, masterRows) {
+    if (!masterRows || masterRows.length === 0) return null;
+
+    // 1. Nearest match by chest measurement
+    const chestNum = extractNumber(rowChest);
+    if (chestNum) {
+        let bestRow = masterRows[0];
+        let minDiff = Infinity;
+        for (const r of masterRows) {
+            const masterChestNum = extractNumber(r.chest);
+            if (masterChestNum) {
+                const diff = Math.abs(masterChestNum - chestNum);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestRow = r;
                 }
-            });
-            grid.addEventListener('input', (event) => {
-                if (event.target === input) message.textContent = '';
-                else if (['chest', 'waist', 'length'].some((field) => event.target === measurement(field)) && message.textContent) {
-                    message.className = 'small mt-2 text-muted';
-                    message.textContent = 'Measurements changed. Click the magic button again to update the size.';
+            }
+        }
+        return bestRow;
+    }
+
+    // 2. Nearest match by waist measurement
+    const waistNum = extractNumber(rowWaist);
+    if (waistNum) {
+        let bestRow = masterRows[0];
+        let minDiff = Infinity;
+        for (const r of masterRows) {
+            const masterWaistNum = extractNumber(r.waist);
+            if (masterWaistNum) {
+                const diff = Math.abs(masterWaistNum - waistNum);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestRow = r;
                 }
-            });
+            }
+        }
+        return bestRow;
+    }
+
+    // 3. Exact match by size label
+    const cleanSizeLabel = (rowInputSize || '').trim().toUpperCase();
+    if (cleanSizeLabel) {
+        const exactMatch = masterRows.find(r => r.size_label.trim().toUpperCase() === cleanSizeLabel);
+        if (exactMatch) return exactMatch;
+    }
+
+    return null;
+}
+
+function initializeSizeMasterScript() {
+    const nameInput = document.querySelector('input[name="name"]');
+    const masterSelect = document.getElementById('size_master_id_select');
+
+    if (nameInput && masterSelect) {
+        const masterOptions = masterSelect.querySelectorAll('option[value]:not([value=""])');
+
+        // Auto-detect on input
+        nameInput.addEventListener('input', () => {
+            const detectedId = autoDetectSizeMasterByName(nameInput.value, masterOptions);
+            if (detectedId && !masterSelect.dataset.userManuallySelected) {
+                masterSelect.value = detectedId;
+                masterSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         });
-    };
-    controls.addEventListener('change', markChanged);
-    form.querySelector('input[name="name"]')?.addEventListener('input', markChanged);
-    form.querySelectorAll('.category-checkbox').forEach((checkbox) => checkbox.addEventListener('change', markChanged));
-    enhanceRows();
-    updateType();
-    const observer = new MutationObserver(enhanceRows);
-    ['sizeRowsContainer', 'newSizesContainer'].forEach((id) => {
-        const container = document.getElementById(id);
-        if (container) observer.observe(container, { childList: true });
+
+        masterSelect.addEventListener('change', () => {
+            if (document.activeElement === masterSelect) {
+                masterSelect.dataset.userManuallySelected = '1';
+            }
+        });
+    }
+
+    enhanceSizeRows();
+
+    // Observe dynamically added rows
+    const containers = [
+        document.getElementById('sizeRowsContainer'),
+        document.getElementById('existingSizesContainer'),
+        document.getElementById('newSizesContainer')
+    ];
+
+    containers.forEach(c => {
+        if (c) {
+            const observer = new MutationObserver(() => enhanceSizeRows());
+            observer.observe(c, { childList: true, subtree: true });
+        }
     });
 }
 
-if (typeof document !== 'undefined') initializeSizeSuggestions();
+export function enhanceSizeRows() {
+    const masterSelect = document.getElementById('size_master_id_select');
+    const rows = document.querySelectorAll('.size-row, #sizeRowsContainer > div, #newSizesContainer > div');
+
+    rows.forEach((row, index) => {
+        const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]');
+        if (!sizeInput) return;
+
+        let inputGroup = sizeInput.closest('.input-group');
+        if (!inputGroup) {
+            inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group input-group-sm flex-nowrap';
+            sizeInput.parentNode.insertBefore(inputGroup, sizeInput);
+            inputGroup.appendChild(sizeInput);
+            sizeInput.classList.remove('form-control-sm');
+            sizeInput.classList.add('form-control-sm');
+        }
+
+        if (!inputGroup.querySelector('.magic-row-btn')) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-warning magic-row-btn px-2 shadow-sm';
+            btn.title = 'Auto-detect Size Label from entered measurements';
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-dark"></i>';
+
+            btn.addEventListener('click', async () => {
+                const masterId = masterSelect ? masterSelect.value : null;
+                if (!masterId) {
+                    alert('Please select a Product Size Master Category first.');
+                    if (masterSelect) masterSelect.focus();
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+                const chartData = await fetchSizeMasterChart(masterId);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-dark"></i>';
+
+                if (!chartData || !chartData.rows || chartData.rows.length === 0) {
+                    alert('No measurement rows found for this category master.');
+                    return;
+                }
+
+                const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["]');
+                const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["]');
+
+                let matchedRow = findBestMatchingMasterRow(
+                    sizeInput.value,
+                    chestInput ? chestInput.value : '',
+                    waistInput ? waistInput.value : '',
+                    chartData.rows
+                );
+
+                if (!matchedRow) {
+                    matchedRow = chartData.rows[index] || chartData.rows[0];
+                }
+
+                if (matchedRow) {
+                    // Populate ONLY Size Label based on measurements. Chest/Waist/Length remain untouched.
+                    sizeInput.value = matchedRow.size_label;
+
+                    sizeInput.style.transition = 'background 0.3s ease';
+                    sizeInput.style.backgroundColor = '#fffbe6';
+                    setTimeout(() => sizeInput.style.backgroundColor = '', 2000);
+                }
+            });
+
+            inputGroup.append(btn);
+        }
+    });
+}
+
+// Global button to fill all rows from Size Master
+window.applyMagicSizeMasterToAllRows = async function() {
+    const masterSelect = document.getElementById('size_master_id_select');
+    const masterId = masterSelect ? masterSelect.value : null;
+
+    if (!masterId) {
+        alert('Please select a Product Size Master Category first.');
+        if (masterSelect) masterSelect.focus();
+        return;
+    }
+
+    const chartData = await fetchSizeMasterChart(masterId);
+    if (!chartData || !chartData.rows || chartData.rows.length === 0) {
+        alert('No size master rows found for the selected category.');
+        return;
+    }
+
+    const rows = document.querySelectorAll('.size-row');
+    if (rows.length === 0) return;
+
+    chartData.rows.forEach((mRow, index) => {
+        let row = rows[index];
+
+        // If not enough rows, click add size row if function exists
+        if (!row && typeof window.addSizeRow === 'function') {
+            window.addSizeRow();
+            const updatedRows = document.querySelectorAll('.size-row');
+            row = updatedRows[updatedRows.length - 1];
+        }
+
+        if (row) {
+            const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]');
+            const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["]');
+            const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["]');
+            const lengthInput = row.querySelector('input[name="lengths[]"], input[name="new_lengths[]"], input[name^="existing_lengths["]');
+
+            if (sizeInput) sizeInput.value = mRow.size_label;
+            if (chestInput && mRow.chest) chestInput.value = mRow.chest;
+            if (waistInput && mRow.waist) waistInput.value = mRow.waist;
+            if (lengthInput && mRow.length) lengthInput.value = mRow.length;
+
+            [sizeInput, chestInput, waistInput, lengthInput].forEach(inp => {
+                if (inp) {
+                    inp.style.transition = 'background 0.3s ease';
+                    inp.style.backgroundColor = '#e6f7ff';
+                    setTimeout(() => inp.style.backgroundColor = '', 2000);
+                }
+            });
+        }
+    });
+};
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSizeMasterScript);
+    } else {
+        initializeSizeMasterScript();
+    }
+}

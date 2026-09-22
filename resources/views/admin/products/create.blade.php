@@ -230,26 +230,26 @@
                                     <i class="fa-solid fa-xmark me-1"></i> Remove
                                 </button>
                             </div>
-                            <div class="row g-2 align-items-center">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
+                                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 38&quot;">
+                                </div>
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
+                                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 34&quot;">
+                                </div>
+                                <div class="col-4 col-md-2">
+                                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
+                                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                                </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Size Label *</label>
-                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="Free Size" required>
+                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="" required>
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
                                     <input type="text" inputmode="numeric" pattern="[0-9]*" name="stocks[]" class="form-control form-control-sm rounded-3" placeholder="Initial Stock Qty" value="1" required>
-                                </div>
-                                <div class="col-4 col-md-2">
-                                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
-                                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 38&quot;">
-                                </div>
-                                <div class="col-4 col-md-2">
-                                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
-                                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 34&quot;">
-                                </div>
-                                <div class="col-4 col-md-2">
-                                    <label class="form-label small text-muted mb-1">Length (inch)</label>
-                                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                                 </div>
                             </div>
                         </div>
@@ -494,7 +494,19 @@
                     <i class="fa-solid fa-xmark me-1"></i> Remove
                 </button>
             </div>
-            <div class="row g-2 align-items-center">
+            <div class="row g-2 align-items-end">
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
+                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
+                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
+                </div>
+                <div class="col-4 col-md-2">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
+                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Size Label *</label>
                     <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
@@ -502,18 +514,6 @@
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
                     <input type="text" inputmode="numeric" pattern="[0-9]*" name="stocks[]" class="form-control form-control-sm rounded-3" value="1" required>
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Chest (inch)</label>
-                    <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Waist (inch)</label>
-                    <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
-                </div>
-                <div class="col-4 col-md-2">
-                    <label class="form-label small text-muted mb-1">Length (inch)</label>
-                    <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>
             </div>
         `;
@@ -776,6 +776,10 @@
 
                 if (nameInput && data.name) {
                     nameInput.value = data.name;
+                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (typeof window.autoDetectAndSelectSizeMaster === 'function') {
+                        window.autoDetectAndSelectSizeMaster(data.name);
+                    }
                     nameInput.style.transition = 'background 0.3s ease';
                     nameInput.style.backgroundColor = '#fffbe6';
                     setTimeout(() => nameInput.style.backgroundColor = '', 2500);

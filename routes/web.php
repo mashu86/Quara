@@ -128,8 +128,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('categories', AdminCategoryController::class);
         Route::post('categories/{category}/toggle-status', [AdminCategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
 
-        // Product Master
-        Route::get('products/size-guide', [AdminProductController::class, 'sizeGuide'])->name('size-guide.index');
+        // Product Master & Size Guide Master
+        Route::get('products/size-guide', [\App\Http\Controllers\Admin\SizeMasterController::class, 'index'])->name('size-guide.index');
+        Route::post('size-masters/categories', [\App\Http\Controllers\Admin\SizeMasterController::class, 'storeCategory'])->name('size-masters.category.store');
+        Route::put('size-masters/categories/{sizeMaster}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'updateCategory'])->name('size-masters.category.update');
+        Route::delete('size-masters/categories/{sizeMaster}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'destroyCategory'])->name('size-masters.category.destroy');
+        Route::post('size-masters/categories/{sizeMaster}/rows', [\App\Http\Controllers\Admin\SizeMasterController::class, 'storeRow'])->name('size-masters.row.store');
+        Route::put('size-masters/rows/{row}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'updateRow'])->name('size-masters.row.update');
+        Route::delete('size-masters/rows/{row}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'destroyRow'])->name('size-masters.row.destroy');
+        Route::get('size-masters/chart/{sizeMaster}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'getChartJson'])->name('size-masters.chart-json');
+
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');

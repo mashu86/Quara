@@ -4,21 +4,32 @@
 @section('meta_description', 'Ladieswear size guide for Korean tops, crop tops, normal tops, ladies shirts and overcoats. Find your Indian size using body measurements in inches.')
 
 @section('content')
-<div class="container py-4 py-md-5">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+<div class="container py-3 py-md-5">
+    <!-- Page Header & Download Action -->
+    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-3 mb-md-4">
         <div>
-            <h1 class="h2 fw-bold mb-1">Ladies Size Guide</h1>
-            <p class="text-muted mb-0">Korean tops, crop tops, normal tops, ladies shirts and overcoats.</p>
+            <h1 class="h3 fw-bold mb-1 text-dark">Ladies Size Guide</h1>
+            <p class="text-muted small mb-0">Measurement guide for Korean crop tops, tops, ladies shirts, and overcoats.</p>
         </div>
-        <div class="dropdown">
-            <button class="btn btn-dark rounded-pill px-4 dropdown-toggle" type="button" id="sizeGuideDownload" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-download me-2"></i>Download</button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                <li><button class="dropdown-item" type="button" onclick="exportSizeGuide('pdf')"><i class="fa-solid fa-file-pdf text-danger me-2"></i>PDF</button></li>
-                <li><button class="dropdown-item" type="button" onclick="exportSizeGuide('image')"><i class="fa-solid fa-file-image text-success me-2"></i>PNG image</button></li>
+        <div class="dropdown align-self-stretch align-self-sm-auto">
+            <button class="btn btn-dark rounded-pill px-4 py-2 w-100 dropdown-toggle font-semibold shadow-sm" type="button" id="sizeGuideDownload" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.82rem;">
+                <i class="fa-solid fa-download me-2 text-warning"></i>Download Chart
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                <li>
+                    <button class="dropdown-item py-2 small fw-semibold" type="button" onclick="exportSizeGuide('pdf')">
+                        <i class="fa-solid fa-file-pdf text-danger me-2"></i>Download PDF
+                    </button>
+                </li>
+                <li>
+                    <button class="dropdown-item py-2 small fw-semibold" type="button" onclick="exportSizeGuide('image')">
+                        <i class="fa-solid fa-file-image text-success me-2"></i>Download PNG Image
+                    </button>
+                </li>
             </ul>
         </div>
     </div>
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden border">
         @include('partials.ladies_size_guide', ['guideId' => 'sizeGuideCard'])
     </div>
 </div>

@@ -533,7 +533,7 @@
 @endsection
 
 @section('scripts')
-<script type="module" src="{{ asset('js/product-size-suggestion.js') }}"></script>
+<script type="module" src="{{ asset('js/product-size-suggestion.js') }}?v={{ filemtime(public_path('js/product-size-suggestion.js')) }}"></script>
 <script>
     function onOfferCategorySelectChange() {
         calcDiscount();

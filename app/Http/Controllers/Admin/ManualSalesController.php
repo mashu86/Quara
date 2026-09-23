@@ -441,21 +441,17 @@ class ManualSalesController extends Controller
             'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
         ]);
 
-        $rawKey = Setting::get('gemini_api_key');
-        $geminiKey = is_string($rawKey) ? Setting::decryptSecret($rawKey) : null;
-        if (empty($geminiKey)) {
-            $geminiKey = config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
-        }
-        $geminiKey = trim((string) $geminiKey);
+        $geminiKeys = Setting::getGeminiKeysOrdered();
 
-        if (empty($geminiKey)) {
+        if (empty($geminiKeys)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) and click Save.'
+                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) or Gemini API Keys (/admin/gemini-keys).'
             ], 422);
         }
 
         try {
+            // The offline-sale form posts the selected file as "image".
             $filePath = $request->file('image')->getRealPath();
             $mimeType = mime_content_type($filePath) ?: 'image/jpeg';
             $fileData = file_get_contents($filePath);
@@ -463,17 +459,17 @@ class ManualSalesController extends Controller
             if ($fileData === false) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unable to read uploaded address screenshot.'
+                    'message' => 'Unable to read uploaded address image file.'
                 ], 400);
             }
 
-            // Downscale image in memory to max 1000px for super-fast base64 upload & sharp OCR
+            // Downscale image if too large
             if (function_exists('imagecreatefromstring')) {
                 $srcImg = @imagecreatefromstring($fileData);
                 if ($srcImg !== false) {
                     $width = imagesx($srcImg);
                     $height = imagesy($srcImg);
-                    $maxDim = 1000;
+                    $maxDim = 1200;
 
                     if ($width > $maxDim || $height > $maxDim) {
                         $ratio = min($maxDim / $width, $maxDim / $height);
@@ -539,60 +535,90 @@ class ManualSalesController extends Controller
                 ],
             ];
 
-            $modelsToTry = [
-                'gemini-1.5-flash',
-                'gemini-2.0-flash',
-                'gemini-1.5-pro',
-                'gemini-2.0-flash-lite',
-                'gemini-3.5-flash-lite',
-                'gemini-3.7-flash',
-                'gemini-3.6-flash',
-                'gemini-flash-latest',
-            ];
+            @set_time_limit(180);
 
-            $cachedModel = Cache::get('gemini_working_model_' . md5($geminiKey));
-            if ($cachedModel && in_array($cachedModel, $modelsToTry, true)) {
-                $modelsToTry = array_unique(array_merge([$cachedModel], $modelsToTry));
-            }
+            $modelsToTry = [
+                // Confirmed to support the active key's image + JSON request.
+                'gemini-3.5-flash-lite',
+                'gemini-3-flash-preview',
+                'gemini-3.6-flash',
+                'gemini-3.5-flash',
+                'gemini-3.1-flash-lite',
+            ];
 
             $response = null;
             $status = 0;
             $curlError = '';
             $successfulModel = null;
+            $loopStartTime = microtime(true);
+            $lastStatus = 0;
 
-            foreach ($modelsToTry as $model) {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($geminiKey);
+            foreach ($geminiKeys as $currentKey) {
+                $currentKey = trim((string) $currentKey);
+                if (empty($currentKey)) continue;
 
-                $curl = curl_init($url);
-                curl_setopt_array($curl, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_CONNECTTIMEOUT => 4,
-                    CURLOPT_TIMEOUT => 14,
-                ]);
-
-                $response = curl_exec($curl);
-                $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                $curlError = curl_error($curl);
-                curl_close($curl);
-
-                if (is_string($response) && $status >= 200 && $status < 300) {
-                    $successfulModel = $model;
-                    Cache::put('gemini_working_model_' . md5($geminiKey), $model, 86400);
-                    break;
+                // Reuse the most recently successful model for this active key.
+                $modelCacheKey = 'gemini_working_model_' . hash('sha256', $currentKey);
+                $cachedModel = Cache::get($modelCacheKey);
+                if (is_string($cachedModel) && in_array($cachedModel, $modelsToTry, true)) {
+                    $modelsToTry = array_values(array_unique([$cachedModel, ...$modelsToTry]));
                 }
 
-                Log::warning("Gemini AI address parse model {$model} failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
+                foreach ($modelsToTry as $model) {
+                    // OCR/vision responses can take longer than a text-only Gemini call.
+                    if ((microtime(true) - $loopStartTime) > 120) {
+                        break 2;
+                    }
+
+                    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
+
+                    $curl = curl_init($url);
+                    curl_setopt_array($curl, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+                        CURLOPT_HTTPHEADER => [
+                            'Content-Type: application/json',
+                            'x-goog-api-key: ' . $currentKey,
+                        ],
+                        CURLOPT_CONNECTTIMEOUT => 4,
+                        CURLOPT_TIMEOUT => 70,
+                    ]);
+
+                    $response = curl_exec($curl);
+                    $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                    $lastStatus = $status;
+                    $curlError = curl_error($curl);
+                    curl_close($curl);
+
+                    if (is_string($response) && $status >= 200 && $status < 300) {
+                        $successfulModel = $model;
+                        Cache::put($modelCacheKey, $model, now()->addDay());
+                        break 2;
+                    }
+
+                    Log::warning("Address AI model {$model} with key starting " . substr($currentKey, 0, 6) . " failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
+
+                    if ($status === 429) {
+                        break;
+                    }
+                }
             }
 
             if (!$successfulModel || !is_string($response)) {
-                Log::error('AI address parse Gemini models failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+                Log::error('Address AI Scanner Gemini all models/keys failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+
+                $errMsg = 'Unable to scan address with Google Gemini AI. Please check your API key.';
+                if ($lastStatus === 429) {
+                    $errMsg = 'Google Gemini AI quota has been reached for the active key. Please wait for its quota to reset or select a key with available quota.';
+                } elseif ($lastStatus === 503) {
+                    $errMsg = 'Google Gemini AI is temporarily busy. Please try again in a moment.';
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unable to analyze image with AI. Please check your Gemini API key under Master Settings.'
-                ], 500);
+                    'message' => $errMsg
+                ], in_array($lastStatus, [401, 403, 429, 503], true) ? $lastStatus : 502);
             }
 
             $responseData = json_decode($response, true);

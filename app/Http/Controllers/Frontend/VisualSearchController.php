@@ -63,13 +63,13 @@ class VisualSearchController extends Controller
             }
 
             // 2. Fallback to Gemini AI if configured and local threshold yields no matches
-            $geminiKey = Setting::decryptSecret(Setting::get('gemini_api_key')) ?: (string) config('services.gemini.api_key', '');
+            $geminiKeys = Setting::getGeminiKeysOrdered();
 
-            if ($geminiKey !== '') {
+            if (!empty($geminiKeys)) {
                 $aiResult = $this->matchCatalogWithGemini(
                     $tempPath,
                     $products,
-                    $geminiKey
+                    $geminiKeys
                 );
 
                 if ($aiResult !== null) {
@@ -383,7 +383,7 @@ class VisualSearchController extends Controller
         return mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string) $value)) ?? ''), 0, 120);
     }
 
-    protected function matchCatalogWithGemini(string $queryPath, Collection $products, string $apiKey): ?array
+    protected function matchCatalogWithGemini(string $queryPath, Collection $products, array $apiKeys): ?array
     {
         $queryDataUrl = $this->fileToDataUrl($queryPath);
 
@@ -451,7 +451,7 @@ class VisualSearchController extends Controller
                 ],
             ];
 
-            $result = $this->sendGeminiVisionRequest($payload, $apiKey);
+            $result = $this->sendGeminiVisionRequest($payload, $apiKeys);
 
             if ($result === null) {
                 continue;
@@ -508,56 +508,66 @@ class VisualSearchController extends Controller
         ];
     }
 
-    protected function sendGeminiVisionRequest(array $payload, string $apiKey): ?array
+    protected function sendGeminiVisionRequest(array $payload, array $apiKeys): ?array
     {
-        $modelsToTry = [
-            'gemma-4-26b-a4b-it',
-            'gemini-1.5-flash-latest',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
-            'gemini-2.5-flash',
-            'gemini-1.5-pro',
-        ];
+        @set_time_limit(180);
 
-        $cachedModel = Cache::get('gemini_working_model_' . md5($apiKey));
-        if ($cachedModel && in_array($cachedModel, $modelsToTry, true)) {
-            $modelsToTry = array_unique(array_merge([$cachedModel], $modelsToTry));
-        }
+        $modelsToTry = [
+            'gemini-3.5-flash-lite',
+            'gemini-3-flash-preview',
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+        ];
 
         $response = null;
         $status = 0;
         $curlError = '';
         $successfulModel = null;
+        $loopStartTime = microtime(true);
 
-        foreach ($modelsToTry as $model) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($apiKey);
+        foreach ($apiKeys as $currentKey) {
+            $currentKey = trim((string) $currentKey);
+            if (empty($currentKey)) continue;
 
-            $curl = curl_init($url);
-            curl_setopt_array($curl, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                ],
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT => 45,
-            ]);
+            foreach ($modelsToTry as $model) {
+                if ((microtime(true) - $loopStartTime) > 120) {
+                    break 2;
+                }
 
-            $response = curl_exec($curl);
-            $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
-            if (is_string($response) && $status >= 200 && $status < 300) {
-                $successfulModel = $model;
-                Cache::put('gemini_working_model_' . md5($apiKey), $model, 86400);
-                break;
+                $curl = curl_init($url);
+                curl_setopt_array($curl, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+                    CURLOPT_HTTPHEADER => [
+                        'Content-Type: application/json',
+                        'x-goog-api-key: ' . $currentKey,
+                    ],
+                    CURLOPT_CONNECTTIMEOUT => 4,
+                    CURLOPT_TIMEOUT => 70,
+                ]);
+
+                $response = curl_exec($curl);
+                $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($curl);
+                curl_close($curl);
+
+                if (is_string($response) && $status >= 200 && $status < 300) {
+                    $successfulModel = $model;
+                    break 2;
+                }
+
+                if ($status === 429) {
+                    break;
+                }
             }
         }
 
         if (! $successfulModel || ! is_string($response)) {
-            Log::warning('Google Gemini AI vision request failed on all candidate models', [
+            Log::warning('Google Gemini AI vision request failed on all candidate models/keys', [
                 'status' => $status,
                 'curl_error' => $curlError,
                 'response' => mb_substr((string) $response, 0, 300),

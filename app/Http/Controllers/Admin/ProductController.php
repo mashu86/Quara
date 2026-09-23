@@ -695,17 +695,12 @@ class ProductController extends Controller
             'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:10240',
         ]);
 
-        $rawKey = Setting::get('gemini_api_key');
-        $geminiKey = is_string($rawKey) ? Setting::decryptSecret($rawKey) : null;
-        if (empty($geminiKey)) {
-            $geminiKey = config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
-        }
-        $geminiKey = trim((string) $geminiKey);
+        $geminiKeys = Setting::getGeminiKeysOrdered();
 
-        if (empty($geminiKey)) {
+        if (empty($geminiKeys)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) and click Save.'
+                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) or Gemini API Keys (/admin/gemini-keys).'
             ], 422);
         }
 
@@ -783,62 +778,92 @@ class ProductController extends Controller
                 ],
             ];
 
-            $modelsToTry = [
-                'gemini-1.5-flash',
-                'gemini-2.0-flash',
-                'gemini-1.5-pro',
-                'gemini-2.0-flash-lite',
-                'gemini-3.5-flash-lite',
-                'gemini-3.7-flash',
-                'gemini-3.6-flash',
-                'gemini-flash-latest',
-            ];
+            @set_time_limit(180);
 
-            // Put cached working model first if available
-            $cachedModel = Cache::get('gemini_working_model_' . md5($geminiKey));
-            if ($cachedModel && in_array($cachedModel, $modelsToTry, true)) {
-                $modelsToTry = array_unique(array_merge([$cachedModel], $modelsToTry));
-            }
+            $modelsToTry = [
+                // Confirmed to support the active key's image + JSON request.
+                'gemini-3.5-flash-lite',
+                'gemini-3-flash-preview',
+                'gemini-3.6-flash',
+                'gemini-3.5-flash',
+                'gemini-3.1-flash-lite',
+            ];
 
             $response = null;
             $status = 0;
             $curlError = '';
             $successfulModel = null;
+            $loopStartTime = microtime(true);
+            $lastStatus = 0;
 
-            foreach ($modelsToTry as $model) {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($geminiKey);
+            foreach ($geminiKeys as $currentKey) {
+                $currentKey = trim((string) $currentKey);
+                if (empty($currentKey)) continue;
 
-                $curl = curl_init($url);
-                curl_setopt_array($curl, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_CONNECTTIMEOUT => 4,
-                    CURLOPT_TIMEOUT => 12,
-                ]);
-
-                $response = curl_exec($curl);
-                $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                $curlError = curl_error($curl);
-                curl_close($curl);
-
-                if (is_string($response) && $status >= 200 && $status < 300) {
-                    $successfulModel = $model;
-                    Cache::put('gemini_working_model_' . md5($geminiKey), $model, 86400);
-                    break;
+                // Reuse the most recently successful model for this active key.
+                // This avoids repeatedly trying models that Google has retired.
+                $modelCacheKey = 'gemini_working_model_' . hash('sha256', $currentKey);
+                $cachedModel = Cache::get($modelCacheKey);
+                if (is_string($cachedModel) && in_array($cachedModel, $modelsToTry, true)) {
+                    $modelsToTry = array_values(array_unique([$cachedModel, ...$modelsToTry]));
                 }
 
-                // If rate limited (429) or model unavailable (404/503), try next candidate
-                Log::warning("Gemini AI model {$model} failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
+                foreach ($modelsToTry as $model) {
+                    // Vision responses can take longer than a text-only Gemini call.
+                    if ((microtime(true) - $loopStartTime) > 120) {
+                        break 2;
+                    }
+
+                    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
+
+                    $curl = curl_init($url);
+                    curl_setopt_array($curl, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+                        CURLOPT_HTTPHEADER => [
+                            'Content-Type: application/json',
+                            'x-goog-api-key: ' . $currentKey,
+                        ],
+                        CURLOPT_CONNECTTIMEOUT => 4,
+                        CURLOPT_TIMEOUT => 70,
+                    ]);
+
+                    $response = curl_exec($curl);
+                    $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                    $lastStatus = $status;
+                    $curlError = curl_error($curl);
+                    curl_close($curl);
+
+                    if (is_string($response) && $status >= 200 && $status < 300) {
+                        $successfulModel = $model;
+                        Cache::put($modelCacheKey, $model, now()->addDay());
+                        break 2; // Success! Break both model loop and key loop
+                    }
+
+                    Log::warning("Gemini AI model {$model} with key starting " . substr($currentKey, 0, 6) . " failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
+
+                    // If rate limited (429), break model loop for this key immediately and try next key
+                    if ($status === 429) {
+                        break;
+                    }
+                }
             }
 
             if (!$successfulModel || !is_string($response)) {
-                Log::error('AI auto fill Gemini all models failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+                Log::error('AI auto fill Gemini all models/keys failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+
+                $errMsg = 'Unable to analyze image with Google Gemini AI. Please check your API key.';
+                if ($lastStatus === 429) {
+                    $errMsg = 'Google Gemini AI quota has been reached for the active key. Please wait for its quota to reset or select a key with available quota.';
+                } elseif ($lastStatus === 503) {
+                    $errMsg = 'Google Gemini AI is temporarily busy. Please try again in a moment.';
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unable to analyze image with Google Gemini AI. Please check your API key.'
-                ], 500);
+                    'message' => $errMsg
+                ], in_array($lastStatus, [401, 403, 429, 503], true) ? $lastStatus : 502);
             }
 
             $responseData = json_decode($response, true);

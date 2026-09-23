@@ -520,6 +520,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.gemini-keys.index') }}" class="nav-link {{ request()->routeIs('admin.gemini-keys.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-key me-2 text-warning"></i> Gemini API Keys
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.payment-check.index') }}" class="nav-link {{ request()->routeIs('admin.payment-check.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-credit-card me-2"></i> Razorpay Payment Check
                     </a>

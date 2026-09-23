@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\ContractualPostController;
 use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Admin\LuckyWinnerController;
+use App\Http\Controllers\Admin\GeminiApiKeyController as AdminGeminiApiKeyController;
 use App\Http\Middleware\LuckyWinnerAccess;
 
 Route::prefix('luckywinner')->name('luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
@@ -253,6 +254,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Master Settings (branding, email and payment configuration)
         Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
+
+        // Google Gemini API Keys Master Management
+        Route::get('/gemini-keys', [AdminGeminiApiKeyController::class, 'index'])->name('gemini-keys.index');
+        Route::post('/gemini-keys', [AdminGeminiApiKeyController::class, 'store'])->name('gemini-keys.store');
+        Route::put('/gemini-keys/{geminiKey}', [AdminGeminiApiKeyController::class, 'update'])->name('gemini-keys.update');
+        Route::post('/gemini-keys/{geminiKey}/activate', [AdminGeminiApiKeyController::class, 'activate'])->name('gemini-keys.activate');
+        Route::delete('/gemini-keys/{geminiKey}', [AdminGeminiApiKeyController::class, 'destroy'])->name('gemini-keys.destroy');
 
         // Razorpay credential and ₹1 checkout verification
         Route::get('/payment_check', [AdminPaymentCheckController::class, 'index'])->name('payment-check.index');

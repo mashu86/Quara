@@ -91,6 +91,28 @@ class Setting extends Model
         }
     }
 
+    public static function getActiveGeminiKey(): ?string
+    {
+        try {
+            $activeModelKey = GeminiApiKey::query()->where('is_active', true)->first();
+            if ($activeModelKey && !empty($activeModelKey->decrypted_key)) {
+                return $activeModelKey->decrypted_key;
+            }
+        } catch (Throwable) {}
+
+        $settingVal = static::get('gemini_api_key');
+        return static::decryptSecret($settingVal) ?? config('services.gemini.api_key');
+    }
+
+    public static function getGeminiKeysOrdered(): array
+    {
+        // Keep this method for existing callers, but never fall through to an
+        // inactive key. The key selected in Gemini API Keys is authoritative.
+        $activeKey = trim((string) static::getActiveGeminiKey());
+
+        return $activeKey === '' ? [] : [$activeKey];
+    }
+
     protected static function storedAssetUrl(string $key, string $default, ?array $settings = null): string
     {
         $storedPath = $settings === null ? static::get($key) : ($settings[$key] ?? null);

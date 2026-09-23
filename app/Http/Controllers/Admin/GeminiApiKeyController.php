@@ -103,9 +103,7 @@ class GeminiApiKeyController extends Controller
     {
         $geminiKey->setActive();
 
-        return redirect()
-            ->route('admin.gemini-keys.index')
-            ->with('success', "Active Gemini API Key changed to '{$geminiKey->name}'.");
+        return back()->with('success', "Active Gemini API Key changed to '{$geminiKey->name}'.");
     }
 
     /**

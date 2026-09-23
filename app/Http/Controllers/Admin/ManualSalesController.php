@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\GeminiApiKey;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -67,7 +68,8 @@ class ManualSalesController extends Controller
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
         $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
-        return view('admin.manual_sales.create', compact('products', 'categories'));
+        $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
+        return view('admin.manual_sales.create', compact('products', 'categories', 'geminiApiKeys'));
     }
 
     public function store(Request $request)
@@ -252,8 +254,9 @@ class ManualSalesController extends Controller
         $order->load(['items.product', 'items.productSize']);
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
         $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
+        $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
 
-        return view('admin.manual_sales.edit', compact('order', 'products', 'categories'));
+        return view('admin.manual_sales.edit', compact('order', 'products', 'categories', 'geminiApiKeys'));
     }
 
     public function update(Request $request, Order $order)

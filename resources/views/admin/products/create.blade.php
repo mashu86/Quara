@@ -77,10 +77,15 @@
                             </div>
                         </div>
                         <div class="col-md-5">
-                            <button type="button" id="btnRunAiAssist" class="btn btn-warning w-100 rounded-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 py-1.5 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;" onclick="triggerAiAutoFill()">
+                            <div class="d-flex gap-2">
+                            <button type="button" id="btnRunAiAssist" class="btn btn-warning flex-grow-1 rounded-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 py-1.5 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;" onclick="triggerAiAutoFill()">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 <span>Auto-Fill Name & Description</span>
                             </button>
+                            <button type="button" class="btn btn-outline-light rounded-3" data-bs-toggle="modal" data-bs-target="#geminiApiKeyPickerModal" title="View or change active Google API key" aria-label="View or change active Google API key">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            </div>
                         </div>
                     </div>
 
@@ -351,6 +356,7 @@
         </div>
     </div>
 </form>
+@include('admin.partials.gemini_api_key_picker_modal')
 @endsection
 
 @section('scripts')

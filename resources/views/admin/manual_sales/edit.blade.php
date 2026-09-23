@@ -340,6 +340,9 @@
                                     <button type="button" class="btn btn-warning text-dark fw-bold btn-sm rounded-3 px-3 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="document.getElementById('addressScreenshotInput').click()" id="scanAddressBtn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
                                         <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Scan Screenshot / Image</span>
                                     </button>
+                                    <button type="button" class="btn btn-outline-dark btn-sm rounded-3 px-3 py-2" data-bs-toggle="modal" data-bs-target="#geminiApiKeyPickerModal" title="View or change active Google API key" aria-label="View or change active Google API key">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
                                     
                                     <div id="scanAddressStatus" class="small fw-semibold text-muted d-none align-items-center gap-2">
                                         <span class="spinner-border spinner-border-sm text-warning" role="status" aria-hidden="true"></span>
@@ -402,6 +405,7 @@
         </div>
     </div>
 </form>
+@include('admin.partials.gemini_api_key_picker_modal')
 @endsection
 
 @section('scripts')

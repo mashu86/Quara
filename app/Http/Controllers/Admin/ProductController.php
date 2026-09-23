@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\GeminiApiKey;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
@@ -169,7 +170,8 @@ class ProductController extends Controller
             ->get();
         $sizeMasters = \App\Models\SizeMaster::with('rows')->orderBy('sort_order', 'asc')->get();
         $retainedCategoryIds = (array) $request->input('category_ids', []);
-        return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds'));
+        $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
+        return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds', 'geminiApiKeys'));
     }
 
     public function store(Request $request)
@@ -325,7 +327,8 @@ class ProductController extends Controller
             ->orderBy('name', 'asc')
             ->get();
         $sizeMasters = \App\Models\SizeMaster::with('rows')->orderBy('sort_order', 'asc')->get();
-        return view('admin.products.edit', compact('product', 'categories', 'comboCategories', 'sizeMasters'));
+        $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'comboCategories', 'sizeMasters', 'geminiApiKeys'));
     }
 
     public function update(Request $request, Product $product)

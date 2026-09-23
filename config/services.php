@@ -59,7 +59,7 @@ return [
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY', ''),
         'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
-        // Used only by the one-time production key import seeder.
+        // Used by the one-time production key data migration/seeder.
         'seed_keys' => json_decode((string) env('GEMINI_API_KEYS_JSON', '[]'), true) ?: [],
     ],
 

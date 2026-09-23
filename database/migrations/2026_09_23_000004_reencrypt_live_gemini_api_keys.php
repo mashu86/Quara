@@ -5,13 +5,15 @@ use App\Models\Setting;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
-     * Import Gemini keys from the deployment environment. Encrypting here
-     * ensures the ciphertext is created with the target server's APP_KEY.
+     * Repair keys previously inserted as ciphertext from another APP_KEY.
+     * Plain API keys must be supplied through GEMINI_API_KEYS_JSON so they
+     * can be encrypted using this deployment's APP_KEY.
      */
     public function up(): void
     {
@@ -22,6 +24,8 @@ return new class extends Migration
         $keys = config('services.gemini.seed_keys', []);
 
         if (! is_array($keys) || $keys === []) {
+            Log::warning('Gemini key re-encryption skipped: GEMINI_API_KEYS_JSON is empty. Re-enter the API keys in Admin > Gemini API Keys or configure GEMINI_API_KEYS_JSON, then run the Gemini key seeder.');
+
             return;
         }
 

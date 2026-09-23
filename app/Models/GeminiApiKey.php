@@ -35,8 +35,10 @@ class GeminiApiKey extends Model
 
         try {
             return Crypt::decryptString($this->api_key);
-        } catch (\Throwable $e) {
-            return Setting::decryptSecret($this->api_key) ?? $this->api_key;
+        } catch (\Throwable) {
+            // Legacy plaintext values are still supported, but encrypted values
+            // from a different APP_KEY must never be sent to Gemini as API keys.
+            return Setting::decryptSecret($this->api_key);
         }
     }
 

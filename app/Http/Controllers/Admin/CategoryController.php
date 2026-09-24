@@ -44,6 +44,9 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        $isOfferCategory = $request->boolean('is_offer_category');
+        $offerType = $request->input('offer_type');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -51,10 +54,10 @@ class CategoryController extends Controller
             'status' => 'nullable|in:active,inactive',
             'is_offer_category' => 'nullable|boolean',
             'offer_type' => 'required_if:is_offer_category,1|nullable|in:combo,discount',
-            'min_count' => 'required_if:offer_type,combo|nullable|integer|min:1',
-            'combo_price' => 'required_if:offer_type,combo|nullable|numeric|min:0',
-            'discount_value' => 'required_if:offer_type,discount|nullable|numeric|min:0',
-            'discount_type' => 'required_if:offer_type,discount|nullable|in:percentage,flat',
+            'min_count' => [$isOfferCategory && $offerType === 'combo' ? 'required' : 'nullable', 'integer', 'min:1'],
+            'combo_price' => [$isOfferCategory && $offerType === 'combo' ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'discount_value' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'discount_type' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'in:percentage,flat'],
             'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 
@@ -103,6 +106,9 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        $isOfferCategory = $request->boolean('is_offer_category');
+        $offerType = $request->input('offer_type');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
@@ -110,10 +116,10 @@ class CategoryController extends Controller
             'status' => 'nullable|in:active,inactive',
             'is_offer_category' => 'nullable|boolean',
             'offer_type' => 'required_if:is_offer_category,1|nullable|in:combo,discount',
-            'min_count' => 'required_if:offer_type,combo|nullable|integer|min:1',
-            'combo_price' => 'required_if:offer_type,combo|nullable|numeric|min:0',
-            'discount_value' => 'required_if:offer_type,discount|nullable|numeric|min:0',
-            'discount_type' => 'required_if:offer_type,discount|nullable|in:percentage,flat',
+            'min_count' => [$isOfferCategory && $offerType === 'combo' ? 'required' : 'nullable', 'integer', 'min:1'],
+            'combo_price' => [$isOfferCategory && $offerType === 'combo' ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'discount_value' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'discount_type' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'in:percentage,flat'],
             'delivery_charge' => 'nullable|numeric|min:0',
         ]);
 

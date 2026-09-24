@@ -88,9 +88,16 @@
             </div>
         </td>
         <td>
-            <span class="badge bg-{{ $product->status === 'active' ? 'success' : 'secondary' }}" style="font-size: 0.72rem;">
-                {{ ucfirst($product->status) }}
-            </span>
+            <div class="form-check form-switch mb-0 d-inline-flex align-items-center" title="{{ ucfirst($product->status) }}">
+                <input class="form-check-input product-status-toggle" type="checkbox" role="switch"
+                       id="productStatusToggle_{{ $product->id }}"
+                       data-product-id="{{ $product->id }}"
+                       data-url="{{ route('admin.products.toggle-status', $product->id) }}"
+                       aria-label="{{ $product->name }} status"
+                       {{ $product->status === 'active' ? 'checked' : '' }}
+                       style="cursor: pointer; width: 2.3em; height: 1.2em;">
+                <label class="visually-hidden" for="productStatusToggle_{{ $product->id }}">{{ ucfirst($product->status) }}</label>
+            </div>
         </td>
         <td class="text-end pe-2 pe-sm-3">
             <div class="d-flex align-items-center justify-content-end gap-2 gap-md-2.5 flex-nowrap">

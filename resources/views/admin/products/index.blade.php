@@ -213,7 +213,7 @@
                         <th>Selling Price</th>
                         <th>Size-wise Stock</th>
                         <th>Booked Stock</th>
-                        <th>Status</th>
+                        <th>Active</th>
                         <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
@@ -319,6 +319,36 @@ document.addEventListener('DOMContentLoaded', function() {
     let isLoading = false;
     let currentBookedToggle = null;
     let bookedModalInstance = null;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const productsTbody = document.getElementById('products-desktop-tbody');
+    if (productsTbody) {
+        productsTbody.addEventListener('change', function(event) {
+            const toggle = event.target.closest('.product-status-toggle');
+            if (!toggle) return;
+
+            const previousState = !toggle.checked;
+            toggle.disabled = true;
+            fetch(toggle.dataset.url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json().then(data => ({ response, data })))
+            .then(({ response, data }) => {
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not update product status.');
+                toggle.checked = data.status === 'active';
+                toggle.closest('.form-check').title = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            })
+            .catch(error => {
+                toggle.checked = previousState;
+                alert(error.message || 'Could not update product status.');
+            })
+            .finally(() => { toggle.disabled = false; });
+        });
+    }
 
     function checkAndLoadMore() {
         if (isLoading || !hasMorePages) return;

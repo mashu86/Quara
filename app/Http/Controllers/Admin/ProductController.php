@@ -159,6 +159,18 @@ class ProductController extends Controller
         return back()->with('success', $statusMsg);
     }
 
+    public function toggleStatus(Product $product)
+    {
+        $product->status = $product->status === 'active' ? 'inactive' : 'active';
+        $product->save();
+
+        return response()->json([
+            'success' => true,
+            'status' => $product->status,
+            'message' => 'Product status updated to ' . ucfirst($product->status) . '.',
+        ]);
+    }
+
     public function create(Request $request)
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();

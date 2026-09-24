@@ -479,8 +479,15 @@
 
         document.getElementById('modalProdSizesContainer').innerHTML = sizesHtml;
 
-        const modal = new bootstrap.Modal(document.getElementById('bulkProductDetailModal'));
-        modal.show();
+        const modalElem = document.getElementById('bulkProductDetailModal');
+        if (modalElem) {
+            modalElem.scrollTop = 0;
+            let modalInstance = bootstrap.Modal.getInstance(modalElem);
+            if (!modalInstance) {
+                modalInstance = new bootstrap.Modal(modalElem);
+            }
+            modalInstance.show();
+        }
     }
 
     function moveProduct(productId, action) {

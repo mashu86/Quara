@@ -28,7 +28,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-dark">Work / Salary Date <span class="text-danger">*</span></label>
                     <input type="date" name="date" class="form-control @error('date') is-invalid @enderror" value="{{ old('date', $salary->date->format('Y-m-d')) }}" required>
-                    @error('date') <div class="invalid-feedback">{{ $message }}</div> @errorEnd
+                    @error('date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="mb-3">
@@ -37,7 +37,7 @@
                         <span class="input-group-text bg-white">₹</span>
                         <input type="number" step="0.01" min="0.01" name="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount', $salary->amount) }}" required>
                     </div>
-                    @error('amount') <div class="text-danger small mt-1">{{ $message }}</div> @errorEnd
+                    @error('amount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="mb-3">
@@ -46,13 +46,13 @@
                         <option value="paid" {{ old('payment_status', $salary->payment_status) === 'paid' ? 'selected' : '' }}>Paid (Cash expense will be created/updated)</option>
                         <option value="unpaid" {{ old('payment_status', $salary->payment_status) === 'unpaid' ? 'selected' : '' }}>Unpaid (No cash expense)</option>
                     </select>
-                    @error('payment_status') <div class="invalid-feedback">{{ $message }}</div> @errorEnd
+                    @error('payment_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-dark">Notes / Remarks</label>
                     <input type="text" name="notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes', $salary->notes) }}">
-                    @error('notes') <div class="invalid-feedback">{{ $message }}</div> @errorEnd
+                    @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">

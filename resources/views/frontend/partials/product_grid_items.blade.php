@@ -5,7 +5,7 @@
         $finalFormatted = $product->final_price == floor($product->final_price) ? number_format($product->final_price, 0) : number_format($product->final_price, 2);
         $origFormatted = $product->price == floor($product->price) ? number_format($product->price, 0) : number_format($product->price, 2);
     @endphp
-    <div class="col-6 col-md-4 col-lg-3 product-item-col animate__animated animate__fadeIn">
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2 product-item-col animate__animated animate__fadeIn">
         <a href="{{ route('product.detail', $product->slug) }}" class="qw-product-card h-100 d-flex flex-column shadow-sm rounded-4 overflow-hidden border text-decoration-none text-dark d-block">
             <!-- Image Section with Overlay Elements -->
             <div class="qw-product-img-wrapper position-relative">

@@ -61,6 +61,27 @@ thead th.conflict-sticky-col {
         font-size: 0.82rem !important;
     }
 }
+.preview-header-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+}
+@media (max-width: 576px) {
+    .preview-header-btn {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        padding: 0 !important;
+        font-size: 0.65rem !important;
+        border-radius: 50% !important;
+        margin-right: 6px !important;
+    }
+    .preview-header-btn i {
+        margin: 0 !important;
+        font-size: 0.68rem !important;
+    }
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 flex-wrap gap-2">
@@ -120,7 +141,7 @@ thead th.conflict-sticky-col {
                         @endphp
                         <tr>
                             <td class="conflict-sticky-col text-center py-2 px-1">
-                                <div class="conflict-img-wrapper border shadow-xs" onclick="openProductPreview('{{ addslashes($primaryImg) }}', '{{ addslashes($product->name) }}')" title="Click to preview image">
+                                <div class="conflict-img-wrapper border shadow-xs" onclick="openProductPreview('{{ addslashes($primaryImg) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }})" title="Click to preview image">
                                     <img src="{{ $primaryImg }}" alt="{{ $product->name }}" class="conflict-product-img">
                                     <div class="conflict-img-overlay">
                                         <i class="fa-solid fa-eye text-white" style="font-size: 0.75rem;"></i>
@@ -270,23 +291,40 @@ thead th.conflict-sticky-col {
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header bg-dark text-white py-2.5 px-3 d-flex justify-content-between align-items-center">
                 <h5 class="modal-title font-serif fw-bold small text-truncate me-2" id="productPreviewModalLabel">Product Preview</h5>
-                <div class="d-flex align-items-center gap-2">
-                    <a id="productPreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark shadow-sm" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Image">
-                        <i class="fa-solid fa-download me-1"></i> Download
+                <div class="d-flex align-items-center" style="gap: 12px !important;">
+                    <a id="productPreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-2.5 px-sm-3 py-1 fw-bold text-dark shadow-sm preview-header-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Original Image">
+                        <i class="fa-solid fa-download me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Download</span>
                     </a>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button id="productPreviewModalInstaBtn" type="button" onclick="downloadInstagramImage()" class="btn btn-sm rounded-pill px-2.5 px-sm-3 py-1 fw-bold text-white shadow-sm preview-header-btn" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); border: none;" title="Download Instagram Image (With Price & Size Overlay)">
+                        <i class="fa-brands fa-instagram me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Instagram</span>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
-            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 280px; max-height: 75vh;">
+            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 280px; max-height: 75vh;">
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
+                
+                <!-- Live Instagram Overlay Box Preview -->
+                <div id="productPreviewInstaBox" class="position-absolute top-0 start-0 m-2.5 m-sm-3 p-2 p-sm-2.5 bg-black text-white rounded-3 shadow text-start border border-secondary d-none" style="z-index: 10; font-size: 0.75rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.92;">
+                    <div class="fw-bold text-warning" id="instaPreviewPrice">Price: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewB">B: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewL">L: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewW">W: --</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function openProductPreview(imgSrc, title) {
+function openProductPreview(imgSrc, title, price, sizes) {
     if (!imgSrc) return;
+    window.currentPreviewImgSrc = imgSrc;
+    window.currentPreviewTitle = title || 'product';
+    window.currentPreviewPrice = price || '';
+    window.currentPreviewSizes = sizes || [];
+
+    const modalElem = document.getElementById('productPreviewModal');
     const imgElem = document.getElementById('productPreviewModalImg');
     const titleElem = document.getElementById('productPreviewModalLabel');
     const downloadBtn = document.getElementById('productPreviewModalDownloadBtn');
@@ -297,8 +335,41 @@ function openProductPreview(imgSrc, title) {
         const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-image') + '.jpg';
         downloadBtn.setAttribute('download', cleanFileName);
     }
-    const modal = new bootstrap.Modal(document.getElementById('productPreviewModal'));
-    modal.show();
+
+    // Update Live Instagram Overlay Preview Box
+    let bVals = [], lVals = [], wVals = [];
+    if (Array.isArray(sizes)) {
+        sizes.forEach(sz => {
+            if (sz.chest) bVals.push(sz.chest);
+            if (sz.length) lVals.push(sz.length);
+            if (sz.waist) wVals.push(sz.waist);
+        });
+    }
+
+    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '-';
+    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '-';
+    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '-';
+
+    const pElem = document.getElementById('instaPreviewPrice');
+    const bElem = document.getElementById('instaPreviewB');
+    const lElem = document.getElementById('instaPreviewL');
+    const wElem = document.getElementById('instaPreviewW');
+    const boxElem = document.getElementById('productPreviewInstaBox');
+
+    if (pElem) pElem.textContent = 'Price: ' + (price || '--');
+    if (bElem) bElem.textContent = 'B: ' + bStr;
+    if (lElem) lElem.textContent = 'L: ' + lStr;
+    if (wElem) wElem.textContent = 'W: ' + wStr;
+    if (boxElem) boxElem.classList.remove('d-none');
+
+    if (modalElem) {
+        modalElem.scrollTop = 0;
+        let modalInstance = bootstrap.Modal.getInstance(modalElem);
+        if (!modalInstance) {
+            modalInstance = new bootstrap.Modal(modalElem);
+        }
+        modalInstance.show();
+    }
 }
 
 function openResolveModal(id, name, imgUrl, currentBookedBy) {

@@ -96,6 +96,18 @@
             background-color: #ffffff !important;
         }
 
+        /* Global Mobile Modal Centering Fix */
+        @media (max-width: 576px) {
+            .modal-dialog-centered {
+                min-height: calc(100vh - 1rem) !important;
+                min-height: calc(100dvh - 1rem) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0.5rem auto !important;
+            }
+        }
+
         /* Sidebar Styling */
         .admin-sidebar {
             width: 260px;
@@ -534,6 +546,11 @@
                 <li class="nav-item">
                     <a href="{{ route('admin.home-content.index') }}" class="nav-link {{ request()->routeIs('admin.home-content.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-sliders me-2"></i> Home Main Content
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.home-carousel.index') }}" class="nav-link {{ request()->routeIs('admin.home-carousel.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-images me-2"></i> Home Carousel Master
                     </a>
                 </li>
                 <li class="nav-item">

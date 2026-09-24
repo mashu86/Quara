@@ -33,6 +33,7 @@ use App\Http\Controllers\StorageFileController;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Admin\LuckyWinnerController;
 use App\Http\Controllers\Admin\GeminiApiKeyController as AdminGeminiApiKeyController;
+use App\Http\Controllers\Admin\HomeCarouselController as AdminHomeCarouselController;
 use App\Http\Middleware\LuckyWinnerAccess;
 
 Route::prefix('luckywinner')->name('luckywinner.')->middleware(LuckyWinnerAccess::class)->group(function () {
@@ -69,6 +70,7 @@ Route::get('/category/{slug}', [ShopController::class, 'categoryProducts'])->nam
 Route::get('/product/{slug}', [ProductDetailController::class, 'show'])->name('product.detail');
 Route::get('/product/{slug}/check-shipping', [ProductDetailController::class, 'checkShipping'])->name('product.check-shipping');
 Route::get('/home-content/image/{homeContent}', [AdminHomeContentController::class, 'showImage'])->name('home_content.image');
+Route::get('/home-carousel/image/{slide}', [AdminHomeCarouselController::class, 'showImage'])->name('home_carousel.image');
 Route::get('/media/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('media.show');
 Route::get('/storage/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('storage.file');
 
@@ -169,6 +171,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Home Main Content Master
         Route::resource('home-content', AdminHomeContentController::class)->parameters(['home-content' => 'home_content']);
+
+        // Home page carousel master
+        Route::get('/home-carousel', [AdminHomeCarouselController::class, 'index'])->name('home-carousel.index');
+        Route::post('/home-carousel/settings', [AdminHomeCarouselController::class, 'updateSettings'])->name('home-carousel.settings');
+        Route::get('/home-carousel/builder/{slide?}', [AdminHomeCarouselController::class, 'builder'])->name('home-carousel.builder');
+        Route::post('/home-carousel/builder/save', [AdminHomeCarouselController::class, 'saveSlideFull'])->name('home-carousel.builder.save');
+        Route::post('/home-carousel/slides', [AdminHomeCarouselController::class, 'store'])->name('home-carousel.slides.store');
+        Route::get('/home-carousel/slides/{slide}/edit', [AdminHomeCarouselController::class, 'edit'])->name('home-carousel.slides.edit');
+        Route::put('/home-carousel/slides/{slide}', [AdminHomeCarouselController::class, 'update'])->name('home-carousel.slides.update');
+        Route::post('/home-carousel/slides/{slide}/design', [AdminHomeCarouselController::class, 'saveDesign'])->name('home-carousel.slides.design');
+        Route::post('/home-carousel/slides/{slide}/toggle-status', [AdminHomeCarouselController::class, 'toggleStatus'])->name('home-carousel.slides.toggle-status');
+        Route::delete('/home-carousel/slides/{slide}', [AdminHomeCarouselController::class, 'destroy'])->name('home-carousel.slides.destroy');
+        Route::post('/home-carousel/testimonials', [AdminHomeCarouselController::class, 'storeTestimonial'])->name('home-carousel.testimonials.store');
+        Route::delete('/home-carousel/testimonials/{testimonial}', [AdminHomeCarouselController::class, 'destroyTestimonial'])->name('home-carousel.testimonials.destroy');
 
         // Social Media Master
         Route::resource('social-media', AdminSocialMediaController::class)->parameters(['social-media' => 'social_media']);

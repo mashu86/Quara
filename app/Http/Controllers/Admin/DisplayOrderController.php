@@ -36,7 +36,7 @@ class DisplayOrderController extends Controller
             ->get();
 
         $defaultOrderBy = Setting::get('default_display_order_by', 'category');
-        $categoryDisplayStyle = Setting::get('category_display_style', 'grid');
+        $categoryDisplayStyle = Setting::get('category_display_style', 'carousel');
 
         return view('admin.display_order.index', compact('categories', 'products', 'comboCategories', 'defaultOrderBy', 'categoryDisplayStyle'));
     }
@@ -45,7 +45,7 @@ class DisplayOrderController extends Controller
     {
         $validated = $request->validate([
             'default_display_order_by' => ['required', 'in:category,product'],
-            'category_display_style' => ['nullable', 'in:grid,drawer,horizontal_scroll'],
+            'category_display_style' => ['nullable', 'in:grid,drawer,horizontal_scroll,carousel'],
         ]);
 
         Setting::set('default_display_order_by', $validated['default_display_order_by'], 'general');

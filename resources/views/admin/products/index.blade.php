@@ -4,6 +4,23 @@
 
 @section('content')
 <style>
+    /* Prevent page-level horizontal overflow */
+    #products-table-card {
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+    #products-table-scroll-container {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .products-table {
+        min-width: 780px;
+        margin-bottom: 0;
+    }
     .prod-sticky-col {
         position: sticky;
         left: 0;
@@ -41,15 +58,93 @@
         background: rgba(0, 0, 0, 0.55);
     }
     .prod-action-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 0.7rem;
+        width: 30px;
+        height: 30px;
+        font-size: 0.78rem;
     }
-    @media (min-width: 576px) {
-        .prod-action-btn {
-            width: 32px;
-            height: 32px;
-            font-size: 0.8rem;
+
+    @media (max-width: 767.98px) {
+        .products-table {
+            min-width: 680px !important;
+        }
+        .products-table th, .products-table td {
+            font-size: 0.72rem !important;
+            padding: 0.4rem 0.35rem !important;
+            white-space: nowrap;
+        }
+        .products-table .prod-sticky-col {
+            min-width: 95px !important;
+            max-width: 105px !important;
+            padding-left: 0.2rem !important;
+            padding-right: 0.2rem !important;
+            white-space: normal !important;
+        }
+        .products-table .prod-img-wrapper {
+            width: 36px !important;
+            height: 48px !important;
+        }
+        .products-table .prod-name-text {
+            font-size: 0.68rem !important;
+            max-width: 95px !important;
+            line-height: 1.15 !important;
+            word-break: break-word !important;
+        }
+        .products-table .badge {
+            font-size: 0.60rem !important;
+            padding: 0.2em 0.4em !important;
+        }
+        .products-table .prod-action-btn {
+            width: 26px !important;
+            height: 26px !important;
+            font-size: 0.65rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        #productPreviewModal .modal-dialog {
+            margin: 0.5rem auto !important;
+            max-width: 94vw !important;
+            min-height: calc(100vh - 1rem) !important;
+            min-height: calc(100dvh - 1rem) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        #productPreviewModal .modal-content {
+            max-height: 85vh !important;
+            max-height: 85dvh !important;
+            width: 100% !important;
+            border-radius: 1rem !important;
+        }
+        #productPreviewModal .modal-body {
+            min-height: 180px !important;
+            max-height: 60vh !important;
+            max-height: 60dvh !important;
+        }
+        #productPreviewModal .modal-body img {
+            max-height: 55vh !important;
+            max-height: 55dvh !important;
+        }
+    }
+    .preview-header-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+    }
+    @media (max-width: 576px) {
+        .preview-header-btn {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            padding: 0 !important;
+            font-size: 0.65rem !important;
+            border-radius: 50% !important;
+            margin-right: 6px !important;
+        }
+        .preview-header-btn i {
+            margin: 0 !important;
+            font-size: 0.68rem !important;
         }
     }
 </style>
@@ -62,29 +157,30 @@
         + (request()->filled('sort') && request()->sort !== 'newest' ? 1 : 0);
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
+<!-- Header Row -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 mb-md-4" style="max-width: 100%;">
     <div>
-        <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Product Master</h4>
+        <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.1rem;">Product Master</h4>
         <p class="text-muted small mb-0 d-none d-sm-block">Manage product inventory, pricing, discounts and variants</p>
     </div>
-    <div class="d-flex align-items-center">
-        <a href="{{ route('admin.products.booked-conflicts') }}" class="btn btn-outline-dark rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-2" style="font-size: 0.78rem;" title="Audit Booked Products Conflict">
-            <i class="fa-solid fa-wrench me-1 text-warning"></i><span>Conflict Resolver</span>
+    <div class="d-flex align-items-center flex-wrap gap-2 w-100 w-sm-auto justify-content-start justify-content-sm-end">
+        <a href="{{ route('admin.products.booked-conflicts') }}" class="btn btn-outline-dark rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-1 me-sm-0" style="font-size: 0.78rem;" title="Audit Booked Products Conflict">
+            <i class="fa-solid fa-wrench me-1 text-warning"></i><span>Conflicts</span>
         </a>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-2 me-sm-3" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
-            <i class="fa-solid fa-plus me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Add Product</span>
+        <a href="{{ route('admin.products.create') }}" class="btn btn-warning rounded-3 fw-bold btn-sm px-2.5 px-sm-3 py-1.5 text-nowrap shadow-sm me-1 me-sm-0" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Add New Product">
+            <i class="fa-solid fa-plus me-1"></i><span>Add Product</span>
         </a>
 
         <!-- Mobile Filter Icon Button (d-lg-none) -->
         <button type="button" class="btn btn-dark rounded-3 btn-sm px-2.5 py-1.5 position-relative d-lg-none shadow-sm" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#productFilterModal" title="Filter Products">
-            <i class="fa-solid fa-sliders text-warning"></i>
+            <i class="fa-solid fa-sliders text-warning me-1"></i>Filter
             @if($activeFilterCount > 0)
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size: 0.62rem;">{{ $activeFilterCount }}</span>
             @endif
         </button>
 
         @if($activeFilterCount > 0)
-            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 btn-sm px-2 py-1.5 d-lg-none ms-2" style="font-size: 0.78rem;" title="Clear Filters">
+            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-3 btn-sm px-2 py-1.5 d-lg-none" style="font-size: 0.78rem;" title="Clear Filters">
                 <i class="fa-solid fa-rotate-left"></i>
             </a>
         @endif
@@ -138,22 +234,22 @@
 
 <!-- Product Mobile Filter Modal (d-lg-none) -->
 <div class="modal fade d-lg-none" id="productFilterModal" tabindex="-1" aria-labelledby="productFilterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                <h5 class="modal-title font-serif fw-bold" id="productFilterModalLabel">
+                <h5 class="modal-title font-serif fw-bold fs-6" id="productFilterModalLabel">
                     <i class="fa-solid fa-sliders text-warning me-2"></i> Filter Products
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ route('admin.products.index') }}" method="GET">
-                <div class="modal-body p-4">
+                <div class="modal-body p-3.5">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark">Search Name / Keyword</label>
+                        <label class="form-label fw-semibold text-dark small">Search Name / Keyword</label>
                         <input type="text" name="search" class="form-control rounded-3" placeholder="Search product name..." value="{{ request()->search }}">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark">Category</label>
+                        <label class="form-label fw-semibold text-dark small">Category</label>
                         <select name="category_id" class="form-select rounded-3">
                             <option value="">All Categories</option>
                             @foreach($categories as $cat)
@@ -162,7 +258,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark">Status</label>
+                        <label class="form-label fw-semibold text-dark small">Status</label>
                         <select name="status" class="form-select rounded-3">
                             <option value="">All Statuses</option>
                             <option value="active" {{ request()->status === 'active' ? 'selected' : '' }}>Active</option>
@@ -170,7 +266,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark">Stock Availability</label>
+                        <label class="form-label fw-semibold text-dark small">Stock Availability</label>
                         <select name="stock_status" class="form-select rounded-3">
                             <option value="">All Products</option>
                             <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
@@ -179,7 +275,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark">Sort By</label>
+                        <label class="form-label fw-semibold text-dark small">Sort By</label>
                         <select name="sort" class="form-select rounded-3">
                             <option value="newest" {{ request()->sort === 'newest' ? 'selected' : '' }}>Newest</option>
                             <option value="oldest" {{ request()->sort === 'oldest' ? 'selected' : '' }}>Oldest</option>
@@ -189,8 +285,8 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
-                    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Reset</a>
-                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">Reset</a>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark btn-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
                         <i class="fa-solid fa-check me-1"></i> Apply Filters
                     </button>
                 </div>
@@ -199,11 +295,38 @@
     </div>
 </div>
 
-<!-- Table -->
-<div class="card border-0 rounded-4 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive" id="products-table-scroll-container" style="max-height: 75vh; overflow-y: auto;">
-            <table class="table align-middle mb-0">
+<!-- Instagram Overlay Measurement Format Option Bar -->
+<div class="card border-0 rounded-4 shadow-sm mb-3 overflow-hidden" style="max-width: 100%;">
+    <div class="card-body py-2.5 px-3 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2.5">
+        <div class="d-flex align-items-center gap-2" style="max-width: 100%;">
+            <span class="badge bg-dark text-white p-2 rounded-circle flex-shrink-0"><i class="fa-brands fa-instagram text-warning fs-6"></i></span>
+            <div class="min-w-0">
+                <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.82rem;">Instagram Image Measurement Label Format</h6>
+                <p class="text-muted extra-small mb-0" style="font-size: 0.70rem;">Select measurement display format for Instagram download posts</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center flex-wrap gap-2 bg-light px-3 py-2 rounded-3 rounded-md-pill border w-100 w-md-auto justify-content-start justify-content-md-end">
+            <div class="form-check form-check-inline mb-0 me-2">
+                <input class="form-check-input cursor-pointer" type="radio" name="insta_format_setting" id="instaFormatShort" value="short" checked onchange="setInstaOverlayFormat('short')">
+                <label class="form-check-label fw-bold small text-dark cursor-pointer" for="instaFormatShort" style="font-size: 0.78rem;">
+                    Short Format (C, L, W)
+                </label>
+            </div>
+            <div class="form-check form-check-inline mb-0 me-0">
+                <input class="form-check-input cursor-pointer" type="radio" name="insta_format_setting" id="instaFormatFull" value="full" onchange="setInstaOverlayFormat('full')">
+                <label class="form-check-label fw-bold small text-dark cursor-pointer" for="instaFormatFull" style="font-size: 0.78rem;">
+                    Full Format (Chest, Length, Waist)
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products Table Container -->
+<div class="card border-0 rounded-4 shadow-sm overflow-hidden" id="products-table-card" style="max-width: 100%;">
+    <div class="card-body p-0" style="max-width: 100%; overflow: hidden;">
+        <div id="products-table-scroll-container" style="display: block; width: 100%; max-width: 100%; max-height: 75vh; overflow-x: auto; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+            <table class="table products-table align-middle mb-0">
                 <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                     <tr>
                         <th class="prod-sticky-col text-center" style="min-width: 110px;">Product</th>
@@ -242,15 +365,15 @@
 
 <!-- Toggle Booked Details Modal -->
 <div class="modal fade" id="toggleBookedModal" tabindex="-1" aria-labelledby="toggleBookedModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                <h5 class="modal-title font-serif fw-bold" id="toggleBookedModalLabel">
+                <h5 class="modal-title font-serif fw-bold fs-6" id="toggleBookedModalLabel">
                     <i class="fa-solid fa-user-tag text-warning me-2"></i> Mark Product as Booked
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="cancelBookedModal()"></button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body p-3.5">
                 <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Enter customer details below for quick tracking.</p>
                 <div class="mb-3">
                     <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
@@ -273,15 +396,26 @@
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header bg-dark text-white py-2.5 px-3 d-flex justify-content-between align-items-center">
                 <h5 class="modal-title font-serif fw-bold small text-truncate me-2" id="productPreviewModalLabel">Product Preview</h5>
-                <div class="d-flex align-items-center gap-2">
-                    <a id="productPreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark shadow-sm" style="font-size: 0.72rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Image">
-                        <i class="fa-solid fa-download me-1"></i> Download
+                <div class="d-flex align-items-center" style="gap: 12px !important;">
+                    <a id="productPreviewModalDownloadBtn" href="#" download="" class="btn btn-warning btn-sm rounded-pill px-2.5 px-sm-3 py-1 fw-bold text-dark shadow-sm preview-header-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Download Original Image">
+                        <i class="fa-solid fa-download me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Download</span>
                     </a>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button id="productPreviewModalInstaBtn" type="button" onclick="downloadInstagramImage()" class="btn btn-sm rounded-pill px-2.5 px-sm-3 py-1 fw-bold text-white shadow-sm preview-header-btn" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); border: none;" title="Download Instagram Image (With Price & Size Overlay)">
+                        <i class="fa-brands fa-instagram me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Instagram</span>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
-            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 280px; max-height: 75vh;">
+            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 280px; max-height: 75vh;">
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
+                
+                <!-- Live Instagram Overlay Box Preview -->
+                <div id="productPreviewInstaBox" class="position-absolute top-0 start-0 m-2.5 m-sm-3 p-2 p-sm-2.5 bg-black text-white rounded-3 shadow text-start border border-secondary d-none" style="z-index: 10; font-size: 0.75rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.92;">
+                    <div class="fw-bold text-warning" id="instaPreviewPrice">Price: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewB">B: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewL">L: --</div>
+                    <div class="fw-bold text-white" id="instaPreviewW">W: --</div>
+                </div>
             </div>
         </div>
     </div>
@@ -290,8 +424,56 @@
 
 @section('scripts')
 <script>
-window.openProductPreview = function(imgSrc, title) {
+window.getInstaOverlayFormat = function() {
+    return localStorage.getItem('insta_overlay_format') || 'short';
+};
+
+window.setInstaOverlayFormat = function(format) {
+    localStorage.setItem('insta_overlay_format', format);
+    if (window.currentPreviewImgSrc) {
+        window.updateInstaPreviewBox(window.currentPreviewPrice, window.currentPreviewSizes);
+    }
+};
+
+window.updateInstaPreviewBox = function(price, sizes) {
+    const format = window.getInstaOverlayFormat();
+    let bVals = [], lVals = [], wVals = [];
+    if (Array.isArray(sizes)) {
+        sizes.forEach(sz => {
+            if (sz.chest) bVals.push(sz.chest);
+            if (sz.length) lVals.push(sz.length);
+            if (sz.waist) wVals.push(sz.waist);
+        });
+    }
+
+    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '-';
+    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '-';
+    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '-';
+
+    const chestLabel = (format === 'full') ? 'Chest: ' : 'C: ';
+    const lengthLabel = (format === 'full') ? 'Length: ' : 'L: ';
+    const waistLabel = (format === 'full') ? 'Waist: ' : 'W: ';
+
+    const pElem = document.getElementById('instaPreviewPrice');
+    const bElem = document.getElementById('instaPreviewB');
+    const lElem = document.getElementById('instaPreviewL');
+    const wElem = document.getElementById('instaPreviewW');
+    const boxElem = document.getElementById('productPreviewInstaBox');
+
+    if (pElem) pElem.textContent = 'Price: ' + (price || '--');
+    if (bElem) bElem.textContent = chestLabel + bStr;
+    if (lElem) lElem.textContent = lengthLabel + lStr;
+    if (wElem) wElem.textContent = waistLabel + wStr;
+    if (boxElem) boxElem.classList.remove('d-none');
+};
+
+window.openProductPreview = function(imgSrc, title, price, sizes) {
     if (!imgSrc) return;
+    window.currentPreviewImgSrc = imgSrc;
+    window.currentPreviewTitle = title || 'product';
+    window.currentPreviewPrice = price || '';
+    window.currentPreviewSizes = sizes || [];
+
     const modalElem = document.getElementById('productPreviewModal');
     const imgElem = document.getElementById('productPreviewModalImg');
     const titleElem = document.getElementById('productPreviewModalLabel');
@@ -303,14 +485,142 @@ window.openProductPreview = function(imgSrc, title) {
         const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-main-image') + '.jpg';
         downloadBtn.setAttribute('download', cleanFileName);
     }
+
+    window.updateInstaPreviewBox(price, sizes);
+
     if (modalElem) {
-        const modalInstance = new bootstrap.Modal(modalElem);
+        modalElem.scrollTop = 0;
+        let modalInstance = bootstrap.Modal.getInstance(modalElem);
+        if (!modalInstance) {
+            modalInstance = new bootstrap.Modal(modalElem);
+        }
         modalInstance.show();
     }
 };
+
+window.downloadInstagramImage = function() {
+    const imgSrc = window.currentPreviewImgSrc;
+    const price = window.currentPreviewPrice || '';
+    const sizes = window.currentPreviewSizes || [];
+    const title = window.currentPreviewTitle || 'product';
+    const format = window.getInstaOverlayFormat();
+
+    if (!imgSrc) {
+        alert('No image available to download.');
+        return;
+    }
+
+    let bVals = [], lVals = [], wVals = [];
+    if (Array.isArray(sizes)) {
+        sizes.forEach(sz => {
+            if (sz.chest) bVals.push(sz.chest);
+            if (sz.length) lVals.push(sz.length);
+            if (sz.waist) wVals.push(sz.waist);
+        });
+    }
+
+    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '-';
+    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '-';
+    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '-';
+
+    const chestLabel = (format === 'full') ? 'Chest: ' : 'C: ';
+    const lengthLabel = (format === 'full') ? 'Length: ' : 'L: ';
+    const waistLabel = (format === 'full') ? 'Waist: ' : 'W: ';
+
+    const lines = [];
+    if (price) lines.push('Price: ' + price);
+    lines.push(chestLabel + bStr);
+    lines.push(lengthLabel + lStr);
+    lines.push(waistLabel + wStr);
+
+    const btn = document.getElementById('productPreviewModalInstaBtn');
+    const originalBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+        try {
+            const canvas = document.createElement('canvas');
+            const w = img.naturalWidth || img.width || 800;
+            const h = img.naturalHeight || img.height || 1000;
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const scale = Math.max(w, h) / 800;
+            const fontSize = Math.max(15, Math.round(20 * scale));
+            const lineHeight = Math.round(fontSize * 1.35);
+            const paddingX = Math.max(12, Math.round(18 * scale));
+            const paddingY = Math.max(10, Math.round(14 * scale));
+            const margin = Math.max(15, Math.round(22 * scale));
+            const borderRadius = Math.max(6, Math.round(10 * scale));
+
+            ctx.font = 'bold ' + fontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            let maxLineWidth = 0;
+            lines.forEach(line => {
+                const lw = ctx.measureText(line).width;
+                if (lw > maxLineWidth) maxLineWidth = lw;
+            });
+
+            const boxWidth = maxLineWidth + (paddingX * 2);
+            const boxHeight = (lines.length * lineHeight) + (paddingY * 1.5);
+            const x = margin;
+            const y = margin;
+
+            // Draw Black Rounded Box
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(x, y, boxWidth, boxHeight, borderRadius);
+            } else {
+                ctx.rect(x, y, boxWidth, boxHeight);
+            }
+            ctx.fill();
+
+            // Draw White Text
+            ctx.fillStyle = '#ffffff';
+            ctx.textBaseline = 'top';
+            lines.forEach((line, index) => {
+                ctx.fillText(line, x + paddingX, y + paddingY + (index * lineHeight));
+            });
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            const cleanName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product') + '-instagram.jpg';
+            a.download = cleanName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (err) {
+            console.error('Canvas export error:', err);
+            alert('Could not generate Instagram download image.');
+        } finally {
+            if (btn) btn.innerHTML = originalBtnHtml;
+        }
+    };
+    img.onerror = function() {
+        if (btn) btn.innerHTML = originalBtnHtml;
+        alert('Failed to load image for Instagram download.');
+    };
+    img.src = imgSrc;
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+    const savedFormat = window.getInstaOverlayFormat();
+    if (savedFormat === 'full') {
+        const fullRadio = document.getElementById('instaFormatFull');
+        if (fullRadio) fullRadio.checked = true;
+    } else {
+        const shortRadio = document.getElementById('instaFormatShort');
+        if (shortRadio) shortRadio.checked = true;
+    }
+
     const desktopContainer = document.getElementById('products-table-scroll-container');
-    const mobileContainer = document.getElementById('products-mobile-cards-container');
     const loadingSpinner = document.getElementById('infinite-scroll-loading');
     const noMoreNotice = document.getElementById('infinite-scroll-end');
     
@@ -322,6 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const productsTbody = document.getElementById('products-desktop-tbody');
+
     if (productsTbody) {
         productsTbody.addEventListener('change', function(event) {
             const toggle = event.target.closest('.product-status-toggle');
@@ -340,7 +651,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(({ response, data }) => {
                 if (!response.ok || !data.success) throw new Error(data.message || 'Could not update product status.');
                 toggle.checked = data.status === 'active';
-                toggle.closest('.form-check').title = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                if (toggle.closest('.form-check')) {
+                    toggle.closest('.form-check').title = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                }
             })
             .catch(error => {
                 toggle.checked = previousState;
@@ -355,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let isNearBottom = false;
 
-        if (window.innerWidth >= 992 && desktopContainer) {
+        if (desktopContainer) {
             const scrollBottom = desktopContainer.scrollTop + desktopContainer.clientHeight;
             const scrollHeight = desktopContainer.scrollHeight;
             isNearBottom = (scrollHeight - scrollBottom) < 150;
@@ -412,9 +725,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (desktopContainer) {
-        desktopContainer.addEventListener('scroll', checkAndLoadMore);
+        desktopContainer.addEventListener('scroll', checkAndLoadMore, { passive: true });
     }
-    window.addEventListener('scroll', checkAndLoadMore);
+    window.addEventListener('scroll', checkAndLoadMore, { passive: true });
+    window.addEventListener('resize', checkAndLoadMore);
 
     function initOutOfStockToggles() {
         document.querySelectorAll('.out-of-stock-toggle').forEach(function(toggle) {
@@ -447,11 +761,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Un-booking product directly via toggle OFF
                     toggle.disabled = true;
+
                     fetch(url, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-CSRF-TOKEN': csrfToken,
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify({ is_out_of_stock: false, booked_by: '' })
@@ -521,7 +836,7 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
             body: JSON.stringify({ is_out_of_stock: true, booked_by: bookedByVal })

@@ -191,7 +191,7 @@
                 <h6 class="font-serif fw-bold text-dark mb-2">B. Category Display Layout Style</h6>
                 <p class="small text-muted mb-3" style="font-size: 0.76rem;">Choose how categories are formatted and presented to customers on the home page.</p>
                 <div class="row g-1 g-md-3 mb-4">
-                    <div class="col-4 col-md-4">
+                    <div class="col-6 col-md-3">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="grid" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'checked' : '' }}>
                             <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'grid' ? 'active' : '' }}" id="styleCardGrid">
@@ -206,7 +206,7 @@
                         </label>
                     </div>
 
-                    <div class="col-4 col-md-4">
+                    <div class="col-6 col-md-3">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="drawer" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'checked' : '' }}>
                             <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'drawer' ? 'active' : '' }}" id="styleCardDrawer">
@@ -221,7 +221,7 @@
                         </label>
                     </div>
 
-                    <div class="col-4 col-md-4">
+                    <div class="col-6 col-md-3">
                         <label class="w-100 h-100 mb-0">
                             <input type="radio" name="category_display_style" value="horizontal_scroll" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'checked' : '' }}>
                             <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'grid') === 'horizontal_scroll' ? 'active' : '' }}" id="styleCardScroll">
@@ -232,6 +232,18 @@
                                     <h6 class="fw-bold text-dark mb-0 pref-title">Horizontal Scroll</h6>
                                 </div>
                                 <p class="small text-muted mb-0 pref-desc">Linear single-row slider.</p>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="w-100 h-100 mb-0">
+                            <input type="radio" name="category_display_style" value="carousel" class="d-none preference-radio-style" {{ ($categoryDisplayStyle ?? 'carousel') === 'carousel' ? 'checked' : '' }}>
+                            <div class="preference-card p-2 p-md-3 h-100 {{ ($categoryDisplayStyle ?? 'carousel') === 'carousel' ? 'active' : '' }}" id="styleCardCarousel">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="bg-warning text-dark rounded-circle p-2 fs-6 flex-shrink-0 d-none d-md-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="fa-solid fa-images"></i></div>
+                                    <h6 class="fw-bold text-dark mb-0 pref-title">Card Carousel</h6>
+                                </div>
+                                <p class="small text-muted mb-0 pref-desc">Swipeable category cards.</p>
                             </div>
                         </label>
                     </div>

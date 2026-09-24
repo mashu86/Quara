@@ -50,13 +50,7 @@
     </section>
 @endif
 
-@if(($displayOrderBy ?? 'category') === 'product')
-    @include('frontend.partials.home_product_section')
-    @include('frontend.partials.home_category_section')
-@else
-    @include('frontend.partials.home_category_section')
-    @include('frontend.partials.home_product_section')
-@endif
+@include('frontend.partials.home_page_carousels')
 
 <!-- Brand Values Callout -->
 <section class="py-5 bg-light">

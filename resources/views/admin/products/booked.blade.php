@@ -59,7 +59,7 @@
                                     data-preview="{{ json_encode($preview) }}" data-details-id="booked-product-details-{{ $product->id }}"
                                     aria-label="Preview {{ $product->name }}" title="View product image and details">
                                     <img src="{{ $product->primary_image_url }}" alt="" loading="lazy" width="44" height="54" class="d-block" style="object-fit: cover;">
-                                    <span class="position-absolute bottom-0 start-0 w-100 text-white text-center" style="background: rgba(0,0,0,.65); font-size: .7rem;">
+                                    <span class="position-absolute top-50 start-50 translate-middle rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 26px; height: 26px; background: rgba(0,0,0,.65); font-size: .7rem;">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                     </span>
                                 </button>

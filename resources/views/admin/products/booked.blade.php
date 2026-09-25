@@ -47,7 +47,43 @@
                     <tr>
                         <td class="ps-3" style="min-width: 200px;">
                             <div class="d-flex align-items-center gap-2">
-                                <img src="{{ $product->primary_image_url }}" alt="" loading="lazy" width="44" height="54" class="rounded flex-shrink-0" style="object-fit: cover;">
+                                @php
+                                    $preview = [
+                                        'image' => $product->primary_image_url,
+                                        'name' => $product->name,
+                                        'price' => '₹' . number_format($product->final_price, 0),
+                                        'sizes' => $product->sizes->map->only(['size', 'stock', 'chest', 'waist', 'length'])->values(),
+                                    ];
+                                @endphp
+                                <button type="button" class="booked-product-preview position-relative rounded border-0 p-0 flex-shrink-0 overflow-hidden"
+                                    data-preview="{{ json_encode($preview) }}" data-details-id="booked-product-details-{{ $product->id }}"
+                                    aria-label="Preview {{ $product->name }}" title="View product image and details">
+                                    <img src="{{ $product->primary_image_url }}" alt="" loading="lazy" width="44" height="54" class="d-block" style="object-fit: cover;">
+                                    <span class="position-absolute bottom-0 start-0 w-100 text-white text-center" style="background: rgba(0,0,0,.65); font-size: .7rem;">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </span>
+                                </button>
+                                <template id="booked-product-details-{{ $product->id }}">
+                                    <h6 class="fw-bold mb-1">{{ $product->name }}</h6>
+                                    <p class="small text-muted mb-2">{{ $product->category?->name ?? 'Uncategorized' }}</p>
+                                    <p class="fw-bold mb-2">₹{{ number_format($product->final_price, 2) }}</p>
+                                    <p class="small mb-3"><strong>Booked By:</strong> {{ $product->booked_by }}</p>
+                                    @if($product->description)
+                                        <p class="small" style="white-space: pre-line;">{{ strip_tags($product->description) }}</p>
+                                    @endif
+                                    <div class="table-responsive">
+                                        <table class="table table-sm small mb-0">
+                                            <thead><tr><th>Size</th><th>Stock</th><th>Chest</th><th>Waist</th><th>Length</th></tr></thead>
+                                            <tbody>
+                                                @forelse($product->sizes as $size)
+                                                    <tr><td>{{ $size->size }}</td><td>{{ $size->stock }}</td><td>{{ $size->chest ?: '—' }}</td><td>{{ $size->waist ?: '—' }}</td><td>{{ $size->length ?: '—' }}</td></tr>
+                                                @empty
+                                                    <tr><td colspan="5" class="text-muted">No sizes recorded</td></tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
                                 <div>
                                     <a href="{{ route('admin.products.edit', $product) }}" class="fw-semibold text-dark text-decoration-none">{{ $product->name }}</a>
                                     <div class="small text-muted">{{ $product->category?->name ?? 'Uncategorized' }}</div>
@@ -91,4 +127,20 @@
         <div class="card-footer bg-white pt-3">{{ $products->links() }}</div>
     @endif
 </div>
+@include('admin.products.partials.preview-modal', ['showDetails' => true])
+@endsection
+
+@section('scripts')
+<script src="{{ asset('js/admin-product-preview.js') }}"></script>
+<script>
+document.addEventListener('click', function(event) {
+    const button = event.target.closest('.booked-product-preview');
+    if (!button) return;
+
+    const product = JSON.parse(button.dataset.preview);
+    const details = document.getElementById(button.dataset.detailsId);
+    document.getElementById('productPreviewDetails').replaceChildren(details.content.cloneNode(true));
+    window.openProductPreview(product.image, product.name, product.price, product.sizes);
+});
+</script>
 @endsection

@@ -273,16 +273,42 @@
             min-height: 44px;
         }
 
-        .product-share-actions > * {
-            flex: 1 1 0;
-            min-width: 0;
+        .product-share-actions {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 0.4rem !important;
+            width: 100% !important;
+        }
+
+        .product-share-actions .product-share-btn {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            height: 42px !important;
+            padding: 0 !important;
+            border-radius: 50px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1.15rem !important;
         }
 
         .product-share-actions .product-share-label {
-            display: inline !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: none !important;
+        }
+
+        @media (min-width: 576px) {
+            .product-share-actions .product-share-btn {
+                padding: 0.4rem 0.8rem !important;
+                font-size: 0.82rem !important;
+            }
+
+            .product-share-actions .product-share-label {
+                display: inline !important;
+                white-space: nowrap;
+            }
         }
 
         .product-related-section {
@@ -307,10 +333,6 @@
     @media (max-width: 359.98px) {
         #sizeButtonGroup {
             grid-template-columns: 1fr;
-        }
-
-        .product-share-actions {
-            flex-direction: column;
         }
     }
 </style>
@@ -546,7 +568,7 @@
 
 
 
-                <!-- Share Product & WhatsApp Inquiry -->
+                <!-- Share Product & WhatsApp Inquiry / QR Scanner -->
                 @php
                     $waNumber = $whatsapp ? $whatsapp->phone_number : '8078037591';
                     $productUrl = route('product.detail', $product->slug);
@@ -557,29 +579,70 @@
                     $waShareUrl = "https://api.whatsapp.com/send?text=" . $shareText . "%20" . rawurlencode($productUrl);
                 @endphp
                 <div class="mt-auto pt-3 border-top">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="fw-bold small text-muted text-uppercase tracking-wider">
-                            <i class="fa-solid fa-share-nodes me-1 text-gold"></i> Share This Product
+                    <div class="d-flex align-items-center justify-content-between mb-2.5">
+                        <span class="fw-bold small text-muted text-uppercase tracking-wider" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-share-nodes me-1 text-gold"></i> Share & Connect
                         </span>
                         <span id="copyToast" class="badge bg-success d-none small">
                             <i class="fa-solid fa-check me-1"></i> Link Copied!
                         </span>
                     </div>
                     
-                    <div class="d-flex gap-2 mb-2 product-share-actions justify-content-center text-center">
-                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill font-semibold py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center text-center gap-1 w-100" title="Share on WhatsApp">
+                    <!-- Responsive Share Action Bar (Icon-only on Mobile, Full Pills on Desktop) -->
+                    <div class="d-flex align-items-center justify-content-between gap-2 product-share-actions">
+                        <!-- 1. WhatsApp Share -->
+                        <a href="{{ $waShareUrl }}" target="_blank" class="btn btn-success rounded-pill py-2 px-3 btn-sm text-white shadow-sm d-flex align-items-center justify-content-center text-center gap-1.5 flex-fill product-share-btn" title="Share on WhatsApp">
                             <i class="fa-brands fa-whatsapp fs-5"></i>
-                            <span class="product-share-label"><span class="d-none d-sm-inline">Share on </span>WhatsApp</span>
+                            <span class="product-share-label d-none d-sm-inline">WhatsApp</span>
                         </a>
-                        <button type="button" onclick="shareProductLink('{{ $productUrl }}', '{{ addslashes($product->name) }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center justify-content-center text-center gap-1 w-100" title="Copy Link">
-                            <i class="fa-solid fa-link text-gold"></i>
-                            <span class="product-share-label">Copy Link</span>
-                        </button>
-                    </div>
 
-                    <a href="{{ $waInquiryUrl }}" target="_blank" class="btn btn-light text-muted border w-100 rounded-pill font-semibold py-2 btn-sm">
-                        <i class="fa-brands fa-whatsapp text-success me-2"></i> Inquiry via WhatsApp
-                    </a>
+                        <!-- 2. Direct Copy Link -->
+                        <button type="button" onclick="copyDirectProductLink('{{ $productUrl }}')" class="btn btn-outline-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center justify-content-center text-center gap-1.5 flex-fill product-share-btn" title="Copy Link directly">
+                            <i class="fa-solid fa-link text-gold fs-6"></i>
+                            <span class="product-share-label d-none d-sm-inline">Copy Link</span>
+                        </button>
+
+                        <!-- 3. QR Code Scanner Modal Trigger -->
+                        <button type="button" data-bs-toggle="modal" data-bs-target="#productQrModal" class="btn btn-dark rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center justify-content-center text-center gap-1.5 flex-fill product-share-btn" title="Product QR Code Scanner">
+                            <i class="fa-solid fa-qrcode text-warning fs-6"></i>
+                            <span class="product-share-label d-none d-sm-inline">QR Code</span>
+                        </button>
+
+                        <!-- 4. WhatsApp Inquiry -->
+                        <a href="{{ $waInquiryUrl }}" target="_blank" class="btn btn-light text-muted border rounded-pill px-3 py-2 btn-sm font-semibold d-flex align-items-center justify-content-center text-center gap-1.5 flex-fill product-share-btn" title="Inquiry via WhatsApp">
+                            <i class="fa-brands fa-whatsapp text-success fs-6"></i>
+                            <span class="product-share-label d-none d-sm-inline">Inquiry</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product QR Code Modal -->
+    <div class="modal fade" id="productQrModal" tabindex="-1" aria-labelledby="productQrModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4 text-center overflow-hidden">
+                <div class="modal-header bg-dark text-white py-2.5 px-3">
+                    <h5 class="modal-title font-serif fw-bold fs-6 d-flex align-items-center gap-2 mb-0" id="productQrModalLabel">
+                        <i class="fa-solid fa-qrcode text-warning"></i> Product QR Code
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light d-flex flex-column align-items-center justify-content-center">
+                    <div class="p-3 bg-white rounded-4 shadow-sm border mb-3">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($productUrl) }}" alt="Product QR Code" class="img-fluid rounded-3" style="width: 200px; height: 200px; object-fit: contain;">
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1 text-truncate w-100 px-2" style="font-size: 0.90rem;">{{ $product->name }}</h6>
+                    <div class="fw-bold text-gold small mb-2">₹{{ number_format($product->final_price, 2) }}</div>
+                    <p class="text-muted extra-small mb-0" style="font-size: 0.72rem; max-width: 220px;">
+                        Scan this QR code with any smartphone camera to view this product page directly.
+                    </p>
+                </div>
+                <div class="modal-footer bg-white border-top py-2 px-3 justify-content-center">
+                    <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-4 fw-bold" onclick="copyDirectProductLink('{{ $productUrl }}')">
+                        <i class="fa-solid fa-link me-1 text-gold"></i> Copy Product Link
+                    </button>
                 </div>
             </div>
         </div>
@@ -736,30 +799,40 @@
         }
     });
 
-    function shareProductLink(url, title) {
-        if (navigator.share) {
-            navigator.share({
-                title: title + ' - ' + @js($siteName),
-                text: 'Check out ' + title + ' on ' + @js($siteName) + '!',
-                url: url
+    function copyDirectProductLink(url) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url).then(() => {
+                showCopyToast();
             }).catch(() => {
-                copyToClipboard(url);
+                fallbackCopyText(url);
             });
         } else {
-            copyToClipboard(url);
+            fallbackCopyText(url);
         }
     }
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            const toast = document.getElementById('copyToast');
-            if (toast) {
-                toast.classList.remove('d-none');
-                setTimeout(() => toast.classList.add('d-none'), 2500);
-            } else {
-                alert('Product link copied to clipboard!');
-            }
-        });
+    function fallbackCopyText(text) {
+        try {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showCopyToast();
+        } catch(e) {
+            alert('Product link: ' + text);
+        }
+    }
+
+    function showCopyToast() {
+        const toast = document.getElementById('copyToast');
+        if (toast) {
+            toast.classList.remove('d-none');
+            setTimeout(() => toast.classList.add('d-none'), 2200);
+        } else {
+            alert('Product link copied!');
+        }
     }
 
     function convertInchStringToCm(str) {

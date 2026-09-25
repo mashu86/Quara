@@ -295,30 +295,18 @@
     </div>
 </div>
 
-<!-- Instagram Overlay Measurement Format Option Bar -->
+<!-- Instagram Overlay Measurement Format Header & Settings Button -->
 <div class="card border-0 rounded-4 shadow-sm mb-3 overflow-hidden" style="max-width: 100%;">
-    <div class="card-body py-2.5 px-3 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2.5">
+    <div class="card-body py-2.5 px-3 d-flex align-items-center justify-content-between gap-2.5">
         <div class="d-flex align-items-center gap-2" style="max-width: 100%;">
             <span class="badge bg-dark text-white p-2 rounded-circle flex-shrink-0"><i class="fa-brands fa-instagram text-warning fs-6"></i></span>
             <div class="min-w-0">
-                <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.82rem;">Instagram Image Measurement Label Format</h6>
-                <p class="text-muted extra-small mb-0" style="font-size: 0.70rem;">Select measurement display format for Instagram download posts</p>
+                <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.84rem;">Instagram Image Measurement Label Settings</h6>
             </div>
         </div>
-        <div class="d-flex align-items-center flex-wrap gap-2 bg-light px-3 py-2 rounded-3 rounded-md-pill border w-100 w-md-auto justify-content-start justify-content-md-end">
-            <div class="form-check form-check-inline mb-0 me-2">
-                <input class="form-check-input cursor-pointer" type="radio" name="insta_format_setting" id="instaFormatShort" value="short" checked onchange="setInstaOverlayFormat('short')">
-                <label class="form-check-label fw-bold small text-dark cursor-pointer" for="instaFormatShort" style="font-size: 0.78rem;">
-                    Short Format (C, L, W)
-                </label>
-            </div>
-            <div class="form-check form-check-inline mb-0 me-0">
-                <input class="form-check-input cursor-pointer" type="radio" name="insta_format_setting" id="instaFormatFull" value="full" onchange="setInstaOverlayFormat('full')">
-                <label class="form-check-label fw-bold small text-dark cursor-pointer" for="instaFormatFull" style="font-size: 0.78rem;">
-                    Full Format (Chest, Length, Waist)
-                </label>
-            </div>
-        </div>
+        <button type="button" class="btn btn-dark rounded-pill btn-sm px-3 py-1.5 fw-bold text-nowrap shadow-sm d-flex align-items-center gap-1.5" data-bs-toggle="offcanvas" data-bs-target="#instaSettingsDrawer" style="font-size: 0.78rem;" title="Configure Instagram Image Measurement Label Settings">
+            <i class="fa-solid fa-gear text-warning"></i> <span>Settings</span>
+        </button>
     </div>
 </div>
 
@@ -410,61 +398,339 @@
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
                 
                 <!-- Live Instagram Overlay Box Preview -->
-                <div id="productPreviewInstaBox" class="position-absolute top-0 start-0 m-2.5 m-sm-3 p-2 p-sm-2.5 bg-black text-white rounded-3 shadow text-start border border-secondary d-none" style="z-index: 10; font-size: 0.75rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.92;">
-                    <div class="fw-bold text-warning" id="instaPreviewPrice">Price: --</div>
-                    <div class="fw-bold text-white" id="instaPreviewB">B: --</div>
-                    <div class="fw-bold text-white" id="instaPreviewL">L: --</div>
-                    <div class="fw-bold text-white" id="instaPreviewW">W: --</div>
+                <div id="productPreviewInstaBox" class="position-absolute p-2.5 rounded-3 shadow text-start d-none" style="z-index: 10; font-size: 0.75rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.94; border: 1px solid rgba(255,255,255,0.25);">
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Instagram Overlay Settings Offcanvas Drawer -->
+<div class="offcanvas offcanvas-end rounded-start-4 border-0 shadow-lg" tabindex="-1" id="instaSettingsDrawer" aria-labelledby="instaSettingsDrawerLabel" style="width: 390px; max-width: 92vw;">
+    <div class="offcanvas-header bg-dark text-white p-3">
+        <h5 class="offcanvas-title font-serif fw-bold fs-6 d-flex align-items-center gap-2 mb-0" id="instaSettingsDrawerLabel">
+            <i class="fa-brands fa-instagram text-warning fs-5"></i> Instagram Label Settings
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-3.5">
+        <!-- 1. Display Format -->
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-list-check text-warning"></i> Display Format
+            </label>
+            <div class="d-flex flex-column gap-2">
+                <div class="form-check custom-radio-card p-2.5 rounded-3 border bg-light cursor-pointer">
+                    <input class="form-check-input mt-1 cursor-pointer" type="radio" name="insta_drawer_format" id="instaFormatPriceCWL" value="price_cwl" onchange="updateInstaSettingFromDrawer('format', 'price_cwl')">
+                    <label class="form-check-label cursor-pointer w-100" for="instaFormatPriceCWL">
+                        <strong class="d-block text-dark small">1) Price, C, W, L</strong>
+                        <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows Price line followed by C, W, L lines.</span>
+                    </label>
+                </div>
+                <div class="form-check custom-radio-card p-2.5 rounded-3 border bg-light cursor-pointer">
+                    <input class="form-check-input mt-1 cursor-pointer" type="radio" name="insta_drawer_format" id="instaFormatPriceCWLS" value="price_cwl_size" onchange="updateInstaSettingFromDrawer('format', 'price_cwl_size')">
+                    <label class="form-check-label cursor-pointer w-100" for="instaFormatPriceCWLS">
+                        <strong class="d-block text-dark small">2) Price, C, W, L and Size</strong>
+                        <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows Price, C, W, L and available Size list.</span>
+                    </label>
+                </div>
+                <div class="form-check custom-radio-card p-2.5 rounded-3 border bg-light cursor-pointer">
+                    <input class="form-check-input mt-1 cursor-pointer" type="radio" name="insta_drawer_format" id="instaFormatSizePriceOnly" value="size_price_only" onchange="updateInstaSettingFromDrawer('format', 'size_price_only')">
+                    <label class="form-check-label cursor-pointer w-100" for="instaFormatSizePriceOnly">
+                        <strong class="d-block text-dark small">3) Size and Price only (no C, W, L)</strong>
+                        <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows only Price and Size line (hides C, W, L).</span>
+                    </label>
+                </div>
+                <div class="form-check custom-radio-card p-2.5 rounded-3 border bg-light cursor-pointer">
+                    <input class="form-check-input mt-1 cursor-pointer" type="radio" name="insta_drawer_format" id="instaFormatAutoFallback" value="auto_fallback" onchange="updateInstaSettingFromDrawer('format', 'auto_fallback')">
+                    <label class="form-check-label cursor-pointer w-100" for="instaFormatAutoFallback">
+                        <strong class="d-block text-dark small">4) Auto (Size & Price only if C, W, L blank)</strong>
+                        <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows C, W, L if values exist, else automatically falls back to Size & Price only.</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- 2. Measurement Form (Short or Full) -->
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-font text-warning"></i> Label Style (Form)
+            </label>
+            <div class="row g-2">
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_form" id="instaFormShort" value="short" autocomplete="off" onchange="updateInstaSettingFromDrawer('form', 'short')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-bold d-flex flex-column align-items-center" for="instaFormShort">
+                        <span style="font-size: 0.80rem;">Short</span>
+                        <span class="text-muted font-monospace" style="font-size: 0.68rem;">(C, W, L)</span>
+                    </label>
+                </div>
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_form" id="instaFormFull" value="full" autocomplete="off" onchange="updateInstaSettingFromDrawer('form', 'full')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-bold d-flex flex-column align-items-center" for="instaFormFull">
+                        <span style="font-size: 0.80rem;">Full</span>
+                        <span class="text-muted" style="font-size: 0.68rem;">(Chest, Waist, Length)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- 3. Background Color -->
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-fill-drip text-warning me-1"></i> Background Color</span>
+                <span class="text-muted font-monospace extra-small" id="instaBgHexVal">#000000</span>
+            </label>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" class="form-control form-control-color rounded-3 border cursor-pointer" id="instaBgColorPicker" value="#000000" style="width: 44px; height: 38px;" onchange="updateInstaSettingFromDrawer('bgColor', this.value)">
+                <input type="text" class="form-control rounded-3 font-monospace small" id="instaBgColorText" value="#000000" placeholder="#000000" oninput="updateInstaSettingFromDrawer('bgColor', this.value)">
+            </div>
+            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small bg-black text-white" onclick="setPresetColor('bgColor', '#000000')">Black</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-white" style="background: #1f2937;" onclick="setPresetColor('bgColor', '#1f2937')">Dark Gray</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-white" style="background: #0f172a;" onclick="setPresetColor('bgColor', '#0f172a')">Navy</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-white" style="background: #3b0764;" onclick="setPresetColor('bgColor', '#3b0764')">Purple</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small bg-white text-dark" onclick="setPresetColor('bgColor', '#ffffff')">White</button>
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- 4. Text Color -->
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-palette text-warning me-1"></i> Text Color</span>
+                <span class="text-muted font-monospace extra-small" id="instaTextHexVal">#ffffff</span>
+            </label>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" class="form-control form-control-color rounded-3 border cursor-pointer" id="instaTextColorPicker" value="#ffffff" style="width: 44px; height: 38px;" onchange="updateInstaSettingFromDrawer('textColor', this.value)">
+                <input type="text" class="form-control rounded-3 font-monospace small" id="instaTextColorText" value="#ffffff" placeholder="#ffffff" oninput="updateInstaSettingFromDrawer('textColor', this.value)">
+            </div>
+            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small bg-white text-dark" onclick="setPresetColor('textColor', '#ffffff')">White</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-dark" style="background: #f59e0b;" onclick="setPresetColor('textColor', '#f59e0b')">Gold</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-dark" style="background: #facc15;" onclick="setPresetColor('textColor', '#facc15')">Yellow</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small text-dark" style="background: #06b6d4;" onclick="setPresetColor('textColor', '#06b6d4')">Cyan</button>
+                <button type="button" class="btn btn-sm border rounded-pill px-2.5 py-1 extra-small bg-black text-white" onclick="setPresetColor('textColor', '#000000')">Black</button>
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- 5. Position -->
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-up-down-left-right text-warning"></i> Box Position
+            </label>
+            <div class="row g-2">
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_position" id="instaPosTopLeft" value="top-left" autocomplete="off" onchange="updateInstaSettingFromDrawer('position', 'top-left')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-semibold extra-small text-start" for="instaPosTopLeft">
+                        ↖ Top-Left
+                    </label>
+                </div>
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_position" id="instaPosTopRight" value="top-right" autocomplete="off" onchange="updateInstaSettingFromDrawer('position', 'top-right')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-semibold extra-small text-start" for="instaPosTopRight">
+                        ↗ Top-Right
+                    </label>
+                </div>
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_position" id="instaPosBottomLeft" value="bottom-left" autocomplete="off" onchange="updateInstaSettingFromDrawer('position', 'bottom-left')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-semibold extra-small text-start" for="instaPosBottomLeft">
+                        ↙ Bottom-Left
+                    </label>
+                </div>
+                <div class="col-6">
+                    <input type="radio" class="btn-check" name="insta_drawer_position" id="instaPosBottomRight" value="bottom-right" autocomplete="off" onchange="updateInstaSettingFromDrawer('position', 'bottom-right')">
+                    <label class="btn btn-outline-dark btn-sm w-100 rounded-3 py-2 fw-semibold extra-small text-start" for="instaPosBottomRight">
+                        ↘ Bottom-Right
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas-footer p-3 bg-light border-top d-flex align-items-center justify-content-between">
+        <span class="text-success extra-small fw-bold d-none" id="instaSavedNotice"><i class="fa-solid fa-circle-check me-1"></i> Saved!</span>
+        <button type="button" class="btn btn-warning rounded-pill px-4 btn-sm fw-bold ms-auto" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" data-bs-dismiss="offcanvas">
+            <i class="fa-solid fa-check me-1"></i> Done & Apply
+        </button>
     </div>
 </div>
 @endsection
 
 @section('scripts')
 <script>
-window.getInstaOverlayFormat = function() {
-    return localStorage.getItem('insta_overlay_format') || 'short';
+const DEFAULT_INSTA_SETTINGS = {
+    format: 'price_cwl', // 'price_cwl', 'price_cwl_size', 'size_price_only', 'auto_fallback'
+    form: 'short', // 'short', 'full'
+    bgColor: '#000000',
+    textColor: '#ffffff',
+    position: 'top-left' // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
 };
 
-window.setInstaOverlayFormat = function(format) {
-    localStorage.setItem('insta_overlay_format', format);
+window.getInstaSettings = function() {
+    try {
+        const raw = localStorage.getItem('insta_label_settings_v2');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return Object.assign({}, DEFAULT_INSTA_SETTINGS, parsed);
+        }
+        const legacyFormat = localStorage.getItem('insta_overlay_format');
+        if (legacyFormat === 'full') {
+            DEFAULT_INSTA_SETTINGS.form = 'full';
+        }
+    } catch(e) {}
+    return Object.assign({}, DEFAULT_INSTA_SETTINGS);
+};
+
+window.saveInstaSettings = function(settings) {
+    localStorage.setItem('insta_label_settings_v2', JSON.stringify(settings));
     if (window.currentPreviewImgSrc) {
         window.updateInstaPreviewBox(window.currentPreviewPrice, window.currentPreviewSizes);
     }
 };
 
-window.updateInstaPreviewBox = function(price, sizes) {
-    const format = window.getInstaOverlayFormat();
-    let bVals = [], lVals = [], wVals = [];
+window.updateInstaSettingFromDrawer = function(key, val) {
+    if (!val) return;
+    const settings = window.getInstaSettings();
+    settings[key] = val;
+    window.saveInstaSettings(settings);
+    window.syncInstaSettingsUI(settings);
+    
+    const notice = document.getElementById('instaSavedNotice');
+    if (notice) {
+        notice.classList.remove('d-none');
+        setTimeout(() => notice.classList.add('d-none'), 1800);
+    }
+};
+
+window.setPresetColor = function(key, hex) {
+    window.updateInstaSettingFromDrawer(key, hex);
+};
+
+window.syncInstaSettingsUI = function(settings) {
+    const s = settings || window.getInstaSettings();
+    
+    const formatRadio = document.querySelector(`input[name="insta_drawer_format"][value="${s.format}"]`);
+    if (formatRadio) formatRadio.checked = true;
+
+    const formRadio = document.querySelector(`input[name="insta_drawer_form"][value="${s.form}"]`);
+    if (formRadio) formRadio.checked = true;
+
+    const posRadio = document.querySelector(`input[name="insta_drawer_position"][value="${s.position}"]`);
+    if (posRadio) posRadio.checked = true;
+
+    const bgPicker = document.getElementById('instaBgColorPicker');
+    const bgText = document.getElementById('instaBgColorText');
+    const bgHex = document.getElementById('instaBgHexVal');
+    if (bgPicker) bgPicker.value = s.bgColor;
+    if (bgText && document.activeElement !== bgText) bgText.value = s.bgColor;
+    if (bgHex) bgHex.textContent = s.bgColor;
+
+    const textPicker = document.getElementById('instaTextColorPicker');
+    const textText = document.getElementById('instaTextColorText');
+    const textHex = document.getElementById('instaTextHexVal');
+    if (textPicker) textPicker.value = s.textColor;
+    if (textText && document.activeElement !== textText) textText.value = s.textColor;
+    if (textHex) textHex.textContent = s.textColor;
+};
+
+window.buildInstaTextLines = function(price, sizes, settings) {
+    let bVals = [], lVals = [], wVals = [], sizeNames = [];
     if (Array.isArray(sizes)) {
         sizes.forEach(sz => {
             if (sz.chest) bVals.push(sz.chest);
             if (sz.length) lVals.push(sz.length);
             if (sz.waist) wVals.push(sz.waist);
+            if (sz.size) sizeNames.push(sz.size);
         });
     }
 
-    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '-';
-    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '-';
-    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '-';
+    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '';
+    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '';
+    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '';
+    const sizeStr = sizeNames.length ? [...new Set(sizeNames)].join(', ') : '';
 
-    const chestLabel = (format === 'full') ? 'Chest: ' : 'C: ';
-    const lengthLabel = (format === 'full') ? 'Length: ' : 'L: ';
-    const waistLabel = (format === 'full') ? 'Waist: ' : 'W: ';
+    const hasChest = bStr !== '';
+    const hasLength = lStr !== '';
+    const hasWaist = wStr !== '';
+    const hasMeasurements = hasChest || hasLength || hasWaist;
 
-    const pElem = document.getElementById('instaPreviewPrice');
-    const bElem = document.getElementById('instaPreviewB');
-    const lElem = document.getElementById('instaPreviewL');
-    const wElem = document.getElementById('instaPreviewW');
+    let activeFormat = settings.format || 'price_cwl';
+    if (activeFormat === 'auto_fallback') {
+        activeFormat = hasMeasurements ? 'price_cwl' : 'size_price_only';
+    }
+
+    const isFull = settings.form === 'full';
+    const chestLabel = isFull ? 'Chest: ' : 'C: ';
+    const waistLabel = isFull ? 'Waist: ' : 'W: ';
+    const lengthLabel = isFull ? 'Length: ' : 'L: ';
+
+    const lines = [];
+
+    // Line 1: Price
+    lines.push('Price: ' + (price || '--'));
+
+    if (activeFormat === 'size_price_only') {
+        lines.push('Size: ' + (sizeStr || '-'));
+    } else if (activeFormat === 'price_cwl_size') {
+        lines.push(chestLabel + (bStr || '-'));
+        lines.push(waistLabel + (wStr || '-'));
+        lines.push(lengthLabel + (lStr || '-'));
+        lines.push('Size: ' + (sizeStr || '-'));
+    } else { // price_cwl
+        lines.push(chestLabel + (bStr || '-'));
+        lines.push(waistLabel + (wStr || '-'));
+        lines.push(lengthLabel + (lStr || '-'));
+    }
+
+    return lines;
+};
+
+window.updateInstaPreviewBox = function(price, sizes) {
+    const settings = window.getInstaSettings();
+    const lines = window.buildInstaTextLines(price, sizes, settings);
+    
     const boxElem = document.getElementById('productPreviewInstaBox');
+    if (!boxElem) return;
 
-    if (pElem) pElem.textContent = 'Price: ' + (price || '--');
-    if (bElem) bElem.textContent = chestLabel + bStr;
-    if (lElem) lElem.textContent = lengthLabel + lStr;
-    if (wElem) wElem.textContent = waistLabel + wStr;
-    if (boxElem) boxElem.classList.remove('d-none');
+    boxElem.style.top = 'auto';
+    boxElem.style.bottom = 'auto';
+    boxElem.style.left = 'auto';
+    boxElem.style.right = 'auto';
+    boxElem.style.margin = '14px';
+
+    if (settings.position === 'top-right') {
+        boxElem.style.top = '0';
+        boxElem.style.right = '0';
+    } else if (settings.position === 'bottom-left') {
+        boxElem.style.bottom = '0';
+        boxElem.style.left = '0';
+    } else if (settings.position === 'bottom-right') {
+        boxElem.style.bottom = '0';
+        boxElem.style.right = '0';
+    } else { // top-left
+        boxElem.style.top = '0';
+        boxElem.style.left = '0';
+    }
+
+    boxElem.style.backgroundColor = settings.bgColor || '#000000';
+    boxElem.style.color = settings.textColor || '#ffffff';
+
+    let html = '';
+    lines.forEach((line) => {
+        const isPriceLine = line.toLowerCase().startsWith('price');
+        const lineStyle = isPriceLine ? 'font-weight: 800; font-size: 0.82rem; margin-bottom: 2px;' : 'font-weight: 600; opacity: 0.95;';
+        html += `<div style="${lineStyle}">${line}</div>`;
+    });
+
+    boxElem.innerHTML = html;
+    boxElem.classList.remove('d-none');
 };
 
 window.openProductPreview = function(imgSrc, title, price, sizes) {
@@ -503,35 +769,14 @@ window.downloadInstagramImage = function() {
     const price = window.currentPreviewPrice || '';
     const sizes = window.currentPreviewSizes || [];
     const title = window.currentPreviewTitle || 'product';
-    const format = window.getInstaOverlayFormat();
+    const settings = window.getInstaSettings();
 
     if (!imgSrc) {
         alert('No image available to download.');
         return;
     }
 
-    let bVals = [], lVals = [], wVals = [];
-    if (Array.isArray(sizes)) {
-        sizes.forEach(sz => {
-            if (sz.chest) bVals.push(sz.chest);
-            if (sz.length) lVals.push(sz.length);
-            if (sz.waist) wVals.push(sz.waist);
-        });
-    }
-
-    const bStr = bVals.length ? [...new Set(bVals)].join(', ') : '-';
-    const lStr = lVals.length ? [...new Set(lVals)].join(', ') : '-';
-    const wStr = wVals.length ? [...new Set(wVals)].join(', ') : '-';
-
-    const chestLabel = (format === 'full') ? 'Chest: ' : 'C: ';
-    const lengthLabel = (format === 'full') ? 'Length: ' : 'L: ';
-    const waistLabel = (format === 'full') ? 'Waist: ' : 'W: ';
-
-    const lines = [];
-    if (price) lines.push('Price: ' + price);
-    lines.push(chestLabel + bStr);
-    lines.push(lengthLabel + lStr);
-    lines.push(waistLabel + wStr);
+    const lines = window.buildInstaTextLines(price, sizes, settings);
 
     const btn = document.getElementById('productPreviewModalInstaBtn');
     const originalBtnHtml = btn ? btn.innerHTML : '';
@@ -555,7 +800,7 @@ window.downloadInstagramImage = function() {
             const lineHeight = Math.round(fontSize * 1.35);
             const paddingX = Math.max(12, Math.round(18 * scale));
             const paddingY = Math.max(10, Math.round(14 * scale));
-            const margin = Math.max(15, Math.round(22 * scale));
+            const margin = Math.max(18, Math.round(26 * scale));
             const borderRadius = Math.max(6, Math.round(10 * scale));
 
             ctx.font = 'bold ' + fontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -568,11 +813,25 @@ window.downloadInstagramImage = function() {
 
             const boxWidth = maxLineWidth + (paddingX * 2);
             const boxHeight = (lines.length * lineHeight) + (paddingY * 1.5);
-            const x = margin;
-            const y = margin;
+            
+            let x = margin;
+            let y = margin;
+            if (settings.position === 'top-right') {
+                x = w - boxWidth - margin;
+                y = margin;
+            } else if (settings.position === 'bottom-left') {
+                x = margin;
+                y = h - boxHeight - margin;
+            } else if (settings.position === 'bottom-right') {
+                x = w - boxWidth - margin;
+                y = h - boxHeight - margin;
+            } else { // top-left
+                x = margin;
+                y = margin;
+            }
 
-            // Draw Black Rounded Box
-            ctx.fillStyle = '#000000';
+            // Draw Background Box
+            ctx.fillStyle = settings.bgColor || '#000000';
             ctx.beginPath();
             if (ctx.roundRect) {
                 ctx.roundRect(x, y, boxWidth, boxHeight, borderRadius);
@@ -581,8 +840,8 @@ window.downloadInstagramImage = function() {
             }
             ctx.fill();
 
-            // Draw White Text
-            ctx.fillStyle = '#ffffff';
+            // Draw Text Lines
+            ctx.fillStyle = settings.textColor || '#ffffff';
             ctx.textBaseline = 'top';
             lines.forEach((line, index) => {
                 ctx.fillText(line, x + paddingX, y + paddingY + (index * lineHeight));
@@ -611,14 +870,7 @@ window.downloadInstagramImage = function() {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    const savedFormat = window.getInstaOverlayFormat();
-    if (savedFormat === 'full') {
-        const fullRadio = document.getElementById('instaFormatFull');
-        if (fullRadio) fullRadio.checked = true;
-    } else {
-        const shortRadio = document.getElementById('instaFormatShort');
-        if (shortRadio) shortRadio.checked = true;
-    }
+    window.syncInstaSettingsUI();
 
     const desktopContainer = document.getElementById('products-table-scroll-container');
     const loadingSpinner = document.getElementById('infinite-scroll-loading');

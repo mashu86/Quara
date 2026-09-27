@@ -164,6 +164,25 @@ class BusinessStatisticsTest extends TestCase
                 && $report['startDate'] === '2026-08-28' && count($report['days']) === 1);
     }
 
+    public function test_dashboard_separates_daily_sales_from_refunds_for_earlier_orders(): void
+    {
+        $earlierOrder = $this->order(['sale_date' => '2026-09-11 12:00:00']);
+        $this->order(['grand_total' => 200]);
+        $operation = OrderOperation::forceCreate(['order_id' => $earlierOrder->id, 'status' => 'active']);
+        OrderRefund::create(['order_id' => $earlierOrder->id, 'order_operation_id' => $operation->id,
+            'refund_date' => '2026-09-12', 'refund_amount' => 300]);
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('todayGrossSales', 200)
+            ->assertViewHas('todayRefunds', 300)
+            ->assertViewHas('todaySales', -100)
+            ->assertViewHas('todayOrdersCount', 1)
+            ->assertSee('Actual Today Sale')
+            ->assertSee('Today Refund')
+            ->assertSee('After Today Refund');
+    }
+
     public function test_historical_dashboard_filters_all_financial_cards_and_order_lists_inclusively(): void
     {
         $startOrder = $this->order(['sale_date' => '2026-08-28 00:00:00', 'grand_total' => 100]);
@@ -214,7 +233,7 @@ class BusinessStatisticsTest extends TestCase
             ->assertViewHas('businessStats', fn ($report) => $report['asOfDate'] === '2026-09-10'
                 && $report['endDate'] === '2026-09-10' && $report['businessDays'] === 14
                 && $report['totalSales'] == 600 && abs($report['averageSales'] - 600 / 14) < .001)
-            ->assertSee('Selected Day Sales')->assertSee('value="2026-09-10"', false);
+            ->assertSee('Actual Selected Day Sale')->assertSee('value="2026-09-10"', false);
 
         $this->get(route('admin.dashboard', ['as_of_date' => '2026-09-10', 'period' => 'today', 'metrics_submitted' => 1, 'metrics' => ['sales']]))
             ->assertOk()->assertViewHas('selectedDate', '2026-09-10')

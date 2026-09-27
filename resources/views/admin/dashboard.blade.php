@@ -114,9 +114,25 @@
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Sales</span>
-            <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todaySales, 2) }}</h6>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Actual {{ $dailyLabel }} Sale</span>
+            <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todayGrossSales, 2) }}</h6>
             <span class="admin-dash-stat-sub text-muted">Online & Offline</span>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Refund</span>
+            <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($todayRefunds, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Includes refunds for earlier orders</span>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">After {{ $dailyLabel }} Refund</span>
+            <h6 class="admin-dash-stat-val fw-bold {{ $todaySales < 0 ? 'text-danger' : 'text-success' }}">₹{{ number_format($todaySales, 2) }}</h6>
+            <span class="admin-dash-stat-sub text-muted">Actual sale minus refunds</span>
         </div>
     </div>
 

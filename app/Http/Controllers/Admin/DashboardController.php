@@ -97,7 +97,7 @@ class DashboardController extends Controller
 
         $todayRefunds = (float) (clone $refundsQuery)->whereDate('refund_date', $selectedDate)->sum('refund_amount');
 
-        $todaySales = max(0, $todayGrossSales - $todayRefunds);
+        $todaySales = $todayGrossSales - $todayRefunds;
         
         $todayExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($selectedDate, $selectedDate);
         $todayExpenses = $todayExpensesData['total'];
@@ -186,6 +186,8 @@ class DashboardController extends Controller
             'todaySoldProductsPcs',
             'totalSales',
             'todaySales',
+            'todayGrossSales',
+            'todayRefunds',
             'todayExpenses',
             'todayOrdersCount',
             'todayBookingsCount',

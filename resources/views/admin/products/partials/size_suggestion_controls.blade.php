@@ -10,6 +10,7 @@
                 @foreach($sizeMasters as $master)
                     <option value="{{ $master->id }}" 
                         data-slug="{{ $master->slug }}" 
+                        data-chart="{{ $master->rows->map(fn ($row) => $row->only(['size_label', 'chest', 'waist', 'length']))->toJson() }}"
                         data-name="{{ strtolower($master->name) }}"
                         {{ (old('size_master_id', $product->size_master_id ?? '') == $master->id) ? 'selected' : '' }}>
                         {{ $master->name }} ({{ $master->rows->count() }} size levels)

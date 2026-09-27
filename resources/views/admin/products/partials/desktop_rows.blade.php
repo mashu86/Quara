@@ -99,6 +99,14 @@
                 <label class="visually-hidden" for="productStatusToggle_{{ $product->id }}">{{ ucfirst($product->status) }}</label>
             </div>
         </td>
+        <td class="text-nowrap small">
+            {{ $product->created_at?->format('d M Y') ?? '—' }}
+            <div class="text-muted">{{ $product->created_at?->format('h:i A') }}</div>
+        </td>
+        <td class="text-nowrap small">
+            {{ $product->updated_at?->format('d M Y') ?? '—' }}
+            <div class="text-muted">{{ $product->updated_at?->format('h:i A') }}</div>
+        </td>
         <td class="text-end pe-2 pe-sm-3">
             <div class="d-flex align-items-center justify-content-end gap-2 gap-md-2.5 flex-nowrap">
                 <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm prod-action-btn" title="Edit Product">

@@ -67,20 +67,23 @@
                         </h5>
                         <span class="badge bg-warning text-dark fw-bold px-2.5 py-1" style="font-size: 0.72rem;">GEMINI 1.5 VISION</span>
                     </div>
-                    <p class="text-white-50 small mb-3">Upload a dress photo below and click the Magic Wand button to automatically generate and fill the <strong>Product Name</strong> and <strong>Description</strong>!</p>
+                    <p class="text-white-50 small mb-3">Upload a dress photo and optionally paste the price and measurements, then click Auto Fill Product.</p>
 
                     <div class="row g-2 align-items-center">
-                        <div class="col-md-7">
+                        <div class="col-12">
                             <div class="input-group input-group-sm">
                                 <input type="file" id="aiDressImageInput" class="form-control rounded-start-3 bg-dark text-white border-secondary" accept="image/*" onchange="previewAiDressImage(this)">
                                 <button type="button" class="btn btn-outline-light" onclick="clearAiDressImage()" title="Clear image"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-12">
+                            @include('admin.products.partials.ai_product_notes')
+                        </div>
+                        <div class="col-12">
                             <div class="d-flex gap-2">
-                            <button type="button" id="btnRunAiAssist" class="btn btn-warning flex-grow-1 rounded-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 py-1.5 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;" onclick="triggerAiAutoFill()">
+                            <button type="button" id="btnRunAiAssist" data-url="{{ route('admin.products.ai-auto-fill') }}" class="btn btn-warning flex-grow-1 rounded-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 py-1.5 shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); font-size: 0.82rem;" onclick="triggerAiAutoFill()">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                <span>Auto-Fill Name & Description</span>
+                                <span>Auto Fill Product</span>
                             </button>
                             <button type="button" class="btn btn-outline-light rounded-3" data-bs-toggle="modal" data-bs-target="#geminiApiKeyPickerModal" title="View or change active Google API key" aria-label="View or change active Google API key">
                                 <i class="fa-solid fa-eye"></i>
@@ -360,6 +363,7 @@
 @endsection
 
 @section('scripts')
+<script type="module" src="{{ asset('js/product-auto-fill.js') }}?v={{ filemtime(public_path('js/product-auto-fill.js')) }}"></script>
 <script type="module" src="{{ asset('js/product-size-suggestion.js') }}?v={{ filemtime(public_path('js/product-size-suggestion.js')) }}"></script>
 <script>
     function onOfferCategorySelectChange() {
@@ -730,90 +734,6 @@
         const previewBox = document.getElementById('aiDressPreviewBox');
         if (input) input.value = '';
         if (previewBox) previewBox.classList.add('d-none');
-    }
-
-    function triggerAiAutoFill() {
-        const aiInput = document.getElementById('aiDressImageInput');
-        const mainInput = document.getElementById('mainImageInput');
-        const file = (aiInput && aiInput.files && aiInput.files[0]) || (mainInput && mainInput.files && mainInput.files[0]);
-
-        if (!file) {
-            alert('Please select a dress image first!');
-            if (aiInput) aiInput.click();
-            return;
-        }
-
-        const btn = document.getElementById('btnRunAiAssist');
-        const statusBadge = document.getElementById('aiStatusBadge');
-        const originalBtnHtml = btn.innerHTML;
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Analyzing with AI...';
-        if (statusBadge) {
-            statusBadge.className = 'badge bg-warning text-dark';
-            statusBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-1"></i> Generating Copy...';
-        }
-
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('_token', '{{ csrf_token() }}');
-
-        fetch('{{ route("admin.products.ai-auto-fill") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = originalBtnHtml;
-
-            if (data.success) {
-                if (statusBadge) {
-                    statusBadge.className = 'badge bg-success';
-                    statusBadge.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copy Auto-Filled!';
-                }
-
-                const nameInput = document.querySelector('input[name="name"]');
-                const descTextarea = document.querySelector('textarea[name="description"]');
-
-                if (nameInput && data.name) {
-                    nameInput.value = data.name;
-                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    if (typeof window.autoDetectAndSelectSizeMaster === 'function') {
-                        window.autoDetectAndSelectSizeMaster(data.name);
-                    }
-                    nameInput.style.transition = 'background 0.3s ease';
-                    nameInput.style.backgroundColor = '#fffbe6';
-                    setTimeout(() => nameInput.style.backgroundColor = '', 2500);
-                }
-
-                if (descTextarea && data.description) {
-                    descTextarea.value = data.description;
-                    descTextarea.style.transition = 'background 0.3s ease';
-                    descTextarea.style.backgroundColor = '#fffbe6';
-                    setTimeout(() => descTextarea.style.backgroundColor = '', 2500);
-                }
-            } else {
-                if (statusBadge) {
-                    statusBadge.className = 'badge bg-danger';
-                    statusBadge.innerText = 'Failed';
-                }
-                alert(data.message || 'AI Auto-Fill failed. Please try again.');
-            }
-        })
-        .catch(err => {
-            btn.disabled = false;
-            btn.innerHTML = originalBtnHtml;
-            if (statusBadge) {
-                statusBadge.className = 'badge bg-danger';
-                statusBadge.innerText = 'Error';
-            }
-            alert('An error occurred during AI analysis. Please check your internet connection and Gemini API key.');
-        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

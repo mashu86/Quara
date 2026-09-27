@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
 use App\Models\Setting;
+use App\Models\SizeMaster;
 use App\Services\ImageOptimizerService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
@@ -713,9 +714,13 @@ class ProductController extends Controller
         $geminiKeys = Setting::getGeminiKeysOrdered();
 
         if (empty($geminiKeys)) {
+            $activeStoredKey = GeminiApiKey::where('is_active', true)->first();
+            $message = $activeStoredKey && !empty($activeStoredKey->api_key)
+                ? 'The active Google Gemini API key is saved but cannot be decrypted on this installation. Re-enter the key in Admin > Gemini API Keys and save it as active, then retry Auto Fill Product.'
+                : 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) or Gemini API Keys (/admin/gemini-keys).';
             return response()->json([
                 'success' => false,
-                'message' => 'Google Gemini API Key is not configured. Please enter your Gemini API Key under Master Settings (/admin/settings) or Gemini API Keys (/admin/gemini-keys).'
+                'message' => $message,
             ], 422);
         }
 
@@ -764,13 +769,21 @@ class ProductController extends Controller
 
             $base64Data = base64_encode($fileData);
 
+            $sizeMasterOptions = SizeMaster::whereHas('rows')->orderBy('sort_order')->get(['id', 'name']);
+
             $prompt = implode("\n", [
                 'You are an expert e-commerce fashion copywriter for a ladies fashion shop ("Quara Wardrobe").',
                 'Examine this uploaded dress image in detail.',
-                'Detect garment type (e.g. Abaya, Maxi Dress, Kurti, Salwar Set, Kaftan, Gown, Tops, Saree), color, fabric/material (e.g. Chiffon, Georgette, Silk, Cotton, Rayon), neckline, sleeve style, pattern (floral, printed, embroidered, solid), silhouette & embellishments.',
+                'Always generate both a non-empty product name and a non-empty description from the clothing visible in this image. No price or measurement notes are needed.',
+                'Describe observable details only. Do not invent fabric composition, brand, measurements, care instructions or other properties that cannot be confirmed from the image.',
+                'Detect garment type (e.g. Abaya, Maxi Dress, Kurti, Salwar Set, Kaftan, Gown, Tops, Saree), color, visible texture, neckline, sleeve style, pattern (floral, printed, embroidered, solid), silhouette & embellishments.',
                 'Return ONLY a valid JSON object strictly matching this format:',
-                '{"name": "Short e-commerce title (STRICTLY MAXIMUM 2 TO 4 WORDS ONLY, e.g. Floral Chiffon Maxi Dress)", "description": "Beautiful e-commerce product description written as an elegant 3 to 4 line continuous paragraph of sentences. STRICTLY DO NOT use bullet points, list items, or section headers. Write it purely as a smooth, attractive 3-4 sentence paragraph highlighting fabric, silhouette, fit, and occasion."}',
+                '{"name": "Short e-commerce title (2 TO 4 WORDS ONLY, e.g. Floral Maxi Dress)", "description": "An attractive 3-4 sentence paragraph highlighting the visible garment type, color, pattern, sleeves and silhouette. Do not use bullet points, list items, section headers or unsupported claims."}',
             ]);
+
+            $prompt .= "\nAlso include a size_master_id field in the JSON object. Identify the garment directly from the image and select the most appropriate size master ID from this catalog: "
+                . $sizeMasterOptions->toJson()
+                . '. Category selection is required whenever a suitable catalog entry exists. Use the actual garment type, not just words in the short product title. Return an integer ID from this catalog, never an invented ID. Return null only when no category fits. Do not estimate body measurements or a size label from the photograph.';
 
             $payload = [
                 'contents' => [
@@ -901,7 +914,9 @@ class ProductController extends Controller
 
             $decoded = json_decode($cleanJson, true);
 
-            if (!is_array($decoded) || empty($decoded['name'])) {
+            if (!is_array($decoded)
+                || !is_string($decoded['name'] ?? null) || trim($decoded['name']) === ''
+                || !is_string($decoded['description'] ?? null) || trim($decoded['description']) === '') {
                 return response()->json([
                     'success' => false,
                     'message' => 'AI could not extract dress details from this photo. Please upload a clearer clothing photo.'
@@ -915,6 +930,7 @@ class ProductController extends Controller
                 'success' => true,
                 'name' => $productName,
                 'description' => trim($decoded['description'] ?? ''),
+                'size_master_id' => $sizeMasterOptions->firstWhere('id', $decoded['size_master_id'] ?? null)?->id,
             ]);
         } catch (\Throwable $e) {
             Log::error('AI auto fill error', ['exception' => $e->getMessage()]);

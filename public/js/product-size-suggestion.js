@@ -90,17 +90,17 @@ export async function fetchSizeMasterChart(masterId) {
 // Match closest numeric chest value
 function extractNumber(str) {
     if (str === null || str === undefined) return null;
-    const match = String(str).match(/\d+/);
-    return match ? parseInt(match[0], 10) : null;
+    const match = String(str).match(/\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
 }
 
-export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, masterRows) {
+export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, masterRows, rowLength = '') {
     if (!Array.isArray(masterRows) || masterRows.length === 0) return null;
 
     // 1. Nearest match by chest measurement
     const chestNum = extractNumber(rowChest);
     if (chestNum !== null) {
-        let bestRow = masterRows[0];
+        let bestRow = null;
         let minDiff = Infinity;
         for (const r of masterRows) {
             if (!r) continue;
@@ -119,7 +119,7 @@ export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, mast
     // 2. Nearest match by waist measurement
     const waistNum = extractNumber(rowWaist);
     if (waistNum !== null) {
-        let bestRow = masterRows[0];
+        let bestRow = null;
         let minDiff = Infinity;
         for (const r of masterRows) {
             if (!r) continue;
@@ -135,7 +135,15 @@ export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, mast
         if (bestRow) return bestRow;
     }
 
-    // 3. Exact match by size label
+    // Length-only charts (for example abayas) can still resolve a label.
+    const lengthNum = extractNumber(rowLength);
+    if (lengthNum !== null) {
+        const candidates = masterRows.filter(r => r && extractNumber(r.length) !== null);
+        candidates.sort((a, b) => Math.abs(extractNumber(a.length) - lengthNum) - Math.abs(extractNumber(b.length) - lengthNum));
+        if (candidates.length) return candidates[0];
+    }
+
+    // Exact match by size label
     const cleanSizeLabel = String(rowInputSize || '').trim().toUpperCase();
     if (cleanSizeLabel) {
         const exactMatch = masterRows.find(r => r && r.size_label && String(r.size_label).trim().toUpperCase() === cleanSizeLabel);
@@ -144,6 +152,17 @@ export function findBestMatchingMasterRow(rowInputSize, rowChest, rowWaist, mast
 
     return null;
 }
+
+// Reuse the shop's measurement chart without the manual button's row fallback.
+window.suggestProductNoteSize = async function(row) {
+    const select = document.getElementById('size_master_id_select');
+    const masterId = select?.value;
+    if (!masterId) return null;
+    const embeddedChart = select.selectedOptions[0]?.dataset.chart;
+    const chart = embeddedChart ? { rows: JSON.parse(embeddedChart) } : await fetchSizeMasterChart(masterId);
+    const read = name => row.querySelector(`input[name="${name}[]"], input[name="new_${name}[]"], input[name^="existing_${name}["]`)?.value || '';
+    return findBestMatchingMasterRow('', read('chests'), read('waists'), chart?.rows, read('lengths'))?.size_label || null;
+};
 
 function initializeSizeMasterScript() {
     const nameInput = document.querySelector('input[name="name"]');

@@ -276,14 +276,14 @@
 
 <!-- Instagram Overlay Measurement Format Header & Settings Button -->
 <div class="card border-0 rounded-4 shadow-sm mb-3 overflow-hidden" style="max-width: 100%;">
-    <div class="card-body py-2.5 px-3 d-flex align-items-center justify-content-between gap-2.5">
-        <div class="d-flex align-items-center gap-2" style="max-width: 100%;">
+    <div class="card-body py-3 px-3 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0;">
             <span class="badge bg-dark text-white p-2 rounded-circle flex-shrink-0"><i class="fa-brands fa-instagram text-warning fs-6"></i></span>
-            <div class="min-w-0">
-                <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.84rem;">Instagram Image Measurement Label Settings</h6>
+            <div style="min-width: 0;">
+                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.84rem; line-height: 1.4; overflow-wrap: anywhere;">Instagram Image Measurement Label Settings</h6>
             </div>
         </div>
-        <button type="button" class="btn btn-dark rounded-pill btn-sm px-3 py-1.5 fw-bold text-nowrap shadow-sm d-flex align-items-center gap-1.5" data-bs-toggle="offcanvas" data-bs-target="#instaSettingsDrawer" style="font-size: 0.78rem;" title="Configure Instagram Image Measurement Label Settings">
+        <button type="button" class="btn btn-dark rounded-pill btn-sm px-3 py-2 fw-bold text-nowrap shadow-sm d-flex align-items-center justify-content-center gap-2 flex-shrink-0" data-bs-toggle="offcanvas" data-bs-target="#instaSettingsDrawer" aria-controls="instaSettingsDrawer" style="font-size: 0.78rem; min-height: 44px;" title="Configure Instagram Image Measurement Label Settings">
             <i class="fa-solid fa-gear text-warning"></i> <span>Settings</span>
         </button>
     </div>
@@ -304,6 +304,8 @@
                         <th>Size-wise Stock</th>
                         <th>Booked Stock</th>
                         <th>Active</th>
+                        <th>Created</th>
+                        <th>Updated</th>
                         <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
@@ -312,7 +314,7 @@
                         @include('admin.products.partials.desktop_rows', ['products' => collect([$product])])
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">No products found matching filters.</td>
+                            <td colspan="11" class="text-center py-4 text-muted">No products found matching filters.</td>
                         </tr>
                     @endforelse
                 </tbody>

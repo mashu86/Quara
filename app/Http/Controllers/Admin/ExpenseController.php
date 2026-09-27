@@ -68,11 +68,11 @@ class ExpenseController extends Controller
 
         $generalExpensesQuery = Expense::query();
         if ($startDate && $endDate) {
-            $generalExpensesQuery->whereBetween('expense_date', [$startDate, $endDate]);
+            $generalExpensesQuery->whereDate('expense_date', '>=', $startDate)->whereDate('expense_date', '<=', $endDate);
         } elseif ($startDate) {
-            $generalExpensesQuery->where('expense_date', '>=', $startDate);
+            $generalExpensesQuery->whereDate('expense_date', '>=', $startDate);
         } elseif ($endDate) {
-            $generalExpensesQuery->where('expense_date', '<=', $endDate);
+            $generalExpensesQuery->whereDate('expense_date', '<=', $endDate);
         }
         $generalExpenses = (float) $generalExpensesQuery->sum('amount');
 
@@ -90,11 +90,11 @@ class ExpenseController extends Controller
             $q->where('status', 'active');
         });
         if ($startDate && $endDate) {
-            $refundsQuery->whereBetween('refund_date', [$startDate, $endDate]);
+            $refundsQuery->whereDate('refund_date', '>=', $startDate)->whereDate('refund_date', '<=', $endDate);
         } elseif ($startDate) {
-            $refundsQuery->where('refund_date', '>=', $startDate);
+            $refundsQuery->whereDate('refund_date', '>=', $startDate);
         } elseif ($endDate) {
-            $refundsQuery->where('refund_date', '<=', $endDate);
+            $refundsQuery->whereDate('refund_date', '<=', $endDate);
         }
         $operationRefunds = (float) $refundsQuery->sum('refund_amount');
 

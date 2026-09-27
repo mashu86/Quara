@@ -19,10 +19,18 @@ class DashboardController extends Controller
     public function index(Request $request, BusinessStatistics $businessStatistics)
     {
         $todayStr = Carbon::now('Asia/Kolkata')->toDateString();
+        $businessStartDate = config('business.start_date');
+        $dateFilter = $request->validate([
+            'as_of_date' => 'sometimes|required|date_format:Y-m-d|after_or_equal:'.$businessStartDate.'|before_or_equal:'.$todayStr,
+        ]);
+        $selectedDate = $dateFilter['as_of_date'] ?? $todayStr;
+        $selectedDateLabel = Carbon::parse($selectedDate)->format('d M Y');
+        $dailyLabel = $selectedDate === $todayStr ? 'Today' : 'Selected Day';
+        $orderDateRange = [$businessStartDate.' 00:00:00', $selectedDate.' 23:59:59'];
         $filters = $request->validate([
             'period' => 'sometimes|in:today,all,week,month,range',
-            'start_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:'.config('business.start_date').'|before_or_equal:'.$todayStr,
-            'end_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:start_date|before_or_equal:'.$todayStr,
+            'start_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:'.$businessStartDate.'|before_or_equal:'.$selectedDate,
+            'end_date' => 'exclude_unless:period,range|required|date_format:Y-m-d|after_or_equal:start_date|before_or_equal:'.$selectedDate,
             'metrics' => 'sometimes|array',
             'metrics.*' => 'in:sales,expense,revenue',
             'metrics_submitted' => 'sometimes|in:1',
@@ -37,6 +45,7 @@ class DashboardController extends Controller
 
         // Real Orders Base Query (Excludes INACTIVE operations & test phone 9544832975)
         $realOrdersQuery = Order::query()
+            ->whereBetween(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $orderDateRange)
             ->whereNotIn('id', $inactiveOrderIds)
             ->where(function ($q) {
                 $q->whereNull('customer_phone')
@@ -45,6 +54,7 @@ class DashboardController extends Controller
 
         // Dummy / Test Orders Base Query
         $dummyOrdersQuery = Order::query()
+            ->whereBetween(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $orderDateRange)
             ->where(function ($q) use ($inactiveOrderIds) {
                 $q->whereIn('id', $inactiveOrderIds)
                   ->orWhere('customer_phone', 'LIKE', '%9544832975%');
@@ -56,9 +66,9 @@ class DashboardController extends Controller
         $completedOrders = (clone $realOrdersQuery)->where('order_status', 'delivered')->count();
         $cancelledOrders = (clone $realOrdersQuery)->where('order_status', 'cancelled')->count();
 
-        $allTimeActiveOps = \App\Models\OrderOperation::where('status', 'active');
-        $allTimeOperationRefunds = (float) \App\Models\OrderRefund::sum('refund_amount');
-        $allTimeOperationExpenses = (float) (clone $allTimeActiveOps)->sum('additional_expense_total');
+        $refundsQuery = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->whereDate('refund_date', '>=', $businessStartDate)->whereDate('refund_date', '<=', $selectedDate);
+        $allTimeOperationRefunds = (float) (clone $refundsQuery)->sum('refund_amount');
 
         // Success Orders (Paid / Completed orders, excluding cancelled)
         $successOrdersQuery = (clone $realOrdersQuery)
@@ -78,31 +88,31 @@ class DashboardController extends Controller
                 ->sum('quantity');
         }
 
-        // Today Metrics Calculations (Asia/Kolkata Timezone)
+        // Daily cards use the selected day (Asia/Kolkata timezone).
         $todayGrossSales = (float) (clone $realOrdersQuery)
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate)
             ->sum('grand_total');
 
-        $todayRefunds = (float) \App\Models\OrderRefund::whereDate('refund_date', $todayStr)->sum('refund_amount');
+        $todayRefunds = (float) (clone $refundsQuery)->whereDate('refund_date', $selectedDate)->sum('refund_amount');
 
         $todaySales = max(0, $todayGrossSales - $todayRefunds);
         
-        $todayExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($todayStr, $todayStr);
+        $todayExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($selectedDate, $selectedDate);
         $todayExpenses = $todayExpensesData['total'];
         
         $todayPaidOrdersQuery = (clone $realOrdersQuery)
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr);
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate);
 
         $todayOrdersCount = (int) (clone $todayPaidOrdersQuery)->count();
         $todayBookingsCount = Product::where('is_out_of_stock', 1)->count();
 
         // Today Sold Products Pcs
         $todaySuccessOrderIds = (clone $successOrdersQuery)
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $todayStr)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate)
             ->pluck('id');
 
         $todaySoldProductsPcs = 0;
@@ -112,24 +122,26 @@ class DashboardController extends Controller
                 ->sum('quantity');
         }
 
-        // ALL-TIME Financial Overview (Total Net Sales Revenue, Total Expense, Net Profit / Loss)
+        // Cumulative financial cards cover business start through the selected day.
         $allTimePaidOrdersQuery = (clone $realOrdersQuery)
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled');
 
-        $allTimeCapital = (float) Capital::sum('amount');
+        $allTimeCapital = (float) Capital::whereDate('capital_date', '>=', $businessStartDate)
+            ->whereDate('capital_date', '<=', $selectedDate)->sum('amount');
         $allTimeGrossRevenue = (float) (clone $allTimePaidOrdersQuery)->sum('grand_total');
         $allTimeNetSalesRevenue = max(0, $allTimeGrossRevenue - $allTimeOperationRefunds);
-        $allTimeAdditionalIncome = (float) \App\Models\Income::where('status', 'active')->sum('total_income_amount');
+        $allTimeAdditionalIncome = (float) \App\Models\Income::where('status', 'active')
+            ->whereDate('income_date', '>=', $businessStartDate)->whereDate('income_date', '<=', $selectedDate)->sum('total_income_amount');
         $allTimeTotalRevenue = $allTimeGrossRevenue + $allTimeAdditionalIncome;
 
-        $allTimeExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary();
+        $allTimeExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($businessStartDate, $selectedDate);
         $allTimeTotalExpenses = $allTimeExpensesData['total'];
 
         $cashInBank = ($allTimeCapital + $allTimeTotalRevenue) - $allTimeTotalExpenses;
         $allTimeNetProfitLoss = $cashInBank - $allTimeCapital;
         $allTimeIsProfit = $allTimeNetProfitLoss >= 0;
-        $businessStats = $businessStatistics->report($filters);
+        $businessStats = $businessStatistics->report($filters + ['as_of_date' => $selectedDate]);
         $totalSales = $businessStats['totalSales'];
 
         // Low stock products (size stock <= 3)
@@ -153,6 +165,11 @@ class DashboardController extends Controller
         $unreadNotifications = Notification::where('is_read', false)->orderBy('id', 'desc')->get();
 
         return view('admin.dashboard', compact(
+            'todayStr',
+            'businessStartDate',
+            'selectedDate',
+            'selectedDateLabel',
+            'dailyLabel',
             'businessStats',
             'selectedMetrics',
             'totalProducts',

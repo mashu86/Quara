@@ -33,7 +33,7 @@ class HomeCarouselController extends Controller
             'items_tablet' => 'required|numeric|min:1|max:4',
             'items_mobile' => 'required|numeric|min:1|max:2',
             'margin_px' => 'required|integer|min:0|max:60',
-            'smart_speed_ms' => 'required|integer|min:100|max:2000',
+            'smart_speed_ms' => 'required|integer|min:60|max:2000',
             'sections' => 'required|array',
         ]);
         foreach (array_keys(HomePageSection::TITLES) as $key) {

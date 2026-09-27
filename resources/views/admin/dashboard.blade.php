@@ -75,23 +75,46 @@
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold mb-1 fs-4 fs-sm-3 text-dark text-uppercase" style="letter-spacing: 0.5px;">WELCOME AKARSHA MAHSHOOQUE</h3>
-        <p class="text-muted small mb-0">Live store performance, sales & inventory dashboard overview</p>
+        <p class="text-muted small mb-0">Store performance through {{ $selectedDateLabel }}</p>
     </div>
     <div class="d-flex w-100 w-sm-auto gap-2 mt-2 mt-sm-0">
         <a href="{{ route('admin.products.create') }}" class="btn btn-dark rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-semibold shadow-sm text-center admin-dash-mobile-btn">
             <i class="fa-solid fa-plus me-1"></i> Add Product
         </a>
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-warning rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-bold text-dark shadow-sm text-center admin-dash-mobile-btn">
+        <a href="{{ route('admin.orders.index', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="btn btn-warning rounded-pill btn-sm flex-fill flex-sm-grow-0 px-3 py-2 fw-bold text-dark shadow-sm text-center admin-dash-mobile-btn">
             <i class="fa-solid fa-receipt me-1"></i> View Orders
         </a>
     </div>
 </div>
 
-<!-- Today Metrics (Ultra-Compact with Card Spacing) -->
+<div class="card border-0 rounded-4 shadow-sm mb-3">
+    <div class="card-body p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="fw-semibold">Dashboard as of {{ $selectedDateLabel }}</div>
+            <p class="small text-muted mb-0">Business start: {{ \Illuminate\Support\Carbon::parse($businessStartDate)->format('d M Y') }} &ndash; {{ $selectedDateLabel }} (inclusive)</p>
+            @if($selectedDate !== $todayStr)<p class="small text-muted mb-0">Figures use transaction dates and current saved order statuses.</p>@endif
+        </div>
+        <form action="{{ route('admin.dashboard') }}" method="GET" class="d-flex flex-wrap align-items-end gap-2">
+            <input type="hidden" name="metrics_submitted" value="1">
+            @foreach($selectedMetrics as $metric)<input type="hidden" name="metrics[]" value="{{ $metric }}">@endforeach
+            @if($businessStats['period'] !== 'range')<input type="hidden" name="period" value="{{ $businessStats['period'] }}">@endif
+            <div>
+                <label for="dashboard-as-of-date" class="form-label small fw-semibold mb-1">View up to date</label>
+                <input type="date" id="dashboard-as-of-date" name="as_of_date" class="form-control form-control-sm" value="{{ $selectedDate }}" min="{{ $businessStartDate }}" max="{{ $todayStr }}" required onchange="this.form.requestSubmit()">
+            </div>
+            <button type="submit" class="btn btn-dark btn-sm">Apply</button>
+            @if($selectedDate !== $todayStr)<a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">Today</a>@endif
+        </form>
+    </div>
+    @error('as_of_date')<p class="text-danger small px-3 mb-3" role="alert">{{ $message }}</p>@enderror
+</div>
+
+<p class="small text-muted mb-2">Daily figures &middot; {{ $selectedDateLabel }}</p>
+<!-- Selected day metrics -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Sales</span>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Sales</span>
             <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todaySales, 2) }}</h6>
             <span class="admin-dash-stat-sub text-muted">Online & Offline</span>
         </div>
@@ -99,7 +122,7 @@
 
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Expenses</span>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Expenses</span>
             <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($todayExpenses, 2) }}</h6>
             <span class="admin-dash-stat-sub text-muted">Expenses & Fees</span>
         </div>
@@ -107,28 +130,29 @@
 
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Orders</span>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Orders</span>
             <h6 class="admin-dash-stat-val fw-bold text-primary">{{ $todayOrdersCount }}</h6>
-            <a href="{{ route('admin.orders.index') }}" class="admin-dash-stat-sub text-primary fw-bold text-decoration-none">View Orders &rarr;</a>
+            <a href="{{ route('admin.orders.index', ['start_date' => $selectedDate, 'end_date' => $selectedDate]) }}" class="admin-dash-stat-sub text-primary fw-bold text-decoration-none">View Orders &rarr;</a>
         </div>
     </div>
 
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Today Sold Products</span>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Sold Products</span>
             <h6 class="admin-dash-stat-val fw-bold text-info">{{ $todaySoldProductsPcs }} Pcs</h6>
-            <span class="admin-dash-stat-sub text-muted">Items Sold Today</span>
+            <span class="admin-dash-stat-sub text-muted">Items sold on {{ $selectedDateLabel }}</span>
         </div>
     </div>
 </div>
 
 <!-- Overall Financial Performance Section (Total Capital, Revenue, Expense, Cash in Bank/Hand, Profit & Loss) -->
+<p class="small text-muted mb-2">Totals &middot; {{ \Illuminate\Support\Carbon::parse($businessStartDate)->format('d M Y') }} &ndash; {{ $selectedDateLabel }}</p>
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-4 col-lg-5-card">
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-warning">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Capital</span>
             <h6 class="admin-dash-stat-val fw-bold text-warning-emphasis">₹{{ number_format($allTimeCapital, 2) }}</h6>
-            <a href="{{ route('admin.capitals.index') }}" class="admin-dash-stat-sub text-warning fw-bold text-decoration-none">Investment &rarr;</a>
+            <a href="{{ route('admin.capitals.index', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="admin-dash-stat-sub text-warning fw-bold text-decoration-none">Investment &rarr;</a>
         </div>
     </div>
 
@@ -136,7 +160,7 @@
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-success">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Revenue</span>
             <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($allTimeTotalRevenue, 2) }}</h6>
-            <a href="{{ route('admin.reports.profit-loss') }}" class="admin-dash-stat-sub text-success fw-bold text-decoration-none">Sales + Incomes &rarr;</a>
+            <a href="{{ route('admin.reports.profit-loss', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="admin-dash-stat-sub text-success fw-bold text-decoration-none">Sales + Incomes &rarr;</a>
         </div>
     </div>
 
@@ -144,7 +168,7 @@
         <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-danger">
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Expense</span>
             <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($allTimeTotalExpenses, 2) }}</h6>
-            <a href="{{ route('admin.expenses.index') }}" class="admin-dash-stat-sub text-danger fw-bold text-decoration-none">COGS & Expenses &rarr;</a>
+            <a href="{{ route('admin.expenses.index', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="admin-dash-stat-sub text-danger fw-bold text-decoration-none">COGS & Expenses &rarr;</a>
         </div>
     </div>
 
@@ -169,7 +193,7 @@
             <h6 class="admin-dash-stat-val fw-bold {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }}">
                 {{ $allTimeIsProfit ? '+' : '-' }}₹{{ number_format(abs($allTimeNetProfitLoss), 2) }}
             </h6>
-            <a href="{{ route('admin.reports.profit-loss') }}" class="admin-dash-stat-sub {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }} fw-bold text-decoration-none">
+            <a href="{{ route('admin.reports.profit-loss', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="admin-dash-stat-sub {{ $allTimeIsProfit ? 'text-success' : 'text-danger' }} fw-bold text-decoration-none">
                 Cash in Bank - Capital &rarr;
             </a>
         </div>
@@ -233,7 +257,7 @@
                             </li>
                         @endif
                     </ul>
-                    <a href="{{ route('admin.orders.index') }}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem;">View All Orders &rarr;</a>
+                    <a href="{{ route('admin.orders.index', ['start_date' => $businessStartDate, 'end_date' => $selectedDate]) }}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem;">View All Orders &rarr;</a>
                 </div>
             </div>
             <div class="card-body p-0">

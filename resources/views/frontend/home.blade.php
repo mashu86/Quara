@@ -5,6 +5,7 @@
 @section('canonical_url', $canonicalUrl ?? route('home'))
 
 @section('styles')
+<link rel="stylesheet" href="{{ asset('css/home-hero.css') }}?v={{ filemtime(public_path('css/home-hero.css')) }}">
 <style>
     @media (max-width: 375px) {
         .btn-select-buy {
@@ -83,6 +84,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/home-hero.js') }}?v={{ filemtime(public_path('js/home-hero.js')) }}" defer></script>
 <script>
     let currentPage = {{ $products->currentPage() }};
     let hasMorePages = {{ $products->hasMorePages() ? 'true' : 'false' }};

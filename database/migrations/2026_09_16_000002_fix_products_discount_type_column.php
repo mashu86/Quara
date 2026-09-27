@@ -12,6 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return; // SQLite already stores enum columns as unrestricted strings.
+        }
         DB::statement("ALTER TABLE `products` MODIFY COLUMN `discount_type` VARCHAR(20) NOT NULL DEFAULT 'none'");
     }
 
@@ -20,6 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         DB::statement("ALTER TABLE `products` MODIFY COLUMN `discount_type` ENUM('none', 'fixed', 'percentage') NOT NULL DEFAULT 'none'");
     }
 };

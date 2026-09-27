@@ -28,19 +28,25 @@ class BusinessStatistics
     public function report(array $filters): array
     {
         $today = Carbon::today('Asia/Kolkata');
+        $asOf = isset($filters['as_of_date'])
+            ? Carbon::parse($filters['as_of_date'], 'Asia/Kolkata')->startOfDay()
+            : $today->copy();
         $saleDate = 'COALESCE(sale_date, created_at)';
         $salesQuery = $this->salesQuery();
         $businessStart = Carbon::parse(config('business.start_date'), 'Asia/Kolkata')->startOfDay();
 
         $period = $filters['period'] ?? 'month';
         $start = match ($period) {
-            'today' => $today->copy(),
+            'today' => $asOf->copy(),
             'all' => $businessStart->copy(),
-            'week' => $today->copy()->startOfWeek(Carbon::MONDAY),
+            'week' => $asOf->copy()->startOfWeek(Carbon::MONDAY),
             'range' => Carbon::parse($filters['start_date'], 'Asia/Kolkata'),
-            default => $today->copy()->startOfMonth(),
+            default => $asOf->copy()->startOfMonth(),
         };
-        $end = $period === 'range' ? Carbon::parse($filters['end_date'], 'Asia/Kolkata') : $today->copy();
+        $end = $period === 'range' ? Carbon::parse($filters['end_date'], 'Asia/Kolkata') : $asOf->copy();
+        if ($start->lt($businessStart)) {
+            $start = $businessStart->copy();
+        }
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $orders = (clone $salesQuery)->whereBetween(DB::raw($saleDate), [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
@@ -74,9 +80,9 @@ class BusinessStatistics
             ];
         }
 
-        $businessDays = max(1, (int) $businessStart->diffInDays($today) + 1);
+        $businessDays = max(1, (int) $businessStart->diffInDays($asOf) + 1);
         $totalSales = (float) (clone $salesQuery)
-            ->whereBetween(DB::raw($saleDate), [$businessStart->copy()->startOfDay(), $today->copy()->endOfDay()])
+            ->whereBetween(DB::raw($saleDate), [$businessStart->copy()->startOfDay(), $asOf->copy()->endOfDay()])
             ->sum('grand_total');
         $rankedDays = collect($days)->where('date', '>=', $businessStart->toDateString());
         $highest = $rankedDays->max('sales');
@@ -87,6 +93,7 @@ class BusinessStatistics
             'startDate' => $startDate,
             'endDate' => $endDate,
             'today' => $today->toDateString(),
+            'asOfDate' => $asOf->toDateString(),
             'businessStart' => $businessStart->toDateString(),
             'businessDays' => $businessDays,
             'totalSales' => $totalSales,

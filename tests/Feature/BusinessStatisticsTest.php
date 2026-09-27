@@ -134,8 +134,91 @@ class BusinessStatisticsTest extends TestCase
             ['period' => 'range', 'start_date' => 'bad-date', 'end_date' => '2026-09-12'],
             ['period' => 'range', 'start_date' => '2020-01-01', 'end_date' => '2026-09-12'],
             ['metrics' => ['invalid']],
+            ['as_of_date' => '2026-08-27'],
+            ['as_of_date' => '2026-09-13'],
+            ['as_of_date' => '2026-02-30'],
+            ['as_of_date' => 'bad-date'],
+            ['as_of_date' => ''],
+            ['as_of_date' => '2026-09-10', 'period' => 'range', 'start_date' => '2026-09-09', 'end_date' => '2026-09-11'],
         ] as $filters) {
             $this->getJson(route('admin.dashboard', $filters))->assertUnprocessable();
         }
+    }
+
+    public function test_dashboard_date_defaults_to_today_and_accepts_business_start(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('selectedDate', '2026-09-12')
+            ->assertViewHas('dailyLabel', 'Today')
+            ->assertSee('name="as_of_date"', false)
+            ->assertSee('min="2026-08-28"', false)
+            ->assertSee('max="2026-09-12"', false);
+
+        $this->get(route('admin.dashboard', ['as_of_date' => '2026-08-28']))
+            ->assertOk()
+            ->assertViewHas('selectedDate', '2026-08-28')
+            ->assertViewHas('totalSales', 0)
+            ->assertViewHas('businessStats', fn ($report) => $report['businessDays'] === 1
+                && $report['startDate'] === '2026-08-28' && count($report['days']) === 1);
+    }
+
+    public function test_historical_dashboard_filters_all_financial_cards_and_order_lists_inclusively(): void
+    {
+        $startOrder = $this->order(['sale_date' => '2026-08-28 00:00:00', 'grand_total' => 100]);
+        $selectedOrder = $this->order(['sale_date' => null, 'created_at' => '2026-09-10 23:59:59', 'grand_total' => 200]);
+        $this->order(['sale_date' => '2026-09-09 12:00:00', 'grand_total' => 300]);
+        $this->order(['sale_date' => '2026-08-27 23:59:59', 'grand_total' => 9000]);
+        $this->order(['sale_date' => '2026-09-11 00:00:00', 'grand_total' => 9000]);
+        $this->order(['sale_date' => '2026-09-10', 'payment_status' => 'pending', 'order_status' => 'pending', 'grand_total' => 9000]);
+        $this->order(['sale_date' => '2026-09-10', 'customer_phone' => '9544832975']);
+        $this->order(['sale_date' => '2026-09-11', 'customer_phone' => '9544832975']);
+
+        $category = Category::create(['name' => 'Dated sales', 'slug' => 'dated-sales', 'status' => 'active']);
+        $product = Product::forceCreate(['category_id' => $category->id, 'name' => 'Dated product', 'slug' => 'dated-product', 'price' => 100, 'final_price' => 100, 'status' => 'active']);
+        foreach ([[$startOrder, 1], [$selectedOrder, 2]] as [$order, $quantity]) {
+            OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'product_name' => $product->name, 'size' => 'M', 'quantity' => $quantity, 'unit_price' => 100, 'final_unit_price' => 100, 'subtotal' => 100 * $quantity, 'item_status' => 'active']);
+        }
+
+        foreach (['2026-08-27' => 9000, '2026-08-28' => 1000, '2026-09-10' => 2000, '2026-09-11' => 9000] as $date => $amount) {
+            DB::table('capitals')->insert(['name' => 'Investment', 'capital_date' => $date, 'amount' => $amount]);
+        }
+        foreach (['2026-08-27' => 9000, '2026-08-28' => 50, '2026-09-10' => 100, '2026-09-11' => 9000] as $date => $amount) {
+            DB::table('incomes')->insert(['income_name' => 'Income', 'income_date' => $date, 'income_price' => $amount, 'total_income_amount' => $amount, 'status' => 'active']);
+        }
+        DB::table('incomes')->insert(['income_name' => 'Inactive income', 'income_date' => '2026-09-10', 'income_price' => 9000, 'total_income_amount' => 9000, 'status' => 'inactive']);
+        foreach (['2026-08-27' => 9000, '2026-08-28' => 10, '2026-09-10' => 50, '2026-09-11' => 9000] as $date => $amount) {
+            DB::table('expenses')->insert(['title' => 'Expense', 'expense_date' => $date, 'amount' => $amount]);
+        }
+        $operation = OrderOperation::forceCreate(['order_id' => $selectedOrder->id, 'status' => 'active', 'additional_expense_total' => 20, 'created_at' => '2026-09-10 23:59:59']);
+        OrderOperation::forceCreate(['order_id' => $selectedOrder->id, 'status' => 'active', 'additional_expense_total' => 9000, 'created_at' => '2026-09-11 00:00:00']);
+        OrderOperation::forceCreate(['order_id' => $startOrder->id, 'status' => 'active', 'additional_expense_total' => 9000, 'created_at' => '2026-08-27 23:59:59']);
+        foreach (['2026-08-27' => 9000, '2026-09-10' => 30, '2026-09-11' => 9000] as $date => $amount) {
+            OrderRefund::create(['order_id' => $selectedOrder->id, 'order_operation_id' => $operation->id, 'refund_date' => $date, 'refund_amount' => $amount]);
+        }
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $response = $this->actingAs($admin)->get(route('admin.dashboard', ['as_of_date' => '2026-09-10']));
+        $response->assertOk()->assertViewHas('dailyLabel', 'Selected Day')
+            ->assertViewHas('todaySales', 170)->assertViewHas('todayExpenses', 100)
+            ->assertViewHas('todayOrdersCount', 1)->assertViewHas('totalOrders', 4)
+            ->assertViewHas('todaySoldProductsPcs', 2)->assertViewHas('totalSoldProductsPcs', 3)
+            ->assertViewHas('pendingOrders', 1)->assertViewHas('successOrdersCount', 3)
+            ->assertViewHas('successOrdersAmount', 570)->assertViewHas('totalSales', 600)
+            ->assertViewHas('allTimeCapital', 3000)->assertViewHas('allTimeTotalRevenue', 750)
+            ->assertViewHas('allTimeTotalExpenses', 110)->assertViewHas('cashInBank', 3640)
+            ->assertViewHas('allTimeNetProfitLoss', 640)->assertViewHas('allTimeIsProfit', true)
+            ->assertViewHas('recentOrders', fn ($orders) => $orders->count() === 4)
+            ->assertViewHas('dummyOrders', fn ($orders) => $orders->count() === 1)
+            ->assertViewHas('businessStats', fn ($report) => $report['asOfDate'] === '2026-09-10'
+                && $report['endDate'] === '2026-09-10' && $report['businessDays'] === 14
+                && $report['totalSales'] == 600 && abs($report['averageSales'] - 600 / 14) < .001)
+            ->assertSee('Selected Day Sales')->assertSee('value="2026-09-10"', false);
+
+        $this->get(route('admin.dashboard', ['as_of_date' => '2026-09-10', 'period' => 'today', 'metrics_submitted' => 1, 'metrics' => ['sales']]))
+            ->assertOk()->assertViewHas('selectedDate', '2026-09-10')
+            ->assertViewHas('selectedMetrics', ['sales'])
+            ->assertViewHas('businessStats', fn ($report) => count($report['days']) === 1 && $report['days'][0]['sales'] == 200);
     }
 }

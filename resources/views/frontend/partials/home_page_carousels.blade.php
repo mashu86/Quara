@@ -9,16 +9,31 @@
 
 @foreach($homeSections as $key => $section)
     @if($key === 'hero' && $sectionEnabled('hero') && $carouselSettings?->enabled && $carouselSlides->isNotEmpty())
-        <section class="qw-home-section qw-hero-section py-2 py-md-3">
-            <div class="container">
-                <div class="qw-horizontal-track qw-hero-track {{ $carouselSettings->carousel_type === 'contained' ? 'qw-hero-contained' : '' }}" id="qw-track-hero" data-interval="{{ $carouselSettings->interval_ms ?? 5000 }}" data-animation="{{ $carouselSettings->animation ?? 'slide' }}" data-loop="{{ (int) ($carouselSettings->loop ?? true) }}" data-autoplay="{{ (int) ($carouselSettings->autoplay ?? true) }}" data-pause-hover="{{ (int) ($carouselSettings->pause_on_hover ?? true) }}" data-nav="{{ (int) ($carouselSettings->show_nav ?? true) }}" data-dots="{{ (int) ($carouselSettings->show_dots ?? true) }}" data-center="{{ (int) ($carouselSettings->center_mode ?? false) }}" data-speed="{{ $carouselSettings->smart_speed_ms ?? 450 }}" style="--hero-desktop:{{ $carouselSettings->items_desktop ?? 2.2 }};--hero-tablet:{{ $carouselSettings->items_tablet ?? 1.5 }};--hero-mobile:{{ $carouselSettings->items_mobile ?? 1.12 }};--hero-gap:{{ $carouselSettings->margin_px ?? 16 }}px">
+        <section class="qw-home-section qw-hero-section qw-editorial-hero" aria-labelledby="qw-hero-title">
+            <div class="qw-hero-layout">
+                <div class="qw-hero-intro">
+                    <p class="qw-hero-eyebrow">Quara Wardrobe <span>/</span> Dress beyond ordinary</p>
+                    <h2 id="qw-hero-title">Quality you&rsquo;ll love.<br>Prices you&rsquo;ll <em>love more.</em></h2>
+                    <p class="qw-hero-description">Feel good in what you wear.<br>Beautiful styles, thoughtful quality and prices you&rsquo;ll love.</p>
+                    <div class="qw-hero-actions">
+                        <a class="qw-hero-shop" href="{{ route('shop') }}">Explore collection <span aria-hidden="true">&rarr;</span></a>
+                        <a class="qw-hero-discover" href="{{ route('shop', ['sort' => 'price_low']) }}">Find your favourites <span aria-hidden="true">&rarr;</span></a>
+                    </div>
+                    <div class="qw-hero-note">
+                        <span class="qw-hero-note-icon" aria-hidden="true"><i class="fa-solid fa-bag-shopping"></i></span>
+                        <p><strong>Beautiful style. Thoughtful prices.</strong><span>Make room for a little Quara in your wardrobe.</span></p>
+                    </div>
+                </div>
+                <div class="qw-hero-feature" role="region" aria-roledescription="carousel" aria-label="Hero Recommended">
+                    <div class="qw-hero-stage">
+                <div class="qw-hero-track {{ $carouselSettings->carousel_type === 'contained' ? 'qw-hero-contained' : '' }}" id="qw-track-hero" data-interval="{{ $carouselSettings->interval_ms ?? 5000 }}" data-animation="{{ $carouselSettings->animation ?? 'slide' }}" data-loop="{{ (int) ($carouselSettings->loop ?? true) }}" data-autoplay="{{ (int) ($carouselSettings->autoplay ?? true) }}" data-pause-hover="{{ (int) ($carouselSettings->pause_on_hover ?? true) }}" data-speed="{{ $carouselSettings->smart_speed_ms ?? 450 }}">
                     @foreach($carouselSlides as $slide)
                         @php
                             $headingRgb = sscanf(ltrim($slide->heading_color ?? '#ffffff', '#'), '%2x%2x%2x');
                             $headingBrightness = $headingRgb ? (($headingRgb[0] * 299 + $headingRgb[1] * 587 + $headingRgb[2] * 114) / 255000) : 1;
                             $captionSurface = $headingBrightness > 0.58 ? 'rgba(20,16,13,.78)' : 'rgba(255,250,241,.93)';
                         @endphp
-                        <article class="qw-hero-card" style="--slide-art:url('{{ $slide->image_url }}');--caption-surface:{{ $captionSurface }}">
+                        <article class="qw-hero-card" role="group" aria-roledescription="slide" aria-label="{{ $loop->iteration }} of {{ $loop->count }}" @if(!$loop->first) inert aria-hidden="true" @endif style="--slide-art:url('{{ $slide->image_url }}');--caption-surface:{{ $captionSurface }}">
                             <img src="{{ $slide->image_url }}" alt="{{ $slide->heading ?: 'Quara Wardrobe collection' }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
                             @if(!empty($slide->overlay_items) && count($slide->overlay_items) > 0)
                                 @foreach($slide->overlay_items as $overlay)
@@ -42,15 +57,20 @@
                                     <{{ $elTag }} class="qw-story-element qw-overlay-item" style="{{ $elStyle }}" @if($elTag === 'a') href="{{ $elHref }}" @endif>{{ $elText }}</{{ $elTag }}>
                                 @endforeach
                             @else
-                                @if($slide->heading)<h2 class="qw-story-element qw-story-heading" style="left:{{ $slide->heading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->heading_y ?? $slide->text_y ?? 60 }}%;color:{{ $slide->heading_color }};font-family:{{ $fontFamilies[$slide->heading_font] ?? $fontFamilies['serif'] }};font-size:{{ min(36, $slide->heading_size ?? 28) }}px">{{ $slide->heading }}</h2>@endif
-                                @if($slide->subheading)<p class="qw-story-element qw-story-subheading" style="left:{{ $slide->subheading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->subheading_y ?? 74 }}%;color:{{ $slide->subheading_color }};font-family:{{ $fontFamilies[$slide->subheading_font ?? 'sans'] ?? $fontFamilies['sans'] }};font-size:{{ min(24, $slide->subheading_size ?? 15) }}px">&ldquo;{{ $slide->subheading }}&rdquo;</p>@endif
+                                @if($slide->heading)<h2 class="qw-story-element qw-story-heading" style="left:{{ $slide->heading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->heading_y ?? $slide->text_y ?? 60 }}%;color:{{ $slide->heading_color }};font-family:{{ $fontFamilies[$slide->heading_font] ?? $fontFamilies['serif'] }};--hero-text-size:{{ min(36, $slide->heading_size ?? 28) }}px;font-size:{{ min(36, $slide->heading_size ?? 28) }}px">{{ $slide->heading }}</h2>@endif
+                                @if($slide->subheading)<p class="qw-story-element qw-story-subheading" style="left:{{ $slide->subheading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->subheading_y ?? 74 }}%;color:{{ $slide->subheading_color }};font-family:{{ $fontFamilies[$slide->subheading_font ?? 'sans'] ?? $fontFamilies['sans'] }};--hero-text-size:{{ min(24, $slide->subheading_size ?? 15) }}px;font-size:{{ min(24, $slide->subheading_size ?? 15) }}px">&ldquo;{{ $slide->subheading }}&rdquo;</p>@endif
                                 @if($slide->link_url)<a class="qw-story-element qw-hero-cta" style="left:{{ $slide->button_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->button_y ?? 84 }}%" href="{{ $slide->link_url }}">{{ $slide->button_text ?: 'Explore' }}</a>@endif
                             @endif
                         </article>
                     @endforeach
-                    @if($carouselSettings->show_nav ?? true)<button type="button" class="qw-hero-nav qw-hero-prev" data-hero-dir="-1" aria-label="Previous banner"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="qw-hero-nav qw-hero-next" data-hero-dir="1" aria-label="Next banner"><i class="fa-solid fa-chevron-right"></i></button>@endif
                 </div>
-                @if(($carouselSettings->show_dots ?? true) && $carouselSlides->count() > 1)<div class="qw-track-dots mt-2.5" data-dots-for="qw-track-hero"></div>@endif
+                    @if(($carouselSettings->show_nav ?? true) && $carouselSlides->count() > 1)
+                        <button type="button" class="qw-hero-nav qw-hero-prev" data-hero-dir="-1" aria-label="Previous banner" aria-controls="qw-track-hero"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" class="qw-hero-nav qw-hero-next" data-hero-dir="1" aria-label="Next banner" aria-controls="qw-track-hero"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                    @endif
+                    </div>
+                    @if(($carouselSettings->show_dots ?? true) && $carouselSlides->count() > 1)<div class="qw-track-dots" data-dots-for="qw-track-hero"></div>@endif
+                </div>
             </div>
         </section>
     @elseif($key === 'categories')
@@ -128,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const slides=[...track.children].filter(slide=>!slide.classList.contains('qw-hero-nav'));
         const dots=document.querySelector(`[data-dots-for="${track.id}"]`);
         const targetFor=index=>{const slide=slides[index];return slide ? Math.max(0,slide.offsetLeft-track.offsetLeft-(track.dataset.center==='1'?(track.clientWidth-slide.clientWidth)/2:0)) : 0;};
-        const goTo=(index,speed=450)=>{const target=targetFor(index);if(!isHero){track.scrollTo({left:target,behavior:'smooth'});return;}const start=track.scrollLeft,delta=target-start,began=performance.now(),duration=Math.max(100,speed);const frame=now=>{const t=Math.min(1,(now-began)/duration),ease=1-Math.pow(1-t,3);track.scrollLeft=start+delta*ease;if(t<1)requestAnimationFrame(frame);};requestAnimationFrame(frame);};
+        const goTo=(index,speed=450)=>{const target=targetFor(index);if(!isHero){track.scrollTo({left:target,behavior:'smooth'});return;}const start=track.scrollLeft,delta=target-start,began=performance.now(),duration=Math.max(60,speed);const frame=now=>{const t=Math.min(1,(now-began)/duration),ease=1-Math.pow(1-t,3);track.scrollLeft=start+delta*ease;if(t<1)requestAnimationFrame(frame);};requestAnimationFrame(frame);};
         if(dots){dots.innerHTML=slides.map((_,i)=>`<button type="button" aria-label="Go to banner ${i+1}" class="${i===0?'active':''}"></button>`).join('');dots.querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>goTo(i,Number(track.dataset.speed)||450)));track.addEventListener('scroll',()=>{let closest=0,distance=Infinity;slides.forEach((slide,i)=>{const d=Math.abs(targetFor(i)-track.scrollLeft);if(d<distance){distance=d;closest=i;}});dots.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===closest));},{passive:true});}
         if(isHero){track.querySelectorAll('[data-hero-dir]').forEach(button=>button.addEventListener('click',()=>{let current=0,distance=Infinity;slides.forEach((slide,i)=>{const d=Math.abs(targetFor(i)-track.scrollLeft);if(d<distance){distance=d;current=i;}});let next=current+Number(button.dataset.heroDir);if(next<0)next=track.dataset.loop==='1'?slides.length-1:0;if(next>=slides.length)next=track.dataset.loop==='1'?0:slides.length-1;goTo(next,Number(track.dataset.speed)||450);}));}
         if(isHero&&track.dataset.center==='1')requestAnimationFrame(()=>goTo(0,Number(track.dataset.speed)||450));

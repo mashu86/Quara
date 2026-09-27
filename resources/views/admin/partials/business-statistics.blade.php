@@ -9,27 +9,28 @@
                 <div class="small text-muted">Average Daily Sale</div>
                 <div class="fs-4 fw-bold text-primary">&#8377;{{ number_format($businessStats['averageSales'], 2) }}</div>
                 <div class="small text-muted">&#8377;{{ number_format($businessStats['totalSales'], 2) }} / {{ number_format($businessStats['businessDays']) }} calendar days</div>
-                <div class="small text-muted">{{ \Illuminate\Support\Carbon::parse($businessStats['businessStart'])->format('d M Y') }} &ndash; today (both included)</div>
+                <div class="small text-muted">{{ \Illuminate\Support\Carbon::parse($businessStats['businessStart'])->format('d M Y') }} &ndash; {{ \Illuminate\Support\Carbon::parse($businessStats['asOfDate'])->format('d M Y') }} (both included)</div>
             </div>
         </div>
         <form action="{{ route('admin.dashboard') }}#business-statistics" method="GET" id="business-statistics-form">
             <input type="hidden" name="metrics_submitted" value="1">
+            <input type="hidden" name="as_of_date" value="{{ $businessStats['asOfDate'] }}">
             <div class="row g-2 align-items-end mb-3">
                 <div class="col-12 col-sm-4 col-lg-3">
                     <label for="statistics-period" class="form-label small fw-semibold">Period</label>
                     <select id="statistics-period" name="period" class="form-select">
-                        @foreach(['today' => 'Today', 'all' => 'All (business start to today)', 'week' => 'This Week', 'month' => 'This Month', 'range' => 'Date Range'] as $value => $label)
+                        @foreach(['today' => $businessStats['asOfDate'] === $businessStats['today'] ? 'Today' : 'Selected Day', 'all' => 'All (business start to selected date)', 'week' => 'Week to selected date', 'month' => 'Month to selected date', 'range' => 'Date Range'] as $value => $label)
                             <option value="{{ $value }}" @selected($businessStats['period'] === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-6 col-sm-3" data-statistics-range @if($businessStats['period'] !== 'range') hidden @endif>
                     <label for="statistics-start" class="form-label small fw-semibold">From</label>
-                    <input type="date" class="form-control" id="statistics-start" name="start_date" value="{{ max($businessStats['startDate'], $businessStats['businessStart']) }}" min="{{ $businessStats['businessStart'] }}" max="{{ $businessStats['today'] }}" @disabled($businessStats['period'] !== 'range') required>
+                    <input type="date" class="form-control" id="statistics-start" name="start_date" value="{{ max($businessStats['startDate'], $businessStats['businessStart']) }}" min="{{ $businessStats['businessStart'] }}" max="{{ $businessStats['asOfDate'] }}" @disabled($businessStats['period'] !== 'range') required>
                 </div>
                 <div class="col-6 col-sm-3" data-statistics-range @if($businessStats['period'] !== 'range') hidden @endif>
                     <label for="statistics-end" class="form-label small fw-semibold">To</label>
-                    <input type="date" class="form-control" id="statistics-end" name="end_date" value="{{ $businessStats['endDate'] }}" max="{{ $businessStats['today'] }}" @disabled($businessStats['period'] !== 'range') required>
+                    <input type="date" class="form-control" id="statistics-end" name="end_date" value="{{ $businessStats['endDate'] }}" min="{{ $businessStats['businessStart'] }}" max="{{ $businessStats['asOfDate'] }}" @disabled($businessStats['period'] !== 'range') required>
                 </div>
                 <div class="col-auto"><button type="submit" class="btn btn-dark">Apply</button></div>
             </div>
@@ -43,6 +44,9 @@
                 @endforeach
             </fieldset>
         </form>
+        @foreach(['period', 'start_date', 'end_date'] as $filter)
+            @error($filter)<p class="small text-danger" role="alert">{{ $message }}</p>@enderror
+        @endforeach
         <p class="small text-muted mb-2">{{ \Illuminate\Support\Carbon::parse($businessStats['startDate'])->format('d M Y') }} &ndash; {{ \Illuminate\Support\Carbon::parse($businessStats['endDate'])->format('d M Y') }} &middot; Week starts Monday.</p>
         <div class="overflow-auto border rounded-3 bg-white">
             <svg id="business-statistics-chart" viewBox="0 0 960 320" style="display: block; width: 100%; min-width: 640px;" role="img" aria-label="Daily sales, expense and revenue line graph"></svg>

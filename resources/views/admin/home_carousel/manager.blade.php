@@ -39,17 +39,18 @@
                     </tbody>
                 </table></div>
                 <div class="row g-3 mt-2">
-                    <div class="col-sm-4"><label class="form-label fw-semibold">Hero layout</label><select name="carousel_type" id="carouselType" class="form-select"><option value="hero" @selected($settings->carousel_type !== 'contained')>Centered Hero Banner</option><option value="contained" @selected($settings->carousel_type === 'contained')>Rounded Banner Card</option></select></div>
+                    <div class="col-sm-4"><label class="form-label fw-semibold">Hero layout</label><select name="carousel_type" id="carouselType" class="form-select"><option value="hero" @selected($settings->carousel_type !== 'contained')>Split Hero Banner</option><option value="contained" @selected($settings->carousel_type === 'contained')>Rounded Banner Card</option></select></div>
                     <div class="col-sm-4"><label class="form-label fw-semibold">Hero animation</label><select name="animation" id="carouselAnimation" class="form-select"><option value="slide" @selected($settings->animation === 'slide')>Slide</option><option value="fade" @selected($settings->animation === 'fade')>Fade</option></select></div>
                     <div class="col-sm-4"><label class="form-label fw-semibold">Autoplay (ms)</label><input type="number" name="interval_ms" id="carouselInterval" class="form-control" min="1500" max="15000" step="500" value="{{ $settings->interval_ms }}" required></div>
                 </div>
                 <h6 class="fw-bold mt-4 mb-2">Carousel behavior settings</h6>
+                <p class="small text-muted">The homepage hero pairs Quara's quality and affordability message with one recommended banner at a time. Autoplay, animation, arrows and dots apply to this banner; item counts, card gap and centering do not affect the split hero layout.</p>
                 <div class="row g-3">
                     <div class="col-6 col-md-3"><label class="form-label small">Items desktop</label><input class="form-control" type="number" name="items_desktop" min="1" max="5" step="0.1" value="{{ old('items_desktop', $settings->items_desktop ?? 1.5) }}" required></div>
                     <div class="col-6 col-md-3"><label class="form-label small">Items tablet</label><input class="form-control" type="number" name="items_tablet" min="1" max="4" step="0.1" value="{{ old('items_tablet', $settings->items_tablet ?? 1.2) }}" required></div>
                     <div class="col-6 col-md-3"><label class="form-label small">Items mobile</label><input class="form-control" type="number" name="items_mobile" min="1" max="2" step="0.05" value="{{ old('items_mobile', $settings->items_mobile ?? 1.05) }}" required></div>
                     <div class="col-6 col-md-3"><label class="form-label small">Card gap (px)</label><input class="form-control" type="number" name="margin_px" min="0" max="60" step="1" value="{{ old('margin_px', $settings->margin_px ?? 14) }}" required></div>
-                    <div class="col-6 col-md-3"><label class="form-label small">Slide speed (ms)</label><input class="form-control" type="number" name="smart_speed_ms" min="100" max="2000" step="50" value="{{ old('smart_speed_ms', $settings->smart_speed_ms ?? 450) }}" required></div>
+                    <div class="col-6 col-md-3"><label class="form-label small">Slide speed (ms)</label><input class="form-control" type="number" name="smart_speed_ms" min="60" max="2000" step="1" value="{{ old('smart_speed_ms', $settings->smart_speed_ms ?? 450) }}" required></div>
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3">
                     @foreach(['loop'=>'Loop slides','center_mode'=>'Center active slide','show_nav'=>'Show arrows','show_dots'=>'Show dots','autoplay'=>'Autoplay','pause_on_hover'=>'Pause on hover'] as $option => $label)

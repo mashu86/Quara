@@ -23,9 +23,9 @@ return new class extends Migration
             'heading_x' => DB::raw('text_x'),
             'heading_y' => DB::raw('text_y'),
             'subheading_x' => DB::raw('text_x'),
-            'subheading_y' => DB::raw('LEAST(92, text_y + 14)'),
+            'subheading_y' => DB::raw('CASE WHEN text_y + 14 > 92 THEN 92 ELSE text_y + 14 END'),
             'button_x' => DB::raw('text_x'),
-            'button_y' => DB::raw('LEAST(92, text_y + 28)'),
+            'button_y' => DB::raw('CASE WHEN text_y + 28 > 92 THEN 92 ELSE text_y + 28 END'),
         ]);
     }
 

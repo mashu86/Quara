@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
 
 class ProductController extends Controller
 {
@@ -798,8 +800,17 @@ class ProductController extends Controller
                 ],
                 'generationConfig' => [
                     'temperature' => 0.2,
-                    'maxOutputTokens' => 800,
+                    'maxOutputTokens' => 2048,
                     'responseMimeType' => 'application/json',
+                    'responseSchema' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'name' => ['type' => 'STRING', 'description' => 'Non-empty product title, 2 to 4 words.'],
+                            'description' => ['type' => 'STRING', 'description' => 'Non-empty description of the visible garment.'],
+                            'size_master_id' => ['type' => 'INTEGER', 'nullable' => true],
+                        ],
+                        'required' => ['name', 'description', 'size_master_id'],
+                    ],
                 ],
             ];
 
@@ -816,7 +827,9 @@ class ProductController extends Controller
 
             $response = null;
             $status = 0;
-            $curlError = '';
+            $connectionFailed = false;
+            $decoded = null;
+            $hadIncompleteResponse = false;
             $successfulModel = null;
             $loopStartTime = microtime(true);
             $lastStatus = 0;
@@ -841,32 +854,47 @@ class ProductController extends Controller
 
                     $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
-                    $curl = curl_init($url);
-                    curl_setopt_array($curl, [
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_POST => true,
-                        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
-                        CURLOPT_HTTPHEADER => [
-                            'Content-Type: application/json',
-                            'x-goog-api-key: ' . $currentKey,
-                        ],
-                        CURLOPT_CONNECTTIMEOUT => 4,
-                        CURLOPT_TIMEOUT => 70,
-                    ]);
+                    // Retry incomplete output once on the working model before trying alternatives.
+                    for ($attempt = 0; $attempt < 2; $attempt++) {
+                        $remaining = 120 - (microtime(true) - $loopStartTime);
+                        if ($remaining < 1) break 3;
+                        $attemptPayload = $payload;
+                        if ($attempt > 0) $attemptPayload['generationConfig']['maxOutputTokens'] = 4096;
+                        try {
+                            $httpResponse = Http::withHeaders(['x-goog-api-key' => $currentKey])
+                                ->connectTimeout(min(4, $remaining))
+                                ->timeout(min(70, $remaining))
+                                ->post($url, $attemptPayload);
+                            $response = $httpResponse->body();
+                            $status = $httpResponse->status();
+                            $connectionFailed = false;
+                        } catch (ConnectionException $e) {
+                            $response = null;
+                            $status = 0;
+                            $connectionFailed = true;
+                        }
+                        $lastStatus = $status;
 
-                    $response = curl_exec($curl);
-                    $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                    $lastStatus = $status;
-                    $curlError = curl_error($curl);
-                    curl_close($curl);
+                        if (is_string($response) && $status >= 200 && $status < 300) {
+                            $responseData = json_decode($response, true);
+                            $decoded = $this->parseProductImageResponse($responseData);
+                            if ($decoded !== null) {
+                                $successfulModel = $model;
+                                Cache::put($modelCacheKey, $model, now()->addDay());
+                                break 3;
+                            }
+                            $hadIncompleteResponse = true;
+                            Log::warning('AI image response missing complete product details', [
+                                'model' => $model,
+                                'attempt' => $attempt + 1,
+                                'finish_reason' => $responseData['candidates'][0]['finishReason'] ?? null,
+                            ]);
+                            continue;
+                        }
 
-                    if (is_string($response) && $status >= 200 && $status < 300) {
-                        $successfulModel = $model;
-                        Cache::put($modelCacheKey, $model, now()->addDay());
-                        break 2; // Success! Break both model loop and key loop
+                        Log::warning('AI image request failed', ['model' => $model, 'status' => $status]);
+                        break;
                     }
-
-                    Log::warning("Gemini AI model {$model} with key starting " . substr($currentKey, 0, 6) . " failed with HTTP {$status}", ['response' => mb_substr((string)$response, 0, 200)]);
 
                     // If rate limited (429), break model loop for this key immediately and try next key
                     if ($status === 429) {
@@ -876,11 +904,15 @@ class ProductController extends Controller
             }
 
             if (!$successfulModel || !is_string($response)) {
-                Log::error('AI auto fill Gemini all models/keys failed', ['status' => $status, 'error' => $curlError, 'response' => mb_substr((string)$response, 0, 300)]);
+                Log::error('AI auto fill Gemini all models/keys failed', ['status' => $status, 'connection_failed' => $connectionFailed]);
 
                 $errMsg = 'Unable to analyze image with Google Gemini AI. Please check your API key.';
                 if ($lastStatus === 429) {
                     $errMsg = 'Google Gemini AI quota has been reached for the active key. Please wait for its quota to reset or select a key with available quota.';
+                } elseif ($hadIncompleteResponse) {
+                    $errMsg = 'The image service returned incomplete product details after retrying. Your other fields are filled; retry Auto Fill Product or enter the name manually.';
+                } elseif ($lastStatus === 0) {
+                    $errMsg = 'The image service could not be reached. Your other fields are filled; please retry Auto Fill Product.';
                 } elseif ($lastStatus === 503) {
                     $errMsg = 'Google Gemini AI is temporarily busy. Please try again in a moment.';
                 }
@@ -889,35 +921,6 @@ class ProductController extends Controller
                     'success' => false,
                     'message' => $errMsg
                 ], in_array($lastStatus, [401, 403, 429, 503], true) ? $lastStatus : 502);
-            }
-
-            $responseData = json_decode($response, true);
-            $rawText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-            if (!is_string($rawText)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid AI response format received from Google Studio.'
-                ], 500);
-            }
-
-            // Extract JSON block if response contains markdown formatting like ```json ... ```
-            $cleanJson = $rawText;
-            if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $rawText, $matches)) {
-                $cleanJson = $matches[1];
-            } else {
-                $cleanJson = trim($cleanJson, "` \t\n\r\0\x0B");
-            }
-
-            $decoded = json_decode($cleanJson, true);
-
-            if (!is_array($decoded)
-                || !is_string($decoded['name'] ?? null) || trim($decoded['name']) === ''
-                || !is_string($decoded['description'] ?? null) || trim($decoded['description']) === '') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'AI could not extract dress details from this photo. Please upload a clearer clothing photo.'
-                ], 422);
             }
 
             $productName = trim($decoded['name']);
@@ -936,5 +939,36 @@ class ProductController extends Controller
                 'message' => 'An error occurred during AI analysis: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Read the final answer across all text parts, excluding thought summaries.
+     * An HTTP 200 alone does not mean generation finished or required fields exist.
+     */
+    private function parseProductImageResponse(mixed $response): ?array
+    {
+        if (!is_array($response) || !empty($response['promptFeedback']['blockReason'])) return null;
+        $candidate = $response['candidates'][0] ?? null;
+        if (!is_array($candidate) || (isset($candidate['finishReason']) && $candidate['finishReason'] !== 'STOP')) return null;
+        $parts = $candidate['content']['parts'] ?? [];
+        if (!is_array($parts)) return null;
+        $text = '';
+        foreach ($parts as $part) {
+            if (is_array($part) && empty($part['thought']) && is_string($part['text'] ?? null)) {
+                $text .= $part['text'];
+            }
+        }
+        $text = trim($text);
+        if (preg_match('/^```(?:json)?\s*([\s\S]*?)\s*```$/i', $text, $matches)) {
+            $text = $matches[1];
+        }
+        $decoded = json_decode($text, true);
+        if (!is_array($decoded)) return null;
+        foreach (['name', 'description'] as $field) {
+            if (!is_string($decoded[$field] ?? null)) return null;
+            $decoded[$field] = trim(preg_replace('/[\s\p{Z}\x{200B}\x{FEFF}]+/u', ' ', $decoded[$field]) ?? '');
+            if ($decoded[$field] === '') return null;
+        }
+        return $decoded;
     }
 }

@@ -252,8 +252,8 @@
                                     <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                                 </div>
                                 <div class="col-6 col-md-3">
-                                    <label class="form-label small fw-bold mb-1">Size Label *</label>
-                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="" required>
+                                    <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
+                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Size (e.g. S, M, L, XL)" value="">
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
@@ -518,8 +518,8 @@
                     <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold mb-1">Size Label *</label>
-                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
+                    <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
+                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>

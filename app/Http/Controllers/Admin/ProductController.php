@@ -210,6 +210,7 @@ class ProductController extends Controller
             'main_image' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
             'sub_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'sizes' => 'required|array',
+            'sizes.*' => 'nullable|string|max:50',
             'stocks' => 'required|array',
         ]);
 
@@ -262,25 +263,23 @@ class ProductController extends Controller
             $lengths = $request->input('lengths', []);
 
             foreach ($validated['sizes'] as $index => $sizeName) {
-                if (!empty($sizeName)) {
-                    $stockQty = max(0, (int) ($validated['stocks'][$index] ?? 0));
-                    $pSize = ProductSize::create([
-                        'product_id' => $product->id,
-                        'size' => trim($sizeName),
-                        'stock' => $stockQty,
-                        'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
-                        'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
-                        'length' => !empty($lengths[$index]) ? trim($lengths[$index]) : null,
-                    ]);
+                $stockQty = max(0, (int) ($validated['stocks'][$index] ?? 0));
+                $pSize = ProductSize::create([
+                    'product_id' => $product->id,
+                    'size' => trim($sizeName ?? ''),
+                    'stock' => $stockQty,
+                    'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
+                    'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
+                    'length' => !empty($lengths[$index]) ? trim($lengths[$index]) : null,
+                ]);
 
-                    if ($stockQty > 0) {
-                        $this->stockService->adjustStock(
-                            $pSize->id,
-                            $stockQty,
-                            'Initial Stock Addition',
-                            auth()->user()->name
-                        );
-                    }
+                if ($stockQty > 0) {
+                    $this->stockService->adjustStock(
+                        $pSize->id,
+                        $stockQty,
+                        'Initial Stock Addition',
+                        auth()->user()->name
+                    );
                 }
             }
 
@@ -365,7 +364,7 @@ class ProductController extends Controller
             'weight_kg' => 'nullable|numeric|min:0.01',
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'existing_sizes' => 'nullable|array',
-            'existing_sizes.*' => 'required|string|max:50',
+            'existing_sizes.*' => 'nullable|string|max:50',
             'existing_stocks' => 'nullable|array',
             'existing_stocks.*' => 'required|integer|min:0',
             'new_sizes' => 'nullable|array',
@@ -459,7 +458,7 @@ class ProductController extends Controller
                 $updateData = [];
 
                 if (array_key_exists($sizeId, $existingSizes)) {
-                    $newSizeName = trim($existingSizes[$sizeId]);
+                    $newSizeName = trim($existingSizes[$sizeId] ?? '');
                     if ($pSize->size !== $newSizeName) {
                         $updateData['size'] = $newSizeName;
                     }
@@ -508,19 +507,17 @@ class ProductController extends Controller
             $newLengths = $request->input('new_lengths', []);
 
             foreach ($newSizes as $i => $nSize) {
-                if (!empty($nSize)) {
-                    $nStock = max(0, (int) ($newStocks[$i] ?? 0));
-                    $pSize = ProductSize::create([
-                        'product_id' => $product->id,
-                        'size' => trim($nSize),
-                        'stock' => $nStock,
-                        'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
-                        'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
-                        'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
-                    ]);
-                    if ($nStock > 0) {
-                        $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);
-                    }
+                $nStock = max(0, (int) ($newStocks[$i] ?? 0));
+                $pSize = ProductSize::create([
+                    'product_id' => $product->id,
+                    'size' => trim($nSize ?? ''),
+                    'stock' => $nStock,
+                    'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
+                    'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
+                    'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
+                ]);
+                if ($nStock > 0) {
+                    $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);
                 }
             }
 

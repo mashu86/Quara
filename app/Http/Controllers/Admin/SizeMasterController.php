@@ -86,7 +86,6 @@ class SizeMasterController extends Controller
             'size_label' => 'required|string|max:50',
             'chest' => 'nullable|string|max:50',
             'waist' => 'nullable|string|max:50',
-            'length' => 'nullable|string|max:50',
         ]);
 
         $maxSort = $sizeMaster->rows()->max('sort_order') ?? 0;
@@ -96,7 +95,6 @@ class SizeMasterController extends Controller
             'size_label' => trim($validated['size_label']),
             'chest' => !empty($validated['chest']) ? trim($validated['chest']) : null,
             'waist' => !empty($validated['waist']) ? trim($validated['waist']) : null,
-            'length' => !empty($validated['length']) ? trim($validated['length']) : null,
             'sort_order' => $maxSort + 1,
         ]);
 
@@ -110,14 +108,12 @@ class SizeMasterController extends Controller
             'size_label' => 'required|string|max:50',
             'chest' => 'nullable|string|max:50',
             'waist' => 'nullable|string|max:50',
-            'length' => 'nullable|string|max:50',
         ]);
 
         $row->update([
             'size_label' => trim($validated['size_label']),
             'chest' => !empty($validated['chest']) ? trim($validated['chest']) : null,
             'waist' => !empty($validated['waist']) ? trim($validated['waist']) : null,
-            'length' => !empty($validated['length']) ? trim($validated['length']) : null,
         ]);
 
         return redirect()->route('admin.size-guide.index', ['category_id' => $row->size_master_id])
@@ -140,7 +136,7 @@ class SizeMasterController extends Controller
             'id' => $sizeMaster->id,
             'name' => $sizeMaster->name,
             'slug' => $sizeMaster->slug,
-            'rows' => $sizeMaster->rows,
+            'rows' => $sizeMaster->rows->map(fn ($row) => $row->only(['id', 'size_label', 'chest', 'waist', 'sort_order'])),
         ]);
     }
 }

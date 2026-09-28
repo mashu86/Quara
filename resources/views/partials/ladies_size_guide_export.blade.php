@@ -4,7 +4,7 @@
             <img src="{{ $logoUrl }}" alt="{{ $siteName }}" crossorigin="anonymous" style="display: block; max-height: 52px; max-width: 170px; object-fit: contain;">
             <div>
                 <div style="font-size: 22px; font-weight: 700; line-height: 1.2;">{{ $siteName }}</div>
-                <div style="font-size: 13px; color: #6c757d; margin-top: 2px;">Garment Size Guide · All measurements in inches (in)</div>
+                <div style="font-size: 13px; color: #6c757d; margin-top: 2px;">Body Size Guide · All measurements in inches (in)</div>
             </div>
         </div>
         @if(isset($selectedMaster) && $selectedMaster)
@@ -23,7 +23,6 @@
                         <th style="padding: 8px; border: 1px solid #212529;">Size</th>
                         <th style="padding: 8px; border: 1px solid #212529;">Chest (C)</th>
                         <th style="padding: 8px; border: 1px solid #212529;">Waist (W)</th>
-                        <th style="padding: 8px; border: 1px solid #212529;">Length (L)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -32,11 +31,10 @@
                             <td style="padding: 7px; border: 1px solid #dee2e6; font-weight: 700; color: #0d6efd;">{{ $r->size_label }}</td>
                             <td style="padding: 7px; border: 1px solid #dee2e6; font-weight: 600;">{{ $r->chest ?: '-' }}</td>
                             <td style="padding: 7px; border: 1px solid #dee2e6;">{{ $r->waist ?: '-' }}</td>
-                            <td style="padding: 7px; border: 1px solid #dee2e6;">{{ $r->length ?: '-' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" style="padding: 12px; color: #6c757d;">No size measurements available.</td>
+                            <td colspan="3" style="padding: 12px; color: #6c757d;">No size measurements available.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -45,7 +43,7 @@
     @endif
 
     <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; font-size: 11px; color: #495057;">
-        <strong>How to measure finished garment:</strong>
-        Chest (C) & Waist (W) are full circumference flat-garment measurements in inches. Length (L) is measured from top shoulder to bottom hem.
+        <strong>How to measure:</strong>
+        Chest / Bust (C) and Waist (W) are body circumferences in inches, not finished garment dimensions. Brand and fit may vary.
     </div>
 </div>

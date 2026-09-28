@@ -495,7 +495,7 @@
                                         <!-- Unit Switcher Toggle (Inch / Cm) -->
                                         <div class="d-flex align-items-center justify-content-between mb-2">
                                             <span class="text-muted small" style="font-size: 0.72rem;">
-                                                <i class="fa-solid fa-circle-info text-primary me-1"></i> Finished Garment Measurements
+                                                <i class="fa-solid fa-circle-info text-primary me-1"></i> Body Measurement Reference
                                             </span>
                                             <div class="btn-group btn-group-sm" role="group" aria-label="Measurement Unit Switcher">
                                                 <input type="radio" class="btn-check" name="unit_toggle" id="unit_inch" value="inch" checked onchange="toggleSizeChartUnit('inch')">
@@ -512,7 +512,6 @@
                                                         <th>Size</th>
                                                         <th>Chest (<span class="unit-label">in</span>)</th>
                                                         <th>Waist (<span class="unit-label">in</span>)</th>
-                                                        <th>Length (<span class="unit-label">in</span>)</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody style="font-size: 0.78rem;">
@@ -521,7 +520,6 @@
                                                             <td class="fw-bold text-dark">{{ $r->size_label }}</td>
                                                             <td class="chest-val" data-inch="{{ $r->chest }}">{{ $r->chest ?: '-' }}</td>
                                                             <td class="waist-val" data-inch="{{ $r->waist }}">{{ $r->waist ?: '-' }}</td>
-                                                            <td class="length-val" data-inch="{{ $r->length }}">{{ $r->length ?: '-' }}</td>
                                                         </tr>
                                                     @endforeach
                                                 </tbody>
@@ -865,7 +863,7 @@
         const unitLabels = table.querySelectorAll('.unit-label');
         unitLabels.forEach(el => el.textContent = unit);
 
-        const cells = table.querySelectorAll('.chest-val, .waist-val, .length-val');
+        const cells = table.querySelectorAll('.chest-val, .waist-val');
         cells.forEach(cell => {
             const inchVal = cell.getAttribute('data-inch');
             if (!inchVal || inchVal.trim() === '-' || inchVal.trim() === '') {

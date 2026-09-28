@@ -10,7 +10,7 @@
                 @foreach($sizeMasters as $master)
                     <option value="{{ $master->id }}" 
                         data-slug="{{ $master->slug }}" 
-                        data-chart="{{ $master->rows->map(fn ($row) => $row->only(['size_label', 'chest', 'waist', 'length']))->toJson() }}"
+                        data-chart="{{ $master->rows->map(fn ($row) => $row->only(['size_label', 'chest', 'waist']))->toJson() }}"
                         data-name="{{ strtolower($master->name) }}"
                         {{ (old('size_master_id', $product->size_master_id ?? '') == $master->id) ? 'selected' : '' }}>
                         {{ $master->name }} ({{ $master->rows->count() }} size levels)
@@ -18,6 +18,7 @@
                 @endforeach
             @endif
         </select>
+        <div class="form-text small">Size suggestions use body chest / bust and waist only. Garment measurements may differ. XXS, 4XL and 5XL are extended shop reference sizes.</div>
     </div>
     <div class="col-12 col-md-5">
         <div class="form-check form-switch p-1.5 px-2 bg-light rounded-3 border d-flex align-items-center mb-0" style="min-height: 31px;">

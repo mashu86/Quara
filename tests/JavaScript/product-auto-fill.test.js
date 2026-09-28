@@ -63,16 +63,23 @@ test('category matching prefers exact names and respects numeric boundaries', ()
     assert.equal(matchPriceCategories(169, [{ name: 'Offer 169' }, { name: 'Sale 169' }]).length, 2);
     assert.deepEqual(matchPriceCategories(200, categories), []);
 });
-test('Size Master matching uses chest then waist and never invents a match', async () => {
+test('Size Master matching considers both chest and waist and ignores length', async () => {
     globalThis.window = {};
     const { findBestMatchingMasterRow } = await import('../../public/js/product-size-suggestion.js');
     const rows = [{ size_label: 'M', chest: '38', waist: '36' }, { size_label: 'L', chest: '40', waist: '38' }];
-    assert.equal(findBestMatchingMasterRow('', '40', '36', rows).size_label, 'L');
+    assert.equal(findBestMatchingMasterRow('', '40', '36', rows), null);
     assert.equal(findBestMatchingMasterRow('', '', '38', rows).size_label, 'L');
     assert.equal(findBestMatchingMasterRow('', '40', '', [{ size_label: 'M' }]), null);
     assert.equal(findBestMatchingMasterRow('', '', '', rows), null);
+    assert.equal(findBestMatchingMasterRow('', '40', '38', rows).size_label, 'L');
+    assert.equal(findBestMatchingMasterRow('', '70', '38', rows), null);
+    assert.equal(findBestMatchingMasterRow('', '40cm', '', rows), null);
+    assert.equal(findBestMatchingMasterRow('', '0', '', rows), null);
+    assert.equal(findBestMatchingMasterRow('', '39', '', rows), null);
+    assert.equal(findBestMatchingMasterRow('', '40', '38', [...rows, rows[1]]), null);
+    assert.equal(findBestMatchingMasterRow('', '39', '37', [{ size_label: 'Free Size', chest: '38-40', waist: '36-38' }]).size_label, 'Free Size');
     assert.equal(findBestMatchingMasterRow('', '39.8', '', rows).size_label, 'L');
-    assert.equal(findBestMatchingMasterRow('', '', '', [{ size_label: '54', length: '54' }, { size_label: '56', length: '56' }], '56').size_label, '56');
+    assert.equal(findBestMatchingMasterRow('', '', '', [{ size_label: '54', length: '54' }, { size_label: '56', length: '56' }], '56'), null);
 });
 
 test('notes size autofill uses the selected image category embedded chart', async () => {
@@ -89,5 +96,46 @@ test('notes size autofill uses the selected image category embedded chart', asyn
     } finally {
         globalThis.document = previousDocument;
         globalThis.fetch = previousFetch;
+    }
+});
+
+test('measurement changes update automatic labels and preserve manual labels on add and edit rows', async () => {
+    const { enhanceSizeRows } = await import('../../public/js/product-size-suggestion.js');
+    const previousDocument = globalThis.document;
+    try {
+        for (const kind of ['sizes[]', 'new_sizes[]', 'existing_sizes[7]']) {
+            const input = value => ({ value, dataset: {}, handlers: {}, addEventListener(event, fn) { this.handlers[event] = fn; } });
+            const size = input('');
+            size.closest = () => ({ querySelector: () => true });
+            const chest = input('36');
+            const waist = input('30');
+            const master = input('1');
+            master.selectedOptions = [{ dataset: { chart: JSON.stringify([
+                { size_label: 'M', chest: '36', waist: '30' },
+                { size_label: 'L', chest: '38', waist: '32' },
+            ]) } }];
+            const row = { querySelector(selector) {
+                if (selector.includes('chests')) return chest;
+                if (selector.includes('waists')) return waist;
+                return selector.includes(kind.startsWith('existing') ? 'existing_sizes[' : kind) ? size : null;
+            } };
+            globalThis.document = { getElementById: () => master, querySelectorAll: () => [row] };
+            enhanceSizeRows();
+            await chest.handlers.input();
+            assert.equal(size.value, 'M', kind);
+            waist.value = '32';
+            await waist.handlers.input();
+            assert.equal(size.value, '', 'Conflicting measurements clear the previous automatic label');
+            chest.value = '38';
+            await chest.handlers.input();
+            assert.equal(size.value, 'L');
+            size.value = 'Free Size';
+            size.handlers.input();
+            chest.value = '36';
+            await chest.handlers.input();
+            assert.equal(size.value, 'Free Size');
+        }
+    } finally {
+        globalThis.document = previousDocument;
     }
 });

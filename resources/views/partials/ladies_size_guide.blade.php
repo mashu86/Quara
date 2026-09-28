@@ -12,9 +12,9 @@
         </div>
         <div class="text-start text-sm-end text-muted small mt-1 mt-sm-0">
             <div class="fw-semibold text-dark" style="font-size: 0.78rem;">
-                <i class="fa-solid fa-ruler-combined me-1 text-warning"></i> Garment Measurement Guide
+                <i class="fa-solid fa-ruler-combined me-1 text-warning"></i> Body Measurement Guide
             </div>
-            <div class="text-secondary" style="font-size: 0.72rem;">All measurements are in finished garment dimensions</div>
+            <div class="text-secondary" style="font-size: 0.72rem;">Body-size reference in inches; brand and garment fit may vary.</div>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
                     </span>
                     <div>
                         <h3 class="h6 fw-bold text-dark mb-0">{{ $selectedMaster->name }}</h3>
-                        <span class="text-muted" style="font-size: 0.72rem;">Finished garment size chart</span>
+                        <span class="text-muted" style="font-size: 0.72rem;">Body-size reference chart</span>
                     </div>
                 </div>
 
@@ -81,7 +81,6 @@
                             <th class="py-2.5 px-2 px-sm-3">Size</th>
                             <th class="py-2.5 px-2 px-sm-3">Chest (<span class="sg-unit-label">in</span>)</th>
                             <th class="py-2.5 px-2 px-sm-3">Waist (<span class="sg-unit-label">in</span>)</th>
-                            <th class="py-2.5 px-2 px-sm-3">Length (<span class="sg-unit-label">in</span>)</th>
                         </tr>
                     </thead>
                     <tbody style="font-size: 0.82rem;">
@@ -94,11 +93,10 @@
                                 </td>
                                 <td class="fw-bold text-dark sg-chest" data-inch="{{ $r->chest }}">{{ $r->chest ?: '-' }}</td>
                                 <td class="fw-semibold text-secondary sg-waist" data-inch="{{ $r->waist }}">{{ $r->waist ?: '-' }}</td>
-                                <td class="fw-semibold text-secondary sg-length" data-inch="{{ $r->length }}">{{ $r->length ?: '-' }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="py-4 text-muted small">No measurements added to this size category yet.</td>
+                                <td colspan="3" class="py-4 text-muted small">No measurements added to this size category yet.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -107,49 +105,39 @@
         </section>
     @else
         <div class="alert alert-info border-0 rounded-3 p-3 small">
-            <i class="fa-solid fa-info-circle me-2"></i>Select a size category above to view finished garment measurements.
+            <i class="fa-solid fa-info-circle me-2"></i>Select a size category above to view body measurements.
         </div>
     @endif
 
     <!-- Visual Measurement Guide Cards -->
     <section class="rounded-3 border bg-light p-3 p-md-4 mt-4">
         <h4 class="h6 fw-bold mb-3 text-dark d-flex align-items-center gap-2">
-            <i class="fa-solid fa-ruler text-warning"></i> How to Measure Your Garment
+            <i class="fa-solid fa-ruler text-warning"></i> How to Measure Your Body
         </h4>
         <div class="row g-2.5 g-md-3">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
                 <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
                     <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
                         <span class="badge bg-primary text-white rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">C</span>
                         Chest / Bust (C)
                     </div>
                     <p class="text-secondary mb-0" style="font-size: 0.75rem;">
-                        Lay garment flat, measure armpit-to-armpit, and multiply by 2 for full circumference.
+                        Measure around the fullest part of your bust, keeping the tape level.
                     </p>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
                 <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
                     <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
                         <span class="badge bg-success text-white rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">W</span>
                         Waist (W)
                     </div>
                     <p class="text-secondary mb-0" style="font-size: 0.75rem;">
-                        Measure across the narrowest waist area flat, and multiply by 2 for full circumference.
+                        Measure around your natural waist without pulling the tape tight.
                     </p>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
-                <div class="p-2.5 p-md-3 bg-white rounded-3 border h-100 shadow-sm">
-                    <div class="fw-bold text-dark mb-1 small d-flex align-items-center gap-1.5">
-                        <span class="badge bg-dark text-warning rounded-circle p-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem;">L</span>
-                        Length (L)
-                    </div>
-                    <p class="text-secondary mb-0" style="font-size: 0.75rem;">
-                        Measure straight from the highest shoulder seam down to the bottom hemline.
-                    </p>
-                </div>
-            </div>
+
         </div>
         <div class="mt-2.5 pt-2 border-top text-muted small d-flex align-items-center gap-2" style="font-size: 0.73rem;">
             <i class="fa-solid fa-lightbulb text-warning"></i>
@@ -189,7 +177,7 @@ function toggleSizeGuideUnit(unit) {
     const unitLabels = table.querySelectorAll('.sg-unit-label');
     unitLabels.forEach(el => el.textContent = unit);
 
-    const cells = table.querySelectorAll('.sg-chest, .sg-waist, .sg-length');
+    const cells = table.querySelectorAll('.sg-chest, .sg-waist');
     cells.forEach(cell => {
         const inchVal = cell.getAttribute('data-inch');
         if (!inchVal || inchVal.trim() === '-' || inchVal.trim() === '') {

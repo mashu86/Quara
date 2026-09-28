@@ -10,7 +10,7 @@
             <h1 class="h3 fw-bold mb-1 text-dark">
                 <i class="fa-solid fa-ruler-combined text-warning me-2"></i>Dress Size Master & Size Guide
             </h1>
-            <p class="text-muted small mb-0">Manage measurement masters for product categories and automatic size recommendations.</p>
+            <p class="text-muted small mb-0">Body-size reference for chest / bust and waist in inches. Brand and garment fit may vary; these are not finished garment dimensions.</p>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto">
             <button type="button" class="btn btn-warning rounded-pill px-3 py-2 font-semibold shadow-sm flex-fill flex-md-grow-0" data-bs-toggle="modal" data-bs-target="#addCategoryModal" style="font-size: 0.82rem;">
@@ -111,7 +111,7 @@
                 <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
                     <div>
                         <h3 class="h6 fw-bold text-dark mb-1">
-                            <i class="fa-solid fa-table me-1.5 text-warning"></i> Measurement Master Table (Inches)
+                            <i class="fa-solid fa-table me-1.5 text-warning"></i> Measurement Master Table (Inches) - Body Reference
                         </h3>
                         <p class="text-muted small mb-0" style="font-size: 0.75rem;">
                             These values are used by product auto-fill suggestions and displayed in client size guides.
@@ -129,7 +129,6 @@
                                 <th class="py-3">Size Label</th>
                                 <th class="py-3">Chest (C)</th>
                                 <th class="py-3">Waist (W)</th>
-                                <th class="py-3">Length (L)</th>
                                 <th class="py-3" style="width: 140px;">Actions</th>
                             </tr>
                         </thead>
@@ -141,7 +140,6 @@
                                     </td>
                                     <td class="fw-bold text-primary fs-6">{{ $row->chest ?: '-' }}</td>
                                     <td class="fw-semibold text-secondary fs-6">{{ $row->waist ?: '-' }}</td>
-                                    <td class="fw-semibold text-dark fs-6">{{ $row->length ?: '-' }}</td>
                                     <td>
                                         <div class="d-flex align-items-center justify-content-center gap-1">
                                             <button type="button" class="btn btn-sm btn-outline-primary rounded-circle" style="width: 32px; height: 32px; padding: 0;" data-bs-toggle="modal" data-bs-target="#editRowModal{{ $row->id }}" title="Edit Row">
@@ -182,10 +180,6 @@
                                                         <label class="form-label fw-bold small text-muted">Waist (W)</label>
                                                         <input type="text" name="waist" class="form-control rounded-3" value="{{ $row->waist }}" placeholder='e.g. 36" or 32–34"'>
                                                     </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-bold small text-muted">Length (L)</label>
-                                                        <input type="text" name="length" class="form-control rounded-3" value="{{ $row->length }}" placeholder='e.g. 26–27"'>
-                                                    </div>
                                                 </div>
                                                 <div class="modal-footer bg-light border-0 py-3">
                                                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
@@ -197,7 +191,7 @@
                                 </div>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="py-4 text-muted">No size rows added to this category yet. Click <strong>Add Size Row</strong> to add measurements.</td>
+                                    <td colspan="4" class="py-4 text-muted">No size rows added to this category yet. Click <strong>Add Size Row</strong> to add measurements.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -254,10 +248,6 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold small text-muted">Waist (W)</label>
                                 <input type="text" name="waist" class="form-control rounded-3" placeholder='e.g. 34" or 30–32"'>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-muted">Length (L)</label>
-                                <input type="text" name="length" class="form-control rounded-3" placeholder='e.g. 25–26"'>
                             </div>
                         </div>
                         <div class="modal-footer bg-light border-0 py-3">

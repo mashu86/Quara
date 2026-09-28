@@ -278,14 +278,13 @@
                                         <input type="text" name="existing_lengths[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_lengths.' . $pSize->id, $pSize->length) }}" placeholder="e.g. 42&quot;">
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <label class="form-label small fw-bold mb-1">Size Label *</label>
+                                        <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                                         <input type="text"
                                                name="existing_sizes[{{ $pSize->id }}]"
                                                class="form-control form-control-sm rounded-3"
                                                value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
                                                placeholder="e.g. L / XL"
-                                               maxlength="50"
-                                               required>
+                                               maxlength="50">
                                         @error('existing_sizes.' . $pSize->id)
                                             <div class="text-danger small mt-1">{{ $message }}</div>
                                         @enderror
@@ -700,8 +699,8 @@
                     <input type="text" name="new_lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold mb-1">Size Label *</label>
-                    <input type="text" name="new_sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL" required>
+                    <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
+                    <input type="text" name="new_sizes[]" class="form-control form-control-sm rounded-3" placeholder="e.g. XL">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>

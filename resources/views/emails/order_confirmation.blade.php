@@ -48,10 +48,13 @@
                     @endforeach
                 </tbody>
                 <tfoot>
-                    @if($order->discount > 0)
+                    @if((float) $order->district_offer_discount > 0)
+                        <tr><td colspan="3" style="text-align: right;">District Wise Special Offer:</td><td style="text-align: right;">-₹{{ number_format($order->district_offer_discount, 2) }}</td></tr>
+                    @endif
+                    @if(((float) $order->discount - (float) $order->district_offer_discount) > 0)
                         <tr>
                             <td colspan="3" style="text-align: right; color: #DC3545; font-weight: bold;">Discount:</td>
-                            <td style="text-align: right; color: #DC3545; font-weight: bold;">-₹{{ number_format($order->discount, 2) }}</td>
+                            <td style="text-align: right; color: #DC3545; font-weight: bold;">-₹{{ number_format(max(0, (float) $order->discount - (float) $order->district_offer_discount), 2) }}</td>
                         </tr>
                     @endif
                     <tr>

@@ -427,6 +427,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.district-offers.index') }}" class="nav-link {{ request()->routeIs('admin.district-offers.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-location-dot me-2 text-warning"></i> District Offers
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.size-guide.index') }}" class="nav-link {{ request()->routeIs('admin.size-guide.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-ruler-combined me-2 text-info"></i> Size Guide Master
                     </a>
@@ -834,7 +839,7 @@
         });
     </script>
     @endif
-    <script src="{{ asset('js/pincode_autofill.js') }}"></script>
+    <script src="{{ asset('js/pincode_autofill.js') }}?v=2" data-directory-url="{{ asset('data/pincodes.json') }}" data-lookup-url="{{ route('address.pincode') }}"></script>
     @yield('scripts')
 </body>
 </html>

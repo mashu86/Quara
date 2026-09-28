@@ -7,7 +7,7 @@
 <div class="container py-4">
     <h5 class="font-serif fw-bold fs-5 mb-3"><i class="fa-solid fa-lock text-gold me-2"></i> SECURE CHECKOUT</h5>
 
-    <form action="{{ route('checkout.process') }}" method="POST">
+    <form action="{{ route('checkout.process') }}" method="POST" data-district-checkout="{{ route('checkout.district-offer') }}" data-base-total="{{ $summary['grand_total'] }}" data-base-rounding="{{ $summary['rounding_adjustment'] ?? 0 }}">
         @csrf
         <div class="row g-4">
             <!-- Customer Shipping Address -->
@@ -34,8 +34,8 @@
                             <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name', $lastOrder?->customer_name) }}" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Email Address <span class="text-danger">*</span></label>
-                            <input type="email" name="customer_email" id="checkout_customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}" required>
+                            <label class="form-label small fw-bold">Email Address <span class="text-muted fw-normal">(Optional)</span></label>
+                            <input type="email" name="customer_email" id="checkout_customer_email" class="form-control rounded-3" placeholder="name@example.com" value="{{ old('customer_email', session('customer_email')) }}">
                             <div class="form-text small text-muted">
                                 <i class="fa-solid fa-sparkles text-gold me-1"></i> Typing your email automatically fetches saved delivery address from past orders.
                             </div>
@@ -64,17 +64,18 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">District <span class="text-danger">*</span></label>
-                            <input type="text" name="district" class="form-control rounded-3" value="{{ old('district', $lastOrder?->district) }}" required>
+                            <label class="form-label small fw-bold" for="checkoutPin">PIN Code *</label>
+                            <input id="checkoutPin" type="text" name="pin_code" data-pincode-listener="true" inputmode="numeric" pattern="[1-9][0-9]{5}" maxlength="6" class="form-control rounded-3" value="{{ old('pin_code', $lastOrder?->pin_code) }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">State <span class="text-danger">*</span></label>
-                            <input type="text" name="state" class="form-control rounded-3" value="{{ old('state', $lastOrder?->state) }}" required>
+                            <label class="form-label small fw-bold" for="checkoutDistrict">District *</label>
+                            <input id="checkoutDistrict" type="text" name="district" class="form-control rounded-3" readonly required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">PIN Code <span class="text-danger">*</span></label>
-                            <input type="text" name="pin_code" class="form-control rounded-3" value="{{ old('pin_code', $lastOrder?->pin_code) }}" required>
+                            <label class="form-label small fw-bold" for="checkoutState">State *</label>
+                            <input id="checkoutState" type="text" name="state" class="form-control rounded-3" readonly required>
                         </div>
+                        <div class="col-12 small"><span id="pinLookupMessage" role="status"></span> <button type="button" id="retryPinLookup" class="btn btn-link btn-sm">Retry PIN lookup</button></div>
 
                         <div class="col-12">
                             <label class="form-label small fw-bold">Special Delivery Notes (Optional)</label>
@@ -147,16 +148,12 @@
                         @endif
                     </div>
 
-                    @if(!empty($summary['rounding_adjustment']) && $summary['rounding_adjustment'] > 0)
-                        <div class="d-flex justify-content-between mb-3 text-muted small">
-                            <span>Rounded Paisa (Round Off)</span>
-                            <span class="fw-semibold text-primary">+₹{{ number_format($summary['rounding_adjustment'], 2) }}</span>
-                        </div>
-                    @endif
+                    <div id="districtOfferRow" hidden><div class="d-flex justify-content-between mb-2 text-success"><span>District Wise Special Offer</span><strong id="districtOfferAmount"></strong></div></div>
+                    <div class="d-flex justify-content-between mb-3 text-muted small"><span>Rounded Paisa (Round Off)</span><span id="checkoutRounding">+₹{{ number_format($summary['rounding_adjustment'] ?? 0, 2) }}</span></div>
 
                     <div class="d-flex justify-content-between mb-4 fs-4 fw-bold">
                         <span>Total Payable</span>
-                        <span class="text-gold">₹{{ number_format($summary['grand_total'], 2) }}</span>
+                        <span class="text-gold" id="checkoutTotal">₹{{ number_format($summary['grand_total'], 2) }}</span>
                     </div>
 
                     <button type="submit" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold" style="font-size: 0.82rem; padding-top: 7px; padding-bottom: 7px;">
@@ -171,6 +168,7 @@
 @include('frontend.partials.email_otp_modal')
 
 @section('scripts')
+<script src="{{ asset('js/checkout_district_offer.js') }}?v=2"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const emailInput = document.getElementById('checkout_customer_email');
@@ -212,7 +210,7 @@
                     if (cityInput) cityInput.value = d.city || cityInput.value || '';
                     if (districtInput) districtInput.value = d.district || districtInput.value || '';
                     if (stateInput) stateInput.value = d.state || stateInput.value || '';
-                    if (pinInput) pinInput.value = d.pin_code || pinInput.value || '';
+                    if (pinInput) { pinInput.value = d.pin_code || pinInput.value || ''; pinInput.dispatchEvent(new Event('input', {bubbles: true})); }
 
                     const autofillBadge = document.getElementById('autofillBadgeContainer');
                     if (autofillBadge) autofillBadge.style.display = 'block';

@@ -83,7 +83,9 @@ Route::delete('/cart/remove/{cartKey}', [CartController::class, 'remove'])->name
 Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_now');
 
 // Checkout Routes
+Route::get('/address/pincode', \App\Http\Controllers\PincodeController::class)->middleware('throttle:60,1')->name('address.pincode');
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+Route::get('/checkout/district-offer', [CheckoutController::class, 'districtOffer'])->middleware('throttle:60,1')->name('checkout.district-offer');
 Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
@@ -124,6 +126,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Authenticated Admin Routes
     Route::middleware([AdminMiddleware::class])->group(function () {
+        Route::get('/district-offers', [\App\Http\Controllers\Admin\DistrictOfferController::class, 'index'])->name('district-offers.index');
+        Route::get('/district-offers/preview', [\App\Http\Controllers\Admin\DistrictOfferController::class, 'preview'])->name('district-offers.preview');
+        Route::put('/district-offers/{district}', [\App\Http\Controllers\Admin\DistrictOfferController::class, 'update'])->name('district-offers.update');
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/change-password', [AdminAuthController::class, 'changePassword'])->name('change-password');
 

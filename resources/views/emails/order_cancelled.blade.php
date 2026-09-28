@@ -51,6 +51,9 @@
                         </tr>
                     @endforeach
                 </tbody>
+                @if((float) $order->district_offer_discount > 0)
+                    <tfoot><tr><td colspan="3">District Wise Special Offer:</td><td style="text-align: right;">-₹{{ number_format($order->district_offer_discount, 2) }}</td></tr></tfoot>
+                @endif
             </table>
 
             <p>If you have any questions regarding this cancellation, please contact our support team at <a href="mailto:{{ $supportEmail }}" style="color: #C9962E;">{{ $supportEmail }}</a>.</p>

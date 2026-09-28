@@ -120,6 +120,7 @@
                                 <div class="col-md-4 text-md-end border-top border-md-0 pt-3 pt-md-0">
                                     <div class="text-muted small mb-1">Total Paid Amount</div>
                                     <div class="fs-4 fw-bold text-gold mb-3">₹{{ number_format($order->grand_total, 2) }}</div>
+                            @include('partials.district_offer_summary')
                                     <a href="{{ route('order.tracking', ['order_number' => $order->order_number, 'phone' => $order->customer_phone]) }}" class="btn btn-dark rounded-pill btn-sm px-4 fw-bold">
                                         <i class="fa-solid fa-location-dot me-1"></i> Track Live Status
                                     </a>

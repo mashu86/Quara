@@ -154,7 +154,7 @@
                     @php
                         $activeOps = $order->operations ? $order->operations->where('status', 'active') : collect();
                         $totRefund = (float) $activeOps->sum('total_refund_amount');
-                        $existingDiscount = (float) old('discount', $order->discount ?? 0.00);
+                        $existingDiscount = (float) old('discount', max(0, (float) $order->discount - (float) $order->district_offer_discount));
                         $hasExistingDiscount = $existingDiscount > 0;
                     @endphp
                     <div class="p-3 p-md-4 bg-light rounded-4 border">
@@ -244,6 +244,7 @@
                                 <div class="small text-danger mb-1 {{ !$hasExistingDiscount ? 'd-none' : '' }}" id="discountRowDisplay">Discount / Savings: <strong id="discountDisplay" class="text-danger">- ₹{{ number_format($existingDiscount, 2) }}</strong></div>
                                 <div class="small text-muted mb-1">Delivery Charge: <strong id="deliveryDisplay" class="text-dark">₹0.00</strong></div>
                                 <div class="small text-muted mb-1 d-none" id="roundingRowDisplay">Rounded Paisa (Round Off): <strong id="roundingDisplay" class="text-primary">+ ₹0.00</strong></div>
+                                @include('partials.district_offer_summary')
                                 <div class="fw-bold text-dark fs-6 mt-2">Original Grand Total: <span id="grandTotalDisplay" class="fw-bold">₹0.00</span></div>
                                 @if($totRefund > 0)
                                     <div class="small text-danger fw-bold mt-1">Refund Deducted: -₹{{ number_format($totRefund, 2) }}</div>
@@ -390,12 +391,16 @@
                             <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town *" value="{{ old('city', $order->city) }}" required>
                         </div>
                         <div class="col-6">
+                            <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
+                            <input type="text" name="pin_code" inputmode="numeric" maxlength="6" pattern="[1-9][0-9]{5}" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', $order->pin_code) }}" required>
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small fw-bold mb-1">District <span class="text-danger">*</span></label>
                             <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District *" value="{{ old('district', $order->district) }}" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
-                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', $order->pin_code) }}" required>
+                            <label class="form-label small fw-bold mb-1">State</label>
+                            <input type="text" name="state" class="form-control rounded-3 mb-2" placeholder="State" value="{{ old('state', $order->state ?? 'Kerala') }}">
                         </div>
                     </div>
 
@@ -1211,7 +1216,8 @@
 
         const deliveryInput = document.getElementById('deliveryChargeInput');
         const shipping = parseFloat(deliveryInput ? deliveryInput.value : 0) || 0;
-        const rawGrandTotal = Math.max(0, (totalSubtotal - calculatedDiscount) + shipping);
+        const savedDistrictDiscount = {{ (float) $order->district_offer_discount }};
+        const rawGrandTotal = Math.max(0, Math.round((totalSubtotal - calculatedDiscount - savedDistrictDiscount + shipping) * 100) / 100);
         const grandTotal = Math.ceil(rawGrandTotal);
         const roundingAdjustment = Math.round((grandTotal - rawGrandTotal) * 100) / 100;
 

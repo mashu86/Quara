@@ -190,9 +190,10 @@ window.openImagePreviewModal = function(imageUrl, title) {
                             <span class="fw-bold text-dark">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</span>
                         </div>
                         @php
-                            $discVal = (float)($order->discount_amount ?: $order->discount);
+                            $discVal = max(0, (float)($order->discount_amount ?: $order->discount) - (float) $order->district_offer_discount);
                             $shipVal = (float)($order->shipping_charge ?: $order->shipping);
                         @endphp
+                        @include('partials.district_offer_summary')
                         @if($discVal > 0)
                             <div class="d-flex justify-content-between align-items-center mb-1.5 text-danger" style="font-size: 0.78rem;">
                                 <span>Discount / Offer:</span>
@@ -338,9 +339,12 @@ window.openImagePreviewModal = function(imageUrl, title) {
                                     <td class="text-end fw-bold">₹{{ number_format($order->subtotal ?: $order->items->sum('subtotal'), 2) }}</td>
                                 </tr>
                                 @php
-                                    $discVal = (float)($order->discount_amount ?: $order->discount);
+                                    $discVal = max(0, (float)($order->discount_amount ?: $order->discount) - (float) $order->district_offer_discount);
                                     $shipVal = (float)($order->shipping_charge ?: $order->shipping);
                                 @endphp
+                                @if((float) $order->district_offer_discount > 0)
+                                    <tr class="text-success"><td colspan="5" class="text-end fw-bold">District Wise Special Offer:</td><td class="text-end fw-bold">-₹{{ number_format($order->district_offer_discount, 2) }}</td></tr>
+                                @endif
                                 @if($discVal > 0)
                                     <tr class="text-danger">
                                         <td colspan="5" class="text-end fw-bold">Discount / Offer:</td>

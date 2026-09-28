@@ -8,6 +8,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductSize;
 use App\Services\CartService;
+use App\Services\DistrictOfferService;
+use App\Services\PincodeService;
 use App\Services\PaymentService;
 use App\Services\StockService;
 use App\Services\WhatsAppService;
@@ -62,6 +64,22 @@ class CheckoutController extends Controller
         return view('frontend.checkout', compact('cart', 'summary', 'lastOrder'));
     }
 
+    public function districtOffer(Request $request, PincodeService $pins, DistrictOfferService $offers)
+    {
+        $request->validate(['pin_code' => 'required|regex:/^[1-9][0-9]{5}$/']);
+        $location = $pins->lookup($request->input('pin_code'));
+        $summary = $this->cartService->getSummary();
+        $snapshot = $offers->snapshot($offers->eligible($location['district'], $location['state'], now('Asia/Kolkata')),
+            $summary['subtotal'] - $summary['discount'], true);
+        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $snapshot['district_offer_discount'] + $summary['shipping'], 2));
+
+        return response()->json($location + [
+            'offer' => $snapshot['district_offer_snapshot'],
+            'discount' => $snapshot['district_offer_discount'],
+            'grand_total' => ceil($raw), 'rounding_adjustment' => round(ceil($raw) - $raw, 2),
+        ]);
+    }
+
     public function process(Request $request)
     {
         $validated = $request->validate([
@@ -74,7 +92,7 @@ class CheckoutController extends Controller
             'city' => 'required|string|max:100',
             'district' => 'required|string|max:100',
             'state' => 'required|string|max:100',
-            'pin_code' => 'required|string|max:20',
+            'pin_code' => 'required|regex:/^[1-9][0-9]{5}$/',
             'payment_method' => 'required|in:online',
             'notes' => 'nullable|string|max:500',
         ]);
@@ -96,17 +114,29 @@ class CheckoutController extends Controller
 
         $summary = $this->cartService->getSummary();
 
+        // Never trust the submitted district/state for offer eligibility.
+        $location = app(PincodeService::class)->lookup($validated['pin_code']);
+        $validated = array_replace($validated, $location);
+
         try {
             $order = DB::transaction(function () use ($validated, $cart, $summary) {
                 $this->stockService->lockAndValidateCheckoutStock($cart);
                 $orderNumber = Order::generateOrderNumber();
+                $offers = app(DistrictOfferService::class);
+                $snapshot = $offers->snapshot($offers->eligible($validated['district'], $validated['state'], now('Asia/Kolkata')),
+                    $summary['subtotal'] - $summary['discount'], true);
+                $summary['discount'] += $snapshot['district_offer_discount'];
+                $raw = max(0, round($summary['subtotal'] - $summary['discount'] + $summary['shipping'], 2));
+                $summary['grand_total'] = ceil($raw);
+                $summary['rounding_adjustment'] = round(ceil($raw) - $raw, 2);
 
                 $order = Order::create([
+                    ...$snapshot,
                     'order_number' => $orderNumber,
                     'user_id' => auth()->check() ? auth()->id() : null,
                     'customer_name' => $validated['customer_name'],
                     'customer_phone' => $validated['customer_phone'],
-                    'customer_email' => $validated['customer_email'],
+                    'customer_email' => $validated['customer_email'] ?? null,
                     'house_building' => $validated['house_building'],
                     'street' => $validated['street'],
                     'area' => $validated['area'],
@@ -120,9 +150,9 @@ class CheckoutController extends Controller
                     'rounding_adjustment' => $summary['rounding_adjustment'] ?? 0.00,
                     'grand_total' => $summary['grand_total'],
                     'payment_method' => $validated['payment_method'],
-                    'payment_status' => ($validated['payment_method'] === 'cod') ? 'pending' : 'pending',
-                    'order_status' => ($validated['payment_method'] === 'cod') ? 'confirmed' : 'pending',
-                    'reserved_until' => ($validated['payment_method'] === 'online') ? now()->addMinutes(5) : null,
+                    'payment_status' => $summary['grand_total'] <= 0 ? 'paid' : 'pending',
+                    'order_status' => ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) ? 'confirmed' : 'pending',
+                    'reserved_until' => ($validated['payment_method'] === 'online' && $summary['grand_total'] > 0) ? now()->addMinutes(5) : null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
@@ -149,13 +179,16 @@ class CheckoutController extends Controller
                 }
 
                 // If Cash on Delivery, deduct stock immediately on order creation
-                if ($validated['payment_method'] === 'cod') {
+                if ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) {
                     $this->stockService->deductStockForOrder($order);
+                    if ($summary['grand_total'] <= 0) {
+                        \App\Models\Payment::create(['order_id' => $order->id, 'payment_method' => 'online', 'status' => 'paid', 'amount' => 0]);
+                    }
 
                     // Create Admin Notification
                     Notification::create([
                         'title' => 'New Order Received',
-                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total}) - COD",
+                        'message' => "Order #{$order->order_number} placed by {$order->customer_name} (₹{$order->grand_total})",
                         'type' => 'new_order',
                         'order_id' => $order->id,
                         'is_read' => false,
@@ -171,9 +204,13 @@ class CheckoutController extends Controller
             }, 3);
 
             // Process Payment Response
-            $paymentResult = $this->paymentService->initiatePayment($order, $validated['payment_method']);
+            if ((float) $order->grand_total <= 0) {
+                $paymentResult = [];
+            } else {
+                $paymentResult = $this->paymentService->initiatePayment($order, $validated['payment_method']);
+            }
 
-            if ($validated['payment_method'] === 'cod') {
+            if ($validated['payment_method'] === 'cod' || (float) $order->grand_total <= 0) {
                 $this->cartService->clear();
                 $this->whatsAppService->sendOrderConfirmation($order);
 

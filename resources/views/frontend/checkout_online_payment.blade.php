@@ -20,6 +20,7 @@
                         <span>Customer Name:</span>
                         <strong>{{ $order->customer_name }}</strong>
                     </div>
+                    @include('partials.district_offer_summary')
                     <div class="d-flex justify-content-between fs-5 fw-bold mt-2 pt-2 border-top">
                         <span>Total Amount:</span>
                         <span class="text-gold">₹{{ number_format($order->grand_total, 2) }}</span>

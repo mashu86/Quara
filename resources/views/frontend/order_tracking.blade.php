@@ -159,6 +159,7 @@
                                 <p class="mb-1 small">Method: <strong class="text-uppercase">{{ $order->payment_method }}</strong></p>
                                 <p class="mb-1 small">Status: <strong class="text-uppercase text-success">{{ $order->payment_status }}</strong></p>
                                 <p class="mb-0 small">Grand Total: <strong class="text-gold fs-6">₹{{ number_format($order->grand_total, 2) }}</strong></p>
+                            @include('partials.district_offer_summary')
                             </div>
                         </div>
                     </div>

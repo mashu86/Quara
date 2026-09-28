@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\ProductSize;
 use App\Models\Setting;
 use App\Services\StockService;
+use App\Services\DistrictOfferService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -87,6 +88,7 @@ class ManualSalesController extends Controller
         }
 
         $validated = $request->validate([
+            'provide_district_offer' => 'nullable|boolean',
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
             'customer_email' => 'nullable|email|max:255',
@@ -169,9 +171,6 @@ class ManualSalesController extends Controller
         }
 
         $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
-        $rawGrandTotal = max(0, $calculatedSubtotal - $discountAmount + $shipping);
-        $grandTotal = (float) ceil($rawGrandTotal);
-        $roundingAdjustment = round($grandTotal - $rawGrandTotal, 2);
 
         $orderNumber = 'QW-MAN-' . strtoupper(str_shuffle(substr(uniqid(), -5)));
 
@@ -183,8 +182,23 @@ class ManualSalesController extends Controller
             $saleDate = $nowInIst;
         }
 
-        DB::transaction(function () use ($validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $discountAmount, $shipping, $roundingAdjustment, $grandTotal, $orderNumber, $saleDate) {
+        DB::transaction(function () use ($request, $validated, $orderItemsData, $affectedProducts, $calculatedSubtotal, $discountAmount, $shipping, $orderNumber, $saleDate) {
+            $offers = app(DistrictOfferService::class);
+            $offer = $offers->eligible($validated['district'], $validated['state'] ?? 'Kerala', $saleDate);
+            if ($offer && !$request->filled('provide_district_offer')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['provide_district_offer' => 'Please choose Yes or No for the district offer.']);
+            }
+            if (!$offer && $request->boolean('provide_district_offer')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['provide_district_offer' => 'The district offer is no longer available. Please review the sale.']);
+            }
+            $discountAmount = min($calculatedSubtotal, $discountAmount);
+            $snapshot = $offers->snapshot($offer, $calculatedSubtotal - $discountAmount, $request->boolean('provide_district_offer'));
+            $discountAmount += $snapshot['district_offer_discount'];
+            $raw = max(0, round($calculatedSubtotal - $discountAmount + $shipping, 2));
+            $grandTotal = ceil($raw);
+            $roundingAdjustment = round($grandTotal - $raw, 2);
             $order = Order::create([
+                ...$snapshot,
                 'user_id' => null,
                 'order_number' => $orderNumber,
                 'customer_name' => $validated['customer_name'],
@@ -407,6 +421,11 @@ class ManualSalesController extends Controller
                     $discountAmount = max(0, (float) $request->input('discount'));
                 }
 
+                // Keep the original district discount even when its offer has since changed.
+                $discountAmount = min($calculatedSubtotal, $discountAmount) + (float) $order->district_offer_discount;
+                if ($discountAmount > $calculatedSubtotal) {
+                    throw new \Exception('The edited items total cannot be less than the saved discounts.');
+                }
                 $shipping = (float) ($validated['delivery_charge'] ?? 0.00);
 
                 $order->update([

@@ -79,7 +79,7 @@
     </a>
 </div>
 
-<form action="{{ route('admin.manual-sales.store') }}" method="POST" id="manualSaleForm">
+<form action="{{ route('admin.manual-sales.store') }}" method="POST" id="manualSaleForm" data-manual-district-offer="{{ route('admin.district-offers.preview') }}">
     @csrf
     <div class="row g-4">
         <!-- TOP: Select Products & Sizes (FULL WIDTH - col-12) -->
@@ -238,6 +238,7 @@
                                 <div class="small text-muted mb-1">Delivery Charge: <strong id="deliveryDisplay" class="text-dark">₹0.00</strong></div>
                                 <div class="small text-muted mb-1 d-none" id="roundingRowDisplay">Rounded Paisa (Round Off): <strong id="roundingDisplay" class="text-primary">+ ₹0.00</strong></div>
                                 <div class="fw-bold text-dark fs-6 mt-2">Grand Total Amount:</div>
+                                <div id="manualDistrictDiscountRow" class="small text-success" hidden>District Wise Special Offer: <strong id="manualDistrictDiscountValue"></strong></div>
                                 <div class="fs-2 fw-bold text-warning" id="grandTotalDisplay">₹0.00</div>
                             </div>
                         </div>
@@ -380,15 +381,28 @@
                             <input type="text" name="city" class="form-control rounded-3 mb-2" placeholder="City / Town *" value="{{ old('city', 'Naduvil') }}" required>
                         </div>
                         <div class="col-6">
+                            <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
+                            <input type="text" name="pin_code" inputmode="numeric" maxlength="6" pattern="[1-9][0-9]{5}" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', '670582') }}" required>
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small fw-bold mb-1">District <span class="text-danger">*</span></label>
                             <input type="text" name="district" class="form-control rounded-3 mb-2" placeholder="District *" value="{{ old('district', 'Kannur') }}" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
-                            <input type="text" name="pin_code" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', '670582') }}" required>
+                            <label class="form-label small fw-bold mb-1">State</label>
+                            <input type="text" name="state" class="form-control rounded-3 mb-2" placeholder="State" value="{{ old('state', 'Kerala') }}">
                         </div>
                     </div>
 
+                    <div id="manualDistrictOffer" class="alert alert-warning border-warning mt-4" hidden>
+                        <strong>District offer providing?</strong>
+                        <p id="manualDistrictOfferMessage" class="mb-1" role="status"></p>
+                        <p class="mb-2">District Wise Special Offer: <strong id="manualDistrictOfferAmount">₹0.00</strong></p>
+                        <label class="me-3"><input type="radio" name="provide_district_offer" value="1" @checked(old('provide_district_offer') === '1')> Yes</label>
+                        <label><input type="radio" name="provide_district_offer" value="0" @checked(old('provide_district_offer') === '0')> No</label>
+                        <button type="button" id="retryManualOffer" class="btn btn-link btn-sm">Recheck offer</button>
+                    </div>
+                    @error('provide_district_offer')<div class="text-danger">{{ $message }}</div>@enderror
                     <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 py-3 mt-4 shadow-sm submit-sale-btn" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">RECORD MANUAL SALE</button>
                 </div>
             </div>
@@ -399,6 +413,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/manual_district_offer.js') }}?v=1"></script>
 <script>
     // Global Products Array from Laravel
     const productsData = [
@@ -923,7 +938,9 @@
 
         const deliveryInput = document.getElementById('deliveryChargeInput');
         const shipping = parseFloat(deliveryInput ? deliveryInput.value : 0) || 0;
-        const rawGrandTotal = Math.max(0, (totalSubtotal - calculatedDiscount) + shipping);
+        calculatedDiscount = Math.round(calculatedDiscount * 100) / 100;
+        const districtDiscount = window.manualDistrictDiscount ? window.manualDistrictDiscount(totalSubtotal - calculatedDiscount) : 0;
+        const rawGrandTotal = Math.max(0, Math.round((totalSubtotal - calculatedDiscount - districtDiscount + shipping) * 100) / 100);
         const grandTotal = Math.ceil(rawGrandTotal);
         const roundingAdjustment = Math.round((grandTotal - rawGrandTotal) * 100) / 100;
 
@@ -1208,6 +1225,7 @@
                         const inputElem = document.querySelector(`[name="${fieldName}"]`);
                         if (inputElem) {
                             inputElem.value = val;
+                            inputElem.dispatchEvent(new Event('change', { bubbles: true }));
                             filledCount++;
 
                             // Add glowing highlight effect to filled input

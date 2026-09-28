@@ -158,6 +158,7 @@ class ShippingChargeAdjustmentTest extends TestCase
 
         // Decrease delivery charge from 10 to 5
         $response = $this->put(route('admin.manual-sales.update', $order->id), [
+            ...$order->only(['house_building', 'street', 'area', 'city', 'district', 'state', 'pin_code']),
             'customer_name' => 'Jane Smith',
             'customer_phone' => '9876543211',
             'items' => [

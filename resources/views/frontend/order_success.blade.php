@@ -64,6 +64,7 @@
                         <div class="col-sm-6">
                             <span class="text-muted small text-uppercase font-bold">Total Amount</span>
                             <h5 class="fw-bold text-gold mb-0">₹{{ number_format($order->grand_total, 2) }}</h5>
+                            @include('partials.district_offer_summary')
                         </div>
                     </div>
                 </div>

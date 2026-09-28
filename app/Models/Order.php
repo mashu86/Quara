@@ -27,6 +27,10 @@ class Order extends Model
         'pin_code',
         'subtotal',
         'discount',
+        'district_offer_id',
+        'district_offer_snapshot',
+        'district_offer_discount',
+        'district_offer_accepted',
         'shipping',
         'rounding_adjustment',
         'grand_total',
@@ -59,6 +63,9 @@ class Order extends Model
     protected $casts = [
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
+        'district_offer_snapshot' => 'array',
+        'district_offer_discount' => 'decimal:2',
+        'district_offer_accepted' => 'boolean',
         'shipping' => 'decimal:2',
         'rounding_adjustment' => 'decimal:2',
         'grand_total' => 'decimal:2',
@@ -76,6 +83,17 @@ class Order extends Model
         'sale_date' => 'datetime',
         'reserved_until' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::updating(function (Order $order) {
+            foreach (['district_offer_id', 'district_offer_snapshot', 'district_offer_discount', 'district_offer_accepted'] as $field) {
+                if ($order->isDirty($field)) {
+                    throw new \LogicException('The district offer saved with an order cannot be changed.');
+                }
+            }
+        });
+    }
 
     public function comboCategory(): BelongsTo
     {
@@ -144,7 +162,7 @@ class Order extends Model
         $discount = (float) ($this->discount_amount ?? $this->discount ?? 0);
         $shipping = (float) $this->shipping;
 
-        $rawGrandTotal = max(0, $subtotal + $shipping - $discount);
+        $rawGrandTotal = max(0, round($subtotal + $shipping - $discount, 2));
         $this->grand_total = (float) ceil($rawGrandTotal);
         $this->rounding_adjustment = round($this->grand_total - $rawGrandTotal, 2);
         $this->save();

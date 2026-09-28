@@ -264,13 +264,14 @@
                 <div class="bg-light p-3 rounded-3 border">
                     @php
                         $invSubtotal = $order->subtotal ?: $order->items->sum('subtotal');
-                        $invDiscount = (float)($order->discount_amount ?: $order->discount);
+                        $invDiscount = max(0, (float)($order->discount_amount ?: $order->discount) - (float) $order->district_offer_discount);
                         $invShipping = (float)($order->shipping_charge ?: $order->shipping);
                     @endphp
                     <div class="d-flex justify-content-between mb-2 small">
                         <span class="text-muted">Items Subtotal:</span>
                         <span class="fw-bold">₹{{ number_format($invSubtotal, 2) }}</span>
                     </div>
+                    @include('partials.district_offer_summary')
                     @if($invDiscount > 0)
                         <div class="d-flex justify-content-between mb-2 small text-danger">
                             <span>Discount / Savings:</span>

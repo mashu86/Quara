@@ -1,0 +1,17 @@
+# Shared hosting: the repository root may be deployed directly to public_html.
+# Prefer a document root pointing to public/ when the hosting plan permits it.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Never serve hidden configuration or Git files, including under public/.
+    RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+
+    # Let public/.htaccess handle Laravel routes without rewriting twice.
+    RewriteRule ^public(?:/|$) - [L]
+
+    # Rewrite every path, even when a file/directory exists at repository root.
+    # This keeps application code, vendor and storage outside the served tree.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

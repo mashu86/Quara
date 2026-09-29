@@ -393,6 +393,7 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold mb-1">PIN Code <span class="text-danger">*</span></label>
                             <input type="text" name="pin_code" inputmode="numeric" maxlength="6" pattern="[1-9][0-9]{5}" class="form-control rounded-3 mb-2" placeholder="PIN Code *" value="{{ old('pin_code', $order->pin_code) }}" required>
+                            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="autoFindLocation" data-auto-pincode><label class="form-check-label small" for="autoFindLocation">Auto-find district &amp; state</label></div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold mb-1">District <span class="text-danger">*</span></label>

@@ -839,7 +839,7 @@
         });
     </script>
     @endif
-    <script src="{{ asset('js/pincode_autofill.js') }}?v=2" data-directory-url="{{ asset('data/pincodes.json') }}" data-lookup-url="{{ route('address.pincode') }}"></script>
+    <script src="{{ asset('js/pincode_autofill.js') }}?v={{ filemtime(public_path('js/pincode_autofill.js')) }}" data-directory-url="{{ asset('data/pincodes.json') }}" data-lookup-url="{{ route('address.pincode') }}"></script>
     @yield('scripts')
 </body>
 </html>

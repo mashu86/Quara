@@ -57,6 +57,8 @@
             if (pin.dataset.pincodeListener) return;
             pin.dataset.pincodeListener = 'true';
             const form = pin.closest('form') || document;
+            const toggle = form.querySelector('[data-auto-pincode]');
+            const enabled = () => !toggle || toggle.checked;
             const state = form.querySelector('[name="state"]');
             const district = form.querySelector('[name="district"]');
             if (!state || !district) return;
@@ -67,13 +69,12 @@
             let version = 0;
             let lastPin = '';
             async function update() {
+                if (!enabled()) return;
                 const value = pin.value.trim();
                 if (value === lastPin) return;
                 lastPin = value;
                 const request = ++version;
-                state.value = '';
-                district.value = '';
-                district.dispatchEvent(new Event('change', {bubbles: true}));
+
                 if (!/^[1-9][0-9]{5}$/.test(value)) {
                     message.textContent = 'Enter a six-digit PIN code.';
                     return;
@@ -81,20 +82,30 @@
                 message.textContent = 'Finding district and state…';
                 try {
                     const data = cached(value) || await lookup(value);
-                    if (request !== version) return;
+                    if (request !== version || !enabled() || pin.value.trim() !== value) return;
                     state.value = data.state;
                     district.value = data.district;
                     message.textContent = data.district + ', ' + data.state;
                     district.dispatchEvent(new Event('change', {bubbles: true}));
                 } catch (error) {
-                    if (request !== version) return;
-                    message.textContent = error.message;
+                    if (request !== version || !enabled() || pin.value.trim() !== value) return;
+                    message.textContent = 'Could not auto-find district and state. Enter them manually, or switch auto-find off and on to retry.';
                     lastPin = '';
                 }
             }
             pin.addEventListener('input', update);
             pin.addEventListener('change', update);
-            window.addEventListener('online', () => { lastPin = ''; update(); });
+            [state, district].forEach(field => field.addEventListener('input', () => {
+                ++version; // A delayed lookup must not overwrite a manual correction.
+                message.textContent = 'You can edit district and state manually.';
+            }));
+            toggle?.addEventListener('change', () => {
+                ++version;
+                lastPin = '';
+                message.textContent = enabled() ? '' : 'Enter district and state manually.';
+                if (enabled()) update();
+            });
+            if (!district.value && !state.value) update();
         }
         function init() {
             const pins = document.querySelectorAll(selector);

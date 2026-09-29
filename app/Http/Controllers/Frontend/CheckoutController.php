@@ -114,16 +114,19 @@ class CheckoutController extends Controller
 
         $summary = $this->cartService->getSummary();
 
-        // Never trust the submitted district/state for offer eligibility.
-        $location = app(PincodeService::class)->lookup($validated['pin_code']);
-        $validated = array_replace($validated, $location);
+        // Verify offer eligibility independently; preserve the entered delivery address.
+        try {
+            $location = app(PincodeService::class)->lookup($validated['pin_code']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $location = null; // Manual delivery details remain usable without a postal lookup.
+        }
 
         try {
-            $order = DB::transaction(function () use ($validated, $cart, $summary) {
+            $order = DB::transaction(function () use ($validated, $cart, $summary, $location) {
                 $this->stockService->lockAndValidateCheckoutStock($cart);
                 $orderNumber = Order::generateOrderNumber();
                 $offers = app(DistrictOfferService::class);
-                $snapshot = $offers->snapshot($offers->eligible($validated['district'], $validated['state'], now('Asia/Kolkata')),
+                $snapshot = $offers->snapshot($location ? $offers->eligible($location['district'], $location['state'], now('Asia/Kolkata')) : null,
                     $summary['subtotal'] - $summary['discount'], true);
                 $summary['discount'] += $snapshot['district_offer_discount'];
                 $raw = max(0, round($summary['subtotal'] - $summary['discount'] + $summary['shipping'], 2));

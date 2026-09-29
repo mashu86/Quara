@@ -65,17 +65,18 @@
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold" for="checkoutPin">PIN Code *</label>
-                            <input id="checkoutPin" type="text" name="pin_code" data-pincode-listener="true" inputmode="numeric" pattern="[1-9][0-9]{5}" maxlength="6" class="form-control rounded-3" value="{{ old('pin_code', $lastOrder?->pin_code) }}" required>
+                            <input id="checkoutPin" type="text" name="pin_code" inputmode="numeric" pattern="[1-9][0-9]{5}" maxlength="6" class="form-control rounded-3" value="{{ old('pin_code', $lastOrder?->pin_code) }}" required>
+                            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="autoFindLocation" data-auto-pincode><label class="form-check-label small" for="autoFindLocation">Auto-find district &amp; state</label></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold" for="checkoutDistrict">District *</label>
-                            <input id="checkoutDistrict" type="text" name="district" class="form-control rounded-3" readonly required>
+                            <input id="checkoutDistrict" type="text" name="district" class="form-control rounded-3" value="{{ old('district', $lastOrder?->district) }}" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold" for="checkoutState">State *</label>
-                            <input id="checkoutState" type="text" name="state" class="form-control rounded-3" readonly required>
+                            <input id="checkoutState" type="text" name="state" class="form-control rounded-3" value="{{ old('state', $lastOrder?->state) }}" required>
                         </div>
-                        <div class="col-12 small"><span id="pinLookupMessage" role="status"></span> <button type="button" id="retryPinLookup" class="btn btn-link btn-sm">Retry PIN lookup</button></div>
+                        <div class="col-12 small"><span id="pinLookupMessage" role="status"></span></div>
 
                         <div class="col-12">
                             <label class="form-label small fw-bold">Special Delivery Notes (Optional)</label>
@@ -168,7 +169,7 @@
 @include('frontend.partials.email_otp_modal')
 
 @section('scripts')
-<script src="{{ asset('js/checkout_district_offer.js') }}?v=2"></script>
+<script src="{{ asset('js/checkout_district_offer.js') }}?v={{ filemtime(public_path('js/checkout_district_offer.js')) }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const emailInput = document.getElementById('checkout_customer_email');

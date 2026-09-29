@@ -107,7 +107,8 @@ class DistrictOfferTest extends TestCase
         $order = Order::latest('id')->firstOrFail();
         $this->assertEquals(190, $order->discount);
         $this->assertEquals(90, $order->district_offer_discount);
-        $this->assertSame('Kannur', $order->district);
+        $this->assertSame('Ernakulam', $order->district);
+        $this->assertSame('Other', $order->state);
         $this->assertSame($offer->id, $order->district_offer_id);
         $this->offer(['is_active' => false, 'value' => 50]);
         $order->refresh()->recalculateTotals();
@@ -122,6 +123,21 @@ class DistrictOfferTest extends TestCase
         $this->getJson(route('checkout.district-offer', ['pin_code' => '000000']))->assertUnprocessable();
         $this->getJson(route('checkout.district-offer', ['pin_code' => '999999']))->assertUnprocessable()->assertJsonValidationErrors('pin_code');
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_manual_checkout_address_can_be_saved_when_pin_lookup_is_unavailable(): void
+    {
+        $size = $this->productSize();
+        $this->mock(\App\Services\PincodeService::class)->shouldReceive('lookup')->once()
+            ->andThrow(\Illuminate\Validation\ValidationException::withMessages(['pin_code' => 'Unavailable']));
+        $this->mock(PaymentService::class)->shouldReceive('initiatePayment')->once()
+            ->andReturn(['razorpay_order_id' => 'order_test', 'razorpay_key' => 'test', 'amount' => 90000]);
+        $this->withSession(['cart' => ['dress_M' => ['product_id' => $size->product_id, 'size' => 'M', 'quantity' => 1]]])
+            ->post(route('checkout.process'), $this->address() + ['payment_method' => 'online'])->assertOk();
+        $order = Order::firstOrFail();
+        $this->assertSame('Kannur', $order->district);
+        $this->assertSame('Kerala', $order->state);
+        $this->assertEquals(0, $order->district_offer_discount);
     }
 
     public function test_offline_yes_uses_sale_date_and_edit_and_invoice_keep_snapshot_after_switch_off(): void

@@ -409,12 +409,18 @@
                 <form action="{{ route('cart.add') }}" method="POST" id="productForm">
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
+                    @php
+                        $hasMeasurements = $product->sizes->contains(fn ($sz) => !empty($sz->chest) || !empty($sz->waist) || !empty($sz->length));
+                        $noSizeAvailableStock = $product->sizes
+                            ->filter(fn ($variant) => trim((string) $variant->size) === '')
+                            ->sum(fn ($variant) => $variant->available_stock);
+                        $quantityLimit = $product->selectableSizes->isEmpty()
+                            ? max(1, (int) $noSizeAvailableStock)
+                            : 50;
+                    @endphp
 
+                    @if($product->selectableSizes->isNotEmpty())
                     <div class="mb-3 product-size-section">
-                        @php
-                            $hasMeasurements = $product->sizes->contains(fn($sz) => !empty($sz->chest) || !empty($sz->waist) || !empty($sz->length));
-                        @endphp
-
                         <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading mb-1.5">
                             <span>
                                 Select Size <span class="text-danger">*</span>
@@ -429,11 +435,10 @@
 
                         <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
                             @php
-                                $totalProductStock = $product->total_stock;
                                 $firstInStockSelected = false;
                             @endphp
 
-                            @forelse($product->sizes as $pSize)
+                            @forelse($product->selectableSizes as $pSize)
                                 @php
                                     $effectiveStock = $product->is_out_of_stock ? 0 : $pSize->stock;
                                     $isAvailable = $effectiveStock > 0;
@@ -536,19 +541,22 @@
                             </div>
                         @endif
                     </div>
+                    @else
+                    <input type="hidden" name="size" value="">
+                    @endif
 
                     <!-- Quantity Selector -->
                     <div class="mb-3 product-quantity-section">
                         <label class="form-label font-bold text-uppercase small" style="font-size: 0.78rem;">Quantity</label>
                         <div class="input-group" style="max-width: 130px;">
                             <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
-                            <input type="number" name="quantity" id="quantityInput" class="form-control text-center fw-bold" value="1" min="1" max="50">
+                            <input type="number" name="quantity" id="quantityInput" class="form-control text-center fw-bold" value="1" min="1" max="{{ $quantityLimit }}">
                             <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
 
                     <!-- Actions -->
-                    @if($totalProductStock > 0)
+                    @if($product->total_stock > 0)
                         <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-3 product-purchase-actions">
                             <button type="submit" name="purchase_action" value="add" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART

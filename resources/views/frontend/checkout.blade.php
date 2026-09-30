@@ -115,7 +115,7 @@
                                 <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="rounded-3 border" style="width: 50px; height: 65px; object-fit: cover;">
                                 <div class="flex-grow-1">
                                     <h6 class="font-serif fw-bold mb-0 text-truncate" style="max-width: 180px;">{{ $item['name'] }}</h6>
-                                    <div class="text-muted small">Size: <span class="fw-bold text-dark">{{ $item['size'] }}</span> | Qty: {{ $item['quantity'] }}</div>
+                                    <div class="text-muted small">@if(!empty($item['size']))Size: <span class="fw-bold text-dark">{{ $item['size'] }}</span> | @endif Qty: {{ $item['quantity'] }}</div>
                                 </div>
                                 @if(!empty($item['is_combo_offer']))
                                     <span class="badge bg-warning-subtle text-dark border border-warning" style="font-size: 0.68rem;"><i class="fa-solid fa-crown me-1"></i> Combo Item</span>

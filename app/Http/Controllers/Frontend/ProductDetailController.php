@@ -15,7 +15,7 @@ class ProductDetailController extends Controller
     {
         $product = Product::where('slug', $slug)
             ->active()
-            ->with(['category', 'images', 'sizes', 'sizeMaster.rows'])
+            ->with(['category', 'images', 'sizes', 'selectableSizes', 'sizeMaster.rows'])
             ->firstOrFail();
 
         $displaySizeMaster = null;

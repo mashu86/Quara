@@ -38,9 +38,20 @@ class CartService
                 continue;
             }
 
-            // 2. Check stock for this specific size
-            $productSize = $product->sizes->firstWhere('size', $size);
-            $availableStock = $productSize ? (int) $productSize->stock : 0;
+            // Products without size variants use one stable cart/order label.
+            $selectableSizes = $product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '');
+            if ($selectableSizes->isEmpty()) {
+                if ($size !== '') {
+                    $size = '';
+                    $hasChanges = true;
+                }
+            }
+
+            // 2. Check stock for this specific size, or product availability when no variants exist.
+            $productSize = $selectableSizes->isEmpty()
+                ? $product->sizes->first(fn ($variant) => trim((string) $variant->size) === '')
+                : $selectableSizes->firstWhere('size', $size);
+            $availableStock = $productSize ? (int) $productSize->available_stock : 0;
 
             // If product is marked out of stock or size stock is 0 -> REMOVE FROM CART (Sold out)
             if ($product->is_out_of_stock || $availableStock <= 0) {
@@ -71,6 +82,7 @@ class CartService
                         'discount_amount' => max(0, (float) ($product->price - $effectivePrice)),
                         'final_price' => $effectivePrice,
                         'quantity' => $quantity,
+                        'available_stock' => $availableStock,
                         'image' => $product->primary_image_url,
                         'subtotal' => round($effectivePrice * $quantity, 2),
                         'is_combo_offer' => false,
@@ -81,6 +93,7 @@ class CartService
                         'name' => $product->name,
                         'image' => $product->primary_image_url,
                         'quantity' => $quantity,
+                        'available_stock' => $availableStock,
                         'subtotal' => round($item['final_price'] * $quantity, 2),
                     ]);
                 }
@@ -103,6 +116,7 @@ class CartService
                     'discount_amount' => $discountAmount,
                     'final_price' => $effectivePrice,
                     'quantity' => $quantity,
+                    'available_stock' => $availableStock,
                     'image' => $product->primary_image_url,
                     'subtotal' => round($effectivePrice * $quantity, 2),
                     'is_combo_offer' => false,
@@ -123,6 +137,9 @@ class CartService
         if (!$product) {
             return ['success' => false, 'message' => 'Product is currently unavailable.'];
         }
+        if ($product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
+            $size = '';
+        }
         $stockCheck = $this->stockService->checkStock($productId, $size, $quantity);
 
         if (!$stockCheck['available']) {
@@ -138,7 +155,10 @@ class CartService
         // Verify total requested quantity against stock
         $recheck = $this->stockService->checkStock($productId, $size, $newQty);
         if (!$recheck['available']) {
-            return ['success' => false, 'message' => "Cannot add {$quantity} more. Maximum available stock for size {$size} is {$recheck['available_stock']}."];
+            $stockMessage = $size !== ''
+                ? "Cannot add {$quantity} more. Maximum available stock for size {$size} is {$recheck['available_stock']}."
+                : "Cannot add {$quantity} more. Only {$recheck['available_stock']} item(s) are available.";
+            return ['success' => false, 'message' => $stockMessage];
         }
 
         $cart[$cartKey] = [
@@ -150,6 +170,7 @@ class CartService
             'discount_amount' => (float) ($product->price - $product->final_price),
             'final_price' => (float) $product->final_price,
             'quantity' => $newQty,
+            'available_stock' => $recheck['available_stock'],
             'image' => $product->primary_image_url,
             'subtotal' => round($product->final_price * $newQty, 2),
         ];
@@ -184,6 +205,7 @@ class CartService
         }
 
         $cart[$cartKey]['quantity'] = $quantity;
+        $cart[$cartKey]['available_stock'] = $stockCheck['available_stock'];
         $cart[$cartKey]['subtotal'] = round($cart[$cartKey]['final_price'] * $quantity, 2);
 
         Session::put('cart', $cart);
@@ -264,17 +286,23 @@ class CartService
 
         foreach ($items as $itm) {
             $productId = (int) $itm['product_id'];
-            $size = (string) $itm['size'];
+            $size = (string) ($itm['size'] ?? '');
             $qty = (int) ($itm['quantity'] ?? 1);
 
             $product = Product::active()->with(['images', 'sizes'])->find($productId);
             if (!$product) {
                 return ['success' => false, 'message' => 'Selected product is currently unavailable.'];
             }
+            if ($product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
+                $size = '';
+            } elseif ($size === '') {
+                return ['success' => false, 'message' => "Please select a size for {$product->name}."];
+            }
 
             $stockCheck = $this->stockService->checkStock($productId, $size, $qty);
             if (!$stockCheck['available']) {
-                return ['success' => false, 'message' => "{$product->name} (Size: {$size}): {$stockCheck['message']}"];
+                $sizeText = $size !== '' ? " (Size: {$size})" : '';
+                return ['success' => false, 'message' => "{$product->name}{$sizeText}: {$stockCheck['message']}"];
             }
 
             // Distribute 1 paisa (0.01) to first N items to absorb remainder cents
@@ -297,6 +325,7 @@ class CartService
                 'discount_amount' => max(0, (float) ($product->price - $unitComboPrice)),
                 'final_price' => $unitComboPrice,
                 'quantity' => $newQty,
+                'available_stock' => $stockCheck['available_stock'],
                 'image' => $product->primary_image_url,
                 'subtotal' => round($unitComboPrice * $newQty, 2),
                 'is_combo_offer' => true,
@@ -389,7 +418,8 @@ class CartService
         foreach ($cart as $key => $item) {
             $check = $this->stockService->checkStock($item['product_id'], $item['size'], $item['quantity']);
             if (!$check['available']) {
-                $errors[] = "{$item['name']} ({$item['size']}): " . $check['message'];
+                $sizeText = !empty($item['size']) ? " ({$item['size']})" : '';
+                $errors[] = "{$item['name']}{$sizeText}: " . $check['message'];
             }
         }
 

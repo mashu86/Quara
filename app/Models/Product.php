@@ -82,6 +82,14 @@ class Product extends Model
         return $this->hasMany(ProductSize::class);
     }
 
+    /** Rows with a blank size label may hold measurements only, not a selectable variant. */
+    public function selectableSizes(): HasMany
+    {
+        return $this->hasMany(ProductSize::class)
+            ->whereNotNull('size')
+            ->whereRaw("TRIM(size) <> ''");
+    }
+
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);

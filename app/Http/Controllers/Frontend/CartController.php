@@ -32,15 +32,20 @@ class CartController extends Controller
 
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'size' => 'required|string|max:100',
+            'size' => 'nullable|string|max:100',
             'quantity' => 'required|integer|min:1',
         ], [
             'size.required' => 'Please select a size before adding to cart.',
         ]);
 
+        $product = \App\Models\Product::with('selectableSizes')->findOrFail($validated['product_id']);
+        if ($product->selectableSizes->isNotEmpty() && empty($validated['size'])) {
+            return back()->withErrors(['size' => 'Please select a size before adding to cart.'])->withInput();
+        }
+
         $result = $this->cartService->add(
             (int) $validated['product_id'],
-            $validated['size'],
+            $validated['size'] ?? '',
             (int) $validated['quantity']
         );
 
@@ -116,16 +121,21 @@ class CartController extends Controller
     {
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'size' => 'required|string|max:100',
+            'size' => 'nullable|string|max:100',
             'quantity' => 'required|integer|min:1',
         ], [
-            'size.required' => 'Please select a size before proceeding to Buy Now.',
+            'product_id.required' => 'This product could not be identified. Please reload the page and try again.',
         ]);
+
+        $product = \App\Models\Product::with('selectableSizes')->findOrFail($validated['product_id']);
+        if ($product->selectableSizes->isNotEmpty() && empty($validated['size'])) {
+            return back()->withErrors(['size' => 'Please select a size before proceeding to Buy Now.'])->withInput();
+        }
 
         $this->cartService->clear();
         $result = $this->cartService->add(
             (int) $validated['product_id'],
-            $validated['size'],
+            $validated['size'] ?? '',
             (int) $validated['quantity']
         );
 

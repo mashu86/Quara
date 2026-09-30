@@ -17,6 +17,22 @@ class StockService
         $items = collect($items)->sortBy(fn ($item) => sprintf('%020d:%s', $item['product_id'], $item['size']));
         $requested = [];
         foreach ($items as $item) {
+            $product = Product::with('sizes')->find($item['product_id']);
+            if ($product && $product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
+                $size = ProductSize::where('product_id', $product->id)
+                    ->where(function ($query) {
+                        $query->whereNull('size')->orWhereRaw("TRIM(size) = ''");
+                    })
+                    ->lockForUpdate()
+                    ->first();
+                $key = $product->id.':';
+                $requested[$key] = ($requested[$key] ?? 0) + (int) $item['quantity'];
+                if (!$size || $item['quantity'] < 1 || $product->is_out_of_stock || $size->available_stock < $requested[$key]) {
+                    throw new Exception('Stock validation failed: this item is sold out.');
+                }
+                continue;
+            }
+
             $size = ProductSize::where('product_id', $item['product_id'])
                 ->where('size', $item['size'])->lockForUpdate()->first();
             $key = $item['product_id'].':'.$item['size'];
@@ -57,7 +73,7 @@ class StockService
      */
     public function checkStock(int $productId, ?string $size, int $requestedQty): array
     {
-        $product = Product::with('category')->find($productId);
+        $product = Product::with(['category', 'sizes'])->find($productId);
         if (!$product || $product->status !== 'active' || !$product->category || $product->category->status !== 'active') {
             return ['available' => false, 'message' => 'Product is currently unavailable.'];
         }
@@ -66,14 +82,20 @@ class StockService
             return ['available' => false, 'message' => 'Selected item is currently out of stock.', 'available_stock' => 0];
         }
 
-        if ($size) {
-            $productSize = ProductSize::where('product_id', $productId)->where('size', $size)->first();
+        if ($product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
+            $productSize = $product->sizes->first(fn ($variant) => trim((string) $variant->size) === '');
+            $availableStock = $productSize?->available_stock ?? 0;
+            $sizeLabel = null;
+        } elseif ($size) {
+            $productSize = $product->sizes->firstWhere('size', $size);
             if (!$productSize) {
                 return ['available' => false, 'message' => "Selected size ({$size}) is not available for this product."];
             }
             $availableStock = $productSize->available_stock;
+            $sizeLabel = $size;
         } else {
-            $availableStock = $product->sizes->sum(function ($s) { return $s->available_stock; });
+            $availableStock = $product->sizes->sum(fn ($s) => $s->available_stock);
+            $sizeLabel = null;
         }
 
         if ($availableStock <= 0) {
@@ -83,7 +105,9 @@ class StockService
         if ($requestedQty > $availableStock) {
             return [
                 'available' => false,
-                'message' => "Only {$availableStock} item(s) available in size {$size}.",
+                'message' => $sizeLabel
+                    ? "Only {$availableStock} item(s) available in size {$sizeLabel}."
+                    : "Only {$availableStock} item(s) available.",
                 'available_stock' => $availableStock
             ];
         }

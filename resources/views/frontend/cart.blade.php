@@ -58,7 +58,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><span class="badge bg-dark px-2 py-1" style="font-size: 0.7rem;">{{ $item['size'] }}</span></td>
+                                        <td>@if(!empty($item['size']))<span class="badge bg-dark px-2 py-1" style="font-size: 0.7rem;">{{ $item['size'] }}</span>@endif</td>
                                         <td>
                                             @if(!empty($item['is_combo_offer']))
                                                 <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">Combo Item</span>
@@ -72,7 +72,7 @@
                                         <td>
                                             <form action="{{ route('cart.update', $key) }}" method="POST" class="d-flex align-items-center" style="max-width: 100px;">
                                                 @csrf
-                                                <input type="number" name="quantity" class="form-control form-control-sm text-center font-bold me-1 py-1" value="{{ $item['quantity'] }}" min="1" onchange="this.form.submit()" style="font-size: 0.8rem;">
+                                                <input type="number" name="quantity" class="form-control form-control-sm text-center font-bold me-1 py-1" value="{{ $item['quantity'] }}" min="1" max="{{ max(1, (int) ($item['available_stock'] ?? $item['quantity'])) }}" onchange="this.form.submit()" style="font-size: 0.8rem;">
                                             </form>
                                         </td>
                                         <td class="text-end">

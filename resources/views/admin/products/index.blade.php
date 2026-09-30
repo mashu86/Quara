@@ -186,7 +186,9 @@
                     <option value="">All Products</option>
                     <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
                     <option value="reserved" {{ request()->stock_status === 'reserved' ? 'selected' : '' }}>🔒 Booked Products</option>
-                    <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>0 Stock Available</option>
+                    <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>Sold Out</option>
+                    <option value="return_to_stock" {{ request()->stock_status === 'return_to_stock' ? 'selected' : '' }}>Returned to Stock</option>
+                    <option value="do_not_restock" {{ request()->stock_status === 'do_not_restock' ? 'selected' : '' }}>Frozen Stock</option>
                 </select>
             </div>
             <div class="col-lg-2">
@@ -250,7 +252,9 @@
                             <option value="">All Products</option>
                             <option value="in_stock" {{ request()->stock_status === 'in_stock' ? 'selected' : '' }}>Available (In Stock)</option>
                             <option value="reserved" {{ request()->stock_status === 'reserved' ? 'selected' : '' }}>🔒 Booked Products</option>
-                            <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>0 Stock Available</option>
+                            <option value="out_of_stock" {{ request()->stock_status === 'out_of_stock' ? 'selected' : '' }}>Sold Out</option>
+                            <option value="return_to_stock" {{ request()->stock_status === 'return_to_stock' ? 'selected' : '' }}>Returned to Stock</option>
+                            <option value="do_not_restock" {{ request()->stock_status === 'do_not_restock' ? 'selected' : '' }}>Frozen Stock</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -343,16 +347,28 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="cancelBookedModal()"></button>
             </div>
             <div class="modal-body p-3.5">
-                <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Enter customer details below for quick tracking.</p>
+                <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Add the booking details below.</p>
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
-                    <input type="text" id="modalBookedByInput" class="form-control rounded-3" placeholder="e.g. Anjali" required>
+                    <label for="modalBookingType" class="form-label fw-bold small">Booked type <span class="text-danger">*</span></label>
+                    <select id="modalBookingType" class="form-select rounded-3" required>
+                        <option value="business_whatsapp">Booked for business WhatsApp</option>
+                        <option value="whatsapp_customer">Booked by WhatsApp customer</option>
+                        <option value="instagram_customer">Booked by Instagram customer</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="modalBookedByInput" class="form-label fw-bold small" id="modalBookedByLabel">Customer name or phone <span class="text-danger">*</span></label>
+                    <input type="text" id="modalBookedByInput" class="form-control rounded-3" placeholder="Name or phone number">
+                </div>
+                <div class="mb-1">
+                    <label for="modalBookingDate" class="form-label fw-bold small">Booked date <span class="text-danger">*</span></label>
+                    <input type="date" id="modalBookingDate" class="form-control rounded-3" required>
                 </div>
             </div>
             <div class="modal-footer bg-light rounded-bottom-4 border-0 px-3 py-2.5">
                 <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal" onclick="cancelBookedModal()">Cancel</button>
                 <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold px-4" id="saveBookedModalBtn" onclick="submitBookedModal()" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
-                    <i class="fa-solid fa-check me-1"></i> Save & Mark Booked
+                    <i class="fa-solid fa-check me-1"></i> Save Booking
                 </button>
             </div>
         </div>
@@ -534,6 +550,56 @@ document.addEventListener('DOMContentLoaded', function() {
     let isLoading = false;
     let currentBookedToggle = null;
     let bookedModalInstance = null;
+    let editingExistingBooking = false;
+    const bookingTypeInput = document.getElementById('modalBookingType');
+    const bookingDateInput = document.getElementById('modalBookingDate');
+    const bookedByInput = document.getElementById('modalBookedByInput');
+    const bookedByField = bookedByInput?.closest('.mb-3');
+    const bookedByLabel = document.getElementById('modalBookedByLabel');
+
+    function localToday() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    }
+
+    function syncBookingTypeFields() {
+        if (!bookingTypeInput || !bookedByInput) return;
+        const type = bookingTypeInput.value;
+        const businessBooking = type === 'business_whatsapp';
+        bookedByField?.classList.toggle('d-none', businessBooking);
+        bookedByInput.required = !businessBooking;
+        if (businessBooking) bookedByInput.value = '';
+        bookedByLabel.innerHTML = type === 'instagram_customer'
+            ? 'Instagram name or customer name <span class="text-danger">*</span>'
+            : 'Customer name or phone <span class="text-danger">*</span>';
+        bookedByInput.placeholder = type === 'instagram_customer' ? 'Instagram name or customer name' : 'Name or phone number';
+    }
+
+    function openBookingModal(toggle, editingExisting = false) {
+        currentBookedToggle = toggle;
+        editingExistingBooking = editingExisting;
+        const typeFromRow = toggle.dataset.bookingType || (toggle.dataset.bookedBy ? 'whatsapp_customer' : '');
+        bookingTypeInput.value = typeFromRow || 'whatsapp_customer';
+        bookedByInput.value = toggle.dataset.bookedBy || '';
+        bookingDateInput.value = toggle.dataset.bookingDate || localToday();
+        syncBookingTypeFields();
+        document.getElementById('bookedModalProductName').textContent = toggle.dataset.productName || 'Product';
+        document.getElementById('toggleBookedModalLabel').innerHTML = editingExisting
+            ? '<i class="fa-solid fa-user-tag text-warning me-2"></i> Edit Booking Details'
+            : '<i class="fa-solid fa-user-tag text-warning me-2"></i> Mark Product as Booked';
+        const modalElem = document.getElementById('toggleBookedModal');
+        bookedModalInstance = bootstrap.Modal.getOrCreateInstance(modalElem);
+        bookedModalInstance.show();
+        if (!editingExisting) setTimeout(() => { if (!bookedByInput.disabled && bookedByInput.required) bookedByInput.focus(); }, 350);
+    }
+
+    bookingTypeInput?.addEventListener('change', syncBookingTypeFields);
+    document.addEventListener('click', function(event) {
+        const editButton = event.target.closest('.edit-booking-details');
+        if (!editButton) return;
+        const toggle = document.getElementById('outOfStockToggle_' + editButton.dataset.productId);
+        if (toggle) openBookingModal(toggle, true);
+    });
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const productsTbody = document.getElementById('products-desktop-tbody');
@@ -650,19 +716,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isChecked) {
                     // Revert checked state until user submits modal
                     this.checked = false;
-                    currentBookedToggle = this;
-
-                    const productNameElem = document.getElementById('bookedModalProductName');
-                    const bookedInputElem = document.getElementById('modalBookedByInput');
-                    if (productNameElem) productNameElem.textContent = productName;
-                    if (bookedInputElem) bookedInputElem.value = currentBookedBy;
-
-                    const modalElem = document.getElementById('toggleBookedModal');
-                    if (modalElem) {
-                        bookedModalInstance = new bootstrap.Modal(modalElem);
-                        bookedModalInstance.show();
-                        setTimeout(() => { if (bookedInputElem) bookedInputElem.focus(); }, 400);
-                    }
+                    this.dataset.productName = productName;
+                    this.dataset.bookedBy = currentBookedBy;
+                    openBookingModal(this);
                 } else {
                     // Un-booking product directly via toggle OFF
                     toggle.disabled = true;
@@ -682,6 +738,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (data.success) {
                             toggle.checked = false;
                             toggle.setAttribute('data-booked-by', '');
+                            toggle.dataset.bookingType = '';
+                            toggle.dataset.bookingDate = '';
                             const label = document.getElementById('outOfStockLabel_' + productId);
                             const totalStock = parseInt(toggle.getAttribute('data-total-stock') || '0', 10);
                             if (totalStock <= 0) {
@@ -724,12 +782,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const toggle = currentBookedToggle;
         const productId = toggle.getAttribute('data-product-id');
         const url = toggle.getAttribute('data-url');
-        const bookedByInput = document.getElementById('modalBookedByInput');
         const bookedByVal = bookedByInput ? bookedByInput.value.trim() : '';
+        const bookingType = bookingTypeInput.value;
+        const bookingDate = bookingDateInput.value;
 
-        if (!bookedByVal) {
-            alert('Booked By details are mandatory when marking a product as Booked!');
+        if (bookingType !== 'business_whatsapp' && !bookedByVal) {
+            alert('Enter customer details for this booking type.');
             if (bookedByInput) bookedByInput.focus();
+            return;
+        }
+        if (!bookingDate) {
+            alert('Select the booked date.');
+            bookingDateInput.focus();
             return;
         }
 
@@ -744,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ is_out_of_stock: true, booked_by: bookedByVal })
+            body: JSON.stringify({ is_out_of_stock: true, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate })
         })
         .then(res => res.json())
         .then(data => {
@@ -754,6 +818,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 toggle.checked = true;
                 toggle.setAttribute('data-booked-by', data.booked_by || '');
+                toggle.dataset.bookingType = data.booking_type || '';
+                toggle.dataset.bookingDate = data.booking_date || '';
 
                 const label = document.getElementById('outOfStockLabel_' + productId);
                 if (label) {
@@ -764,16 +830,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const displayDiv = document.getElementById('bookedByDisplay_' + productId);
                 const textSpan = document.getElementById('bookedByText_' + productId);
                 if (displayDiv && textSpan) {
-                    if (data.booked_by) {
-                        textSpan.textContent = data.booked_by;
-                        displayDiv.classList.remove('d-none');
-                    } else {
-                        displayDiv.classList.add('d-none');
-                    }
+                    const bookingTypeLabel = data.booking_type === 'business_whatsapp' ? 'Business WhatsApp'
+                        : data.booking_type === 'instagram_customer' ? 'Instagram: ' + (data.booked_by || '')
+                        : data.booking_type === 'whatsapp_customer' ? 'WhatsApp: ' + (data.booked_by || '')
+                        : (data.booked_by || 'Booked');
+                    textSpan.textContent = bookingTypeLabel;
+                    displayDiv.classList.remove('d-none');
                 }
 
                 if (bookedModalInstance) bookedModalInstance.hide();
                 currentBookedToggle = null;
+                editingExistingBooking = false;
             } else {
                 alert(data.message || 'Error updating booked status.');
             }
@@ -787,8 +854,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.cancelBookedModal = function() {
         if (currentBookedToggle) {
-            currentBookedToggle.checked = false;
+            if (!editingExistingBooking) currentBookedToggle.checked = false;
             currentBookedToggle = null;
+            editingExistingBooking = false;
         }
     };
 

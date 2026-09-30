@@ -66,6 +66,8 @@
                        data-product-id="{{ $product->id }}"
                        data-product-name="{{ $product->name }}"
                        data-booked-by="{{ $product->booked_by }}"
+                       data-booking-type="{{ $product->booking_type }}"
+                       data-booking-date="{{ $product->booking_date?->format('Y-m-d') }}"
                        data-total-stock="{{ $totalStock }}"
                        data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
                        {{ $product->is_out_of_stock ? 'checked' : '' }}
@@ -74,7 +76,7 @@
                 <label class="form-check-label small fw-bold ms-1 {{ ($product->is_out_of_stock || $totalStock <= 0) ? 'text-danger' : 'text-success' }}"
                        id="outOfStockLabel_{{ $product->id }}"
                        for="outOfStockToggle_{{ $product->id }}" style="cursor: {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'not-allowed' : 'pointer' }}; font-size: 0.78rem;">
-                    @if($product->is_out_of_stock && !empty($product->booked_by))
+                    @if($product->is_out_of_stock && (!empty($product->booked_by) || $product->booking_type))
                         🔒 Booked
                     @elseif($product->is_out_of_stock || $totalStock <= 0)
                         Sold Out
@@ -83,8 +85,9 @@
                     @endif
                 </label>
             </div>
-            <div class="small text-muted fw-semibold mt-1 {{ ($product->is_out_of_stock && !empty($product->booked_by)) ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="bookedByDisplay_{{ $product->id }}">
-                <i class="fa-solid fa-user-tag text-warning me-1"></i>Booked by: <span class="text-dark" id="bookedByText_{{ $product->id }}">{{ $product->booked_by }}</span>
+            <div class="small text-muted fw-semibold mt-1 {{ ($product->is_out_of_stock && (!empty($product->booked_by) || $product->booking_type)) ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="bookedByDisplay_{{ $product->id }}">
+                <i class="fa-solid fa-user-tag text-warning me-1"></i><span class="text-dark" id="bookedByText_{{ $product->id }}">{{ $product->booked_by ?: ($product->booking_type === 'business_whatsapp' ? 'Business WhatsApp' : 'Booked') }}</span>
+                <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary edit-booking-details" data-product-id="{{ $product->id }}" aria-label="Edit booking details" title="Edit booking details"><i class="fa-solid fa-pen-to-square"></i></button>
             </div>
         </td>
         <td>

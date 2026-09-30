@@ -8,6 +8,20 @@
 </div>
 <div class="form-check mt-2 small">
     <input type="checkbox" class="form-check-input" id="aiWhatsAppBooked" name="ai_whatsapp_booked" value="1" {{ old('ai_whatsapp_booked') ? 'checked' : '' }}>
-    <label class="form-check-label" for="aiWhatsAppBooked">WhatsApp Booked (optional)</label>
+    <label class="form-check-label" for="aiWhatsAppBooked">Booked for business WhatsApp (optional)</label>
+</div>
+<div id="aiWhatsAppBookingDetails" class="d-none mt-2 p-2 rounded-3 bg-dark border border-secondary small">
+    <div class="row g-2">
+        <div class="col-sm-6">
+            <label for="aiWhatsAppBookingType" class="form-label mb-1">Booked type</label>
+            <select id="aiWhatsAppBookingType" class="form-select form-select-sm" disabled>
+                <option value="business_whatsapp" selected>Booked for business WhatsApp</option>
+            </select>
+        </div>
+        <div class="col-sm-6">
+            <label for="aiWhatsAppBookingDate" class="form-label mb-1">Booked date</label>
+            <input type="date" id="aiWhatsAppBookingDate" class="form-control form-control-sm" value="{{ old('booking_date', date('Y-m-d')) }}" {{ old('ai_whatsapp_booked') ? '' : 'disabled' }} readonly>
+        </div>
+    </div>
 </div>
 <div id="aiProductFeedback" class="small mt-2" role="status" aria-live="polite"></div>

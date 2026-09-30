@@ -105,8 +105,19 @@
                             <div class="small text-muted">{{ $product->category?->name ?? 'Uncategorized' }}</div>
                         </td>
                         <td style="min-width: 140px;">
-                            <span class="fw-semibold">{{ $product->booked_by }}</span>
-                            <div class="small text-warning-emphasis"><i class="fa-solid fa-lock me-1"></i>Booked</div>
+                            @php
+                                $bookingTypeLabel = match($product->booking_type) {
+                                    'business_whatsapp' => 'Business WhatsApp',
+                                    'whatsapp_customer' => 'WhatsApp customer',
+                                    'instagram_customer' => 'Instagram customer',
+                                    default => 'Booked',
+                                };
+                            @endphp
+                            <span class="fw-semibold">{{ $product->booked_by ?: $bookingTypeLabel }}</span>
+                            <div class="small text-warning-emphasis"><i class="fa-solid fa-lock me-1"></i>{{ $bookingTypeLabel }}</div>
+                            @if($product->booking_date)
+                                <div class="small text-muted">{{ $product->booking_date->format('d-m-Y') }}</div>
+                            @endif
                         </td>
                         <td style="min-width: 120px;">
                             @forelse($product->sizes as $size)

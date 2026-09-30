@@ -390,8 +390,23 @@
                             </div>
 
                             <div id="bookedByEditContainer" class="{{ old('is_out_of_stock', $product->is_out_of_stock) ? '' : 'd-none' }} mb-2">
-                                <label class="form-label fw-bold small">Booked By <span class="text-danger">*</span></label>
-                                <input type="text" name="booked_by" id="bookedByEditInput" class="form-control rounded-3" placeholder="e.g. Anjali" value="{{ old('booked_by', $product->booked_by) }}" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'required' : '' }}>
+                                <div class="mb-2">
+                                    <label for="productBookingTypeEdit" class="form-label fw-bold small">Booked type <span class="text-danger">*</span></label>
+                                    <select name="booking_type" id="productBookingTypeEdit" class="form-select rounded-3" data-legacy-booking="{{ $product->is_out_of_stock && empty($product->booking_type) && !empty($product->booked_by) ? 'true' : 'false' }}">
+                                        <option value="" {{ old('booking_type', $product->booking_type) ? '' : 'selected' }}>Select booking type</option>
+                                        <option value="business_whatsapp" {{ old('booking_type', $product->booking_type) === 'business_whatsapp' || old('ai_whatsapp_booked') ? 'selected' : '' }}>Booked for business WhatsApp</option>
+                                        <option value="whatsapp_customer" {{ old('booking_type', $product->booking_type) === 'whatsapp_customer' ? 'selected' : '' }}>Booked by WhatsApp customer</option>
+                                        <option value="instagram_customer" {{ old('booking_type', $product->booking_type) === 'instagram_customer' ? 'selected' : '' }}>Booked by Instagram customer</option>
+                                    </select>
+                                </div>
+                                <div id="bookedByEditCustomerField" class="mb-2">
+                                    <label class="form-label fw-bold small" id="bookedByEditLabel">Customer name or phone <span class="text-danger">*</span></label>
+                                    <input type="text" name="booked_by" id="bookedByEditInput" class="form-control rounded-3" placeholder="Name or phone number" value="{{ old('booked_by', $product->booked_by) }}">
+                                </div>
+                                <div>
+                                    <label for="productBookingDateEdit" class="form-label fw-bold small">Booked date <span class="text-danger">*</span></label>
+                                    <input type="date" name="booking_date" id="productBookingDateEdit" class="form-control rounded-3" value="{{ old('booking_date', $product->booking_date?->format('Y-m-d')) }}">
+                                </div>
                             </div>
                         @endif
 

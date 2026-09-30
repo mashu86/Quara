@@ -96,6 +96,77 @@ function setValue(input, value) {
 function initialize() {
     const notes = document.getElementById('aiProductNotes');
     if (!notes) return;
+    const whatsappBookedCheckbox = document.getElementById('aiWhatsAppBooked');
+    const whatsappBookingDetails = document.getElementById('aiWhatsAppBookingDetails');
+    const whatsappBookingDate = document.getElementById('aiWhatsAppBookingDate');
+    const bookingSwitch = formBookingSwitch();
+    const bookingTypeSelect = document.querySelector('#productBookingTypeCreate, #productBookingTypeEdit');
+    const bookingCustomerField = document.querySelector('#bookedByCreateCustomerField, #bookedByEditCustomerField');
+    const bookingCustomerLabel = document.querySelector('#bookedByCreateLabel, #bookedByEditLabel');
+    const bookingCustomerInput = document.querySelector('#bookedByCreateInput, #bookedByEditInput');
+    const productBookingDate = document.querySelector('#productBookingDateCreate, #productBookingDateEdit');
+    function formBookingSwitch() {
+        return document.querySelector('#isOutOfStockCreateSwitch, #isOutOfStockEditSwitch');
+    }
+    const setWhatsAppBookingDate = () => {
+        const today = new Date();
+        const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (whatsappBookingDate) whatsappBookingDate.value = localDate;
+    };
+    const syncWhatsAppBookingDetails = () => {
+        if (!whatsappBookedCheckbox) return;
+        whatsappBookingDetails?.classList.toggle('d-none', !whatsappBookedCheckbox.checked);
+        if (whatsappBookingDate) whatsappBookingDate.disabled = !whatsappBookedCheckbox.checked;
+        if (whatsappBookedCheckbox.checked) {
+            setWhatsAppBookingDate();
+            if (bookingSwitch && !bookingSwitch.disabled) {
+                bookingSwitch.checked = true;
+                if (typeof window.toggleBookedByContainer === 'function') window.toggleBookedByContainer(bookingSwitch);
+                if (typeof window.toggleBookedByEditContainer === 'function') window.toggleBookedByEditContainer(bookingSwitch);
+                if (bookingTypeSelect) bookingTypeSelect.value = 'business_whatsapp';
+                if (productBookingDate) productBookingDate.value = whatsappBookingDate?.value || '';
+                bookingSwitch.dataset.aiBusinessBooking = 'true';
+            }
+        } else if (bookingSwitch?.dataset.aiBusinessBooking === 'true') {
+            bookingSwitch.checked = false;
+            if (typeof window.toggleBookedByContainer === 'function') window.toggleBookedByContainer(bookingSwitch);
+            if (typeof window.toggleBookedByEditContainer === 'function') window.toggleBookedByEditContainer(bookingSwitch);
+            if (bookingTypeSelect?.value === 'business_whatsapp') bookingTypeSelect.value = '';
+            if (productBookingDate) productBookingDate.value = '';
+            bookingSwitch.dataset.aiBusinessBooking = '';
+        }
+        syncProductBookingFields();
+    };
+
+    function syncProductBookingFields() {
+        if (!bookingSwitch || !bookingTypeSelect || !bookingCustomerInput) return;
+        const isBooked = bookingSwitch.checked;
+        const bookingType = bookingTypeSelect.value;
+        const isBusinessBooking = bookingType === 'business_whatsapp';
+        const legacyBooking = bookingTypeSelect.dataset.legacyBooking === 'true' && !bookingType;
+        bookingTypeSelect.required = isBooked && !legacyBooking;
+        if (productBookingDate) productBookingDate.required = isBooked && !legacyBooking;
+        bookingCustomerField?.classList.toggle('d-none', isBusinessBooking);
+        bookingCustomerInput.required = isBooked && !!bookingType && !isBusinessBooking;
+        if (isBusinessBooking) bookingCustomerInput.value = '';
+        if (bookingCustomerLabel) {
+            bookingCustomerLabel.innerHTML = bookingType === 'instagram_customer'
+                ? 'Instagram name or customer name <span class="text-danger">*</span>'
+                : 'Customer name or phone <span class="text-danger">*</span>';
+        }
+        bookingCustomerInput.placeholder = bookingType === 'instagram_customer' ? 'Instagram name or customer name' : 'Name or phone number';
+    }
+    bookingSwitch?.addEventListener('change', () => {
+        if (bookingSwitch.checked) bookingSwitch.dataset.aiBusinessBooking = '';
+        syncProductBookingFields();
+    });
+    bookingTypeSelect?.addEventListener('change', () => {
+        if (bookingSwitch) bookingSwitch.dataset.aiBusinessBooking = '';
+        syncProductBookingFields();
+    });
+    syncProductBookingFields();
+    whatsappBookedCheckbox?.addEventListener('change', syncWhatsAppBookingDetails);
+    syncWhatsAppBookingDetails();
     const picker = document.getElementById('aiSizeRow');
     let rowOptions = [];
     const refreshRows = () => {
@@ -144,8 +215,13 @@ function initialize() {
                 const bookedBy = form.querySelector('input[name="booked_by"]');
                 if (bookedSwitch && !bookedSwitch.disabled && bookedBy && !bookedBy.disabled && !bookedBy.readOnly) {
                     bookedSwitch.checked = true;
-                    bookedSwitch.dispatchEvent(new Event('change', { bubbles: true }));
-                    setValue(bookedBy, 'WhatsApp');
+                    if (typeof window.toggleBookedByContainer === 'function') window.toggleBookedByContainer(bookedSwitch);
+                    if (typeof window.toggleBookedByEditContainer === 'function') window.toggleBookedByEditContainer(bookedSwitch);
+                    if (bookingTypeSelect) bookingTypeSelect.value = 'business_whatsapp';
+                    if (productBookingDate) productBookingDate.value = whatsappBookingDate?.value || '';
+                    setValue(bookedBy, '');
+                    bookedBy.required = false;
+                    syncProductBookingFields();
                 } else {
                     warnings.push('This product cannot be booked from this form.');
                 }

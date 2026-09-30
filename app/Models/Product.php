@@ -24,6 +24,8 @@ class Product extends Model
         'status',
         'is_out_of_stock',
         'booked_by',
+        'booking_type',
+        'booking_date',
         'delivery_charge_type',
         'weight_kg',
         'sort_order',
@@ -42,6 +44,7 @@ class Product extends Model
         'display_size_chart' => 'boolean',
         'combo_sort_order' => 'integer',
         'size_master_id' => 'integer',
+        'booking_date' => 'date',
     ];
 
     public function sizeMaster(): BelongsTo

@@ -252,6 +252,8 @@ class ManualSalesController extends Controller
                 \App\Models\Product::whereIn('id', $productIdsToUnbook)->update([
                     'is_out_of_stock' => false,
                     'booked_by' => null,
+                    'booking_type' => null,
+                    'booking_date' => null,
                 ]);
             }
         });
@@ -399,6 +401,8 @@ class ManualSalesController extends Controller
                     \App\Models\Product::whereIn('id', $productIdsToUnbook)->update([
                         'is_out_of_stock' => false,
                         'booked_by' => null,
+                        'booking_type' => null,
+                        'booking_date' => null,
                     ]);
                 }
 

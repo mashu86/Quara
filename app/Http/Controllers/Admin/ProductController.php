@@ -67,13 +67,30 @@ class ProductController extends Controller
                     });
             } elseif ($request->stock_status === 'out_of_stock') {
                 $query->where(function ($q) {
-                    $q->where('is_out_of_stock', true)
-                      ->orWhereDoesntHave('sizes', function ($sq) {
-                          $sq->where('stock', '>', 0);
-                      });
+                    $q->where(function ($soldOut) {
+                        $soldOut->where('is_out_of_stock', true)
+                            ->orWhereDoesntHave('sizes', function ($sq) {
+                                $sq->where('stock', '>', 0);
+                            });
+                    })->where(function ($notBooked) {
+                        $notBooked->whereNull('booked_by')
+                            ->orWhereRaw("TRIM(booked_by) = ''");
+                    })->where(function ($notBusinessBooking) {
+                        $notBusinessBooking->whereNull('booking_type')
+                            ->orWhere('booking_type', '<>', 'business_whatsapp');
+                    });
                 });
             } elseif ($request->stock_status === 'reserved') {
-                $query->where('is_out_of_stock', true);
+                $query->where('is_out_of_stock', true)->where(function ($booked) {
+                    $booked->where(function ($byCustomer) {
+                        $byCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
+                    })->orWhere('booking_type', 'business_whatsapp');
+                });
+            } elseif (in_array($request->stock_status, ['return_to_stock', 'do_not_restock'], true)) {
+                $query->whereHas('orderItems', function ($itemQuery) use ($request) {
+                    $itemQuery->where('item_status', 'returned')
+                        ->where('inventory_condition', $request->stock_status);
+                });
             }
         }
 
@@ -109,14 +126,18 @@ class ProductController extends Controller
     {
         $query = Product::with(['category', 'sizes', 'images'])
             ->where('is_out_of_stock', true)
-            ->whereNotNull('booked_by')
-            ->whereRaw("TRIM(booked_by) <> ''");
+            ->where(function ($booked) {
+                $booked->where(function ($legacyOrCustomer) {
+                    $legacyOrCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
+                })->orWhere('booking_type', 'business_whatsapp');
+            });
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('booked_by', 'like', '%'.$search.'%');
+                    ->orWhere('booked_by', 'like', '%'.$search.'%')
+                    ->orWhere('booking_type', 'like', '%'.$search.'%');
             });
         }
 
@@ -134,11 +155,16 @@ class ProductController extends Controller
 
         $count = Product::whereIn('id', $validated['product_ids'])
             ->where('is_out_of_stock', true)
-            ->whereNotNull('booked_by')
-            ->whereRaw("TRIM(booked_by) <> ''")
+            ->where(function ($booked) {
+                $booked->where(function ($legacyOrCustomer) {
+                    $legacyOrCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
+                })->orWhereNotNull('booking_type');
+            })
             ->update([
                 'is_out_of_stock' => false,
                 'booked_by' => null,
+                'booking_type' => null,
+                'booking_date' => null,
                 'updated_at' => now(),
             ]);
 
@@ -155,8 +181,13 @@ class ProductController extends Controller
         }
 
         $bookedBy = trim($request->input('booked_by', ''));
+        $validated = $request->validate([
+            'booked_by' => 'nullable|string|max:255',
+            'booking_type' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
+            'booking_date' => 'nullable|date_format:Y-m-d',
+        ]);
 
-        if ($isOutOfStock && empty($bookedBy)) {
+        if ($isOutOfStock && $request->input('booking_type') !== 'business_whatsapp' && empty($bookedBy)) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -168,6 +199,8 @@ class ProductController extends Controller
 
         $product->is_out_of_stock = $isOutOfStock;
         $product->booked_by = $isOutOfStock ? $bookedBy : null;
+        $product->booking_type = $isOutOfStock ? ($validated['booking_type'] ?? null) : null;
+        $product->booking_date = $isOutOfStock ? ($validated['booking_date'] ?? now()->toDateString()) : null;
         $product->save();
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -175,6 +208,8 @@ class ProductController extends Controller
                 'success' => true,
                 'is_out_of_stock' => $product->is_out_of_stock,
                 'booked_by' => $product->booked_by,
+                'booking_type' => $product->booking_type,
+                'booking_date' => $product->booking_date?->format('Y-m-d'),
                 'message' => $product->is_out_of_stock ? "Product marked as Booked." : "Product restored to normal stock behavior.",
             ]);
         }
@@ -226,6 +261,9 @@ class ProductController extends Controller
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
             'booked_by' => 'nullable|string|max:255',
+            'ai_whatsapp_booked' => 'nullable|boolean',
+            'booking_type' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
+            'booking_date' => 'nullable|date_format:Y-m-d',
             'display_size_chart' => 'nullable|boolean',
             'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
@@ -248,12 +286,22 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
+        $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $validated['booking_type'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? 'business_whatsapp' : ($validated['booking_type'] ?? null)) : null;
+        $validated['booking_date'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? ($validated['booking_date'] ?? now()->toDateString()) : ($validated['booking_date'] ?? null)) : null;
+        unset($validated['ai_whatsapp_booked']);
         $validated['display_size_chart'] = $request->boolean('display_size_chart');
         $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
 
-        if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
+        if ($validated['is_out_of_stock'] && $validated['booking_type'] !== 'business_whatsapp' && empty($validated['booked_by'])) {
             return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
+        }
+        if ($validated['is_out_of_stock'] && empty($validated['booking_type'])) {
+            return back()->withErrors(['booking_type' => 'Select a booking type.'])->withInput();
+        }
+        if ($validated['is_out_of_stock'] && empty($validated['booking_date'])) {
+            return back()->withErrors(['booking_date' => 'Select the booked date.'])->withInput();
         }
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
@@ -381,6 +429,9 @@ class ProductController extends Controller
             'status' => 'required|in:active,inactive',
             'is_out_of_stock' => 'nullable|boolean',
             'booked_by' => 'nullable|string|max:255',
+            'ai_whatsapp_booked' => 'nullable|boolean',
+            'booking_type' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
+            'booking_date' => 'nullable|date_format:Y-m-d',
             'display_size_chart' => 'nullable|boolean',
             'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
@@ -408,7 +459,11 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0];
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $validated['booked_by'] = $validated['is_out_of_stock'] ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
+        $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
+        $validated['booking_type'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? 'business_whatsapp' : ($validated['booking_type'] ?? $product->booking_type)) : null;
+        $validated['booking_date'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? ($validated['booking_date'] ?? now()->toDateString()) : ($validated['booking_date'] ?? $product->booking_date?->format('Y-m-d'))) : null;
+        unset($validated['ai_whatsapp_booked']);
         $validated['display_size_chart'] = $request->boolean('display_size_chart');
         $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
 
@@ -418,8 +473,18 @@ class ProductController extends Controller
             $validated['combo_category_id'] = $product->combo_category_id;
         }
 
-        if ($validated['is_out_of_stock'] && empty($validated['booked_by'])) {
+        if ($validated['is_out_of_stock'] && $validated['booking_type'] !== 'business_whatsapp' && empty($validated['booked_by'])) {
             return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
+        }
+        $isLegacyBookingWithoutDetails = $product->is_out_of_stock
+            && empty($product->booking_type)
+            && ! empty($product->booked_by)
+            && empty($request->input('booking_type'));
+        if ($validated['is_out_of_stock'] && empty($validated['booking_type']) && ! $isLegacyBookingWithoutDetails) {
+            return back()->withErrors(['booking_type' => 'Select a booking type.'])->withInput();
+        }
+        if ($validated['is_out_of_stock'] && empty($validated['booking_date']) && ! $isLegacyBookingWithoutDetails) {
+            return back()->withErrors(['booking_date' => 'Select the booked date.'])->withInput();
         }
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
@@ -692,6 +757,8 @@ class ProductController extends Controller
             $product->update([
                 'is_out_of_stock' => false,
                 'booked_by' => null,
+                'booking_type' => null,
+                'booking_date' => null,
                 'booked_by_admin_id' => null,
                 'booked_at' => null,
             ]);
@@ -705,6 +772,8 @@ class ProductController extends Controller
             $product->update([
                 'is_out_of_stock' => false,
                 'booked_by' => null,
+                'booking_type' => null,
+                'booking_date' => null,
                 'booked_by_admin_id' => null,
                 'booked_at' => null,
             ]);

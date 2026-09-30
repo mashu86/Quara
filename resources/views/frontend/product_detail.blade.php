@@ -553,7 +553,7 @@
                             <button type="submit" name="purchase_action" value="add" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
                             </button>
-                            <button type="submit" formaction="{{ route('cart.buy_now') }}" name="purchase_action" value="buy_now" class="btn btn-qw-outline-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
+                            <button type="submit" name="purchase_action" value="buy_now" class="btn btn-qw-outline-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bolt me-2 text-warning"></i> BUY NOW
                             </button>
                         </div>

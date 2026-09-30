@@ -26,18 +26,22 @@ class CartController extends Controller
 
     public function add(Request $request)
     {
-        $request->validate([
+        if ($request->input('purchase_action') === 'buy_now') {
+            return $this->buyNow($request);
+        }
+
+        $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'size' => 'required|string',
+            'size' => 'required|string|max:100',
             'quantity' => 'required|integer|min:1',
         ], [
             'size.required' => 'Please select a size before adding to cart.',
         ]);
 
         $result = $this->cartService->add(
-            (int) $request->product_id,
-            $request->size,
-            (int) $request->quantity
+            (int) $validated['product_id'],
+            $validated['size'],
+            (int) $validated['quantity']
         );
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -110,9 +114,9 @@ class CartController extends Controller
      */
     public function buyNow(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'size' => 'required|string',
+            'size' => 'required|string|max:100',
             'quantity' => 'required|integer|min:1',
         ], [
             'size.required' => 'Please select a size before proceeding to Buy Now.',
@@ -120,9 +124,9 @@ class CartController extends Controller
 
         $this->cartService->clear();
         $result = $this->cartService->add(
-            (int) $request->product_id,
-            $request->size,
-            (int) $request->quantity
+            (int) $validated['product_id'],
+            $validated['size'],
+            (int) $validated['quantity']
         );
 
         if (!$result['success']) {

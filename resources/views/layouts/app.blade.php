@@ -706,6 +706,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm border-0" role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i> {{ $errors->first() }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
     </div>
 
     <!-- Main Content Area -->

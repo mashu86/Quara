@@ -69,6 +69,11 @@
                             <i class="fa-solid fa-truck-fast me-0.5"></i> Couriered
                             <span id="waCourieredBadge" class="badge bg-primary text-white ms-1 rounded-pill" style="font-size: 0.7rem;">0</span>
                         </label>
+
+                        <input type="radio" class="btn-check" name="wa_type" id="waTypePlain" value="plain" onchange="updateWhatsappTemplate()">
+                        <label class="btn btn-outline-dark rounded-3 btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-1" for="waTypePlain">
+                            <i class="fa-regular fa-comment-dots"></i> Plain
+                        </label>
                     </div>
                 </div>
 
@@ -93,13 +98,16 @@
                 </div>
 
                 <!-- Message Box -->
-                <div class="mb-3">
+                <div class="mb-3" id="waMessageBox">
                     <label class="form-label fw-bold small text-dark mb-1">Message Preview (Editable)</label>
                     <textarea id="waMessageTextarea" class="form-control rounded-3 font-monospace small" rows="9" oninput="syncWhatsappUrl()"></textarea>
                 </div>
+                <div id="waPlainInstructions" class="alert alert-light border small mb-3 d-none">
+                    WhatsApp will open directly to this customer. Type and send any message in the chat.
+                </div>
 
                 <a id="waSendBtn" href="#" target="_blank" onclick="triggerFollowupEmailAndOpenWhatsapp()" class="btn btn-success text-white rounded-pill w-100 py-2.5 fw-bold shadow-sm" style="font-size: 0.85rem;">
-                    <i class="fa-brands fa-whatsapp me-1 fs-5 align-middle"></i> Send Message on WhatsApp
+                    <i class="fa-brands fa-whatsapp me-1 fs-5 align-middle"></i> <span id="waSendBtnText">Send Message on WhatsApp</span>
                 </a>
             </div>
         </div>
@@ -159,6 +167,16 @@
             courierBox.classList.remove('d-none');
         } else {
             courierBox.classList.add('d-none');
+        }
+
+        const isPlainChat = waType === 'plain';
+        document.getElementById('waMessageBox').classList.toggle('d-none', isPlainChat);
+        document.getElementById('waPlainInstructions').classList.toggle('d-none', !isPlainChat);
+        document.getElementById('waSendBtnText').textContent = isPlainChat ? 'Open WhatsApp Chat' : 'Send Message on WhatsApp';
+        if (isPlainChat) {
+            document.getElementById('waMessageTextarea').value = '';
+            syncWhatsappUrl();
+            return;
         }
 
         const courierPartner = document.getElementById('waCourierPartner').value.trim() || currentWaOrder.courier_partner || 'Courier Service';
@@ -235,6 +253,7 @@
 
         const selectedTypeEl = document.querySelector('input[name="wa_type"]:checked');
         const type = selectedTypeEl ? selectedTypeEl.value : 'thank_you';
+        if (type === 'plain') return true;
         const courierPartner = document.getElementById('waCourierPartner').value;
         const trackingNumber = document.getElementById('waTrackingNumber').value;
 
@@ -288,9 +307,12 @@
         if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
         const text = document.getElementById('waMessageTextarea').value;
-        const encodedText = encodeURIComponent(text);
-
         const sendBtn = document.getElementById('waSendBtn');
-        sendBtn.href = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+        const selectedTypeEl = document.querySelector('input[name="wa_type"]:checked');
+        if (selectedTypeEl?.value === 'plain') {
+            sendBtn.href = `https://wa.me/${cleanPhone}`;
+        } else {
+            sendBtn.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+        }
     }
 </script>

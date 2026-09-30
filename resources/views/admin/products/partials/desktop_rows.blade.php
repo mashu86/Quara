@@ -89,6 +89,11 @@
                 <i class="fa-solid fa-user-tag text-warning me-1"></i><span class="text-dark" id="bookedByText_{{ $product->id }}">{{ $product->booked_by ?: ($product->booking_type === 'business_whatsapp' ? 'Business WhatsApp' : 'Booked') }}</span>
                 <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary edit-booking-details" data-product-id="{{ $product->id }}" aria-label="Edit booking details" title="Edit booking details"><i class="fa-solid fa-pen-to-square"></i></button>
             </div>
+            @if($product->is_out_of_stock && $product->booking_date)
+                <div class="small text-muted mt-1" style="font-size: 0.72rem;" id="bookingDateDisplay_{{ $product->id }}">
+                    <i class="fa-regular fa-calendar me-1"></i>Booked on: <span>{{ $product->booking_date->format('d-m-Y') }}</span>
+                </div>
+            @endif
         </td>
         <td>
             <div class="form-check form-switch mb-0 d-inline-flex align-items-center" title="{{ ucfirst($product->status) }}">

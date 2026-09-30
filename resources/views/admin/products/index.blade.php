@@ -762,6 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             const displayDiv = document.getElementById('bookedByDisplay_' + productId);
                             if (displayDiv) displayDiv.classList.add('d-none');
+                            document.getElementById('bookingDateDisplay_' + productId)?.remove();
                         } else {
                             toggle.checked = true;
                             alert(data.message || 'Error updating stock status.');
@@ -836,6 +837,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         : (data.booked_by || 'Booked');
                     textSpan.textContent = bookingTypeLabel;
                     displayDiv.classList.remove('d-none');
+                }
+
+                if (data.booking_date) {
+                    let bookingDateDisplay = document.getElementById('bookingDateDisplay_' + productId);
+                    if (!bookingDateDisplay && displayDiv) {
+                        bookingDateDisplay = document.createElement('div');
+                        bookingDateDisplay.id = 'bookingDateDisplay_' + productId;
+                        bookingDateDisplay.className = 'small text-muted mt-1';
+                        bookingDateDisplay.style.fontSize = '0.72rem';
+                        displayDiv.insertAdjacentElement('afterend', bookingDateDisplay);
+                    }
+                    if (bookingDateDisplay) {
+                        const [year, month, day] = data.booking_date.split('-');
+                        bookingDateDisplay.innerHTML = `<i class="fa-regular fa-calendar me-1"></i>Booked on: <span>${day}-${month}-${year}</span>`;
+                    }
                 }
 
                 if (bookedModalInstance) bookedModalInstance.hide();

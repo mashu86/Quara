@@ -72,7 +72,11 @@
             </div>
             <div class="col-md-4 border-start-md ps-md-4 pt-2 pt-md-0 border-top border-top-md-0 border-secondary">
                 <div class="small text-warning fw-bold text-uppercase" style="letter-spacing: 0.5px;">Order Information</div>
-                <div class="small text-white-50">Date: <strong class="text-white">{{ ($order->sale_date ?? $order->created_at)->format('d-m-Y') }}</strong></div>
+                <div class="small text-white-50 d-flex align-items-center gap-1">Date: <strong class="text-white">{{ ($order->sale_date ?? $order->created_at)->format('d-m-Y') }}</strong>
+                    <button type="button" class="btn btn-link btn-sm text-warning p-0 ms-1" data-bs-toggle="modal" data-bs-target="#editOrderDateModal" aria-label="Edit order date" title="Edit order date">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                </div>
                 <div class="small text-white-50">Payment: <strong class="text-white text-uppercase">{{ str_replace('_', ' ', $order->payment_method) }} ({{ ucfirst($order->payment_status) }})</strong></div>
             </div>
             <div class="col-md-4 border-start-md ps-md-4 text-md-end pt-2 pt-md-0 border-top border-top-md-0 border-secondary">
@@ -86,6 +90,29 @@
                     <div class="small text-danger fw-bold"><i class="fa-solid fa-rotate-left me-1"></i> Total Refunded: ₹{{ number_format($totalOrderRefunds, 2) }}</div>
                 @endif
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editOrderDateModal" tabindex="-1" aria-labelledby="editOrderDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="{{ route('admin.order-operations.update-date', $order->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fs-6 fw-bold" id="editOrderDateModalLabel">Edit Order Date</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="order_sale_date" class="form-label fw-semibold">Order date</label>
+                    <input type="date" id="order_sale_date" name="sale_date" class="form-control" value="{{ ($order->sale_date ?? $order->created_at)->format('Y-m-d') }}" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Save Date</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

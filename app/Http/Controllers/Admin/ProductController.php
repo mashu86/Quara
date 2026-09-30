@@ -125,6 +125,27 @@ class ProductController extends Controller
         return view('admin.products.booked', compact('products', 'search'));
     }
 
+    public function bulkUnbook(Request $request)
+    {
+        $validated = $request->validate([
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'required|integer|distinct|exists:products,id',
+        ]);
+
+        $count = Product::whereIn('id', $validated['product_ids'])
+            ->where('is_out_of_stock', true)
+            ->whereNotNull('booked_by')
+            ->whereRaw("TRIM(booked_by) <> ''")
+            ->update([
+                'is_out_of_stock' => false,
+                'booked_by' => null,
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->route('admin.products.booked', $request->only('search', 'page'))
+            ->with('success', "{$count} booked product(s) unbooked successfully.");
+    }
+
     public function toggleOutOfStock(Request $request, Product $product)
     {
         if ($request->has('is_out_of_stock')) {

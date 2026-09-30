@@ -149,6 +149,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');
+        Route::post('booked-products/bulk-unbook', [AdminProductController::class, 'bulkUnbook'])->name('products.booked.bulk-unbook');
         Route::get('products-booked-conflicts', [AdminProductController::class, 'bookedConflicts'])->name('products.booked-conflicts');
         Route::post('products/{product}/resolve-conflict', [AdminProductController::class, 'resolveConflict'])->name('products.resolve-conflict');
         Route::post('products/{product}/toggle-out-of-stock', [AdminProductController::class, 'toggleOutOfStock'])->name('products.toggle-out-of-stock');
@@ -227,6 +228,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Order Returns & Post-Order Operations Module
         Route::get('/order-operations', [\App\Http\Controllers\Admin\OrderOperationController::class, 'index'])->name('order-operations.index');
         Route::get('/orders/{order}/operation/create', [\App\Http\Controllers\Admin\OrderOperationController::class, 'create'])->name('order-operations.create');
+        Route::put('/orders/{order}/operation/date', [\App\Http\Controllers\Admin\OrderOperationController::class, 'updateOrderDate'])->name('order-operations.update-date');
         Route::post('/orders/{order}/operation', [\App\Http\Controllers\Admin\OrderOperationController::class, 'store'])->name('order-operations.store');
         Route::post('/orders/{order}/add-item', [\App\Http\Controllers\Admin\OrderOperationController::class, 'addOrderItem'])->name('order-operations.add-item');
         Route::post('/orders/{order}/update-shipping', [\App\Http\Controllers\Admin\OrderOperationController::class, 'updateShipping'])->name('order-operations.update-shipping');

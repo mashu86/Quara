@@ -31,11 +31,24 @@
         <h5 class="mb-0 fw-bold fs-6">Current Bookings</h5>
         <span class="badge bg-dark rounded-pill">{{ $products->total() }} products</span>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+    <form id="bulk-unbook-form" action="{{ route('admin.products.booked.bulk-unbook') }}" method="POST">
+        @csrf
+        <input type="hidden" name="search" value="{{ $search }}">
+        <input type="hidden" name="page" value="{{ $products->currentPage() }}">
+        <div class="px-3 py-2 border-top border-bottom bg-light d-flex align-items-center gap-2 flex-wrap">
+            <label class="small fw-semibold mb-0 d-flex align-items-center gap-2"><input type="checkbox" class="form-check-input m-0" id="select-all-booked"> Select all on this page</label>
+            <span class="small text-muted" id="selected-booked-count">0 selected</span>
+            <button type="submit" class="btn btn-sm btn-success rounded-pill ms-auto" id="bulk-unbook-button" disabled>
+                <i class="fa-solid fa-lock-open me-1"></i> Unbook selected
+            </button>
+        </div>
+    </form>
+    <div class="table-responsive booked-products-scroll">
+        <table class="table table-hover align-middle mb-0 booked-products-table">
             <thead class="table-light small text-nowrap">
                 <tr>
-                    <th class="ps-3">Product</th>
+                    <th class="ps-3 booked-sticky-image">Select / Image</th>
+                    <th>Product</th>
                     <th>Booked By</th>
                     <th>Size / Stock</th>
                     <th>Price</th>
@@ -45,8 +58,9 @@
             <tbody>
                 @forelse($products as $product)
                     <tr>
-                        <td class="ps-3" style="min-width: 200px;">
+                        <td class="ps-3 booked-sticky-image">
                             <div class="d-flex align-items-center gap-2">
+                                <input form="bulk-unbook-form" type="checkbox" class="form-check-input booked-product-checkbox m-0" name="product_ids[]" value="{{ $product->id }}" aria-label="Select {{ $product->name }}">
                                 @php
                                     $preview = [
                                         'image' => $product->primary_image_url,
@@ -84,11 +98,11 @@
                                         </table>
                                     </div>
                                 </template>
-                                <div>
-                                    <a href="{{ route('admin.products.edit', $product) }}" class="fw-semibold text-dark text-decoration-none">{{ $product->name }}</a>
-                                    <div class="small text-muted">{{ $product->category?->name ?? 'Uncategorized' }}</div>
-                                </div>
                             </div>
+                        </td>
+                        <td style="min-width: 190px;">
+                            <a href="{{ route('admin.products.edit', $product) }}" class="fw-semibold text-dark text-decoration-none">{{ $product->name }}</a>
+                            <div class="small text-muted">{{ $product->category?->name ?? 'Uncategorized' }}</div>
                         </td>
                         <td style="min-width: 140px;">
                             <span class="fw-semibold">{{ $product->booked_by }}</span>
@@ -115,7 +129,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">
+                        <td colspan="6" class="text-center text-muted py-5">
                             {{ $search !== '' ? 'No bookings match your search.' : 'No products are currently booked.' }}
                         </td>
                     </tr>
@@ -127,6 +141,16 @@
         <div class="card-footer bg-white pt-3">{{ $products->links() }}</div>
     @endif
 </div>
+<style>
+    .booked-products-scroll { overflow-x: auto; }
+    .booked-products-table { min-width: 850px; }
+    .booked-sticky-image { position: sticky; left: 0; z-index: 2; min-width: 108px; width: 108px; background: #fff; box-shadow: 2px 0 4px rgba(0,0,0,.08); }
+    thead .booked-sticky-image { z-index: 3; background: #f8f9fa; }
+    @media (max-width: 767.98px) {
+        .booked-products-table { min-width: 780px; }
+        .booked-sticky-image { min-width: 108px; width: 108px; }
+    }
+</style>
 @include('admin.products.partials.preview-modal', ['showDetails' => true])
 @endsection
 
@@ -141,6 +165,30 @@ document.addEventListener('click', function(event) {
     const details = document.getElementById(button.dataset.detailsId);
     document.getElementById('productPreviewDetails').replaceChildren(details.content.cloneNode(true));
     window.openProductPreview(product.image, product.name, product.price, product.sizes);
+});
+
+const bookedCheckboxes = Array.from(document.querySelectorAll('.booked-product-checkbox'));
+const selectAllBooked = document.getElementById('select-all-booked');
+const bulkUnbookButton = document.getElementById('bulk-unbook-button');
+const selectedBookedCount = document.getElementById('selected-booked-count');
+function syncBookedSelection() {
+    const selected = bookedCheckboxes.filter(checkbox => checkbox.checked).length;
+    bulkUnbookButton.disabled = selected === 0;
+    selectedBookedCount.textContent = `${selected} selected`;
+    selectAllBooked.checked = bookedCheckboxes.length > 0 && selected === bookedCheckboxes.length;
+    selectAllBooked.indeterminate = selected > 0 && selected < bookedCheckboxes.length;
+}
+selectAllBooked.addEventListener('change', function() {
+    bookedCheckboxes.forEach(checkbox => checkbox.checked = selectAllBooked.checked);
+    syncBookedSelection();
+});
+bookedCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncBookedSelection));
+document.getElementById('bulk-unbook-form').addEventListener('submit', function(event) {
+    if (!bookedCheckboxes.some(checkbox => checkbox.checked)) {
+        event.preventDefault();
+        return;
+    }
+    if (!confirm(`Unbook ${bookedCheckboxes.filter(checkbox => checkbox.checked).length} selected product(s)?`)) event.preventDefault();
 });
 </script>
 @endsection

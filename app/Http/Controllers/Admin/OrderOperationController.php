@@ -117,6 +117,20 @@ class OrderOperationController extends Controller
         return view('admin.order_operations.create', compact('order', 'allProducts', 'categories', 'operationTypes'));
     }
 
+    public function updateOrderDate(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'sale_date' => 'required|date_format:Y-m-d',
+        ]);
+
+        $order->update([
+            'sale_date' => \Carbon\Carbon::createFromFormat('Y-m-d', $validated['sale_date'], 'Asia/Kolkata')->startOfDay(),
+        ]);
+
+        return redirect()->route('admin.order-operations.create', $order->id)
+            ->with('success', 'Order date updated successfully.');
+    }
+
     public function store(Request $request, Order $order)
     {
         $validated = $request->validate([

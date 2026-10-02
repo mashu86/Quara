@@ -201,7 +201,8 @@ class CheckoutController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $summary['grand_total'] <= 0 ? 'paid' : 'pending',
                     'order_status' => ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) ? 'confirmed' : 'pending',
-                    'reserved_until' => ($validated['payment_method'] === 'online' && $summary['grand_total'] > 0) ? now()->addMinutes(5) : null,
+                    // Reserve online stock only after Razorpay submits a payment attempt.
+                    'reserved_until' => null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
 

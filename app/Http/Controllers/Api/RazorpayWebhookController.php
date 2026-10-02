@@ -23,7 +23,7 @@ class RazorpayWebhookController extends Controller
             return response()->json(['status' => 'invalid_signature'], 400);
         }
         $event = $request->input('event');
-        if (!in_array($event, ['payment.captured', 'order.paid', 'payment.failed'])) {
+        if (!in_array($event, ['payment.authorized', 'payment.captured', 'order.paid', 'payment.failed'])) {
             return response()->json(['status' => 'ignored']);
         }
         $data = $request->input('payload.payment.entity') ?? $request->input('payload.order.entity');
@@ -46,12 +46,40 @@ class RazorpayWebhookController extends Controller
             DB::transaction(function () use ($order, $data) {
                 $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
                 if ($order->payment_status === 'pending' && $order->order_status !== 'cancelled' && $order->payment) {
-                    $order->payment->update(['response_payload' => array_merge((array) $order->payment->response_payload, [
-                        'failed_attempt' => $data['id'] ?? null,
-                    ])]);
+                    $order->payment->update([
+                        'status' => 'failed',
+                        'response_payload' => array_merge((array) $order->payment->response_payload, [
+                            'failed_attempt' => $data['id'] ?? null,
+                            'failed_at' => now()->toIso8601String(),
+                        ]),
+                    ]);
+                    $order->update(['reserved_until' => null]);
                 }
             });
             return response()->json(['status' => 'success']);
+        }
+        if ($event === 'payment.authorized') {
+            DB::transaction(function () use ($order, $data) {
+                $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+                if ($order->payment_status === 'pending' && $order->order_status === 'pending') {
+                    $payment = $order->payment ?: Payment::create([
+                        'order_id' => $order->id, 'payment_method' => 'online', 'amount' => $order->grand_total,
+                    ]);
+                    $payment->update([
+                        'status' => 'pending',
+                        'razorpay_payment_id' => $data['id'] ?? $payment->razorpay_payment_id,
+                        'response_payload' => array_merge((array) $payment->response_payload, [
+                            'authorized_at' => now()->toIso8601String(),
+                            'razorpay_details' => $data,
+                        ]),
+                    ]);
+                    // Repeated authorization webhooks do not extend an active hold.
+                    if (!$order->reserved_until || $order->reserved_until->isPast()) {
+                        $order->update(['reserved_until' => now()->addMinutes(2)]);
+                    }
+                }
+            });
+            return response()->json(['status' => 'authorized_pending_capture']);
         }
         $service = app(RazorpayOrderService::class);
         if (!str_starts_with($data['id'] ?? '', 'pay_')) {

@@ -585,13 +585,39 @@ class OrderController extends Controller
         }
         try {
             $service = app(\App\Services\RazorpayOrderService::class);
-            $payment = $service->findCapturedPayment($order, trim($request->input('razorpay_payment_id', '')));
+            $payment = $service->findPayment($order, trim($request->input('razorpay_payment_id', '')));
             if (!$payment) {
-                return back()->with('info', 'No matching captured payment found. Order unchanged.');
+                return back()->with('info', 'Razorpay returned no matching payment attempt. Order unchanged.');
             }
-            $result = $service->confirm($order, $payment, 'Razorpay Sync', true);
-            return back()->with(in_array($result, ['confirmed', 'already_processed']) ? 'success' : 'warning',
-                'Razorpay check: '.str_replace('_', ' ', $result).'.');
+            if ($payment['status'] === 'captured') {
+                $result = $service->confirm($order, $payment, 'Razorpay Sync', true);
+                return back()->with(in_array($result, ['confirmed', 'already_processed']) ? 'success' : 'warning',
+                    'Razorpay check: '.str_replace('_', ' ', $result).'.');
+            }
+
+            DB::transaction(function () use ($order, $payment) {
+                $lockedOrder = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+                if ($lockedOrder->payment_status !== 'pending' || $lockedOrder->order_status === 'cancelled') return;
+                $storedPayment = $lockedOrder->payment;
+                if ($storedPayment) {
+                    $storedPayment->update([
+                        'status' => $payment['status'] === 'failed' ? 'failed' : 'pending',
+                        'razorpay_payment_id' => $payment['id'],
+                        'response_payload' => array_merge((array) $storedPayment->response_payload, [
+                            'last_sync_status' => $payment['status'],
+                            'last_sync_at' => now()->toIso8601String(),
+                            'razorpay_details' => $payment,
+                        ]),
+                    ]);
+                }
+                if ($payment['status'] === 'failed' || $payment['status'] === 'created') {
+                    $lockedOrder->update(['reserved_until' => null]);
+                } elseif ($payment['status'] === 'authorized' && (!$lockedOrder->reserved_until || $lockedOrder->reserved_until->isPast())) {
+                    $lockedOrder->update(['reserved_until' => now()->addMinutes(2)]);
+                }
+            });
+            return back()->with($payment['status'] === 'failed' ? 'info' : 'warning',
+                'Razorpay payment status: '.str_replace('_', ' ', $payment['status']).'. Stock hold updated accordingly.');
         } catch (\Exception $e) {
             return back()->with('error', 'Razorpay Sync: '.$e->getMessage());
         }

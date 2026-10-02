@@ -9,6 +9,12 @@
             <div class="bg-white p-5 rounded-4 shadow-sm border">
                 <i class="fa-solid fa-credit-card text-gold display-3 mb-3"></i>
                 <h3 class="font-serif fw-bold mb-2">Complete Online Payment</h3>
+                <div class="alert alert-info text-start mb-4">
+                    <div class="fw-bold mb-1">മലയാളം</div>
+                    <div class="small mb-2">പണം അടയ്ക്കാൻ തുടങ്ങിയാൽ, payment വിജയിച്ചോ പരാജയപ്പെട്ടോ എന്ന അറിയിപ്പ് വരുന്നതുവരെ ഈ പേജ് അടയ്ക്കാതെ കാത്തിരിക്കുക. Payment window തുറന്നത് മാത്രം കൊണ്ട് stock മാറ്റിവെക്കില്ല.</div>
+                    <div class="fw-bold mb-1">English</div>
+                    <div class="small">Once you start the payment, please wait on this page until you see whether it succeeded or failed. Stock is not held just because the payment window was opened.</div>
+                </div>
                 <p class="text-muted mb-4">Please click the button below if the Razorpay payment window does not open automatically.</p>
 
                 <div class="card bg-light border-0 rounded-3 p-3 mb-4 text-start">
@@ -66,9 +72,7 @@
         document.getElementById('razorpayForm').submit();
     }
 
-    const reservationExpiresAt = @js($order->reserved_until?->getTimestamp() * 1000);
     const options = {
-        "timeout": Math.max(1, Math.floor((reservationExpiresAt - Date.now()) / 1000)),
         "key": "{{ $paymentResult['razorpay_key'] }}",
         "amount": "{{ $paymentResult['amount'] ?? ($order->grand_total * 100) }}",
         "currency": "INR",
@@ -107,19 +111,8 @@
     const rzp = new Razorpay(options);
 
     function openPayment() {
-        if (Date.now() >= reservationExpiresAt) {
-            document.getElementById('rzp-button').disabled = true;
-            alert('Your stock reservation has expired. Please return to checkout to check availability. If money was debited, do not pay again; contact us with your order number.');
-            return;
-        }
         rzp.open();
     }
-
-    setTimeout(() => {
-        rzp.close();
-        document.getElementById('rzp-button').disabled = true;
-        document.getElementById('rzp-button').textContent = 'Reservation expired — return to checkout';
-    }, Math.max(0, reservationExpiresAt - Date.now()));
 
     rzp.on('payment.failed', function (response){
         alert('Payment Failed: ' + (response.error.description || 'Transaction failed or bank error'));

@@ -13,6 +13,13 @@ class RazorpayOrderService
 {
     public function findCapturedPayment(Order $order, ?string $paymentId = null): ?array
     {
+        $payment = $this->findPayment($order, $paymentId);
+        return ($payment && ($payment['status'] ?? '') === 'captured') ? $payment : null;
+    }
+
+    /** Find the latest relevant Razorpay payment state for an order. */
+    public function findPayment(Order $order, ?string $paymentId = null): ?array
+    {
         if ($order->order_status === 'cancelled') {
             return null;
         }
@@ -22,10 +29,12 @@ class RazorpayOrderService
         $client = Http::withBasicAuth(config('services.razorpay.key'), config('services.razorpay.secret'))->timeout(15);
         $payment = $order->payment;
         $paymentId = $paymentId ?: $payment?->razorpay_payment_id;
+        $directPayment = null;
         if ($paymentId && str_starts_with($paymentId, 'pay_')) {
             $response = $client->get('https://api.razorpay.com/v1/payments/'.rawurlencode($paymentId));
-            if ($response->successful() && $this->matches($order, $response->json())) {
-                return $response->json();
+            if ($response->successful() && $this->matchesOrderPayment($order, $response->json())) {
+                $directPayment = $response->json();
+                if (($directPayment['status'] ?? '') === 'captured') return $directPayment;
             }
         }
         if ($payment?->razorpay_order_id && str_starts_with($payment->razorpay_order_id, 'order_')) {
@@ -34,18 +43,27 @@ class RazorpayOrderService
             $response = $client->get('https://api.razorpay.com/v1/payments', ['count' => 100]);
         }
         if ($response->successful()) {
-            foreach ($response->json('items', []) as $candidate) {
-                if ($this->matches($order, $candidate)) {
-                    return $candidate;
-                }
-            }
+            $candidates = array_values(array_filter($response->json('items', []), fn ($candidate) => $this->matchesOrderPayment($order, $candidate)));
+            if ($directPayment) $candidates[] = $directPayment;
+            usort($candidates, fn ($a, $b) => $this->paymentStatusPriority($a['status'] ?? '') <=> $this->paymentStatusPriority($b['status'] ?? ''));
+            return $candidates[0] ?? null;
         }
-        return null;
+        return $directPayment;
+    }
+
+    private function paymentStatusPriority(string $status): int
+    {
+        return match ($status) { 'captured' => 0, 'authorized' => 1, 'created' => 2, 'failed' => 3, default => 4 };
     }
 
     public function matches(Order $order, array $data): bool
     {
-        if (($data['status'] ?? '') !== 'captured'
+        return ($data['status'] ?? '') === 'captured' && $this->matchesOrderPayment($order, $data);
+    }
+
+    private function matchesOrderPayment(Order $order, array $data): bool
+    {
+        if (!in_array(($data['status'] ?? ''), ['captured', 'authorized', 'created', 'failed'], true)
             || !str_starts_with($data['id'] ?? '', 'pay_')
             || ($data['currency'] ?? '') !== 'INR'
             || (int) ($data['amount'] ?? -1) !== (int) round($order->grand_total * 100)) {

@@ -18,6 +18,7 @@ class ProductSize extends Model
         'reserved_stock',
         'chest',
         'waist',
+        'hip',
         'length',
     ];
 

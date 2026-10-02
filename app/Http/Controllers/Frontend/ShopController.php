@@ -13,6 +13,9 @@ class ShopController extends Controller
     public function index(Request $request)
     {
         $query = Product::active()->with(['category', 'categories', 'images', 'sizes']);
+        if (! $request->filled('category')) {
+            $query->visibleInCollection();
+        }
 
         // General search box (partial matching product name or category name)
         if ($request->filled('search')) {

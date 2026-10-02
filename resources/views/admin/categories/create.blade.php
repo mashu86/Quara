@@ -32,6 +32,15 @@
                     <div class="form-text small">Uploaded image will serve as category card background.</div>
                 </div>
 
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Product Display Location</label>
+                    <select name="show_in_collection" class="form-select rounded-3">
+                        <option value="1" {{ old('show_in_collection', '1') === '1' ? 'selected' : '' }}>Category and Product Collection</option>
+                        <option value="0" {{ old('show_in_collection') === '0' ? 'selected' : '' }}>Only inside this category</option>
+                    </select>
+                    <div class="form-text small">Category-only products stay out of general shop, home, and search listings.</div>
+                </div>
+
                 <div class="col-md-6" id="statusSelectWrapper">
                     <label class="form-label fw-bold small">Status <span class="text-danger">*</span></label>
                     <select name="status" class="form-select rounded-3">
@@ -85,11 +94,25 @@
                                     <input type="number" step="0.01" name="combo_price" id="combo_price_input" class="form-control rounded-3" placeholder="e.g. 500" value="{{ old('combo_price') }}" min="0">
                                     <div class="form-text small">Total price for minimum count items.</div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Delivery Charge (₹)</label>
-                                    <input type="number" step="0.01" name="delivery_charge" class="form-control rounded-3" placeholder="0 for Free Delivery" value="{{ old('delivery_charge', '0.00') }}" min="0">
-                                    <div class="form-text small">Enter 0 to offer Free Delivery.</div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold small">Price Per Piece (&#8377;) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" name="unit_offer_price" id="unit_offer_price_input" class="form-control rounded-3" placeholder="Auto calculated" value="{{ old('unit_offer_price') }}" min="0">
+                                    <div class="form-text small">Either price field updates the other.</div>
                                 </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold small">Delivery Charge</label>
+                                    <select name="delivery_charge_mode" id="delivery_charge_mode" class="form-select rounded-3">
+                                        <option value="free" {{ old('delivery_charge_mode', 'free') === 'free' ? 'selected' : '' }}>Free</option>
+                                        <option value="custom" {{ old('delivery_charge_mode') === 'custom' ? 'selected' : '' }}>Custom amount</option>
+                                        <option value="master" {{ old('delivery_charge_mode') === 'master' ? 'selected' : '' }}>Website delivery price master</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 {{ old('delivery_charge_mode') === 'custom' ? '' : 'd-none' }}" id="customDeliveryChargeWrapper">
+                                    <label class="form-label fw-bold small">Custom Delivery (&#8377;) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" name="delivery_charge" id="delivery_charge_input" class="form-control rounded-3" placeholder="e.g. 50" value="{{ old('delivery_charge') }}" min="0">
+                                </div>
+                                <div class="col-12 small text-muted d-none" id="masterDeliveryHelp">Delivery charge follows the active conditions in Website Delivery Price Master.</div>
+                                <div class="col-12 small text-muted" id="freeDeliveryHelp">Customers get free delivery for this combo category.</div>
                             </div>
 
                             <!-- Product Discount Specific Fields -->
@@ -136,6 +159,10 @@
         const discountSection = document.getElementById('discountFieldsSection');
         const minCountInput = document.getElementById('min_count_input');
         const comboPriceInput = document.getElementById('combo_price_input');
+        const unitPriceInput = document.getElementById('unit_offer_price_input');
+        const deliveryMode = document.getElementById('delivery_charge_mode');
+        const customDeliveryWrapper = document.getElementById('customDeliveryChargeWrapper');
+        const customDeliveryInput = document.getElementById('delivery_charge_input');
         const discountValueInput = document.getElementById('discount_value_input');
 
         function updateOfferFormState() {
@@ -148,12 +175,14 @@
                     discountSection.classList.add('d-none');
                     minCountInput.setAttribute('required', 'required');
                     comboPriceInput.setAttribute('required', 'required');
+                    unitPriceInput.setAttribute('required', 'required');
                     discountValueInput.removeAttribute('required');
                 } else {
                     comboSection.classList.add('d-none');
                     discountSection.classList.remove('d-none');
                     minCountInput.removeAttribute('required');
                     comboPriceInput.removeAttribute('required');
+                    unitPriceInput.removeAttribute('required');
                     discountValueInput.setAttribute('required', 'required');
                 }
             } else {
@@ -161,6 +190,7 @@
                 offerContainer.classList.add('d-none');
                 minCountInput.removeAttribute('required');
                 comboPriceInput.removeAttribute('required');
+                unitPriceInput.removeAttribute('required');
                 discountValueInput.removeAttribute('required');
             }
         }
@@ -171,6 +201,39 @@
             discountRadio.addEventListener('change', updateOfferFormState);
             updateOfferFormState();
         }
+
+        let lastPriceEdited = 'bundle';
+        comboPriceInput?.addEventListener('input', () => {
+            lastPriceEdited = 'bundle';
+            const count = parseInt(minCountInput.value, 10);
+            if (count > 0 && comboPriceInput.value !== '') unitPriceInput.value = (parseFloat(comboPriceInput.value) / count).toFixed(2);
+        });
+        unitPriceInput?.addEventListener('input', () => {
+            lastPriceEdited = 'unit';
+            const count = parseInt(minCountInput.value, 10);
+            if (count > 0 && unitPriceInput.value !== '') comboPriceInput.value = (parseFloat(unitPriceInput.value) * count).toFixed(2);
+        });
+        minCountInput?.addEventListener('input', () => {
+            const count = parseInt(minCountInput.value, 10);
+            if (count > 0) {
+                if (lastPriceEdited === 'unit' && unitPriceInput.value !== '') comboPriceInput.value = (parseFloat(unitPriceInput.value) * count).toFixed(2);
+                else if (comboPriceInput.value !== '') unitPriceInput.value = (parseFloat(comboPriceInput.value) / count).toFixed(2);
+            }
+        });
+        function updateDeliveryFields() {
+            const mode = deliveryMode?.value;
+            customDeliveryWrapper?.classList.toggle('d-none', mode !== 'custom');
+            document.getElementById('masterDeliveryHelp')?.classList.toggle('d-none', mode !== 'master');
+            document.getElementById('freeDeliveryHelp')?.classList.toggle('d-none', mode !== 'free');
+            if (customDeliveryInput) {
+                if (mode === 'custom' && switchEl.checked && comboRadio.checked) customDeliveryInput.setAttribute('required', 'required');
+                else customDeliveryInput.removeAttribute('required');
+            }
+        }
+        deliveryMode?.addEventListener('change', updateDeliveryFields);
+        switchEl?.addEventListener('change', updateDeliveryFields);
+        comboRadio?.addEventListener('change', updateDeliveryFields);
+        updateDeliveryFields();
     });
 </script>
 @endsection

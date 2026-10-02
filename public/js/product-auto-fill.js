@@ -1,15 +1,16 @@
 // Shared by product create and edit. Notes never require an AI request.
 const aliases = {
     c: 'chest', chest: 'chest', ches: 'chest', chst: 'chest', cheast: 'chest',
+    h: 'hip', hip: 'hip', hips: 'hip', hpp: 'hip', hiip: 'hip',
     w: 'waist', waist: 'waist', weist: 'waist', wast: 'waist', wait: 'waist',
-    l: 'length', length: 'length', lenght: 'length', lenth: 'length', len: 'length',
+    l: 'length', length: 'length', lenght: 'length', lenth: 'length', len: 'length', lwngth: 'length', lengh: 'length',
     price: 'price', rate: 'price', rs: 'price', inr: 'price',
 };
 
 function measurementKey(label) {
     if (aliases[label]) return aliases[label];
     if (label.length < 4) return null;
-    const close = ['chest', 'waist', 'length'].filter(word => {
+    const close = ['chest', 'waist', 'hip', 'length'].filter(word => {
         if (Math.abs(word.length - label.length) > 1) return false;
         const distance = Array.from({ length: word.length + 1 }, (_, i) => [i]);
         for (let j = 0; j <= label.length; j++) distance[0][j] = j;
@@ -25,7 +26,7 @@ function measurementKey(label) {
     return close.length === 1 ? close[0] : null;
 }
 
-export function parseProductNotes(text) {
+export function parseProductNotes(text, measurementType = (typeof document !== 'undefined' ? document.querySelector('input[name="measurement_type"]:checked')?.value : null) || 'up') {
     const values = {}, warnings = [], blocked = new Set();
     const assign = (key, raw) => {
         const value = Number(raw.replaceAll(',', ''));
@@ -40,11 +41,19 @@ export function parseProductNotes(text) {
         values[key] = value;
     };
     let rest = text.trim();
+    const downPositional = measurementType === 'down'
+        ? rest.match(/^(?:â‚¹\s*)?(\d+(?:\.\d+)?)(?:\s*\/-)?\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)$/)
+        : null;
+    if (downPositional) {
+        ['price', 'hip', 'length'].forEach((key, index) => assign(key, downPositional[index + 1]));
+        return { values, warnings };
+    }
     // Four unlabelled comma-separated values have a fixed field order.
     // Match before the labelled parser, which accepts thousands separators.
     const positional = rest.match(/^(?:₹\s*)?(\d+(?:\.\d+)?)(?:\s*\/-)?\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)$/);
     if (positional) {
-        ['price', 'chest', 'waist', 'length'].forEach((key, index) => assign(key, positional[index + 1]));
+        const order = ['price', 'chest', 'waist', 'length'];
+        order.forEach((key, index) => assign(key, positional[index + 1]));
         return { values, warnings };
     }
     const leading = rest.match(/^(?:₹\s*)?(\d+(?:,\d{3})*(?:\.\d+)?)(?:\s*\/-)?(?=\s|[,;|]|$)/);
@@ -52,6 +61,11 @@ export function parseProductNotes(text) {
     rest = rest.replace(/([a-z]+)\s*[:=]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)(\s*(?:[-/]\s*\d+|cm\b))?/gi, (whole, label, number, invalid) => {
         const key = measurementKey(label.toLowerCase());
         if (!key || invalid) { warnings.push(`Could not read "${whole.trim()}"; check it manually.`); return ''; }
+        assign(key, number); return '';
+    });
+    rest = rest.replace(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*([a-z]+)/gi, (whole, number, label) => {
+        const key = measurementKey(label.toLowerCase());
+        if (!key || key === 'price') return whole;
         assign(key, number); return '';
     });
     rest = rest.replace(/inches|inch|in\b|rs\b|₹|[\s,;|/\-"'″.]+/gi, '');
@@ -168,6 +182,14 @@ function initialize() {
     whatsappBookedCheckbox?.addEventListener('change', syncWhatsAppBookingDetails);
     syncWhatsAppBookingDetails();
     const picker = document.getElementById('aiSizeRow');
+    const measurementTypeInputs = [...document.querySelectorAll('input[name="measurement_type"]')];
+    const syncMeasurementFields = () => {
+        const isDown = document.querySelector('input[name="measurement_type"]:checked')?.value === 'down';
+        document.querySelectorAll('.measurement-up').forEach(el => el.classList.toggle('d-none', isDown));
+        document.querySelectorAll('.measurement-down').forEach(el => el.classList.toggle('d-none', !isDown));
+    };
+    measurementTypeInputs.forEach(input => input.addEventListener('change', syncMeasurementFields));
+    syncMeasurementFields();
     let rowOptions = [];
     const refreshRows = () => {
         const rows = sizeRows();
@@ -187,7 +209,7 @@ function initialize() {
     window.triggerAiAutoFill = async () => {
         const feedback = document.getElementById('aiProductFeedback');
         const { values, warnings } = parseProductNotes(notes.value);
-        const hasMeasurements = ['chest', 'waist', 'length'].some(k => values[k] !== undefined);
+        const hasMeasurements = ['chest', 'hip', 'waist', 'length'].some(k => values[k] !== undefined);
         if (hasMeasurements && !sizeRows().length) {
             if (typeof window.addNewSizeRow === 'function') window.addNewSizeRow();
             refreshRows();
@@ -235,14 +257,16 @@ function initialize() {
                     matches[0].input.dispatchEvent(new Event('change', { bubbles: true }));
                 } else if (matches.length > 1) warnings.push(`Multiple categories match ${values.price}: ${matches.map(c => c.name).join(', ')}. Select one manually.`);
             }
-            if (row) for (const key of ['chest', 'waist', 'length']) {
-                if (values[key] !== undefined) setValue(field(row, `${key}s`), values[key]);
+            if (row) for (const key of ['chest', 'hip', 'waist', 'length']) {
+                const fieldName = key === 'chest' ? 'chests' : key === 'hip' ? 'hips' : `${key}s`;
+                if (values[key] !== undefined) setValue(field(row, fieldName), values[key]);
             }
             if (file) {
                 try {
                     const data = new FormData();
                     data.append('image', file);
                     data.append('_token', form.querySelector('input[name="_token"]').value);
+                    data.append('measurement_type', document.querySelector('input[name="measurement_type"]:checked')?.value || 'up');
                     const result = await requestImageAutoFill(button.dataset.url, data);
                     setValue(form.querySelector('input[name="name"]'), result.name.trim());
                     setValue(form.querySelector('textarea[name="description"]'), result.description.trim());
@@ -264,10 +288,12 @@ function initialize() {
                     }
                 }
             }
-            if (hasMeasurements && row) {
+            if (hasMeasurements && row && document.querySelector('input[name="measurement_type"]:checked')?.value !== 'down') {
                 const label = await window.suggestProductNoteSize(row);
                 if (label) setValue(field(row, 'sizes'), label);
                 else warnings.push('Size label could not be filled. A Size Master with matching measurement rows is required.');
+            } else if (hasMeasurements && row && document.querySelector('input[name="measurement_type"]:checked')?.value === 'down') {
+                warnings.push('Measurements filled. Choose or enter the size label for this lower garment.');
             }
             feedback.textContent = [warnings.length ? 'Auto-fill needs attention.' : 'Auto-fill finished. Review the fields before saving.', ...warnings].join(' ');
             feedback.classList.toggle('text-warning', warnings.length > 0);

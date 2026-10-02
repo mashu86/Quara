@@ -55,12 +55,14 @@
           "name": "Shop",
           "item": "{{ route('shop') }}"
         },
+        @if($product->category)
         {
           "@type": "ListItem",
           "position": 3,
           "name": "{{ addslashes($product->category->name) }}",
           "item": "{{ route('category.products', $product->category->slug) }}"
         },
+        @endif
         {
           "@type": "ListItem",
           "position": 4,
@@ -383,7 +385,6 @@
         <!-- Product Details & Buying Actions -->
         <div class="col-lg-6">
             <div class="bg-white p-3 p-md-4 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
-                <span class="text-gold text-uppercase fw-bold tracking-wider mb-1" style="font-size: 0.70rem;">{{ $product->category->name }}</span>
                 <h1 class="fw-bold mb-2 text-dark product-title">{{ $product->name }}</h1>
 
                 <!-- Pricing Display -->
@@ -410,7 +411,11 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                     @php
-                        $hasMeasurements = $product->sizes->contains(fn ($sz) => !empty($sz->chest) || !empty($sz->waist) || !empty($sz->length));
+                        $isDownGarment = ($product->measurement_type ?? 'up') === 'down'
+                            || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
+                        $hasMeasurements = $product->sizes->contains(fn ($sz) => $isDownGarment
+                            ? (!empty($sz->hip) || !empty($sz->length))
+                            : (!empty($sz->chest) || !empty($sz->waist) || !empty($sz->length)));
                         $noSizeAvailableStock = $product->sizes
                             ->filter(fn ($variant) => trim((string) $variant->size) === '')
                             ->sum(fn ($variant) => $variant->available_stock);
@@ -456,6 +461,7 @@
                                        data-stock="{{ $effectiveStock }}"
                                        data-chest="{{ $pSize->chest }}"
                                        data-waist="{{ $pSize->waist }}"
+                                       data-hip="{{ $pSize->hip }}"
                                        data-length="{{ $pSize->length }}"
                                        onchange="updateStockNotice(this)"
                                        {{ $shouldCheck ? 'checked' : '' }}>
@@ -468,6 +474,9 @@
                                             <span class="text-muted fw-normal ms-1" style="font-size:0.68rem;">(Out)</span>
                                         @endif
                                     </div>
+                                    @if($isDownGarment && ($pSize->hip || $pSize->length))
+                                        <div class="small mt-1" style="font-size:0.68rem;">{{ implode(' · ', array_filter([$pSize->hip ? 'Hip: '.$pSize->hip.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null])) }}</div>
+                                    @endif
                                 </label>
                             @empty
                                 <div class="alert alert-warning py-2 px-3 small">No size options available.</div>
@@ -543,6 +552,26 @@
                     </div>
                     @else
                     <input type="hidden" name="size" value="">
+                    @if($hasMeasurements)
+                        <div class="mb-3 p-2.5 bg-light border rounded-3 small" id="sizeMeasurementBox">
+                            <div class="fw-bold text-dark mb-1" style="font-size: 0.78rem;">
+                                <i class="fa-solid fa-ruler-horizontal text-warning me-1.5"></i>
+                                {{ $isDownGarment ? 'Size Measurements (Hip & Length)' : 'Size Measurements' }}
+                            </div>
+                            <div class="d-flex flex-column gap-1 text-secondary" id="selectedSizeMeasurementsBadges">
+                                @foreach($product->sizes as $pSize)
+                                    @php
+                                        $measureParts = $isDownGarment
+                                            ? array_filter([$pSize->hip ? 'Hip: '.$pSize->hip.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null])
+                                            : array_filter([$pSize->chest ? 'Chest: '.$pSize->chest.'"' : null, $pSize->waist ? 'Waist: '.$pSize->waist.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null]);
+                                    @endphp
+                                    @if(count($measureParts))
+                                        <span>{{ $pSize->size ? $pSize->size.': ' : '' }}{{ implode(' · ', $measureParts) }}</span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                     @endif
 
                     <!-- Quantity Selector -->
@@ -707,8 +736,12 @@
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Size</th>
-                                        <th>Chest (in)</th>
-                                        <th>Waist (in)</th>
+                                        @if($isDownGarment)
+                                            <th>Hip (in)</th>
+                                        @else
+                                            <th>Chest (in)</th>
+                                            <th>Waist (in)</th>
+                                        @endif
                                         <th>Length (in)</th>
                                         <th>Stock</th>
                                     </tr>
@@ -717,8 +750,12 @@
                                     @foreach($product->sizes as $sz)
                                         <tr>
                                             <td class="fw-bold text-dark fs-6">{{ $sz->size }}</td>
-                                            <td>{{ $sz->chest ? $sz->chest . '"' : '-' }}</td>
-                                            <td>{{ $sz->waist ? $sz->waist . '"' : '-' }}</td>
+                                            @if($isDownGarment)
+                                                <td>{{ $sz->hip ? $sz->hip . '"' : '-' }}</td>
+                                            @else
+                                                <td>{{ $sz->chest ? $sz->chest . '"' : '-' }}</td>
+                                                <td>{{ $sz->waist ? $sz->waist . '"' : '-' }}</td>
+                                            @endif
                                             <td>{{ $sz->length ? $sz->length . '"' : '-' }}</td>
                                             <td>
                                                 @if($sz->stock > 0)
@@ -764,18 +801,21 @@
         // Handle Size Measurements Display (Chest, Waist, Length in Inches)
         const chest = elem.getAttribute('data-chest');
         const waist = elem.getAttribute('data-waist');
+        const hip = elem.getAttribute('data-hip');
         const length = elem.getAttribute('data-length');
         const sizeName = elem.value;
+        const isDownGarment = @json($isDownGarment);
 
         const mBox = document.getElementById('sizeMeasurementBox');
         const mText = document.getElementById('selectedSizeNameText');
         const mBadges = document.getElementById('selectedSizeMeasurementsBadges');
 
-        if (mBox && mBadges && (chest || waist || length)) {
+        if (mBox && mBadges && (isDownGarment ? (hip || length) : (chest || waist || length))) {
             mText.innerText = sizeName;
             let badgesHtml = '';
-            if (chest) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Chest: <strong class="text-warning">${chest}"</strong></span>`;
-            if (waist) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Waist: <strong class="text-warning">${waist}"</strong></span>`;
+            if (isDownGarment && hip) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Hip: <strong class="text-warning">${hip}"</strong></span>`;
+            if (!isDownGarment && chest) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Chest: <strong class="text-warning">${chest}"</strong></span>`;
+            if (!isDownGarment && waist) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Waist: <strong class="text-warning">${waist}"</strong></span>`;
             if (length) badgesHtml += `<span class="badge bg-white text-dark border px-2.5 py-1.5 shadow-sm fw-semibold" style="font-size: 0.75rem;">Length: <strong class="text-warning">${length}"</strong></span>`;
             mBadges.innerHTML = badgesHtml;
             mBox.classList.remove('d-none');

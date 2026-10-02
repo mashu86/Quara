@@ -426,6 +426,7 @@
                         <i class="fa-solid fa-tags me-2 text-warning"></i> Offer Sale
                     </a>
                 </li>
+                <li class="nav-item"><a href="{{ route('admin.master-coupons.index') }}" class="nav-link {{ request()->routeIs('admin.master-coupons.*') ? 'active' : '' }}"><i class="fa-solid fa-ticket me-2 text-warning"></i> Master Coupon</a></li>
                 <li class="nav-item">
                     <a href="{{ route('admin.district-offers.index') }}" class="nav-link {{ request()->routeIs('admin.district-offers.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-location-dot me-2 text-warning"></i> District Offers

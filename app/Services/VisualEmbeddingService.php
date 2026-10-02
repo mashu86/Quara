@@ -87,6 +87,7 @@ class VisualEmbeddingService
 
         // Retrieve active products with their image embeddings
         $products = Product::active()
+            ->visibleInCollection()
             ->with(['category', 'images.embedding'])
             ->get();
 

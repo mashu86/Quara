@@ -74,7 +74,7 @@ class StockService
     public function checkStock(int $productId, ?string $size, int $requestedQty): array
     {
         $product = Product::with(['category', 'sizes'])->find($productId);
-        if (!$product || $product->status !== 'active' || !$product->category || $product->category->status !== 'active') {
+        if (!$product || $product->status !== 'active') {
             return ['available' => false, 'message' => 'Product is currently unavailable.'];
         }
 

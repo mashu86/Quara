@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const submit = form.querySelector('button[type="submit"]');
     let revision = 0;
     let lastRequestedPin = '';
+    window.checkoutDistrictOfferData = {pin: '', discount: 0};
 
     // Pricing verification never writes to the customer's editable address fields.
     async function lookup(force = false) {
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastRequestedPin = value;
         const version = ++revision;
         offerRow.hidden = true;
+        window.checkoutDistrictOfferData = {pin: value, discount: 0};
         total.textContent = '\u20b9' + Number(form.dataset.baseTotal).toFixed(2);
         rounding.textContent = '+\u20b9' + Number(form.dataset.baseRounding).toFixed(2);
         submit.disabled = false;
@@ -33,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Offer lookup unavailable.');
             window.QuaraPincode?.remember(value, data);
             message.textContent = data.discount > 0 ? 'District offer applied for this PIN code.' : '';
+            window.checkoutDistrictOfferData = {pin: value, discount: Number(data.discount || 0)};
             offerRow.hidden = !(data.discount > 0);
             document.getElementById('districtOfferAmount').textContent = '-\u20b9' + Number(data.discount).toFixed(2);
             total.textContent = '\u20b9' + Number(data.grand_total).toFixed(2);

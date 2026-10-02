@@ -26,7 +26,9 @@ class Category extends Model
         'discount_value',
         'discount_type',
         'is_active_offer',
+        'delivery_charge_mode',
         'delivery_charge',
+        'show_in_collection',
     ];
 
     protected $casts = [
@@ -37,6 +39,7 @@ class Category extends Model
         'combo_price' => 'float',
         'discount_value' => 'float',
         'delivery_charge' => 'float',
+        'show_in_collection' => 'boolean',
     ];
 
     public function products()

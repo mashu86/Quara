@@ -237,6 +237,7 @@ class CartService
     public function clear(): void
     {
         Session::forget('cart');
+        Session::forget('master_coupon');
     }
 
     public function getCartCount(): int
@@ -331,6 +332,7 @@ class CartService
                 'is_combo_offer' => true,
                 'combo_category_id' => $comboCategory->id,
                 'combo_delivery_charge' => (float) $comboCategory->delivery_charge,
+                'combo_delivery_charge_mode' => $comboCategory->delivery_charge_mode ?? 'free',
             ];
         }
 
@@ -360,18 +362,26 @@ class CartService
         $shipping = 0.00;
         $matchedPolicy = null;
 
-        // Check if any combo items in cart have explicit free delivery
-        $comboFreeShipping = false;
+        // Combo categories can provide free, custom or master-policy delivery.
+        $comboDeliveryMode = null;
+        $comboDeliveryCharge = 0.0;
         foreach ($cart as $item) {
-            if (!empty($item['is_combo_offer']) && isset($item['combo_delivery_charge']) && (float)$item['combo_delivery_charge'] === 0.0) {
-                $comboFreeShipping = true;
-                break;
+            if (!empty($item['is_combo_offer'])) {
+                $mode = $item['combo_delivery_charge_mode'] ?? ((float) ($item['combo_delivery_charge'] ?? 0) === 0.0 ? 'free' : 'custom');
+                if ($mode === 'free' || $mode === 'custom') {
+                    $comboDeliveryMode = $mode;
+                    $comboDeliveryCharge = (float) ($item['combo_delivery_charge'] ?? 0);
+                    break;
+                }
             }
         }
 
-        if ($comboFreeShipping) {
+        if ($comboDeliveryMode === 'free') {
             $shipping = 0.00;
             $matchedPolicyName = 'Free Combo Offer Delivery';
+        } elseif ($comboDeliveryMode === 'custom') {
+            $shipping = $comboDeliveryCharge;
+            $matchedPolicyName = 'Combo Offer Delivery Charge';
         } else if ($cartCount > 0) {
             $policies = \App\Models\ShippingPolicy::where('status', 'active')
                 ->orderBy('priority', 'asc')
@@ -403,7 +413,7 @@ class CartService
             'rounding_adjustment' => round($roundingAdjustment, 2),
             'grand_total' => round($grandTotal, 2),
             'item_count' => $cartCount,
-            'matched_policy' => $comboFreeShipping ? $matchedPolicyName : ($matchedPolicy ? $matchedPolicy->name : null),
+            'matched_policy' => $matchedPolicyName ?? ($matchedPolicy ? $matchedPolicy->name : null),
         ];
     }
 

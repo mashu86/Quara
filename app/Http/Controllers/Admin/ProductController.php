@@ -252,6 +252,7 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'category_id' => 'nullable|exists:categories,id',
+            'measurement_type' => 'nullable|in:up,down',
             'combo_category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
@@ -275,16 +276,13 @@ class ProductController extends Controller
             'stocks' => 'required|array',
         ]);
 
-        $categoryIds = $request->input('category_ids', []);
+        $categoryIds = array_values(array_filter($request->input('category_ids', [])));
         if (empty($categoryIds) && $request->filled('category_id')) {
             $categoryIds = [$request->category_id];
         }
 
-        if (empty($categoryIds)) {
-            return back()->withErrors(['category_ids' => 'Please select at least one category.'])->withInput();
-        }
-
-        $validated['category_id'] = $categoryIds[0];
+        $validated['category_id'] = $categoryIds[0] ?? null;
+        $validated['measurement_type'] = $validated['measurement_type'] ?? 'up';
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
         $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
@@ -323,6 +321,9 @@ class ProductController extends Controller
                 $categoryIds[] = (int) $offerCategory->id;
             }
         }
+        $validated['collection_visible'] = ! Category::whereIn('id', $categoryIds)
+            ->where('show_in_collection', false)
+            ->exists();
 
         DB::transaction(function () use ($validated, $request, $categoryIds) {
             $product = Product::create($validated);
@@ -331,6 +332,7 @@ class ProductController extends Controller
             // Handle Sizes, Stock and Measurements (Chest, Waist, Length)
             $chests = $request->input('chests', []);
             $waists = $request->input('waists', []);
+            $hips = $request->input('hips', []);
             $lengths = $request->input('lengths', []);
 
             foreach ($validated['sizes'] as $index => $sizeName) {
@@ -341,6 +343,7 @@ class ProductController extends Controller
                     'stock' => $stockQty,
                     'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
                     'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
+                    'hip' => !empty($hips[$index]) ? trim($hips[$index]) : null,
                     'length' => !empty($lengths[$index]) ? trim($lengths[$index]) : null,
                 ]);
 
@@ -420,6 +423,7 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'category_id' => 'nullable|exists:categories,id',
+            'measurement_type' => 'nullable|in:up,down',
             'combo_category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
@@ -448,16 +452,13 @@ class ProductController extends Controller
             'stock_adjustment_reason' => 'nullable|string|max:255',
         ]);
 
-        $categoryIds = $request->input('category_ids', []);
+        $categoryIds = array_values(array_filter($request->input('category_ids', [])));
         if (empty($categoryIds) && $request->filled('category_id')) {
             $categoryIds = [$request->category_id];
         }
 
-        if (empty($categoryIds)) {
-            return back()->withErrors(['category_ids' => 'Please select at least one category.'])->withInput();
-        }
-
-        $validated['category_id'] = $categoryIds[0];
+        $validated['category_id'] = $categoryIds[0] ?? null;
+        $validated['measurement_type'] = $validated['measurement_type'] ?? $product->measurement_type ?? 'up';
         $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
         $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
         $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
@@ -516,6 +517,9 @@ class ProductController extends Controller
                 }
             }
         }
+        $validated['collection_visible'] = ! Category::whereIn('id', $categoryIds)
+            ->where('show_in_collection', false)
+            ->exists();
 
         DB::transaction(function () use ($validated, $request, $product, $categoryIds) {
             $product->update($validated);
@@ -528,6 +532,7 @@ class ProductController extends Controller
             $existingStocks = $validated['existing_stocks'] ?? [];
             $existingChests = $request->input('existing_chests', []);
             $existingWaists = $request->input('existing_waists', []);
+            $existingHips = $request->input('existing_hips', []);
             $existingLengths = $request->input('existing_lengths', []);
 
             $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks), array_keys($existingChests)));
@@ -562,6 +567,11 @@ class ProductController extends Controller
                     if ($pSize->waist !== $wVal) $updateData['waist'] = $wVal;
                 }
 
+                if (array_key_exists($sizeId, $existingHips)) {
+                    $hVal = !empty($existingHips[$sizeId]) ? trim($existingHips[$sizeId]) : null;
+                    if ($pSize->hip !== $hVal) $updateData['hip'] = $hVal;
+                }
+
                 if (array_key_exists($sizeId, $existingLengths)) {
                     $lVal = !empty($existingLengths[$sizeId]) ? trim($existingLengths[$sizeId]) : null;
                     if ($pSize->length !== $lVal) $updateData['length'] = $lVal;
@@ -592,6 +602,7 @@ class ProductController extends Controller
             $newStocks = $validated['new_stocks'] ?? [];
             $newChests = $request->input('new_chests', []);
             $newWaists = $request->input('new_waists', []);
+            $newHips = $request->input('new_hips', []);
             $newLengths = $request->input('new_lengths', []);
 
             foreach ($newSizes as $i => $nSize) {
@@ -602,6 +613,7 @@ class ProductController extends Controller
                     'stock' => $nStock,
                     'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
                     'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
+                    'hip' => !empty($newHips[$i]) ? trim($newHips[$i]) : null,
                     'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
                 ]);
                 if ($nStock > 0) {

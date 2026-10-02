@@ -117,7 +117,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Categories (Select Multiple) <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">Categories (Optional, Select Multiple)</label>
                             <div class="dropdown custom-category-dropdown position-relative">
                                 <button class="btn btn-outline-secondary form-select text-start rounded-3 d-flex justify-content-between align-items-center bg-white shadow-none" type="button" id="categoryDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="categoryDropdownBtnText" class="text-truncate me-2 text-muted">Select Categories</span>
@@ -239,15 +239,19 @@
                                 </button>
                             </div>
                             <div class="row g-2 align-items-end">
-                                <div class="col-4 col-md-2">
+                                <div class="col-4 col-md-2 measurement-field measurement-up">
                                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
                                     <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 38&quot;">
                                 </div>
-                                <div class="col-4 col-md-2">
+                                <div class="col-4 col-md-2 measurement-field measurement-waist measurement-up">
                                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
                                     <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 34&quot;">
                                 </div>
-                                <div class="col-4 col-md-2">
+                                <div class="col-4 col-md-2 measurement-field measurement-down">
+                                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Hip (inch)</label>
+                                    <input type="text" name="hips[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                                </div>
+                                <div class="col-4 col-md-2 measurement-field measurement-length">
                                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
                                     <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                                 </div>
@@ -520,15 +524,19 @@
                 </button>
             </div>
             <div class="row g-2 align-items-end">
-                <div class="col-4 col-md-2">
+                <div class="col-4 col-md-2 measurement-field measurement-up">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
                     <input type="text" name="chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
                 </div>
-                <div class="col-4 col-md-2">
+                <div class="col-4 col-md-2 measurement-field measurement-waist measurement-up">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
                     <input type="text" name="waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
                 </div>
-                <div class="col-4 col-md-2">
+                <div class="col-4 col-md-2 measurement-field measurement-down">
+                    <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Hip (inch)</label>
+                    <input type="text" name="hips[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&amp;quot;">
+                </div>
+                <div class="col-4 col-md-2 measurement-field measurement-length">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
                     <input type="text" name="lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>

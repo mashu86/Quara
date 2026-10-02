@@ -41,12 +41,23 @@ test('reads comma-separated price, chest, waist and length in order', () => {
     assert.deepEqual(invalid.values, { price: 129, waist: 30 });
     assert.equal(invalid.warnings.length, 2);
 });
+test('reads down hip/length measurements without waist and preserves up defaults', () => {
+    assert.deepEqual(parseProductNotes('129,32,40', 'down').values,
+        { price: 129, hip: 32, length: 40 });
+    assert.deepEqual(parseProductNotes('H:32 L:32').values,
+        { hip: 32, length: 32 });
+    assert.deepEqual(parseProductNotes('hip 32 lwngth 40').values,
+        { hip: 32, length: 40 });
+    assert.deepEqual(parseProductNotes('129,32,30,40', 'up').values,
+        { price: 129, chest: 32, waist: 30, length: 40 });
+});
 test('accepts common spelling mistakes, decimals and optional fields', () => {
     assert.deepEqual(parseProductNotes('price 1,169/-\nchst 40.5\nweist 38\nlenght 42').values,
         { price: 1169, chest: 40.5, waist: 38, length: 42 });
     assert.deepEqual(parseProductNotes('169').values, { price: 169 });
     assert.deepEqual(parseProductNotes('c40').values, { chest: 40 });
     assert.deepEqual(parseProductNotes('chset 40 waost 38 lengthh 42').values, { chest: 40, waist: 38, length: 42 });
+    assert.deepEqual(parseProductNotes('hpp 40 lwngth 42', 'down').values, { hip: 40, length: 42 });
     assert.deepEqual(parseProductNotes(''), { values: {}, warnings: [] });
 });
 test('does not silently choose conflicting, invalid or ranged measurements', () => {

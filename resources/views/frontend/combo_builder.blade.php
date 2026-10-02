@@ -418,7 +418,11 @@
                                     @else
                                         @php
                                             $firstSz = $availableSizes->first();
-                                            $hasMeasurements = $firstSz && ($firstSz->chest || $firstSz->waist || $firstSz->length);
+                                            $isDownGarment = ($product->measurement_type ?? 'up') === 'down'
+                                                || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
+                                            $hasMeasurements = $firstSz && ($isDownGarment
+                                                ? ($firstSz->hip || $firstSz->length)
+                                                : ($firstSz->chest || $firstSz->waist || $firstSz->length));
                                         @endphp
 
                                         @if($availableSizes->count() === 1 && $firstSz)
@@ -429,9 +433,11 @@
                                                     <span class="text-muted fw-semibold" style="font-size: 0.72rem;">Size:</span>
                                                     <span class="badge bg-dark fw-bold text-wrap" style="font-size: 0.7rem; letter-spacing: 0.2px;">{{ $firstSz->size }}</span>
                                                 </div>
-                                                @if($firstSz->chest || $firstSz->waist || $firstSz->length)
+                                                @if($isDownGarment ? ($firstSz->hip || $firstSz->length) : ($firstSz->chest || $firstSz->waist || $firstSz->length))
                                                     <div class="text-muted mt-1 pt-1 border-top" style="font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Measurements">
-                                                        {{ implode(' • ', array_filter([$firstSz->chest ? 'C: '.$firstSz->chest.'"' : null, $firstSz->waist ? 'W: '.$firstSz->waist.'"' : null, $firstSz->length ? 'L: '.$firstSz->length.'"' : null])) }}
+                                                        {{ implode(' • ', array_filter($isDownGarment
+                                                            ? [$firstSz->hip ? 'H: '.$firstSz->hip.'"' : null, $firstSz->length ? 'L: '.$firstSz->length.'"' : null]
+                                                            : [$firstSz->chest ? 'C: '.$firstSz->chest.'"' : null, $firstSz->waist ? 'W: '.$firstSz->waist.'"' : null, $firstSz->length ? 'L: '.$firstSz->length.'"' : null])) }}
                                                     </div>
                                                 @endif
                                             </div>
@@ -644,6 +650,22 @@
     const CSRF_TOKEN = "{{ csrf_token() }}";
 
     let selectedComboItems = [];
+    let comboSubmissionPending = false;
+
+    function resetComboSubmissionButtons() {
+        comboSubmissionPending = false;
+        document.querySelectorAll('.submit-combo-btn').forEach(btn => {
+            btn.disabled = selectedComboItems.length < MIN_COUNT;
+            btn.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
+        });
+    }
+
+    // Browsers may restore this page from the back/forward cache with its old DOM,
+    // including the disabled loading button. Reset only the transient submit state.
+    window.addEventListener('pageshow', resetComboSubmissionButtons);
+    window.addEventListener('pagehide', () => {
+        if (comboSubmissionPending) resetComboSubmissionButtons();
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         // Add or Remove Combo Item directly from product card button
@@ -689,11 +711,13 @@
         // Submit Combo Box Handler
         document.querySelectorAll('.submit-combo-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                if (comboSubmissionPending) return;
                 if (selectedComboItems.length < MIN_COUNT) {
                     alert(`Please select at least ${MIN_COUNT} items to complete this combo package.`);
                     return;
                 }
 
+                comboSubmissionPending = true;
                 document.querySelectorAll('.submit-combo-btn').forEach(b => {
                     b.disabled = true;
                     b.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Adding...`;
@@ -723,18 +747,12 @@
                         window.location.href = "{{ route('checkout.index') }}";
                     } else {
                         alert(data.message || 'Failed to process combo offer.');
-                        document.querySelectorAll('.submit-combo-btn').forEach(b => {
-                            b.disabled = false;
-                            b.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
-                        });
+                        resetComboSubmissionButtons();
                     }
                 })
                 .catch(err => {
                     alert('An error occurred. Please try again.');
-                    document.querySelectorAll('.submit-combo-btn').forEach(b => {
-                        b.disabled = false;
-                        b.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
-                    });
+                    resetComboSubmissionButtons();
                 });
             });
         });

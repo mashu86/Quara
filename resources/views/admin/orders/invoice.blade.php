@@ -278,6 +278,12 @@
                             <span class="fw-bold">- ₹{{ number_format($invDiscount, 2) }}</span>
                         </div>
                     @endif
+                    @if((float) $order->coupon_discount > 0)
+                        <div class="d-flex justify-content-between mb-2 small text-success">
+                            <span>Coupon Discount ({{ $order->coupon_code }}):</span>
+                            <span class="fw-bold">- ₹{{ number_format($order->coupon_discount, 2) }}</span>
+                        </div>
+                    @endif
                     <div class="d-flex justify-content-between mb-2 small">
                         <span class="text-muted">Delivery & Shipping Charge:</span>
                         <span class="fw-bold">

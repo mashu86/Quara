@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class Product extends Model
 {
@@ -14,6 +16,8 @@ class Product extends Model
 
     protected $fillable = [
         'category_id',
+        'measurement_type',
+        'collection_visible',
         'name',
         'slug',
         'price',
@@ -41,6 +45,7 @@ class Product extends Model
         'final_price' => 'decimal:2',
         'weight_kg' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
+        'collection_visible' => 'boolean',
         'display_size_chart' => 'boolean',
         'combo_sort_order' => 'integer',
         'size_master_id' => 'integer',
@@ -65,6 +70,21 @@ class Product extends Model
     public function categories()
     {
         return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
+    }
+
+    public function scopeVisibleInCollection(Builder $query): Builder
+    {
+        $query->where('collection_visible', true)
+            ->whereDoesntHave('category', fn (Builder $category) => $category->where('show_in_collection', false))
+            ->whereDoesntHave('categories', fn (Builder $category) => $category->where('show_in_collection', false));
+
+        static $hasComboCategoryId;
+        $hasComboCategoryId ??= Schema::hasColumn('products', 'combo_category_id');
+        if ($hasComboCategoryId) {
+            $query->whereDoesntHave('comboCategory', fn (Builder $category) => $category->where('show_in_collection', false));
+        }
+
+        return $query;
     }
 
     public function images(): HasMany
@@ -132,16 +152,7 @@ class Product extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'active')
-            ->where(function ($q) {
-                $q->whereHas('category', function ($catQ) {
-                    $catQ->where('status', 'active');
-                })->orWhereHas('categories', function ($catQ) {
-                    $catQ->where('status', 'active');
-                })->orWhereHas('comboCategory', function ($catQ) {
-                    $catQ->where('status', 'active');
-                });
-            });
+        return $query->where('status', 'active');
     }
 
     public function scopeInStockFirst($query)

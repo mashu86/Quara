@@ -54,6 +54,13 @@ class CheckoutController extends Controller
         }
 
         $summary = $this->cartService->getSummary();
+        $summary['has_active_coupons'] = \App\Models\MasterCoupon::where('status', true)->where('starts_at', '<=', now())->where('ends_at', '>=', now())->exists();
+        $coupon = session('master_coupon');
+        if ($coupon) {
+            $applied = app(\App\Services\MasterCouponService::class)->apply($coupon['code'], $cart, $summary['subtotal'], $summary['discount'], (int) $coupon['id']);
+            if (!$applied['valid']) { session()->forget('master_coupon'); $coupon = null; }
+            else $summary['coupon_discount'] = $applied['discount'];
+        }
 
         $email = session('customer_email');
         $lastOrder = null;
@@ -62,6 +69,33 @@ class CheckoutController extends Controller
         }
 
         return view('frontend.checkout', compact('cart', 'summary', 'lastOrder'));
+    }
+
+    public function applyCoupon(Request $request)
+    {
+        $validated = $request->validate(['code' => 'required|string|max:80']);
+        $cart = $this->cartService->getCart();
+        $summary = $this->cartService->getSummary();
+        $result = app(\App\Services\MasterCouponService::class)->apply($validated['code'], $cart, $summary['subtotal'], $summary['discount']);
+        if (!$result['valid']) return response()->json(['success' => false, 'message' => $result['message']], 422);
+        session(['master_coupon' => ['id' => $result['coupon']->id, 'code' => $result['coupon']->code]]);
+        $districtDiscount = 0;
+        $pin = (string) $request->input('pin_code', '');
+        if (preg_match('/^[1-9][0-9]{5}$/', $pin)) {
+            try {
+                $location = app(PincodeService::class)->lookup($pin);
+                $offer = app(DistrictOfferService::class)->eligible($location['district'], $location['state'], now('Asia/Kolkata'));
+                $districtDiscount = app(DistrictOfferService::class)->snapshot($offer, $summary['subtotal'] - $summary['discount'], true)['district_offer_discount'];
+            } catch (\Throwable $e) { /* Pricing is revalidated on order creation. */ }
+        }
+        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $districtDiscount - $result['discount'] + $summary['shipping'], 2));
+        return response()->json(['success' => true, 'code' => $result['coupon']->code, 'discount' => $result['discount'], 'grand_total' => ceil($raw), 'rounding_adjustment' => round(ceil($raw) - $raw, 2), 'district_discount' => $districtDiscount, 'pin_code' => $pin, 'message' => 'Coupon applied successfully.']);
+    }
+
+    public function removeCoupon()
+    {
+        session()->forget('master_coupon');
+        return response()->json(['success' => true, 'message' => 'Coupon removed.']);
     }
 
     public function districtOffer(Request $request, PincodeService $pins, DistrictOfferService $offers)
@@ -121,7 +155,7 @@ class CheckoutController extends Controller
             $location = null; // Manual delivery details remain usable without a postal lookup.
         }
 
-        try {
+            try {
             $order = DB::transaction(function () use ($validated, $cart, $summary, $location) {
                 $this->stockService->lockAndValidateCheckoutStock($cart);
                 $orderNumber = Order::generateOrderNumber();
@@ -129,6 +163,14 @@ class CheckoutController extends Controller
                 $snapshot = $offers->snapshot($location ? $offers->eligible($location['district'], $location['state'], now('Asia/Kolkata')) : null,
                     $summary['subtotal'] - $summary['discount'], true);
                 $summary['discount'] += $snapshot['district_offer_discount'];
+                $summary['district_offer_discount'] = $snapshot['district_offer_discount'];
+                $couponData = null;
+                $couponSession = session('master_coupon');
+                if ($couponSession) {
+                    $couponData = app(\App\Services\MasterCouponService::class)->apply($couponSession['code'], $cart, $summary['subtotal'], $summary['discount'] - $snapshot['district_offer_discount'], (int) $couponSession['id']);
+                    if (!$couponData['valid']) throw new \RuntimeException($couponData['message']);
+                    $summary['discount'] += $couponData['discount'];
+                }
                 $raw = max(0, round($summary['subtotal'] - $summary['discount'] + $summary['shipping'], 2));
                 $summary['grand_total'] = ceil($raw);
                 $summary['rounding_adjustment'] = round(ceil($raw) - $raw, 2);
@@ -149,6 +191,10 @@ class CheckoutController extends Controller
                     'pin_code' => $validated['pin_code'],
                     'subtotal' => $summary['subtotal'],
                     'discount' => $summary['discount'],
+                    'master_coupon_id' => $couponData['coupon']->id ?? null,
+                    'coupon_code' => $couponData['coupon']->code ?? null,
+                    'coupon_discount' => $couponData['discount'] ?? 0,
+                    'coupon_usage_recorded' => false,
                     'shipping' => $summary['shipping'],
                     'rounding_adjustment' => $summary['rounding_adjustment'] ?? 0.00,
                     'grand_total' => $summary['grand_total'],
@@ -183,6 +229,11 @@ class CheckoutController extends Controller
 
                 // If Cash on Delivery, deduct stock immediately on order creation
                 if ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) {
+                    if ($couponData) {
+                        app(\App\Services\MasterCouponService::class)->reserveForOrder($couponData['coupon']->id);
+                        $order->coupon_usage_recorded = true;
+                        $order->save();
+                    }
                     $this->stockService->deductStockForOrder($order);
                     if ($summary['grand_total'] <= 0) {
                         \App\Models\Payment::create(['order_id' => $order->id, 'payment_method' => 'online', 'status' => 'paid', 'amount' => 0]);
@@ -215,6 +266,7 @@ class CheckoutController extends Controller
 
             if ($validated['payment_method'] === 'cod' || (float) $order->grand_total <= 0) {
                 $this->cartService->clear();
+                session()->forget('master_coupon');
                 $this->whatsAppService->sendOrderConfirmation($order);
 
                 if ($order->customer_email) {
@@ -275,6 +327,7 @@ class CheckoutController extends Controller
 
         if ($verified) {
             $this->cartService->clear();
+            session()->forget('master_coupon');
             $this->whatsAppService->sendOrderConfirmation($order);
 
             if ($order->customer_email) {

@@ -60,11 +60,17 @@
 
                     @php
                         $allMeasurements = [];
+                        $isDownGarment = ($product->measurement_type ?? 'up') === 'down'
+                            || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
                         foreach($product->sizes as $pSize) {
                             if($pSize->stock > 0) {
                                 $mParts = [];
-                                if(!empty($pSize->chest)) $mParts[] = 'C:'.$pSize->chest.'"';
-                                if(!empty($pSize->waist)) $mParts[] = 'W:'.$pSize->waist.'"';
+                                if($isDownGarment) {
+                                    if(!empty($pSize->hip)) $mParts[] = 'H:'.$pSize->hip.'"';
+                                } else {
+                                    if(!empty($pSize->chest)) $mParts[] = 'C:'.$pSize->chest.'"';
+                                    if(!empty($pSize->waist)) $mParts[] = 'W:'.$pSize->waist.'"';
+                                }
                                 if(!empty($pSize->length)) $mParts[] = 'L:'.$pSize->length.'"';
                                 if(count($mParts) > 0) {
                                     $allMeasurements[] = count($product->sizes) > 1 

@@ -29,6 +29,7 @@ class VisualSearchController extends Controller
             $tempPath = $request->file('image')->getRealPath();
 
             $products = Product::active()
+                ->visibleInCollection()
                 ->with(['category', 'images'])
                 ->get();
 

@@ -49,7 +49,7 @@ class HomeController extends Controller
         }
 
         $carouselProducts = function ($query, $limit) {
-            return $query->with(['images', 'sizes'])->inStockFirst()->limit($limit)->get();
+            return $query->visibleInCollection()->with(['images', 'sizes'])->inStockFirst()->limit($limit)->get();
         };
         $sectionProducts = [];
         $newSection = $homeSections->get('new_arrivals');
@@ -63,7 +63,7 @@ class HomeController extends Controller
                 ->where(function ($query) { $query->where('orders.payment_status', 'paid')->orWhere('orders.order_status', 'delivered'); })
                 ->select('order_items.product_id')->selectRaw('SUM(order_items.quantity) as sold_units')
                 ->groupBy('order_items.product_id')->orderByDesc('sold_units')->limit($bestSection->items_to_show)->pluck('product_id')->map(fn($id) => (int)$id)->all();
-            $popular = $popularIds ? Product::active()->whereIn('id', $popularIds)->with(['images','sizes'])->get()->keyBy('id') : collect();
+            $popular = $popularIds ? Product::active()->visibleInCollection()->whereIn('id', $popularIds)->with(['images','sizes'])->get()->keyBy('id') : collect();
             $sectionProducts['best_sellers'] = collect($popularIds)->map(fn($id) => $popular->get($id))->filter()->values();
         }
         $offerSection = $homeSections->get('offers');
@@ -82,6 +82,9 @@ class HomeController extends Controller
         }
 
         $query = Product::active()->with(['category', 'categories', 'images', 'sizes']);
+        if (! $request->filled('category')) {
+            $query->visibleInCollection();
+        }
 
         // General search box (partial matching product name or category name)
         if ($request->filled('search')) {

@@ -95,7 +95,7 @@
 </div>
 
 <!-- Table -->
-<div class="card border-0 rounded-4 shadow-sm">
+<div class="card border-0 rounded-4 shadow-sm" id="category-list" data-next-url="{{ $categories->nextPageUrl() }}">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table align-middle mb-0">
@@ -109,7 +109,7 @@
                         <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="category-table-body">
                     @forelse($categories as $category)
                         <tr>
                             <td class="cat-sticky-col text-center py-2.5 px-2">
@@ -202,6 +202,10 @@
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
 
+                                    <a href="{{ route('admin.categories.products', $category) }}" class="btn btn-sm btn-outline-primary rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm cat-action-btn" title="Manage category products" aria-label="Manage products in {{ $category->name }}">
+                                        <i class="fa-solid fa-door-open"></i>
+                                    </a>
+
                                     @if(!$isOffer)
                                         <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this category?')">
                                             @csrf
@@ -223,8 +227,8 @@
             </table>
         </div>
     </div>
-    <div class="card-footer bg-white py-3">
-        {{ $categories->links() }}
+    <div class="card-footer bg-white py-3 text-center small text-muted" id="category-load-sentinel" aria-live="polite">
+        {{ $categories->hasMorePages() ? 'Scroll down to load more categories…' : 'All categories loaded.' }}
     </div>
 </div>
 
@@ -281,9 +285,46 @@
                     this.checked = !isChecked;
                     alert('An error occurred while updating category status.');
                 });
+
             });
         });
     });
+
+    const categoryList = document.getElementById('category-list');
+    const loadSentinel = document.getElementById('category-load-sentinel');
+    let loadingCategories = false;
+    const loadMoreCategories = async () => {
+        if (!categoryList?.dataset.nextUrl || loadingCategories) return;
+        loadingCategories = true;
+        loadSentinel.textContent = 'Loading more categories…';
+        try {
+            const url = new URL(categoryList.dataset.nextUrl, window.location.origin);
+            url.searchParams.set('ajax', '1');
+            const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) throw new Error('Could not load categories.');
+            const data = await response.json();
+            const parsed = new DOMParser().parseFromString(data.html, 'text/html');
+            const nextRows = parsed.querySelectorAll('#category-table-body > tr');
+            document.querySelector('#category-table-body').append(...nextRows);
+            categoryList.dataset.nextUrl = data.next_page_url || '';
+            loadSentinel.textContent = data.has_more ? 'Scroll down to load more categories…' : 'All categories loaded.';
+        } catch (error) {
+            loadSentinel.textContent = error.message || 'Could not load categories.';
+        } finally {
+            loadingCategories = false;
+        }
+    };
+
+    if (loadSentinel && 'IntersectionObserver' in window) {
+        const categoryObserver = new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) loadMoreCategories();
+        }, { rootMargin: '250px' });
+        categoryObserver.observe(loadSentinel);
+    } else if (loadSentinel) {
+        window.addEventListener('scroll', () => {
+            if (loadSentinel.getBoundingClientRect().top < window.innerHeight + 250) loadMoreCategories();
+        });
+    }
 
     function openCategoryPreview(imageUrl, title) {
         const modalEl = document.getElementById('categoryPreviewModal');

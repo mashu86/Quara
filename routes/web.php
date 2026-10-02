@@ -86,6 +86,8 @@ Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_
 Route::get('/address/pincode', \App\Http\Controllers\PincodeController::class)->middleware('throttle:60,1')->name('address.pincode');
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::get('/checkout/district-offer', [CheckoutController::class, 'districtOffer'])->middleware('throttle:60,1')->name('checkout.district-offer');
+Route::post('/checkout/coupon/apply', [CheckoutController::class, 'applyCoupon'])->middleware('throttle:20,1')->name('checkout.coupon.apply');
+Route::post('/checkout/coupon/remove', [CheckoutController::class, 'removeCoupon'])->name('checkout.coupon.remove');
 Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
@@ -133,6 +135,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/change-password', [AdminAuthController::class, 'changePassword'])->name('change-password');
 
         // Category Master
+        Route::get('categories/{category}/products', [AdminCategoryController::class, 'products'])->name('categories.products');
+        Route::post('categories/{category}/products/{product}', [AdminCategoryController::class, 'attachProduct'])->name('categories.products.attach');
+        Route::delete('categories/{category}/products/{product}', [AdminCategoryController::class, 'detachProduct'])->name('categories.products.detach');
         Route::resource('categories', AdminCategoryController::class);
         Route::post('categories/{category}/toggle-status', [AdminCategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
 
@@ -166,6 +171,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/display-order/update-combo-product-order', [AdminDisplayOrderController::class, 'updateComboProductOrder'])->name('display-order.update-combo-product-order');
 
         // Offer Sale Manager
+        Route::get('/master-coupons', [\App\Http\Controllers\Admin\MasterCouponController::class, 'index'])->name('master-coupons.index');
+        Route::post('/master-coupons', [\App\Http\Controllers\Admin\MasterCouponController::class, 'store'])->name('master-coupons.store');
+        Route::put('/master-coupons/{masterCoupon}', [\App\Http\Controllers\Admin\MasterCouponController::class, 'update'])->name('master-coupons.update');
+        Route::post('/master-coupons/{masterCoupon}/toggle-status', [\App\Http\Controllers\Admin\MasterCouponController::class, 'toggleStatus'])->name('master-coupons.toggle-status');
         Route::get('/offer-sale', [AdminOfferSaleController::class, 'index'])->name('offer-sale.index');
         Route::post('/offer-sale/assign', [AdminOfferSaleController::class, 'assign'])->name('offer-sale.assign');
         Route::post('/offer-sale/activate', [AdminOfferSaleController::class, 'activateOfferCategory'])->name('offer-sale.activate');

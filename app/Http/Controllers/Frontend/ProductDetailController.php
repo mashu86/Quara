@@ -45,6 +45,7 @@ class ProductDetailController extends Controller
         }
 
         $relatedProducts = Product::where('category_id', $product->category_id)
+            ->visibleInCollection()
             ->where('id', '!=', $product->id)
             ->active()
             ->where('is_out_of_stock', false)
@@ -59,6 +60,7 @@ class ProductDetailController extends Controller
         if ($relatedProducts->count() < 4) {
             $excludeIds = $relatedProducts->pluck('id')->push($product->id)->toArray();
             $moreProducts = Product::whereNotIn('id', $excludeIds)
+                ->visibleInCollection()
                 ->active()
                 ->where('is_out_of_stock', false)
                 ->whereHas('sizes', function ($q) {

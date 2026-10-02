@@ -106,6 +106,11 @@ class RazorpayOrderService
                 'payment_status' => 'paid', 'order_status' => $stockReview ? 'pending' : 'confirmed',
                 'reserved_until' => null, 'is_legacy_pending' => false,
             ]);
+            if ($order->master_coupon_id && !$order->coupon_usage_recorded) {
+                app(MasterCouponService::class)->reserveUsage($order->master_coupon_id, true);
+                $order->coupon_usage_recorded = true;
+                $order->save();
+            }
             $order->calculateRazorpayCharge();
             Notification::create([
                 'title' => $stockReview ? 'Paid Order Needs Stock Review' : 'Order Paid ('.$source.')',

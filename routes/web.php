@@ -78,6 +78,7 @@ Route::get('/storage/{path}', [StorageFileController::class, 'show'])->where('pa
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/add-combo', [CartController::class, 'addCombo'])->name('cart.add_combo');
+Route::post('/cart/add-category-minimum', [CartController::class, 'addMinimumCategory'])->name('cart.add_category_minimum');
 Route::post('/cart/update/{cartKey}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/remove/{cartKey}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_now');
@@ -153,6 +154,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::resource('products', AdminProductController::class);
+        Route::post('products/{product}/sizes/{size}/clear-label', [AdminProductController::class, 'clearSizeLabel'])->name('products.sizes.clear-label');
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');
         Route::post('booked-products/bulk-unbook', [AdminProductController::class, 'bulkUnbook'])->name('products.booked.bulk-unbook');
         Route::get('products-booked-conflicts', [AdminProductController::class, 'bookedConflicts'])->name('products.booked-conflicts');

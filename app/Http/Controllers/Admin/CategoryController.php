@@ -73,6 +73,10 @@ class CategoryController extends Controller
             'discount_type' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'in:percentage,flat'],
             'delivery_charge_mode' => ['required_if:is_offer_category,1', 'nullable', 'in:free,custom,master'],
             'delivery_charge' => ['nullable', 'numeric', 'min:0', 'required_if:delivery_charge_mode,custom'],
+            'allow_pre_min_purchase' => 'nullable|boolean',
+            'pre_min_purchase_offer_price' => 'nullable|boolean',
+            'minimum_purchase_required' => 'nullable|boolean',
+            'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
         ]);
 
@@ -107,6 +111,10 @@ class CategoryController extends Controller
 
         $validated['delivery_charge_mode'] = $isOfferCategory ? $request->input('delivery_charge_mode', 'free') : 'master';
         $validated['delivery_charge'] = $validated['delivery_charge_mode'] === 'custom' ? (float) $request->input('delivery_charge', 0) : 0.00;
+        $validated['allow_pre_min_purchase'] = $isOfferCategory && $offerType === 'combo' && $request->boolean('allow_pre_min_purchase');
+        $validated['pre_min_purchase_offer_price'] = $validated['allow_pre_min_purchase'] && $request->boolean('pre_min_purchase_offer_price');
+        $validated['minimum_purchase_required'] = !$isOfferCategory && $request->boolean('minimum_purchase_required');
+        $validated['minimum_purchase_count'] = $validated['minimum_purchase_required'] ? (int) $request->input('minimum_purchase_count') : null;
 
         if ($request->hasFile('background_image')) {
             $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
@@ -261,6 +269,10 @@ class CategoryController extends Controller
             'discount_type' => [$isOfferCategory && $offerType === 'discount' ? 'required' : 'nullable', 'in:percentage,flat'],
             'delivery_charge_mode' => ['required_if:is_offer_category,1', 'nullable', 'in:free,custom,master'],
             'delivery_charge' => ['nullable', 'numeric', 'min:0', 'required_if:delivery_charge_mode,custom'],
+            'allow_pre_min_purchase' => 'nullable|boolean',
+            'pre_min_purchase_offer_price' => 'nullable|boolean',
+            'minimum_purchase_required' => 'nullable|boolean',
+            'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
         ]);
 
@@ -298,6 +310,10 @@ class CategoryController extends Controller
 
         $validated['delivery_charge_mode'] = $isOfferCategory ? $request->input('delivery_charge_mode', 'free') : 'master';
         $validated['delivery_charge'] = $validated['delivery_charge_mode'] === 'custom' ? (float) $request->input('delivery_charge', 0) : 0.00;
+        $validated['allow_pre_min_purchase'] = $isOfferCategory && $offerType === 'combo' && $request->boolean('allow_pre_min_purchase');
+        $validated['pre_min_purchase_offer_price'] = $validated['allow_pre_min_purchase'] && $request->boolean('pre_min_purchase_offer_price');
+        $validated['minimum_purchase_required'] = !$isOfferCategory && $request->boolean('minimum_purchase_required');
+        $validated['minimum_purchase_count'] = $validated['minimum_purchase_required'] ? (int) $request->input('minimum_purchase_count') : null;
 
         if ($request->hasFile('background_image')) {
             if ($category->background_image && str_contains($category->background_image, 'storage/')) {

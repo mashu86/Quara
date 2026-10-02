@@ -153,8 +153,32 @@ class ShopController extends Controller
             return $this->showComboBuilder($category, $request);
         }
 
+        if (!$category->is_offer_category && $category->minimum_purchase_required) {
+            return $this->showMinimumPurchaseBuilder($category, $request);
+        }
+
         $request->merge(['category' => $slug]);
         return $this->index($request);
+    }
+
+    protected function showMinimumPurchaseBuilder(Category $category, Request $request)
+    {
+        $products = Product::active()
+            ->where(function ($q) use ($category) {
+                $q->where('category_id', $category->id)
+                    ->orWhereHas('categories', fn ($cq) => $cq->where('categories.id', $category->id));
+            })
+            ->with(['images', 'sizes'])
+            ->inStockFirst()
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->get();
+
+        $canonicalUrl = route('category.products', $category->slug);
+        $seoTitle = $category->name . ' - Select Your Products | Quara Wardrobe';
+        $seoDescription = 'Select at least ' . $category->minimum_purchase_count . ' products from ' . $category->name . '.';
+
+        return view('frontend.minimum_purchase_builder', compact('category', 'products', 'canonicalUrl', 'seoTitle', 'seoDescription'));
     }
 
     protected function showComboBuilder(Category $category, Request $request)
@@ -174,6 +198,7 @@ class ShopController extends Controller
             ->get();
 
         $unitComboPrice = $category->min_count > 0 ? round($category->combo_price / $category->min_count, 2) : 0;
+        $unitComboPrice = $category->pre_min_purchase_offer_price ? $unitComboPrice : null;
         $seoTitle = '👑 ' . $category->name . ' - Offer Combo Package | Quara Wardrobe';
         $seoDescription = 'Choose ' . $category->min_count . '+ items for just ₹' . number_format($category->combo_price, 2) . ' in our ' . $category->name . ' offer combo. Select your sizes & enjoy fast pan-India shipping.';
         $canonicalUrl = route('category.products', $category->slug);

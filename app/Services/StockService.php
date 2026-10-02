@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\ProductSize;
+use App\Models\OrderItem;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -18,6 +19,22 @@ class StockService
         $requested = [];
         foreach ($items as $item) {
             $product = Product::with('sizes')->find($item['product_id']);
+            $selectableSizes = $product?->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '') ?? collect();
+            if ($product && $selectableSizes->isNotEmpty() && trim((string) ($item['size'] ?? '')) === '') {
+                $sizes = ProductSize::where('product_id', $product->id)->whereNotNull('size')->whereRaw("TRIM(size) != ''")->orderBy('id')->lockForUpdate()->get();
+                $available = $sizes->sum(fn ($size) => $size->availableStockForOrder());
+                $unassignedHeld = OrderItem::query()->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->where('order_items.product_id', $product->id)->where('order_items.size', '')
+                    ->where('orders.payment_method', 'online')->where('orders.payment_status', 'pending')
+                    ->where('orders.order_status', 'pending')->where('orders.reserved_until', '>', now())
+                    ->sum('order_items.quantity');
+                $key = $product->id . ':unassigned';
+                $requested[$key] = ($requested[$key] ?? 0) + (int) $item['quantity'];
+                if ($item['quantity'] < 1 || $product->is_out_of_stock || $available - $unassignedHeld < $requested[$key]) {
+                    throw new Exception('Stock validation failed: this item is sold out or reserved by another customer.');
+                }
+                continue;
+            }
             if ($product && $product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
                 $size = ProductSize::where('product_id', $product->id)
                     ->where(function ($query) {
@@ -37,7 +54,14 @@ class StockService
                 ->where('size', $item['size'])->lockForUpdate()->first();
             $key = $item['product_id'].':'.$item['size'];
             $requested[$key] = ($requested[$key] ?? 0) + (int) $item['quantity'];
-            if (!$size || $item['quantity'] < 1 || $size->available_stock < $requested[$key]) {
+            $unassignedHeld = $product && $selectableSizes->isNotEmpty()
+                ? OrderItem::query()->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->where('order_items.product_id', $product->id)->where('order_items.size', '')
+                    ->where('orders.payment_method', 'online')->where('orders.payment_status', 'pending')
+                    ->where('orders.order_status', 'pending')->where('orders.reserved_until', '>', now())
+                    ->sum('order_items.quantity')
+                : 0;
+            if (!$size || $item['quantity'] < 1 || $size->available_stock - $unassignedHeld < $requested[$key]) {
                 throw new Exception('Stock validation failed: this item is sold out or reserved by another customer.');
             }
         }
@@ -48,6 +72,31 @@ class StockService
     {
         DB::transaction(function () use ($order) {
             foreach ($order->items()->orderBy('product_id')->orderBy('size')->get() as $item) {
+                $product = Product::with('sizes')->find($item->product_id);
+                $selectableSizes = $product?->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '') ?? collect();
+                if ($product && $selectableSizes->isNotEmpty() && trim((string) $item->size) === '') {
+                    $sizes = ProductSize::where('product_id', $item->product_id)->whereNotNull('size')->whereRaw("TRIM(size) != ''")->orderBy('id')->lockForUpdate()->get();
+                    $remaining = (int) $item->quantity;
+                    foreach ($sizes as $size) {
+                        $deduct = min($remaining, $size->availableStockForOrder($order->id));
+                        if ($deduct <= 0) continue;
+                        $previous = (int) $size->stock;
+                        $size->update(['stock' => $previous - $deduct]);
+                        StockMovement::create([
+                            'product_id' => $item->product_id, 'product_size_id' => $size->id,
+                            'size' => $size->size, 'previous_stock' => $previous,
+                            'new_stock' => $size->stock, 'difference' => -$deduct,
+                            'reason' => 'Order #'.$order->order_number.' purchase (size not selected)', 'admin_name' => 'System',
+                        ]);
+                        $remaining -= $deduct;
+                        if ($remaining === 0) break;
+                    }
+                    if ($remaining > 0) throw new \App\Exceptions\InsufficientOrderStock('Stock validation failed: '.$item->product_name.' is unavailable.');
+                    Product::whereKey($item->product_id)->update([
+                        'is_out_of_stock' => ProductSize::where('product_id', $item->product_id)->sum('stock') <= 0,
+                    ]);
+                    continue;
+                }
                 $size = ProductSize::where('product_id', $item->product_id)
                     ->where('size', $item->size)->lockForUpdate()->first();
                 if (!$size || $size->availableStockForOrder($order->id) < $item->quantity) {

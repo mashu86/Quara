@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', $seoTitle ?? ($product->name . ' - Buy Online | Quara Wardrobe'))
 @section('meta_description', $seoDescription ?? strip_tags(Str::limit($product->description, 150)))
@@ -428,19 +428,19 @@
                     <div class="mb-3 product-size-section">
                         <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading mb-1.5">
                             <span>
-                                Select Size <span class="text-danger">*</span>
+                                Select Size <span class="text-muted small fw-normal">(optional)</span>
                                 @if($hasMeasurements)
                                     <button type="button" class="btn btn-link btn-sm text-warning p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#sizeChartModal" style="font-size: 0.74rem;">
                                         <i class="fa-solid fa-ruler text-warning me-1"></i> Size Chart (inch)
                                     </button>
                                 @endif
                             </span>
-                            <span id="stockStatusNotice" class="text-muted fw-normal small">Select size to check availability</span>
+                            <span id="stockStatusNotice" class="text-muted fw-normal small">Size is optional</span>
                         </label>
 
                         <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
                             @php
-                                $firstInStockSelected = false;
+                                $firstInStockSelected = true;
                             @endphp
 
                             @forelse($product->selectableSizes as $pSize)
@@ -575,6 +575,7 @@
                     @endif
 
                     <!-- Quantity Selector -->
+                    @if(!$minimumPurchaseCategory)
                     <div class="mb-3 product-quantity-section">
                         <label class="form-label font-bold text-uppercase small" style="font-size: 0.78rem;">Quantity</label>
                         <div class="input-group" style="max-width: 130px;">
@@ -583,9 +584,26 @@
                             <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
+                    @endif
 
                     <!-- Actions -->
-                    @if($product->total_stock > 0)
+                    @if($minimumPurchaseCategory && $product->total_stock > 0)
+                        <div class="alert alert-info small rounded-3">
+                            Select at least {{ $minimumPurchaseCategory->minimum_purchase_count }} products from this category. Add this product, then choose the next one.
+                        </div>
+                        <button type="button" id="selectAndContinueCategory" class="btn btn-qw-gold w-100 shadow-sm py-2 rounded-pill fw-bold">
+                            <i class="fa-solid fa-list-check me-2"></i> Select this product and continue choosing
+                        </button>
+                        <script>
+                            document.getElementById('selectAndContinueCategory')?.addEventListener('click', function () {
+                                const selectedSize = document.querySelector('#productForm input[name="size"]:checked')?.value || '';
+                                const target = new URL(@json(route('category.products', $minimumPurchaseCategory->slug)), window.location.origin);
+                                target.searchParams.set('product_id', @json($product->id));
+                                if (selectedSize) target.searchParams.set('size', selectedSize);
+                                window.location.href = target.toString();
+                            });
+                        </script>
+                    @elseif($product->total_stock > 0)
                         <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-3 product-purchase-actions">
                             <button type="submit" name="purchase_action" value="add" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
@@ -784,6 +802,14 @@
         const notice = document.getElementById('stockStatusNotice');
         const input = document.getElementById('quantityInput');
         document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
+        if (!elem.value) {
+            input.max = Math.max(1, stock || 1);
+            if (parseInt(input.value) > stock) input.value = Math.max(1, stock);
+            notice.className = stock > 0 ? 'text-muted fw-normal small' : 'text-danger fw-normal small';
+                            notice.textContent = stock > 0 ? `${stock} available` : 'No stock available';
+            document.getElementById('sizeMeasurementBox')?.classList.add('d-none');
+            return;
+        }
         if (stock > 0) {
             input.max = stock;
             if (parseInt(input.value) > stock) {
@@ -842,6 +868,13 @@
         const checkedSize = document.querySelector('input[name="size"]:checked');
         if (checkedSize) {
             updateStockNotice(checkedSize);
+        } else {
+            const stock = {{ (int) $product->total_stock }};
+            const notice = document.getElementById('stockStatusNotice');
+            const input = document.getElementById('quantityInput');
+            if (input) input.max = Math.max(1, stock);
+            if (notice) notice.textContent = stock > 0 ? 'Size is optional' : 'No stock available';
+            document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
         }
     });
 
@@ -866,9 +899,7 @@
             document.execCommand('copy');
             document.body.removeChild(tempInput);
             showCopyToast();
-        } catch(e) {
-            alert('Product link: ' + text);
-        }
+        } catch(e) {}
     }
 
     function showCopyToast() {
@@ -876,8 +907,6 @@
         if (toast) {
             toast.classList.remove('d-none');
             setTimeout(() => toast.classList.add('d-none'), 2200);
-        } else {
-            alert('Product link copied!');
         }
     }
 

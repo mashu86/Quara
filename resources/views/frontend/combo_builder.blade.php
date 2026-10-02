@@ -35,116 +35,21 @@
         border-radius: 20px;
     }
 
-    /* Product Combo Cards Styling */
-    .product-combo-card {
-        border: 1px solid #EAEAEA;
-        border-radius: 16px;
-        background: #FFFFFF;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    .product-combo-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
-        border-color: #D4AF37;
-    }
+    .product-combo-card { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+    .product-combo-card.is-selected { border-color: #d4af37 !important; box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important; }
 
-    /* Image Wrap */
-    .combo-img-wrap {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 4 / 5;
-        background-color: #F8F8FA;
-        border-top-left-radius: 15px;
-        border-top-right-radius: 15px;
-        overflow: hidden;
+    .combo-size-option {
+        border: 1.5px solid #e2e8f0 !important;
+        background: #fff !important;
+        color: #1e293b !important;
+        transition: all 0.2s ease !important;
     }
-    .combo-img-wrap img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-    .product-combo-card:hover .combo-img-wrap img {
-        transform: scale(1.04);
-    }
-
-    /* Overlay Badges */
-    .combo-badge-top-left {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        z-index: 2;
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 4px 8px;
-        border-radius: 50px;
-        background: rgba(13, 13, 14, 0.85);
-        color: #FFFFFF;
-        backdrop-filter: blur(4px);
-    }
-    .combo-badge-top-right {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        z-index: 2;
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 4px 8px;
-        border-radius: 50px;
-        background: #198754;
-        color: #FFFFFF;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-
-    /* Card Content Area */
-    .combo-card-content {
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        flex-grow: 1;
-    }
-
-    .combo-prod-title {
-        font-family: 'Outfit', sans-serif;
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: #111111;
-        line-height: 1.25;
-        margin-bottom: 4px;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .combo-price-wrap {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        margin-bottom: 8px;
-    }
-    .combo-price-unit {
-        font-size: 0.98rem;
-        font-weight: 700;
-        color: #996515;
-    }
-    .combo-price-orig {
-        font-size: 0.76rem;
-        color: #888888;
-        text-decoration: line-through;
-    }
-
-    /* Size Info Box */
-    .combo-size-display-bar {
-        background: #F8F9FA;
-        border: 1px solid #EEEEEE;
-        border-radius: 8px;
-        padding: 6px 8px;
-        margin-bottom: 8px;
+    .combo-size-option:hover { border-color: #d4af37 !important; background: #fdfbf7 !important; color: #aa7c11 !important; }
+    .btn-check:checked + .combo-size-option {
+        border-color: #d4af37 !important;
+        background: rgba(212, 175, 55, 0.12) !important;
+        color: #8b6508 !important;
+        box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
     }
 
     /* Add Button Styling */
@@ -219,33 +124,6 @@
         }
         .combo-header-banner .card-body {
             padding: 0.85rem 1rem !important;
-        }
-        .combo-img-wrap {
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-        }
-        .combo-card-content {
-            padding: 8px !important;
-        }
-        .combo-prod-title {
-            font-size: 0.82rem !important;
-            line-height: 1.25 !important;
-            margin-bottom: 3px !important;
-        }
-        .combo-price-wrap {
-            margin-bottom: 6px !important;
-            gap: 4px !important;
-        }
-        .combo-price-unit {
-            font-size: 0.88rem !important;
-        }
-        .combo-price-orig {
-            font-size: 0.7rem !important;
-        }
-        .combo-size-display-bar {
-            padding: 3px 5px !important;
-            margin-bottom: 5px !important;
-            border-radius: 6px !important;
         }
         .btn-add-combo-main, .btn-combo-remove {
             font-size: 0.65rem !important;
@@ -322,13 +200,18 @@
                         Pick any <strong class="text-warning fw-bold">{{ $category->min_count }} items</strong> from this collection for only 
                         <strong class="text-gold fw-bold ms-0.5" style="font-size: 0.98rem;">₹{{ number_format($category->combo_price, 2) }}</strong>!
                     </p>
+                    @if($category->allow_pre_min_purchase)
+                        <p class="text-white-50 small mb-2">You may buy fewer items at {{ $category->pre_min_purchase_offer_price ? 'combo offer price' : 'regular product price' }}.</p>
+                    @endif
                     <div class="d-flex align-items-center justify-content-between gap-2 w-100">
                         <span class="badge rounded-pill fw-bold px-2.5 py-1" style="background: #D4AF37; color: #111111; font-size: 0.68rem;">
-                            ₹{{ number_format($unitComboPrice, 2) }} / item
+                            @if($unitComboPrice !== null) ₹{{ number_format($unitComboPrice, 2) }} / item @else Regular price until minimum @endif
                         </span>
-                        @if((float)$category->delivery_charge === 0.0)
+                        @if($category->delivery_charge_mode === 'master')
+                        <span class="badge bg-secondary rounded-pill fw-bold px-2.5 py-1 combo-delivery-status" style="font-size: 0.68rem;">Website delivery rules</span>
+                    @elseif((float)$category->delivery_charge === 0.0)
                             <span class="badge bg-success rounded-pill fw-bold px-2.5 py-1" style="font-size: 0.68rem;">
-                                <i class="fa-solid fa-truck-fast me-1"></i> FREE DELIVERY
+                                <i class="fa-solid fa-truck-fast me-1"></i> <span class="combo-delivery-status">FREE DELIVERY after minimum</span>
                             </span>
                         @else
                             <span class="badge bg-secondary rounded-pill fw-bold px-2.5 py-1" style="font-size: 0.68rem;">
@@ -366,109 +249,58 @@
                         $availableSizes = $product->sizes->where('stock', '>', 0);
                         $isOut = $product->is_out_of_stock || $availableSizes->isEmpty() || !empty($product->booked_by);
                     @endphp
-                    <div class="col-6 col-md-4">
-                        <div class="product-combo-card shadow-xs {{ $isOut ? 'opacity-75' : '' }}">
-                            
-                            <!-- Product Image -->
-                            <div class="combo-img-wrap">
-                                <a href="{{ route('product.detail', $product->slug) }}" target="_blank">
-                                    <img src="{{ $product->primary_image_url }}" 
-                                         alt="{{ $product->name }}" 
-                                         loading="lazy" 
-                                         onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-4 product-item-col animate__animated animate__fadeIn">
+                        <div class="qw-product-card product-combo-card h-100 d-flex flex-column shadow-sm rounded-4 overflow-hidden border text-dark {{ $isOut ? 'opacity-75' : '' }}">
+                            <div class="qw-product-img-wrapper position-relative">
+                                <a href="{{ route('product.detail', $product->slug) }}" target="_blank" class="d-block">
+                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img" loading="lazy" onerror="this.onerror=null; this.src='{{ \App\Models\Setting::logoUrl() }}';">
                                 </a>
-
-                                @if($isOut)
-                                    <span class="combo-badge-top-left bg-danger">
-                                        @if(!empty($product->booked_by)) BOOKED @else OUT OF STOCK @endif
-                                    </span>
-                                @else
-                                    <span class="combo-badge-top-left">
-                                        Combo
-                                    </span>
+                                @if($product->price > $product->final_price)
+                                    @php $discountPercent = round((($product->price - $product->final_price) / max(1, $product->price)) * 100); @endphp
+                                    <span class="badge bg-danger text-white position-absolute top-0 start-0 m-1.5 m-sm-2 px-2 py-0.5 rounded-pill shadow-sm fw-bold" style="font-size: 0.65rem; z-index: 2;">{{ $discountPercent }}% OFF</span>
                                 @endif
-
-                                @if($product->final_price > $unitComboPrice)
-                                    <span class="combo-badge-top-right">
-                                        Save ₹{{ number_format($product->final_price - $unitComboPrice) }}
-                                    </span>
+                                <button type="button" onclick="event.stopPropagation(); navigator.clipboard?.writeText('{{ route('product.detail', $product->slug) }}')" class="btn btn-light rounded-2 position-absolute top-0 end-0 m-1.5 m-sm-2 p-0 shadow-sm border-0 d-flex align-items-center justify-content-center" style="width:28px;height:28px;z-index:3" title="Copy product link" aria-label="Share {{ $product->name }}">
+                                    <i class="fa-solid fa-share-nodes" style="font-size:.78rem"></i>
+                                </button>
+                                @if($isOut)
+                                    <div class="qw-out-of-stock-overlay"><span class="qw-out-of-stock-badge">{{ !empty($product->booked_by) ? 'BOOKED' : 'SOLD OUT' }}</span></div>
                                 @endif
                             </div>
-
-                            <!-- Product Info -->
-                            <div class="combo-card-content">
-                                <div>
-                                    <h6 class="combo-prod-title" title="{{ $product->name }}">
-                                        <a href="{{ route('product.detail', $product->slug) }}" target="_blank" class="text-decoration-none text-dark">
-                                            {{ $product->name }}
-                                        </a>
-                                    </h6>
-
-                                    <!-- Price Breakdown -->
-                                    <div class="combo-price-wrap">
-                                        <span class="combo-price-unit">₹{{ number_format($unitComboPrice, 2) }}</span>
-                                        <span class="combo-price-orig">₹{{ number_format($product->final_price, 2) }}</span>
-                                    </div>
+                            <div class="qw-card-body p-2 p-sm-3 d-flex flex-column flex-grow-1">
+                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1.5">
+                                    <h6 class="qw-product-title mb-0 flex-grow-1 min-w-0" title="{{ $product->name }}"><a href="{{ route('product.detail', $product->slug) }}" class="text-dark fw-bold text-truncate d-block text-decoration-none">{{ Str::limit($product->name, 22, '...') }}</a></h6>
+                                    <a href="{{ route('product.detail', $product->slug) }}" class="btn btn-link p-0 border-0 d-flex align-items-center justify-content-center flex-shrink-0 text-warning" style="width:20px;height:20px;text-decoration:none" aria-label="View product details"><i class="fa-solid fa-circle-info" style="font-size:.88rem"></i></a>
                                 </div>
-
-                                <!-- Size & Add Controls -->
-                                <div>
-                                    @if($isOut)
-                                        <button class="btn btn-secondary btn-sm w-100 rounded-pill text-uppercase fw-bold" style="font-size: 0.72rem; padding: 7px 8px;" disabled>Sold Out</button>
-                                    @else
-                                        @php
-                                            $firstSz = $availableSizes->first();
-                                            $isDownGarment = ($product->measurement_type ?? 'up') === 'down'
-                                                || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
-                                            $hasMeasurements = $firstSz && ($isDownGarment
-                                                ? ($firstSz->hip || $firstSz->length)
-                                                : ($firstSz->chest || $firstSz->waist || $firstSz->length));
-                                        @endphp
-
-                                        @if($availableSizes->count() === 1 && $firstSz)
-                                            <!-- Single Size Pre-selected -->
-                                            <input type="hidden" class="product-size-select" id="size_select_{{ $product->id }}" value="{{ $firstSz->size }}">
-                                            <div class="combo-size-display-bar">
-                                                <div class="d-flex align-items-center justify-content-between">
-                                                    <span class="text-muted fw-semibold" style="font-size: 0.72rem;">Size:</span>
-                                                    <span class="badge bg-dark fw-bold text-wrap" style="font-size: 0.7rem; letter-spacing: 0.2px;">{{ $firstSz->size }}</span>
-                                                </div>
-                                                @if($isDownGarment ? ($firstSz->hip || $firstSz->length) : ($firstSz->chest || $firstSz->waist || $firstSz->length))
-                                                    <div class="text-muted mt-1 pt-1 border-top" style="font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Measurements">
-                                                        {{ implode(' • ', array_filter($isDownGarment
-                                                            ? [$firstSz->hip ? 'H: '.$firstSz->hip.'"' : null, $firstSz->length ? 'L: '.$firstSz->length.'"' : null]
-                                                            : [$firstSz->chest ? 'C: '.$firstSz->chest.'"' : null, $firstSz->waist ? 'W: '.$firstSz->waist.'"' : null, $firstSz->length ? 'L: '.$firstSz->length.'"' : null])) }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @else
-                                            <!-- Multiple Sizes Dropdown -->
-                                            <div class="mb-1.5">
-                                                <select class="form-select form-select-sm rounded-3 product-size-select" id="size_select_{{ $product->id }}" style="font-size: 0.75rem; padding: 4px 8px;">
-                                                    @foreach($product->sizes as $sz)
-                                                        @if($sz->stock > 0)
-                                                            <option value="{{ $sz->size }}" {{ $loop->first ? 'selected' : '' }}>
-                                                                Size {{ $sz->size }} ({{ $sz->stock }})
-                                                            </option>
-                                                        @else
-                                                            <option value="{{ $sz->size }}" disabled>Size {{ $sz->size }} (Out)</option>
-                                                        @endif
-                                                    @endforeach
-                                                </select>
-                                            </div>
+                                <div class="mt-auto d-flex align-items-baseline justify-content-between gap-1.5 mb-1.5">
+                                    <span class="qw-product-price">&#8377;{{ $product->final_price == floor($product->final_price) ? number_format($product->final_price, 0) : number_format($product->final_price, 2) }}</span>
+                                    @if($product->price > $product->final_price)<span class="qw-cut-price">&#8377;{{ $product->price == floor($product->price) ? number_format($product->price, 0) : number_format($product->price, 2) }}</span>@endif
+                                </div>
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                    @foreach($product->sizes as $pSize)
+                                        @if(trim((string) $pSize->size) !== '')
+                                            <input type="radio" class="btn-check combo-size-option" name="combo_size_{{ $product->id }}" id="combo_size_{{ $product->id }}_{{ $loop->index }}" value="{{ $pSize->size }}" {{ $pSize->available_stock <= 0 ? 'disabled' : '' }}>
+                                            <label class="badge bg-light text-dark px-2 py-1 rounded-2 fw-bold combo-size-option" for="combo_size_{{ $product->id }}_{{ $loop->index }}" style="font-size:.63rem;cursor:pointer">{{ $pSize->size }}</label>
                                         @endif
-
-                                        <button type="button" 
-                                                class="btn btn-add-combo-main add-to-combo-btn" 
-                                                data-product-id="{{ $product->id }}"
-                                                data-product-name="{{ $product->name }}"
-                                                data-product-image="{{ $product->primary_image_url }}"
-                                                data-original-price="{{ $product->final_price }}">
-                                            <i class="fa-solid fa-plus"></i> <span>Add to Combo</span>
-                                        </button>
-                                    @endif
+                                    @endforeach
                                 </div>
-
+                                @php
+                                    $isDownGarment = ($product->measurement_type ?? 'up') === 'down' || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
+                                    $measurementSummary = [];
+                                    foreach ($availableSizes as $pSize) {
+                                        $parts = $isDownGarment
+                                            ? array_filter([$pSize->hip ? 'H:'.$pSize->hip.'"' : null, $pSize->length ? 'L:'.$pSize->length.'"' : null])
+                                            : array_filter([$pSize->chest ? 'C:'.$pSize->chest.'"' : null, $pSize->waist ? 'W:'.$pSize->waist.'"' : null, $pSize->length ? 'L:'.$pSize->length.'"' : null]);
+                                        if ($parts) $measurementSummary[] = count($availableSizes) > 1 ? $pSize->size.': '.implode(' • ', $parts) : implode(' • ', $parts);
+                                    }
+                                @endphp
+                                @if($measurementSummary)
+                                    <div class="text-muted fw-semibold w-100 mt-1.5 text-truncate" style="font-size:.63rem;line-height:1.3" title="{{ implode(' | ', $measurementSummary) }}"><i class="fa-solid fa-ruler text-warning me-1"></i>{{ implode(' | ', $measurementSummary) }}</div>
+                                @endif
+                                @if($isOut)
+                                    <button type="button" class="btn btn-secondary btn-sm w-100 mt-2 rounded-pill" disabled>Sold Out</button>
+                                @else
+                                    <button type="button" class="btn btn-add-combo-main add-to-combo-btn mb-1.5" style="margin-top: 6px;" data-product-id="{{ $product->id }}" data-product-name="{{ $product->name }}" data-product-image="{{ $product->primary_image_url }}" data-original-price="{{ $product->final_price }}"><i class="fa-solid fa-plus"></i> <span>Add</span></button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -504,7 +336,7 @@
                         </div>
                         <div class="mt-2 text-center combo-status-msg">
                             <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill w-100 text-wrap" style="font-size: 0.75rem;">
-                                Add {{ $category->min_count }} items to unlock combo price!
+                                {{ $category->allow_pre_min_purchase ? 'You can buy fewer items at ' . ($category->pre_min_purchase_offer_price ? 'offer price.' : 'regular price.') : 'Add ' . $category->min_count . ' items to unlock combo price!' }}
                             </span>
                         </div>
                     </div>
@@ -515,7 +347,7 @@
                     <div class="selected-combo-items-list mb-3 combo-items-container" style="max-height: 200px; overflow-y: auto;">
                         <div class="text-center text-muted py-4 small empty-combo-notice">
                             <i class="fa-solid fa-cart-flatbed fs-3 text-secondary mb-2 d-block opacity-50"></i>
-                            Your combo box is currently empty.<br>Select sizes and click <strong>"+ Add to Combo"</strong>.
+                            Your combo box is currently empty.<br>Select sizes if needed and click <strong>+ Add</strong>.
                         </div>
                     </div>
 
@@ -534,7 +366,7 @@
                         <div class="d-flex justify-content-between small text-muted mb-1.5">
                             <span>Delivery Fee:</span>
                             @if((float)$category->delivery_charge === 0.0)
-                                <span class="badge bg-success">FREE</span>
+                                <span class="badge bg-success combo-delivery-fee">FREE after minimum</span>
                             @else
                                 <span class="fw-semibold">₹{{ number_format($category->delivery_charge, 2) }}</span>
                             @endif
@@ -644,18 +476,25 @@
 <script>
     const MIN_COUNT = {{ (int) $category->min_count }};
     const COMBO_PRICE = {{ (float) $category->combo_price }};
-    const UNIT_COMBO_PRICE = {{ (float) $unitComboPrice }};
+    const UNIT_COMBO_PRICE = {{ $unitComboPrice === null ? 'null' : (float) $unitComboPrice }};
     const COMBO_CATEGORY_ID = {{ (int) $category->id }};
+    const ALLOW_PRE_MIN_PURCHASE = @json((bool) $category->allow_pre_min_purchase);
+    const PRE_MIN_OFFER_PRICE = @json((bool) $category->pre_min_purchase_offer_price);
     const ADD_COMBO_URL = "{{ route('cart.add_combo') }}";
     const CSRF_TOKEN = "{{ csrf_token() }}";
 
     let selectedComboItems = [];
     let comboSubmissionPending = false;
 
+    function canSubmitCombo() {
+        const requiredCount = Math.max(1, Number.parseInt(MIN_COUNT, 10) || 1);
+        return selectedComboItems.length >= requiredCount || (ALLOW_PRE_MIN_PURCHASE && selectedComboItems.length > 0);
+    }
+
     function resetComboSubmissionButtons() {
         comboSubmissionPending = false;
         document.querySelectorAll('.submit-combo-btn').forEach(btn => {
-            btn.disabled = selectedComboItems.length < MIN_COUNT;
+            btn.disabled = !canSubmitCombo();
             btn.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Buy Combo Now`;
         });
     }
@@ -668,6 +507,9 @@
     });
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all responsive Buy buttons from the same count rule.
+        renderComboSummary();
+
         // Add or Remove Combo Item directly from product card button
         document.querySelectorAll('.add-to-combo-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -685,14 +527,7 @@
                     return;
                 }
 
-                const sizeSelect = document.getElementById(`size_select_${productId}`);
-                if (!sizeSelect || !sizeSelect.value) {
-                    alert('Please select a size for this product first!');
-                    if (sizeSelect) sizeSelect.focus();
-                    return;
-                }
-
-                const selectedSize = sizeSelect.value;
+                const selectedSize = document.querySelector(`input[name="combo_size_${productId}"]:checked`)?.value || '';
 
                 selectedComboItems.push({
                     id: Date.now() + '_' + Math.random().toString(36).substring(2, 7),
@@ -701,7 +536,7 @@
                     image: productImage,
                     size: selectedSize,
                     original_price: originalPrice,
-                    unit_price: UNIT_COMBO_PRICE
+                    unit_price: UNIT_COMBO_PRICE ?? originalPrice
                 });
 
                 renderComboSummary();
@@ -712,7 +547,7 @@
         document.querySelectorAll('.submit-combo-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 if (comboSubmissionPending) return;
-                if (selectedComboItems.length < MIN_COUNT) {
+                if (!ALLOW_PRE_MIN_PURCHASE && selectedComboItems.length < MIN_COUNT) {
                     alert(`Please select at least ${MIN_COUNT} items to complete this combo package.`);
                     return;
                 }
@@ -768,7 +603,7 @@
         const percent = Math.min(100, Math.round((count / MIN_COUNT) * 100));
         const selectedProdIds = selectedComboItems.map(item => item.product_id);
 
-        // Update product card buttons UI (Toggle between "+ Add to Combo" and " Remove")
+        // Update product card buttons UI (Toggle between "+ Add" and "Remove")
         document.querySelectorAll('.add-to-combo-btn').forEach(btn => {
             const prodId = parseInt(btn.getAttribute('data-product-id'), 10);
             const card = btn.closest('.product-combo-card');
@@ -781,7 +616,7 @@
             } else {
                 btn.disabled = false;
                 btn.className = 'btn btn-add-combo-main add-to-combo-btn';
-                btn.innerHTML = `<i class="fa-solid fa-plus"></i> <span>Add to Combo</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> <span>Add</span>`;
                 btn.removeAttribute('title');
                 if (card) card.classList.remove('is-selected');
             }
@@ -797,7 +632,7 @@
             if (count < MIN_COUNT) {
                 const diff = MIN_COUNT - count;
                 el.innerHTML = `<span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill w-100 text-wrap" style="font-size: 0.75rem;">
-                    Add ${diff} more item${diff > 1 ? 's' : ''} to unlock combo price!
+                    ${ALLOW_PRE_MIN_PURCHASE ? (PRE_MIN_OFFER_PRICE ? 'Combo offer price applies.' : 'Regular product prices apply.') : `Add ${diff} more item${diff > 1 ? 's' : ''} to unlock combo price!`}
                 </span>`;
             } else {
                 el.innerHTML = `<span class="badge bg-success px-3 py-1.5 rounded-pill w-100 text-wrap" style="font-size: 0.75rem;">
@@ -811,7 +646,7 @@
         if (count === 0) {
             itemsHtml = `<div class="text-center text-muted py-3 small empty-combo-notice">
                 <i class="fa-solid fa-cart-flatbed fs-3 text-secondary mb-2 d-block opacity-50"></i>
-                Your combo box is currently empty.<br>Select sizes and click <strong>"+ Add to Combo"</strong>.
+                Your combo box is currently empty.<br>Select sizes if needed and click <strong>+ Add</strong>.
             </div>`;
         } else {
             itemsHtml = '<div class="d-flex flex-column gap-2">';
@@ -840,7 +675,12 @@
         // Calculate Totals - Ceil round total combo price to nearest whole rupee (e.g. 583.33 -> 584)
         let originalTotal = selectedComboItems.reduce((sum, item) => sum + item.original_price, 0);
         let rawComboTotal = (COMBO_PRICE / MIN_COUNT) * count;
-        let comboTotal = Math.ceil(rawComboTotal);
+        let comboTotal = count < MIN_COUNT && !PRE_MIN_OFFER_PRICE ? originalTotal : Math.ceil(rawComboTotal);
+        document.querySelectorAll('.combo-price-unit').forEach(el => {
+            el.textContent = count < MIN_COUNT && !PRE_MIN_OFFER_PRICE
+                ? 'Regular price until minimum'
+                : (UNIT_COMBO_PRICE === null ? 'Regular product price' : String.fromCharCode(8377) + Number(UNIT_COMBO_PRICE).toFixed(2));
+        });
         let savings = Math.max(0, originalTotal - comboTotal);
 
         document.querySelectorAll('.original-total-text').forEach(el => el.textContent = `₹${originalTotal.toFixed(2)}`);
@@ -858,7 +698,7 @@
 
         // Enable / Disable submit buttons
         document.querySelectorAll('.submit-combo-btn').forEach(btn => {
-            btn.disabled = (count < MIN_COUNT);
+            btn.disabled = !canSubmitCombo();
         });
     }
 </script>

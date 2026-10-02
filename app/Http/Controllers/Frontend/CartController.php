@@ -34,14 +34,7 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
             'size' => 'nullable|string|max:100',
             'quantity' => 'required|integer|min:1',
-        ], [
-            'size.required' => 'Please select a size before adding to cart.',
         ]);
-
-        $product = \App\Models\Product::with('selectableSizes')->findOrFail($validated['product_id']);
-        if ($product->selectableSizes->isNotEmpty() && empty($validated['size'])) {
-            return back()->withErrors(['size' => 'Please select a size before adding to cart.'])->withInput();
-        }
 
         $result = $this->cartService->add(
             (int) $validated['product_id'],
@@ -66,7 +59,7 @@ class CartController extends Controller
             'combo_category_id' => 'required|exists:categories,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.size' => 'required|string',
+            'items.*.size' => 'nullable|string|max:100',
             'items.*.quantity' => 'nullable|integer|min:1',
         ]);
 
@@ -82,6 +75,26 @@ class CartController extends Controller
         }
 
         return redirect()->route('cart.index')->with('success', $result['message']);
+    }
+
+    public function addMinimumCategory(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.size' => 'nullable|string|max:100',
+        ]);
+
+        $category = \App\Models\Category::findOrFail($request->category_id);
+        $result = $this->cartService->addMinimumCategoryItems($request->items, $category);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
+        }
+
+        if (!$result['success']) return back()->with('error', $result['message']);
+        return redirect()->route('checkout.index');
     }
 
     public function update(Request $request, string $cartKey)
@@ -126,11 +139,6 @@ class CartController extends Controller
         ], [
             'product_id.required' => 'This product could not be identified. Please reload the page and try again.',
         ]);
-
-        $product = \App\Models\Product::with('selectableSizes')->findOrFail($validated['product_id']);
-        if ($product->selectableSizes->isNotEmpty() && empty($validated['size'])) {
-            return back()->withErrors(['size' => 'Please select a size before proceeding to Buy Now.'])->withInput();
-        }
 
         $this->cartService->clear();
         $result = $this->cartService->add(

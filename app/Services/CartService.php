@@ -48,10 +48,16 @@ class CartService
             }
 
             // 2. Check stock for this specific size, or product availability when no variants exist.
-            $productSize = $selectableSizes->isEmpty()
-                ? $product->sizes->first(fn ($variant) => trim((string) $variant->size) === '')
-                : $selectableSizes->firstWhere('size', $size);
-            $availableStock = $productSize ? (int) $productSize->available_stock : 0;
+            if ($selectableSizes->isEmpty()) {
+                $productSize = $product->sizes->first(fn ($variant) => trim((string) $variant->size) === '');
+                $availableStock = $productSize ? (int) $productSize->available_stock : 0;
+            } elseif ($size === '') {
+                $productSize = null;
+                $availableStock = (int) $selectableSizes->sum(fn ($variant) => $variant->available_stock);
+            } else {
+                $productSize = $selectableSizes->firstWhere('size', $size);
+                $availableStock = $productSize ? (int) $productSize->available_stock : 0;
+            }
 
             // If product is marked out of stock or size stock is 0 -> REMOVE FROM CART (Sold out)
             if ($product->is_out_of_stock || $availableStock <= 0) {
@@ -124,6 +130,7 @@ class CartService
             }
         }
 
+        // Recalculate combo line prices together when cart edits cross the minimum.
         if ($hasChanges) {
             Session::put('cart', $updatedCart);
         }
@@ -250,6 +257,9 @@ class CartService
 
     public function addComboItems(array $items, \App\Models\Category $comboCategory): array
     {
+        if (!$comboCategory->is_combo_offer || $comboCategory->status !== 'active') {
+            return ['success' => false, 'message' => 'This combo offer is currently unavailable.'];
+        }
         $minCount = (int) $comboCategory->min_count;
         $comboPrice = (float) $comboCategory->combo_price;
 
@@ -267,16 +277,22 @@ class CartService
             $totalQty += (int) ($itm['quantity'] ?? 1);
         }
 
+        if ($minCount < 1 || $comboPrice < 0) {
+            return ['success' => false, 'message' => 'This combo offer is not configured correctly.'];
+        }
         if ($totalQty < $minCount) {
-            return [
-                'success' => false,
-                'message' => "Minimum {$minCount} items required for {$comboCategory->name} combo offer. You selected {$totalQty}."
-            ];
+            if (!$comboCategory->allow_pre_min_purchase) {
+                return [
+                    'success' => false,
+                    'message' => "Minimum {$minCount} items required for {$comboCategory->name} combo offer. You selected {$totalQty}."
+                ];
+            }
         }
 
-        // Calculate target combo total for totalQty (rounded UP using ceil to nearest whole rupee for extra items)
-        $rawComboTotal = ($comboPrice / $minCount) * $totalQty;
-        $targetComboTotal = (float) ceil($rawComboTotal);
+        $useComboPrice = $totalQty >= $minCount || $comboCategory->pre_min_purchase_offer_price;
+        // Before the minimum is met, ordinary product prices remain in effect unless opted in.
+        $rawComboTotal = $minCount > 0 ? ($comboPrice / $minCount) * $totalQty : 0;
+        $targetComboTotal = $useComboPrice ? (float) ceil($rawComboTotal) : 0.0;
 
         // Calculate exact per-item price allocation so total sum equals $targetComboTotal exactly without rounding loss
         $baseUnitPrice = floor(($targetComboTotal / $totalQty) * 100) / 100;
@@ -294,10 +310,11 @@ class CartService
             if (!$product) {
                 return ['success' => false, 'message' => 'Selected product is currently unavailable.'];
             }
-            if ($product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '')->isEmpty()) {
+            $selectableSizes = $product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '');
+            if ($selectableSizes->isEmpty()) {
                 $size = '';
-            } elseif ($size === '') {
-                return ['success' => false, 'message' => "Please select a size for {$product->name}."];
+            } elseif ($size !== '' && !$selectableSizes->contains('size', $size)) {
+                return ['success' => false, 'message' => "Selected size is not available for {$product->name}."];
             }
 
             $stockCheck = $this->stockService->checkStock($productId, $size, $qty);
@@ -307,16 +324,13 @@ class CartService
             }
 
             // Distribute 1 paisa (0.01) to first N items to absorb remainder cents
-            $unitComboPrice = $baseUnitPrice;
-            if ($itemIndex < $remainderCents) {
+            $unitComboPrice = $useComboPrice ? $baseUnitPrice : (float) $product->price;
+            if ($useComboPrice && $itemIndex < $remainderCents) {
                 $unitComboPrice = round($baseUnitPrice + 0.01, 2);
             }
-            $itemIndex++;
+            $itemIndex += $qty;
 
             $cartKey = "combo_{$comboCategory->id}_{$productId}_{$size}";
-            $existingQty = isset($cart[$cartKey]) ? $cart[$cartKey]['quantity'] : 0;
-            $newQty = $existingQty + $qty;
-
             $cart[$cartKey] = [
                 'product_id' => $product->id,
                 'name' => $product->name,
@@ -325,14 +339,16 @@ class CartService
                 'price' => (float) $product->price,
                 'discount_amount' => max(0, (float) ($product->price - $unitComboPrice)),
                 'final_price' => $unitComboPrice,
-                'quantity' => $newQty,
+                'quantity' => $qty,
                 'available_stock' => $stockCheck['available_stock'],
                 'image' => $product->primary_image_url,
-                'subtotal' => round($unitComboPrice * $newQty, 2),
+                'subtotal' => round($unitComboPrice * $qty, 2),
                 'is_combo_offer' => true,
                 'combo_category_id' => $comboCategory->id,
                 'combo_delivery_charge' => (float) $comboCategory->delivery_charge,
                 'combo_delivery_charge_mode' => $comboCategory->delivery_charge_mode ?? 'free',
+                'combo_min_count' => $minCount,
+                'combo_pre_minimum' => $totalQty < $minCount,
             ];
         }
 
@@ -344,6 +360,47 @@ class CartService
             'cart_count' => $this->getCartCount(),
             'cart' => $cart
         ];
+    }
+
+    public function addMinimumCategoryItems(array $items, \App\Models\Category $category): array
+    {
+        if ($category->is_offer_category || $category->is_combo_offer || !$category->minimum_purchase_required || $category->status !== 'active') {
+            return ['success' => false, 'message' => 'This category does not use minimum-purchase selection.'];
+        }
+
+        $minimum = (int) $category->minimum_purchase_count;
+        if ($minimum < 1 || count($items) < $minimum) {
+            return ['success' => false, 'message' => "Please select at least {$minimum} products from {$category->name}."];
+        }
+
+        $productIds = array_map(fn ($item) => (int) $item['product_id'], $items);
+        if (count($productIds) !== count(array_unique($productIds))) {
+            return ['success' => false, 'message' => 'Choose different products from this category.'];
+        }
+
+        $oldCart = Session::get('cart', []);
+        foreach ($items as $item) {
+            $product = Product::active()->with('categories')->find((int) $item['product_id']);
+            if (!$product || ((int) $product->category_id !== (int) $category->id && !$product->categories->contains('id', $category->id))) {
+                Session::put('cart', $oldCart);
+                return ['success' => false, 'message' => 'A selected product is no longer available in this category. Please choose another product.'];
+            }
+
+            $size = (string) ($item['size'] ?? '');
+            $stock = $this->stockService->checkStock($product->id, $size, 1);
+            if (!$stock['available']) {
+                Session::put('cart', $oldCart);
+                return ['success' => false, 'message' => "{$product->name} may have been purchased by another customer. Please choose a different product from {$category->name}."];
+            }
+
+            $result = $this->add($product->id, $size, 1);
+            if (!$result['success']) {
+                Session::put('cart', $oldCart);
+                return ['success' => false, 'message' => "{$product->name} is no longer available. Please choose a different product from {$category->name}."];
+            }
+        }
+
+        return ['success' => true, 'message' => 'Selected products added to your cart.', 'cart_count' => $this->getCartCount()];
     }
 
     public function getSummary(): array
@@ -367,6 +424,13 @@ class CartService
         $comboDeliveryCharge = 0.0;
         foreach ($cart as $item) {
             if (!empty($item['is_combo_offer'])) {
+                $cat = \App\Models\Category::find($item['combo_category_id'] ?? 0);
+                $categoryQty = 0;
+                foreach ($cart as $comboItem) if (!empty($comboItem['is_combo_offer']) && (int) ($comboItem['combo_category_id'] ?? 0) === (int) ($item['combo_category_id'] ?? 0)) $categoryQty += (int) ($comboItem['quantity'] ?? 0);
+                if (!$cat && $categoryQty < (int) ($item['combo_min_count'] ?? PHP_INT_MAX)) continue;
+                if ($cat && $categoryQty < (int) $cat->min_count) {
+                    continue; // Use Website Delivery Price Master before the category minimum is reached.
+                }
                 $mode = $item['combo_delivery_charge_mode'] ?? ((float) ($item['combo_delivery_charge'] ?? 0) === 0.0 ? 'free' : 'custom');
                 if ($mode === 'free' || $mode === 'custom') {
                     $comboDeliveryMode = $mode;
@@ -424,12 +488,32 @@ class CartService
     {
         $cart = $this->getCart();
         $errors = [];
+        $categoryCounts = [];
+        $minimums = [];
 
         foreach ($cart as $key => $item) {
             $check = $this->stockService->checkStock($item['product_id'], $item['size'], $item['quantity']);
             if (!$check['available']) {
                 $sizeText = !empty($item['size']) ? " ({$item['size']})" : '';
                 $errors[] = "{$item['name']}{$sizeText}: " . $check['message'];
+            }
+
+            if (!empty($item['is_combo_offer'])) continue;
+            $product = Product::with(['category', 'categories'])->find($item['product_id']);
+            if (!$product) continue;
+            $productCategories = collect([$product->category])->merge($product->categories)->filter()->unique('id');
+            foreach ($productCategories as $category) {
+                if ($category->is_offer_category || $category->is_combo_offer || !$category->minimum_purchase_required) continue;
+                $minimums[$category->id] = $category;
+                $categoryCounts[$category->id] = ($categoryCounts[$category->id] ?? 0) + (int) $item['quantity'];
+            }
+        }
+
+        foreach ($minimums as $categoryId => $category) {
+            $required = (int) $category->minimum_purchase_count;
+            $selected = (int) ($categoryCounts[$categoryId] ?? 0);
+            if ($required > 0 && $selected < $required) {
+                $errors[] = "{$category->name} category requires at least {$required} products. Your cart currently has {$selected}.";
             }
         }
 

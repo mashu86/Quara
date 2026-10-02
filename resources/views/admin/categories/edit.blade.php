@@ -68,6 +68,20 @@
                             Enabling this marks the category as an Offer Category. Offer activation is managed centrally in <strong>Offer Sale</strong>.
                         </p>
 
+                        <div id="regularCategoryMinimumFields" class="row g-3 mb-3 {{ old('is_offer_category', $category->is_offer_category) ? 'd-none' : '' }}">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Does this category require a minimum purchase?</label>
+                                <select name="minimum_purchase_required" id="minimum_purchase_required" class="form-select rounded-3">
+                                    <option value="0" {{ (string) old('minimum_purchase_required', (int) $category->minimum_purchase_required) === '0' ? 'selected' : '' }}>No</option>
+                                    <option value="1" {{ (string) old('minimum_purchase_required', (int) $category->minimum_purchase_required) === '1' ? 'selected' : '' }}>Yes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 {{ (string) old('minimum_purchase_required', (int) $category->minimum_purchase_required) === '1' && !(bool) old('is_offer_category', $category->is_offer_category) ? '' : 'd-none' }}" id="minimumPurchaseCountWrapper">
+                                <label class="form-label fw-bold small">Minimum products to purchase</label>
+                                <input type="number" name="minimum_purchase_count" id="minimum_purchase_count" class="form-control rounded-3" value="{{ old('minimum_purchase_count', $category->minimum_purchase_count) }}" min="1">
+                            </div>
+                        </div>
+
                         <div id="offerCategoryFieldsContainer" class="mt-3 {{ old('is_offer_category', $category->is_offer_category) ? '' : 'd-none' }}">
                             <div class="mb-3">
                                 <label class="form-label fw-bold small d-block">Select Offer Type <span class="text-danger">*</span></label>
@@ -89,6 +103,20 @@
 
                             <!-- Combo Offer Specific Fields -->
                             <div id="comboFieldsSection" class="row g-3 border-top pt-3 {{ old('offer_type', $category->offer_type ?? 'combo') === 'combo' ? '' : 'd-none' }}">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">Allow purchase before minimum count?</label>
+                                    <select name="allow_pre_min_purchase" id="allow_pre_min_purchase" class="form-select rounded-3">
+                                        <option value="0" {{ (string) old('allow_pre_min_purchase', (int) $category->allow_pre_min_purchase) === '0' ? 'selected' : '' }}>No</option>
+                                        <option value="1" {{ (string) old('allow_pre_min_purchase', (int) $category->allow_pre_min_purchase) === '1' ? 'selected' : '' }}>Yes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 {{ (string) old('allow_pre_min_purchase', (int) $category->allow_pre_min_purchase) === '1' ? '' : 'd-none' }}" id="preMinOfferPriceWrapper">
+                                    <label class="form-label fw-bold small">Apply combo offer price before minimum count?</label>
+                                    <select name="pre_min_purchase_offer_price" class="form-select rounded-3">
+                                        <option value="0" {{ (string) old('pre_min_purchase_offer_price', (int) $category->pre_min_purchase_offer_price) === '0' ? 'selected' : '' }}>No — use actual product price</option>
+                                        <option value="1" {{ (string) old('pre_min_purchase_offer_price', (int) $category->pre_min_purchase_offer_price) === '1' ? 'selected' : '' }}>Yes — use combo offer price</option>
+                                    </select>
+                                </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-bold small">Minimum Count <span class="text-danger">*</span></label>
                                     <input type="number" name="min_count" id="min_count_input" class="form-control rounded-3" placeholder="e.g. 6" value="{{ old('min_count', $category->min_count) }}" min="1">
@@ -105,7 +133,7 @@
                                     <div class="form-text small">Either price field updates the other.</div>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Delivery Charge</label>
+                                    <label class="form-label fw-bold small">Delivery Charge (if minimum count is reached)</label>
                                     <select name="delivery_charge_mode" id="delivery_charge_mode" class="form-select rounded-3">
                                         <option value="free" {{ old('delivery_charge_mode', $category->delivery_charge_mode ?? 'free') === 'free' ? 'selected' : '' }}>Free</option>
                                         <option value="custom" {{ old('delivery_charge_mode', $category->delivery_charge_mode ?? 'free') === 'custom' ? 'selected' : '' }}>Custom amount</option>
@@ -169,9 +197,20 @@
         const customDeliveryWrapper = document.getElementById('customDeliveryChargeWrapper');
         const customDeliveryInput = document.getElementById('delivery_charge_input');
         const discountValueInput = document.getElementById('discount_value_input');
+        const preMinPurchase = document.getElementById('allow_pre_min_purchase');
+        const preMinOfferPriceWrapper = document.getElementById('preMinOfferPriceWrapper');
+        const regularMinimumFields = document.getElementById('regularCategoryMinimumFields');
+        const minimumPurchaseRequired = document.getElementById('minimum_purchase_required');
+        const minimumPurchaseCount = document.getElementById('minimum_purchase_count');
+        const minimumPurchaseCountWrapper = document.getElementById('minimumPurchaseCountWrapper');
 
         function updateOfferFormState() {
             const isOffer = switchEl.checked;
+            regularMinimumFields.classList.toggle('d-none', isOffer);
+            minimumPurchaseRequired.disabled = isOffer;
+            minimumPurchaseCount.disabled = isOffer || minimumPurchaseRequired.value !== '1';
+            minimumPurchaseCount.required = !isOffer && minimumPurchaseRequired.value === '1';
+            minimumPurchaseCountWrapper.classList.toggle('d-none', isOffer || minimumPurchaseRequired.value !== '1');
             if (isOffer) {
                 statusWrapper.classList.add('d-none');
                 offerContainer.classList.remove('d-none');
@@ -199,6 +238,8 @@
                 discountValueInput.removeAttribute('required');
             }
         }
+
+        minimumPurchaseRequired.addEventListener('change', updateOfferFormState);
 
         if (switchEl) {
             switchEl.addEventListener('change', updateOfferFormState);
@@ -235,6 +276,13 @@
                 else customDeliveryInput.removeAttribute('required');
             }
         }
+        function updatePreMinFields() {
+            preMinOfferPriceWrapper?.classList.toggle('d-none', preMinPurchase?.value !== '1');
+        }
+        preMinPurchase?.addEventListener('change', updatePreMinFields);
+        comboRadio?.addEventListener('change', updatePreMinFields);
+        switchEl?.addEventListener('change', updatePreMinFields);
+        updatePreMinFields();
         deliveryMode?.addEventListener('change', updateDeliveryFields);
         switchEl?.addEventListener('change', updateDeliveryFields);
         comboRadio?.addEventListener('change', updateDeliveryFields);

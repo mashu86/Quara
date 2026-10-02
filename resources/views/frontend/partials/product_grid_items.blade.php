@@ -34,12 +34,19 @@
             <!-- Card Body -->
             <div class="qw-card-body p-2 p-sm-3 d-flex flex-column flex-grow-1">
                 <!-- Product Name Title (Single Line with Ellipsis for Long Names) -->
-                <h6 class="qw-product-title mb-1.5" title="{{ $product->name }}">
-                    <span class="text-dark fw-bold text-truncate d-block">{{ Str::limit($product->name, 22, '...') }}</span>
-                </h6>
+                <div class="d-flex align-items-center justify-content-between gap-1 mb-1.5">
+                    <h6 class="qw-product-title mb-0 flex-grow-1 min-w-0" title="{{ $product->name }}">
+                        <span class="text-dark fw-bold text-truncate d-block">{{ Str::limit($product->name, 22, '...') }}</span>
+                    </h6>
+                    <button type="button" onclick="event.stopPropagation(); event.preventDefault();" data-bs-toggle="modal" data-bs-target="#collectionProductInfo{{ $product->id }}"
+                            class="btn btn-link p-0 border-0 d-flex align-items-center justify-content-center flex-shrink-0 text-warning"
+                            style="width: 20px; height: 20px; text-decoration: none;" title="View product details" aria-label="View {{ $product->name }} details">
+                        <i class="fa-solid fa-circle-info" style="font-size: 0.88rem;"></i>
+                    </button>
+                </div>
 
                 <!-- Price Row (Selling Price + Red Cut Price Side-by-Side with small gap) -->
-                <div class="mt-auto d-flex align-items-baseline gap-1.5 mb-1.5">
+                <div class="mt-auto d-flex align-items-baseline justify-content-between gap-1.5 mb-1.5">
                     <span class="qw-product-price">₹{{ $finalFormatted }}</span>
                     @if($hasDiscount)
                         <span class="qw-cut-price">₹{{ $origFormatted }}</span>
@@ -89,6 +96,28 @@
                 </div>
             </div>
         </a>
+        <div class="modal fade" id="collectionProductInfo{{ $product->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                <div class="modal-content border-0 rounded-4">
+                    <div class="modal-header"><h2 class="modal-title h5 fw-bold">{{ $product->name }}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-5"><img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3 w-100" style="max-height:420px;object-fit:cover"></div>
+                            <div class="col-md-7">
+                                <div class="h5 fw-bold text-warning mb-3">₹{{ number_format($product->final_price, 2) }}</div>
+                                <div class="text-secondary mb-3">{!! $product->description !!}</div>
+                                <h3 class="h6 fw-bold">Sizes and measurements</h3>
+                                @if($product->sizes->isNotEmpty())
+                                    <div class="table-responsive"><table class="table table-sm table-bordered align-middle"><thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hip</th><th>Length</th><th>Availability</th></tr></thead><tbody>
+                                        @foreach($product->sizes as $size)<tr><td>{{ $size->size ?: 'Standard' }}</td><td>{{ $size->chest ? $size->chest.'″' : '—' }}</td><td>{{ $size->waist ? $size->waist.'″' : '—' }}</td><td>{{ $size->hip ? $size->hip.'″' : '—' }}</td><td>{{ $size->length ? $size->length.'″' : '—' }}</td><td>{{ $size->available_stock > 0 ? $size->available_stock.' available' : 'Unavailable' }}</td></tr>@endforeach
+                                    </tbody></table></div>
+                                @else<div class="text-muted small">Size details are unavailable.</div>@endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 @empty
     @if(($isAjax ?? false))

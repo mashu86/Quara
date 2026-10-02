@@ -9,11 +9,8 @@
             <div class="bg-white p-5 rounded-4 shadow-sm border">
                 <i class="fa-solid fa-credit-card text-gold display-3 mb-3"></i>
                 <h3 class="font-serif fw-bold mb-2">Complete Online Payment</h3>
-                <div class="alert alert-info text-start mb-4">
-                    <div class="fw-bold mb-1">മലയാളം</div>
-                    <div class="small mb-2">പണം അടയ്ക്കാൻ തുടങ്ങിയാൽ, payment വിജയിച്ചോ പരാജയപ്പെട്ടോ എന്ന അറിയിപ്പ് വരുന്നതുവരെ ഈ പേജ് അടയ്ക്കാതെ കാത്തിരിക്കുക. Payment window തുറന്നത് മാത്രം കൊണ്ട് stock മാറ്റിവെക്കില്ല.</div>
-                    <div class="fw-bold mb-1">English</div>
-                    <div class="small">Once you start the payment, please wait on this page until you see whether it succeeded or failed. Stock is not held just because the payment window was opened.</div>
+                <div class="alert alert-info text-start small mb-4">
+                    Please wait until the payment process is complete. Do not close this page.
                 </div>
                 <p class="text-muted mb-4">Please click the button below if the Razorpay payment window does not open automatically.</p>
 

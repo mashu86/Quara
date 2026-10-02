@@ -282,13 +282,19 @@
                                         <input type="text" name="existing_lengths[{{ $pSize->id }}]" class="form-control form-control-sm rounded-3" value="{{ old('existing_lengths.' . $pSize->id, $pSize->length) }}" placeholder="e.g. 42&quot;">
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <label class="form-label small fw-bold mb-0">Size Label (optional)</label>
+                                            <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center size-label-clear {{ trim((string) old('existing_sizes.' . $pSize->id, $pSize->size)) !== '' ? '' : 'd-none' }}" style="width: 22px; height: 22px;" title="Delete size label" aria-label="Delete size label" data-clear-url="{{ route('admin.products.sizes.clear-label', [$product->id, $pSize->id]) }}" onclick="clearProductSizeLabel(this)"><i class="fa-solid fa-trash-can" style="font-size: 0.65rem;"></i></button>
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm p-0 mb-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Size guide</button>
                                         <input type="text"
                                                name="existing_sizes[{{ $pSize->id }}]"
-                                               class="form-control form-control-sm rounded-3"
+                                               class="form-control form-control-sm rounded-3 existing-size-label-input"
                                                value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
                                                placeholder="e.g. L / XL"
-                                               maxlength="50">
+                                               maxlength="50"
+                                               oninput="const box = this.closest('.col-6'); box.querySelector('.size-label-clear').classList.toggle('d-none', this.value.trim() === ''); if (this.value.trim() !== '') box.querySelector('.clear-size-label-marker').value = '0'">
+                                        <input type="hidden" class="clear-size-label-marker" name="clear_size_labels[{{ $pSize->id }}]" value="0">
                                         @error('existing_sizes.' . $pSize->id)
                                             <div class="text-danger small mt-1">{{ $message }}</div>
                                         @enderror
@@ -563,6 +569,31 @@
 <script type="module" src="{{ asset('js/product-auto-fill.js') }}?v={{ filemtime(public_path('js/product-auto-fill.js')) }}"></script>
 <script type="module" src="{{ asset('js/product-size-suggestion.js') }}?v={{ filemtime(public_path('js/product-size-suggestion.js')) }}"></script>
 <script>
+    async function clearProductSizeLabel(button) {
+        if (button.disabled) return;
+        const box = button.closest('.col-6');
+        button.disabled = true;
+        try {
+            const response = await fetch(button.dataset.clearUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'Accept': 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Could not delete the size label.');
+
+            box.querySelector('.existing-size-label-input').value = '';
+            box.querySelector('.clear-size-label-marker').value = '1';
+            button.classList.add('d-none');
+        } catch (error) {
+            alert(error.message || 'Could not delete the size label. Please try again.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
     function onOfferCategorySelectChange() {
         calcDiscount();
     }

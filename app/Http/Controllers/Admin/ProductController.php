@@ -443,6 +443,8 @@ class ProductController extends Controller
             'new_images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
             'existing_sizes' => 'nullable|array',
             'existing_sizes.*' => 'nullable|string|max:50',
+            'clear_size_labels' => 'nullable|array',
+            'clear_size_labels.*' => 'in:0,1',
             'existing_stocks' => 'nullable|array',
             'existing_stocks.*' => 'required|integer|min:0',
             'new_sizes' => 'nullable|array',
@@ -528,14 +530,25 @@ class ProductController extends Controller
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 
             // Update existing size names, stock & measurements
-            $existingSizes = $validated['existing_sizes'] ?? [];
+            // Read the validated form field directly so an intentionally blank label
+            // remains distinguishable from an omitted existing-size row.
+            $existingSizes = $request->input('existing_sizes', []);
+            $clearSizeLabelIds = array_map(
+                'intval',
+                array_keys(array_filter($request->input('clear_size_labels', []), fn ($value) => (string) $value === '1'))
+            );
+            if ($clearSizeLabelIds !== []) {
+                ProductSize::where('product_id', $product->id)
+                    ->whereIn('id', $clearSizeLabelIds)
+                    ->update(['size' => '']);
+            }
             $existingStocks = $validated['existing_stocks'] ?? [];
             $existingChests = $request->input('existing_chests', []);
             $existingWaists = $request->input('existing_waists', []);
             $existingHips = $request->input('existing_hips', []);
             $existingLengths = $request->input('existing_lengths', []);
 
-            $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks), array_keys($existingChests)));
+            $requestedSizeIds = array_unique(array_merge(array_keys($existingSizes), array_keys($existingStocks), array_keys($existingChests), $clearSizeLabelIds));
 
             $productSizes = ProductSize::where('product_id', $product->id)
                 ->whereIn('id', $requestedSizeIds)
@@ -550,8 +563,10 @@ class ProductController extends Controller
 
                 $updateData = [];
 
-                if (array_key_exists($sizeId, $existingSizes)) {
-                    $newSizeName = trim($existingSizes[$sizeId] ?? '');
+                if (in_array((int) $sizeId, $clearSizeLabelIds, true)) {
+                    $updateData['size'] = '';
+                } elseif (array_key_exists($sizeId, $existingSizes)) {
+                    $newSizeName = trim((string) ($existingSizes[$sizeId] ?? ''));
                     if ($pSize->size !== $newSizeName) {
                         $updateData['size'] = $newSizeName;
                     }
@@ -664,6 +679,19 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.edit', $product->id)
             ->with('success', "Successfully added {$validated['quantity_to_add']} pcs to Size {$pSize->size}!");
+    }
+
+    public function clearSizeLabel(Product $product, ProductSize $size)
+    {
+        abort_unless((int) $size->product_id === (int) $product->id, 404);
+
+        ProductSize::where('product_id', $product->id)
+            ->whereKey($size->id)
+            ->update(['size' => '']);
+        session()->forget('_old_input.existing_sizes.' . $size->id);
+        session()->forget('_old_input.clear_size_labels.' . $size->id);
+
+        return response()->json(['success' => true, 'size_id' => $size->id, 'label' => '']);
     }
 
     public function setPrimaryImage(ProductImage $image)

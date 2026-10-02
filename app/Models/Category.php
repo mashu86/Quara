@@ -28,6 +28,10 @@ class Category extends Model
         'is_active_offer',
         'delivery_charge_mode',
         'delivery_charge',
+        'allow_pre_min_purchase',
+        'pre_min_purchase_offer_price',
+        'minimum_purchase_required',
+        'minimum_purchase_count',
         'show_in_collection',
     ];
 
@@ -40,6 +44,10 @@ class Category extends Model
         'discount_value' => 'float',
         'delivery_charge' => 'float',
         'show_in_collection' => 'boolean',
+        'allow_pre_min_purchase' => 'boolean',
+        'pre_min_purchase_offer_price' => 'boolean',
+        'minimum_purchase_required' => 'boolean',
+        'minimum_purchase_count' => 'integer',
     ];
 
     public function products()

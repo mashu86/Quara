@@ -139,7 +139,14 @@
                         <span class="text-gold">₹{{ number_format($summary['grand_total'], 2) }}</span>
                     </div>
 
-                    <a href="{{ route('checkout.index') }}" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold" style="font-size: 0.78rem; padding-top: 6px; padding-bottom: 6px;">
+                    @if(!$stockValidation['valid'])
+                        <div class="alert alert-warning small py-2 mb-2">
+                            @foreach($stockValidation['errors'] as $validationError)
+                                <div>{{ $validationError }}</div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <a href="{{ $stockValidation['valid'] ? route('checkout.index') : '#' }}" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold {{ !$stockValidation['valid'] ? 'disabled' : '' }}" style="font-size: 0.78rem; padding-top: 6px; padding-bottom: 6px;" aria-disabled="{{ $stockValidation['valid'] ? 'false' : 'true' }}" tabindex="{{ $stockValidation['valid'] ? '0' : '-1' }}">
                         PROCEED TO CHECKOUT <i class="fa-solid fa-arrow-right ms-1"></i>
                     </a>
                 </div>

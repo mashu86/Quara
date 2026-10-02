@@ -15,7 +15,7 @@ class ProductDetailController extends Controller
     {
         $product = Product::where('slug', $slug)
             ->active()
-            ->with(['category', 'images', 'sizes', 'selectableSizes', 'sizeMaster.rows'])
+            ->with(['category', 'categories', 'images', 'sizes', 'selectableSizes', 'sizeMaster.rows'])
             ->firstOrFail();
 
         $displaySizeMaster = null;
@@ -75,6 +75,10 @@ class ProductDetailController extends Controller
 
         $whatsapp = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
 
+        $minimumPurchaseCategory = collect([$product->category])->merge($product->categories)
+            ->filter(fn ($category) => $category && !$category->is_offer_category && !$category->is_combo_offer && $category->minimum_purchase_required)
+            ->unique('id')->first();
+
         // Calculate discount percentage badge
         $discountPercentage = 0;
         if ($product->price > 0 && $product->discount_type !== 'none') {
@@ -96,7 +100,8 @@ class ProductDetailController extends Controller
             'seoDescription',
             'canonicalUrl',
             'ogImage',
-            'displaySizeMaster'
+            'displaySizeMaster',
+            'minimumPurchaseCategory'
         ));
     }
 

@@ -12,7 +12,7 @@ class ShopController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::active()->with(['category', 'categories', 'images', 'sizes']);
+        $query = Product::active()->with(['category', 'categories', 'images', 'sizes', 'comboCategory']);
         if (! $request->filled('category')) {
             $query->visibleInCollection();
         }

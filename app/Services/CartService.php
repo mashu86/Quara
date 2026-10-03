@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductSize;
+use App\Models\Category;
 use Illuminate\Support\Facades\Session;
 
 class CartService
@@ -130,7 +131,8 @@ class CartService
             }
         }
 
-        // Recalculate combo line prices together when cart edits cross the minimum.
+        // Apply each active combo category's price to regular cart items after its minimum is met.
+        $updatedCart = $this->applyCategoryComboPrices($updatedCart, $hasChanges);
         if ($hasChanges) {
             Session::put('cart', $updatedCart);
         }
@@ -140,7 +142,7 @@ class CartService
 
     public function add(int $productId, string $size, int $quantity): array
     {
-        $product = Product::active()->with(['images', 'sizes'])->find($productId);
+        $product = Product::active()->with(['images', 'sizes', 'category', 'categories', 'comboCategory'])->find($productId);
         if (!$product) {
             return ['success' => false, 'message' => 'Product is currently unavailable.'];
         }
@@ -182,6 +184,9 @@ class CartService
             'subtotal' => round($product->final_price * $newQty, 2),
         ];
 
+        $changed = false;
+        $cart = $this->applyCategoryComboPrices($cart, $changed);
+
         Session::put('cart', $cart);
 
         return [
@@ -215,6 +220,9 @@ class CartService
         $cart[$cartKey]['available_stock'] = $stockCheck['available_stock'];
         $cart[$cartKey]['subtotal'] = round($cart[$cartKey]['final_price'] * $quantity, 2);
 
+        $changed = false;
+        $cart = $this->applyCategoryComboPrices($cart, $changed);
+
         Session::put('cart', $cart);
 
         return [
@@ -230,6 +238,8 @@ class CartService
         $cart = $this->getCart();
         if (isset($cart[$cartKey])) {
             unset($cart[$cartKey]);
+            $changed = false;
+            $cart = $this->applyCategoryComboPrices($cart, $changed);
             Session::put('cart', $cart);
         }
 
@@ -253,6 +263,91 @@ class CartService
         return array_reduce($cart, function ($total, $item) {
             return $total + $item['quantity'];
         }, 0);
+    }
+
+    /** Price eligible regular products at the active combo category's per-item offer rate. */
+    private function applyCategoryComboPrices(array $cart, bool &$changed): array
+    {
+        $offerCategories = Category::where('status', 'active')
+            ->where(function ($query) {
+                $query->where('is_combo_offer', true)
+                    ->orWhere(function ($offerQuery) {
+                        $offerQuery->where('is_offer_category', true)->where('offer_type', 'combo');
+                    });
+            })
+            ->where('is_active_offer', true)
+            ->where('min_count', '>', 0)
+            ->get();
+
+        if ($offerCategories->isEmpty()) {
+            return $cart;
+        }
+
+        $products = Product::with(['category', 'categories', 'comboCategory'])->findMany(
+            collect($cart)->pluck('product_id')->unique()->all()
+        )->keyBy('id');
+
+        foreach ($offerCategories as $category) {
+            $eligibleKeys = [];
+            $eligibleQty = 0;
+            foreach ($cart as $key => $item) {
+                if (!empty($item['is_combo_offer'])) {
+                    continue;
+                }
+                $product = $products->get((int) ($item['product_id'] ?? 0));
+                if (!$product) {
+                    continue;
+                }
+                $matches = (int) $product->combo_category_id === (int) $category->id
+                    || (int) $product->category_id === (int) $category->id
+                    || $product->categories->contains('id', $category->id);
+                if ($matches) {
+                    $eligibleKeys[] = $key;
+                    $eligibleQty += (int) ($item['quantity'] ?? 0);
+                }
+            }
+
+            if (!$eligibleKeys) {
+                continue;
+            }
+
+            $offerApplies = $eligibleQty >= (int) $category->min_count;
+            $useComboPrice = $offerApplies || (bool) $category->pre_min_purchase_offer_price;
+
+            $targetTotal = $useComboPrice
+                ? (float) ceil(((float) $category->combo_price / (int) $category->min_count) * $eligibleQty)
+                : 0.0;
+            $baseUnitPrice = $useComboPrice ? floor(($targetTotal / $eligibleQty) * 100) / 100 : 0.0;
+            $remainderCents = $useComboPrice ? (int) round(($targetTotal - ($baseUnitPrice * $eligibleQty)) * 100) : 0;
+            $unitIndex = 0;
+
+            foreach ($eligibleKeys as $key) {
+                $item = $cart[$key];
+                $qty = (int) $item['quantity'];
+                $basePrice = (float) ($item['price'] ?? 0);
+                $unitPrice = $useComboPrice ? $baseUnitPrice : (float) $product->effective_final_price;
+                if ($useComboPrice && $unitIndex < $remainderCents) {
+                    $unitPrice = round($unitPrice + 0.01, 2);
+                }
+                $unitIndex += $qty;
+
+                if ((float) ($item['final_price'] ?? 0) !== $unitPrice
+                    || ($offerApplies && (int) ($item['combo_category_id'] ?? 0) !== (int) $category->id)
+                    || (!$offerApplies && (int) ($item['combo_category_id'] ?? 0) === (int) $category->id)) {
+                    $changed = true;
+                }
+                $cart[$key]['final_price'] = $unitPrice;
+                $cart[$key]['discount_amount'] = max(0, round($basePrice - $unitPrice, 2));
+                $cart[$key]['subtotal'] = round($unitPrice * $qty, 2);
+                if ($offerApplies) {
+                    $cart[$key]['combo_category_id'] = $category->id;
+                } else {
+                    unset($cart[$key]['combo_category_id']);
+                }
+            }
+        }
+
+        return $cart;
     }
 
     public function addComboItems(array $items, \App\Models\Category $comboCategory): array

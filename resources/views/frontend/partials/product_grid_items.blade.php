@@ -4,6 +4,17 @@
         $discPct = $hasDiscount ? round((($product->price - $product->final_price) / $product->price) * 100) : 0;
         $finalFormatted = $product->final_price == floor($product->final_price) ? number_format($product->final_price, 0) : number_format($product->final_price, 2);
         $origFormatted = $product->price == floor($product->price) ? number_format($product->price, 0) : number_format($product->price, 2);
+        $comboOfferCategory = collect([$product->comboCategory, $product->category])
+            ->merge($product->categories ?? collect())
+            ->filter(fn ($category) => $category
+                && $category->status === 'active'
+                && $category->is_active_offer
+                && $category->is_combo_offer
+                && (int) $category->min_count > 0)
+            ->first();
+        $comboUnitPrice = $comboOfferCategory
+            ? (float) $comboOfferCategory->combo_price / (int) $comboOfferCategory->min_count
+            : null;
     @endphp
     <div class="col-6 col-sm-4 col-md-3 col-lg-2 product-item-col animate__animated animate__fadeIn">
         <a href="{{ route('product.detail', $product->slug) }}" class="qw-product-card h-100 d-flex flex-column shadow-sm rounded-4 overflow-hidden border text-decoration-none text-dark d-block">
@@ -23,6 +34,14 @@
                         title="Share Product">
                     <i class="fa-solid fa-share-nodes" style="font-size: 0.70rem;"></i>
                 </button>
+
+                @if($comboOfferCategory)
+                    <button type="button" onclick="event.stopPropagation(); event.preventDefault();" data-bs-toggle="modal" data-bs-target="#collectionProductInfo{{ $product->id }}"
+                            class="btn btn-warning rounded-circle position-absolute top-0 start-0 m-1.5 m-sm-2 p-0 shadow-sm border-0 d-flex align-items-center justify-content-center"
+                            style="width: 28px; height: 28px; z-index: 3;" title="Combo offer" aria-label="View combo offer for {{ $product->name }}">
+                        <i class="fa-solid fa-crown" style="font-size: 0.72rem;"></i>
+                    </button>
+                @endif
 
                 @if($product->total_stock <= 0)
                     <div class="qw-out-of-stock-overlay">
@@ -105,6 +124,13 @@
                             <div class="col-md-5"><img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3 w-100" style="max-height:420px;object-fit:cover"></div>
                             <div class="col-md-7">
                                 <div class="h5 fw-bold text-warning mb-3">₹{{ number_format($product->final_price, 2) }}</div>
+                                @if($comboOfferCategory)
+                                    <div class="alert alert-warning border-warning-subtle rounded-3 py-2 px-3 mb-3">
+                                        <div class="fw-bold"><i class="fa-solid fa-crown me-1"></i> {{ $comboOfferCategory->name }} Combo Offer</div>
+                                        <div class="small mt-1">Buy {{ $comboOfferCategory->min_count }} items from this offer category for ₹{{ number_format($comboOfferCategory->combo_price, 2) }}.</div>
+                                        <div class="fw-semibold text-success mt-1">After reaching the minimum: ₹{{ number_format($comboUnitPrice, 2) }} per item</div>
+                                    </div>
+                                @endif
                                 <div class="text-secondary mb-3">{!! $product->description !!}</div>
                                 <h3 class="h6 fw-bold">Sizes and measurements</h3>
                                 @if($product->sizes->isNotEmpty())

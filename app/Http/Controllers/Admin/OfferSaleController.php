@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Setting;
+use App\Services\ProductCategoryAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,11 +21,16 @@ class OfferSaleController extends Controller
         $comboCategories = $offerCategories->where('offer_type', 'combo');
         $discountCategories = $offerCategories->where('offer_type', 'discount');
 
-        $activeOfferCategory = $offerCategories->firstWhere('is_active_offer', true);
+        $activeOfferCategories = $offerCategories->where('is_active_offer', true);
+        $offerStoreEnabled = (bool) filter_var(Setting::get('offer_store_enabled', $activeOfferCategories->isNotEmpty() ? '1' : '0'), FILTER_VALIDATE_BOOLEAN);
+        if (!$offerStoreEnabled) $activeOfferCategories = collect();
+        $activeOfferCategory = $activeOfferCategories->first();
 
         $selectedCategoryId = $request->input('offer_category_id');
-        if (!$selectedCategoryId && $offerCategories->isNotEmpty()) {
-            $selectedCategoryId = $activeOfferCategory ? $activeOfferCategory->id : $offerCategories->first()->id;
+        if (!$selectedCategoryId && $activeOfferCategories->isNotEmpty()) {
+            $selectedCategoryId = $activeOfferCategory->id;
+        } elseif (!$selectedCategoryId && $offerCategories->isNotEmpty()) {
+            $selectedCategoryId = $offerCategories->first()->id;
         }
 
         $selectedCategory = $selectedCategoryId ? $offerCategories->firstWhere('id', $selectedCategoryId) : null;
@@ -50,7 +57,8 @@ class OfferSaleController extends Controller
             $validProductsQuery->where('name', 'LIKE', "%{$search}%");
         }
 
-        // 1. Available Products (Products not currently in the selected offer category).
+        // 1. Available Products include products assigned to other offers too. The assignment
+        // service will move an eligible product from its old offer when the admin adds it here.
         // Booked products can optionally be shown here so the admin can intentionally decide
         // whether to include them in an offer. Products which are merely sold out remain hidden.
         $bookedFilter = $request->input('booked_filter', 'without');
@@ -89,12 +97,6 @@ class OfferSaleController extends Controller
 
         // Category and price filters intentionally apply only here; assigned products must
         // remain visible so the current drag/remove workflow is never hidden by a filter.
-        $availableProductsQuery
-            ->where(function($q) use ($selectedCategoryId) {
-                $q->whereNull('combo_category_id')
-                  ->orWhere('combo_category_id', '!=', $selectedCategoryId);
-            });
-
         $productCategoryIds = collect($request->input('product_category_ids', []))
             ->filter(fn ($id) => filter_var($id, FILTER_VALIDATE_INT) !== false && (int) $id > 0)
             ->map(fn ($id) => (int) $id)
@@ -181,6 +183,8 @@ class OfferSaleController extends Controller
             'comboCategories',
             'discountCategories',
             'activeOfferCategory',
+            'activeOfferCategories',
+            'offerStoreEnabled',
             'selectedCategoryId',
             'selectedCategory',
             'productFilterCategories',
@@ -189,7 +193,7 @@ class OfferSaleController extends Controller
         ));
     }
 
-    public function assign(Request $request)
+    public function assign(Request $request, ProductCategoryAssignmentService $categoryAssignments)
     {
         $request->validate([
             'offer_category_id' => 'required|exists:categories,id',
@@ -202,56 +206,15 @@ class OfferSaleController extends Controller
         $productIds = $request->input('product_ids', []);
         $action = $request->input('action');
 
-        $offerCategory = Category::find($offerCategoryId);
+        $offerCategory = Category::whereKey($offerCategoryId)->where('is_offer_category', true)->firstOrFail();
 
         $products = Product::with('sizes')->whereIn('id', $productIds)->get();
 
         foreach ($products as $product) {
-            $totalStock = (int) $product->sizes->sum('stock');
-            $isSoldOut = ($product->is_out_of_stock && empty($product->booked_by)) || ($totalStock <= 0 && empty($product->booked_by));
-
             if ($action === 'add') {
-                if ($isSoldOut) continue;
-
-                $updateData = ['combo_category_id' => $offerCategoryId];
-
-                if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
-                    $updateData['discount_type'] = $offerCategory->discount_type ?? 'percentage';
-                    $updateData['discount_value'] = $offerCategory->discount_value;
-                    $updateData['final_price'] = Product::calculateFinalPrice(
-                        $product->price,
-                        $updateData['discount_type'],
-                        $updateData['discount_value']
-                    );
-                }
-
-                $product->update($updateData);
-
-                // Sync pivot table
-                if ($offerCategory && !$product->categories()->where('categories.id', $offerCategoryId)->exists()) {
-                    $product->categories()->attach($offerCategoryId);
-                }
+                $categoryAssignments->assign($product, [], (int) $offerCategoryId);
             } else {
-                // Action: remove
-                // If sold out, preserve its offer price & category!
-                if ($isSoldOut) {
-                    continue;
-                }
-
-                $updateData = ['combo_category_id' => null];
-
-                if ($offerCategory && $offerCategory->offer_type === 'discount') {
-                    $updateData['discount_type'] = 'none';
-                    $updateData['discount_value'] = 0;
-                    $updateData['final_price'] = $product->price;
-                }
-
-                $product->update($updateData);
-
-                // Detach pivot table
-                if ($offerCategory) {
-                    $product->categories()->detach($offerCategoryId);
-                }
+                $categoryAssignments->assign($product, []);
             }
         }
 
@@ -260,7 +223,8 @@ class OfferSaleController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => $message
+                'message' => $message,
+                'offer_category_name' => $action === 'add' ? $offerCategory->name : null,
             ]);
         }
 
@@ -271,99 +235,57 @@ class OfferSaleController extends Controller
     {
         $request->validate([
             'offer_category_id' => 'required|integer',
+            'action' => 'nullable|in:toggle,none',
         ]);
 
         $categoryId = (int) $request->input('offer_category_id');
 
-        DB::transaction(function () use ($categoryId) {
-            // Deactivate all offer categories
-            Category::where('is_offer_category', true)->update([
-                'is_active_offer' => false,
-                'status' => 'inactive'
-            ]);
-
-            // If a specific category was selected (not 0 / None)
-            if ($categoryId > 0) {
-                $activeCat = Category::find($categoryId);
-                if ($activeCat) {
-                    $activeCat->update([
-                        'is_active_offer' => true,
-                        'status' => 'active'
-                    ]);
-
-                    // Sync all assigned products for this active category
-                    $assignedProducts = Product::where('combo_category_id', $categoryId)
-                        ->where('is_out_of_stock', false)
-                        ->where(function($q) {
-                            $q->whereNull('booked_by')->orWhere('booked_by', '');
-                        })->get();
-
-                    foreach ($assignedProducts as $prod) {
-                        if ($activeCat->offer_type === 'discount' && $activeCat->discount_value > 0) {
-                            $discType = $activeCat->discount_type ?? 'percentage';
-                            $discVal = $activeCat->discount_value;
-                            $finalPrice = Product::calculateFinalPrice($prod->price, $discType, $discVal);
-                            $prod->update([
-                                'discount_type' => $discType,
-                                'discount_value' => $discVal,
-                                'final_price' => $finalPrice
-                            ]);
-                        }
-                        if (!$prod->categories()->where('categories.id', $categoryId)->exists()) {
-                            $prod->categories()->attach($categoryId);
-                        }
-                    }
-                }
+        $settings = Setting::values();
+        $requestedCategory = $categoryId > 0 ? Category::where('is_offer_category', true)->findOrFail($categoryId) : null;
+        $isActive = $requestedCategory && $requestedCategory->is_active_offer;
+        DB::transaction(function () use ($categoryId, $requestedCategory, $isActive) {
+            if ($categoryId === 0) {
+                Category::where('is_offer_category', true)->update(['is_active_offer' => false, 'status' => 'inactive']);
+                Setting::set('offer_store_enabled', '0', 'offers');
+                return;
             }
+
+            Setting::set('offer_store_enabled', '1', 'offers');
+
+            // Each offer type has its own switch; Combo and Discount may both be active.
+            $enable = !$isActive;
+            Category::where('is_offer_category', true)->where('offer_type', $requestedCategory->offer_type)
+                ->update(['is_active_offer' => false, 'status' => 'inactive']);
+            $requestedCategory->update(['is_active_offer' => $enable, 'status' => $enable ? 'active' : 'inactive']);
         });
 
-        $activeCat = $categoryId > 0 ? Category::find($categoryId) : null;
-        $msg = $activeCat
-            ? "Offer Category '{$activeCat->name}' is now ACTIVE. (All other offer categories deactivated)"
-            : "No Offer Category is active now. Standard store mode active.";
+        $msg = $categoryId === 0
+            ? 'Offer Store is OFF. Offer Categories are inactive.'
+            : ($requestedCategory->fresh()->is_active_offer
+                ? "Offer Category '{$requestedCategory->name}' is now ACTIVE."
+                : "Offer Category '{$requestedCategory->name}' is now INACTIVE.");
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => $msg,
-                'active_category_id' => $categoryId
+                'active_category_id' => $categoryId,
+                'is_active' => (bool) ($requestedCategory?->fresh()->is_active_offer ?? false),
             ]);
         }
 
         return back()->with('success', $msg);
     }
 
-    public function removeOfferFromAllAvailableProducts(Request $request)
+    public function removeOfferFromAllAvailableProducts(Request $request, ProductCategoryAssignmentService $categoryAssignments)
     {
         // Past Sales Protection: Only clear offer assignments for Available & Booked products.
         // DO NOT touch Sold Out products (is_out_of_stock = 1 OR physical size stock <= 0).
-        $assignedProducts = Product::with('sizes')
-            ->where(function($q) {
-                $q->whereNotNull('combo_category_id')
-                  ->orWhere('discount_type', '!=', 'none');
-            })->get();
+        $assignedProducts = Product::with('sizes')->whereNotNull('combo_category_id')->get();
 
         $updatedCount = 0;
         foreach ($assignedProducts as $prod) {
-            $totalStock = (int) $prod->sizes->sum('stock');
-            $isSoldOut = ($prod->is_out_of_stock && empty($prod->booked_by)) || ($totalStock <= 0 && empty($prod->booked_by));
-
-            // CRITICAL: Skip sold out products so their offer purchase history and offer price remain 100% untouched!
-            if ($isSoldOut) {
-                continue;
-            }
-
-            $catId = $prod->combo_category_id;
-            $prod->update([
-                'combo_category_id' => null,
-                'discount_type' => 'none',
-                'discount_value' => 0,
-                'final_price' => $prod->price
-            ]);
-            if ($catId) {
-                $prod->categories()->detach($catId);
-            }
-            $updatedCount++;
+            if ($categoryAssignments->assign($prod, [])) $updatedCount++;
         }
 
         $msg = "Offer assignment removed from {$updatedCount} available/booked product(s). Past sold out products remain 100% untouched with their offer prices preserved.";

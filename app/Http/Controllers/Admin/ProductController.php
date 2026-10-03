@@ -11,6 +11,7 @@ use App\Models\ProductSize;
 use App\Models\Setting;
 use App\Models\SizeMaster;
 use App\Services\ImageOptimizerService;
+use App\Services\ProductCategoryAssignmentService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -245,7 +246,7 @@ class ProductController extends Controller
         return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds', 'geminiApiKeys'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ProductCategoryAssignmentService $categoryAssignments)
     {
         $validated = $request->validate([
             'action' => 'nullable|string|in:save_and_add_another,save_and_close',
@@ -280,6 +281,14 @@ class ProductController extends Controller
         if (empty($categoryIds) && $request->filled('category_id')) {
             $categoryIds = [$request->category_id];
         }
+
+        $offerIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
+        $selectedOfferId = $request->filled('combo_category_id') ? (int) $request->input('combo_category_id') : null;
+        if ($offerIds->count() > 1 || ($offerIds->isNotEmpty() && $selectedOfferId && !$offerIds->contains($selectedOfferId))) {
+            return back()->withErrors(['category_ids' => 'Select at most one Offer Category.'])->withInput();
+        }
+        if (!$selectedOfferId && $offerIds->isNotEmpty()) $selectedOfferId = (int) $offerIds->first();
+        if ($selectedOfferId) $categoryIds = [$selectedOfferId];
 
         $validated['category_id'] = $categoryIds[0] ?? null;
         $validated['measurement_type'] = $validated['measurement_type'] ?? 'up';
@@ -325,9 +334,9 @@ class ProductController extends Controller
             ->where('show_in_collection', false)
             ->exists();
 
-        DB::transaction(function () use ($validated, $request, $categoryIds) {
+        DB::transaction(function () use ($validated, $request, $categoryIds, $selectedOfferId, $categoryAssignments) {
             $product = Product::create($validated);
-            $product->categories()->sync($categoryIds);
+            $categoryAssignments->assign($product, $categoryIds, $selectedOfferId);
 
             // Handle Sizes, Stock and Measurements (Chest, Waist, Length)
             $chests = $request->input('chests', []);
@@ -417,7 +426,7 @@ class ProductController extends Controller
         return view('admin.products.edit', compact('product', 'categories', 'comboCategories', 'sizeMasters', 'geminiApiKeys'));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(Request $request, Product $product, ProductCategoryAssignmentService $categoryAssignments)
     {
         $validated = $request->validate([
             'category_ids' => 'nullable|array',
@@ -458,6 +467,14 @@ class ProductController extends Controller
         if (empty($categoryIds) && $request->filled('category_id')) {
             $categoryIds = [$request->category_id];
         }
+
+        $offerIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
+        $selectedOfferId = $request->filled('combo_category_id') ? (int) $request->input('combo_category_id') : null;
+        if ($offerIds->count() > 1 || ($offerIds->isNotEmpty() && $selectedOfferId && !$offerIds->contains($selectedOfferId))) {
+            return back()->withErrors(['category_ids' => 'Select at most one Offer Category.'])->withInput();
+        }
+        if (!$selectedOfferId && $offerIds->isNotEmpty()) $selectedOfferId = (int) $offerIds->first();
+        if ($selectedOfferId) $categoryIds = [$selectedOfferId];
 
         $validated['category_id'] = $categoryIds[0] ?? null;
         $validated['measurement_type'] = $validated['measurement_type'] ?? $product->measurement_type ?? 'up';
@@ -513,9 +530,11 @@ class ProductController extends Controller
             if (! $wasSoldOutOrBooked && $product->combo_category_id) {
                 $oldOfferCat = Category::find($product->combo_category_id);
                 if ($oldOfferCat && $oldOfferCat->offer_type === 'discount') {
-                    $validated['discount_type'] = 'none';
-                    $validated['discount_value'] = 0;
-                    $validated['final_price'] = $validated['price'];
+                    if ($validated['discount_type'] === $oldOfferCat->discount_type && (float) $validated['discount_value'] === (float) $oldOfferCat->discount_value) {
+                        $validated['discount_type'] = 'none';
+                        $validated['discount_value'] = 0;
+                        $validated['final_price'] = $validated['price'];
+                    }
                 }
             }
         }
@@ -523,9 +542,9 @@ class ProductController extends Controller
             ->where('show_in_collection', false)
             ->exists();
 
-        DB::transaction(function () use ($validated, $request, $product, $categoryIds) {
+        DB::transaction(function () use ($validated, $request, $product, $categoryIds, $selectedOfferId, $categoryAssignments) {
             $product->update($validated);
-            $product->categories()->sync($categoryIds);
+            $categoryAssignments->assign($product, $categoryIds, $selectedOfferId);
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 

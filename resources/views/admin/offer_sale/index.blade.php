@@ -316,9 +316,9 @@
                 <div>
                     <h6 class="fw-bold mb-0 text-dark d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.82rem;">
                         <i class="fa-solid fa-tower-broadcast text-danger"></i> System Active Store Offer
-                        @if($activeOfferCategory)
+        @if($activeOfferCategories->isNotEmpty())
                             <span class="badge bg-success-subtle text-success border border-success px-2 py-0.5 rounded-pill fw-bold" style="font-size: 0.65rem;">
-                                <i class="fa-solid fa-bolt me-1"></i> Live: {{ $activeOfferCategory->name }}
+                                <i class="fa-solid fa-bolt me-1"></i> Live: {{ $activeOfferCategories->pluck('name')->join(', ') }}
                             </span>
                         @else
                             <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2 py-0.5 rounded-pill fw-bold" style="font-size: 0.65rem;">
@@ -342,17 +342,10 @@
             <form action="{{ route('admin.offer-sale.activate') }}" method="POST" id="activateOfferForm">
                 @csrf
                 
-                <!-- Simple Standard Inline Radio Buttons (None vs Offer Store) -->
+                <!-- Offer Store master switch and independent offer category switches -->
                 <div class="d-flex align-items-center gap-3 mb-2 pb-2 border-bottom">
                     <div class="form-check form-check-inline mb-0">
-                        <input class="form-check-input mt-0" type="radio" name="offer_category_id" id="activeOfferNone" value="0" {{ !$activeOfferCategory ? 'checked' : '' }} onchange="submitActiveOffer(this)">
-                        <label class="form-check-label fw-bold text-dark small" for="activeOfferNone" style="font-size: 0.72rem; cursor: pointer;">
-                            None
-                        </label>
-                    </div>
-
-                    <div class="form-check form-check-inline mb-0">
-                        <input class="form-check-input mt-0" type="radio" name="offer_mode_toggle" id="activeOfferModeEnabled" value="1" {{ $activeOfferCategory ? 'checked' : '' }} onchange="toggleOfferStoreMode(true)">
+                        <input class="form-check-input mt-0" type="checkbox" id="activeOfferModeEnabled" {{ $offerStoreEnabled ? 'checked' : '' }} onchange="toggleOfferStoreMode(this.checked); if(!this.checked) submitOfferToggle(0)">
                         <label class="form-check-label fw-bold text-dark small" for="activeOfferModeEnabled" style="font-size: 0.72rem; cursor: pointer;">
                             Offer Store
                         </label>
@@ -360,7 +353,22 @@
                 </div>
 
                 <!-- Offer Category Cards Grid -->
-                <div id="offerCategoryCardsContainer" style="{{ !$activeOfferCategory ? 'display: none;' : '' }}">
+                <div id="offerCategoryCardsContainer" style="{{ $activeOfferCategories->isEmpty() ? 'display: none;' : '' }}">
+                    @if($activeOfferCategories->isNotEmpty())
+                        <div class="mb-3">
+                            <div class="small fw-bold text-uppercase text-muted mb-2">Choose an active offer to manage its products</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach($activeOfferCategories as $activeCategory)
+                                        <a href="{{ route('admin.offer-sale.index', ['offer_category_id' => $activeCategory->id]) }}"
+                                       class="btn btn-sm rounded-pill fw-bold {{ (int) $selectedCategoryId === (int) $activeCategory->id ? 'btn-dark' : 'btn-outline-dark' }}">
+                                        <i class="fa-solid {{ $activeCategory->offer_type === 'combo' ? 'fa-crown text-warning' : 'fa-tags text-danger' }} me-1"></i>
+                                        {{ $activeCategory->name }}
+                                        <span class="badge bg-success ms-1">Active</span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                     @if($comboCategories->count() > 0)
                         <div class="mb-2">
                             <div class="small fw-bold text-uppercase text-dark tracking-wider mb-1 d-flex align-items-center gap-1" style="font-size: 0.68rem;">
@@ -368,12 +376,12 @@
                             </div>
                             <div class="row g-1.5">
                                 @foreach($comboCategories as $cCat)
-                                    @php $isActive = $activeOfferCategory && $activeOfferCategory->id == $cCat->id; @endphp
+                                    @php $isActive = (bool) $cCat->is_active_offer; @endphp
                                     <div class="col-12 col-md-6 col-lg-4">
                                         <label class="offer-option-card h-100 {{ $isActive ? 'active-combo' : '' }}">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1">
-                                                    <input type="radio" name="offer_category_id" value="{{ $cCat->id }}" {{ $isActive ? 'checked' : '' }} onchange="submitActiveOffer(this)" class="form-check-input mt-0 flex-shrink-0">
+                                                    <input type="checkbox" value="{{ $cCat->id }}" {{ $isActive ? 'checked' : '' }} onchange="submitOfferToggle(this.value)" class="form-check-input mt-0 flex-shrink-0">
                                                     <div class="text-truncate">
                                                         <div class="fw-bold text-dark text-truncate d-flex align-items-center gap-1" style="font-size: 0.72rem;">
                                                             <i class="fa-solid fa-crown text-warning" style="font-size: 0.65rem;"></i> {{ $cCat->name }}
@@ -403,12 +411,12 @@
                             </div>
                             <div class="row g-1.5">
                                 @foreach($discountCategories as $dCat)
-                                    @php $isActive = $activeOfferCategory && $activeOfferCategory->id == $dCat->id; @endphp
+                                    @php $isActive = (bool) $dCat->is_active_offer; @endphp
                                     <div class="col-12 col-md-6 col-lg-4">
                                         <label class="offer-option-card h-100 {{ $isActive ? 'active-discount' : '' }}">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <div class="d-flex align-items-center gap-1.5 overflow-hidden me-1">
-                                                    <input type="radio" name="offer_category_id" value="{{ $dCat->id }}" {{ $isActive ? 'checked' : '' }} onchange="submitActiveOffer(this)" class="form-check-input mt-0 flex-shrink-0">
+                                                    <input type="checkbox" value="{{ $dCat->id }}" {{ $isActive ? 'checked' : '' }} onchange="submitOfferToggle(this.value)" class="form-check-input mt-0 flex-shrink-0">
                                                     <div class="text-truncate">
                                                         <div class="fw-bold text-dark text-truncate d-flex align-items-center gap-1" style="font-size: 0.72rem;">
                                                             <i class="fa-solid fa-tag text-danger" style="font-size: 0.65rem;"></i> {{ $dCat->name }}
@@ -436,7 +444,7 @@
     </div>
 
     <!-- Product Assignment & Category Switcher Wrapper Section -->
-    <div id="productAssignmentSection" style="{{ !$activeOfferCategory ? 'display: none;' : '' }}">
+    <div id="productAssignmentSection" style="{{ $activeOfferCategories->isEmpty() || !$selectedCategory ? 'display: none;' : '' }}">
         <div class="card border-0 rounded-4 shadow-sm mb-3">
             <div class="card-body p-2 p-md-3.5">
                 <!-- Tabs: Combo Offers vs Product Discount Offers -->
@@ -612,13 +620,18 @@
             <!-- Left Column: Available Products -->
             <div class="col-12 col-md-6">
                 <div class="card border-0 rounded-4 shadow-sm h-100">
-                    <div class="card-header bg-dark text-white py-2 px-3 rounded-top-4 d-flex justify-content-between align-items-center">
+                    <div class="card-header bg-dark text-white py-2 px-3 rounded-top-4 d-flex justify-content-between align-items-center gap-2">
                         <h6 class="fw-bold mb-0 text-truncate" style="font-size: 0.85rem;">
                             <i class="fa-solid fa-boxes-stacked text-warning me-1.5"></i> Available Products
                         </h6>
-                        <span class="badge bg-warning text-dark rounded-pill fw-bold" id="availableCountBadge">
-                            {{ $availableProducts->count() }}
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm product-box-search d-none" id="availableSearchWrap" style="width: min(220px, 45vw);">
+                                <input type="search" class="form-control" id="availableProductSearch" placeholder="Search available..." aria-label="Search available products">
+                                <button class="btn btn-outline-light" type="button" onclick="clearProductBoxSearch('available')" title="Clear search"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleProductBoxSearch('available')" aria-label="Search available products" title="Search available products"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <span class="badge bg-warning text-dark rounded-pill fw-bold" id="availableCountBadge">{{ $availableProducts->count() }}</span>
+                        </div>
                     </div>
                     <div class="card-body p-2 p-md-3">
                         <p class="small text-muted mb-2 d-none d-md-block" style="font-size: 0.74rem;">
@@ -629,6 +642,8 @@
                             @forelse($availableProducts as $prod)
                                 @php
                                     $totalStock = $prod->sizes->sum('stock');
+                                    $otherOfferCategory = $prod->comboCategory;
+                                    $alreadyInSelectedOffer = (int) $prod->combo_category_id === (int) $selectedCategoryId;
                                 @endphp
                                 <div class="card bulk-product-card" 
                                      data-product-id="{{ $prod->id }}" 
@@ -656,21 +671,28 @@
                                             </div>
                                             <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                                                 <h6 class="bulk-card-title" title="{{ $prod->name }}">{{ $prod->name }}</h6>
-                                                <div class="d-flex align-items-center gap-1.5">
+                                                <div class="d-flex align-items-center gap-1.5 product-meta-row">
                                                     <span class="fw-bold text-dark" style="font-size: 0.74rem;">₹{{ number_format($prod->final_price, 0) }}</span>
                                                     <span class="badge bg-secondary-subtle text-dark border rounded-pill" style="font-size: 0.60rem;">Stk: {{ $totalStock }}</span>
+                                                    @if($otherOfferCategory && !$alreadyInSelectedOffer)
+                                                        <span class="text-warning" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" title="Already assigned to: {{ $otherOfferCategory->name }}" aria-label="Already assigned to {{ $otherOfferCategory->name }}">
+                                                            <i class="fa-solid fa-crown"></i>
+                                                        </span>
+                                                    @endif
                                                     @if(filled($prod->booked_by))
                                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.60rem;" title="This product is already booked"><i class="fa-solid fa-bookmark me-1"></i>Booked</span>
                                                     @endif
                                                 </div>
                                             </div>
                                         </div>
+                                        @if(!$alreadyInSelectedOffer)
                                         <button type="button" class="btn btn-warning rounded-circle shadow-xs flex-shrink-0 add-prod-btn bulk-action-btn-circle" 
                                                 onclick="moveProduct('{{ $prod->id }}', 'add')"
                                                 style="background-color: var(--qw-gold-accent); border-color: var(--qw-gold-accent); color: #000;"
                                                 title="Add to offer">
                                             <i class="fa-solid fa-plus"></i>
                                         </button>
+                                        @endif
                                     </div>
                                 </div>
                             @empty
@@ -687,13 +709,18 @@
             <!-- Right Column: Assigned Products -->
             <div class="col-12 col-md-6">
                 <div class="card border-0 rounded-4 shadow-sm h-100 border-start border-3 border-warning">
-                    <div class="card-header bg-dark text-white py-2 px-3 rounded-top-4 d-flex justify-content-between align-items-center">
+                    <div class="card-header bg-dark text-white py-2 px-3 rounded-top-4 d-flex justify-content-between align-items-center gap-2">
                         <h6 class="fw-bold mb-0 text-truncate" style="font-size: 0.85rem;" title="{{ $selectedCategory->name }}">
                             <i class="fa-solid {{ $selectedCategory->offer_type === 'combo' ? 'fa-crown' : 'fa-tags' }} text-warning me-1.5"></i> {{ Str::limit($selectedCategory->name, 22) }}
                         </h6>
-                        <span class="badge bg-warning text-dark rounded-pill fw-bold" id="assignedCountBadge">
-                            {{ $assignedProducts->count() }} Included
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm product-box-search d-none" id="assignedSearchWrap" style="width: min(220px, 45vw);">
+                                <input type="search" class="form-control" id="assignedProductSearch" placeholder="Search offer products..." aria-label="Search offer products">
+                                <button class="btn btn-outline-light" type="button" onclick="clearProductBoxSearch('assigned')" title="Clear search"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleProductBoxSearch('assigned')" aria-label="Search offer products" title="Search offer products"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <span class="badge bg-warning text-dark rounded-pill fw-bold" id="assignedCountBadge">{{ $assignedProducts->count() }} Included</span>
+                        </div>
                     </div>
                     <div class="card-body p-2 p-md-3">
                         <p class="small text-muted mb-2 d-none d-md-block" style="font-size: 0.74rem;">
@@ -841,8 +868,53 @@
     const ASSIGN_URL = "{{ route('admin.offer-sale.assign') }}";
     const CSRF_TOKEN = "{{ csrf_token() }}";
 
-    function submitActiveOffer(el) {
-        document.getElementById('activateOfferForm').submit();
+    function toggleProductBoxSearch(side) {
+        const wrap = document.getElementById(`${side}SearchWrap`);
+        const input = document.getElementById(`${side}ProductSearch`);
+        if (!wrap || !input) return;
+        wrap.classList.toggle('d-none');
+        if (!wrap.classList.contains('d-none')) input.focus();
+        else {
+            input.value = '';
+            filterProductBox(side);
+        }
+    }
+
+    function clearProductBoxSearch(side) {
+        const input = document.getElementById(`${side}ProductSearch`);
+        if (!input) return;
+        input.value = '';
+        filterProductBox(side);
+        input.focus();
+    }
+
+    function filterProductBox(side) {
+        const input = document.getElementById(`${side}ProductSearch`);
+        const list = document.getElementById(side === 'available' ? 'availableProductsList' : 'assignedProductsList');
+        if (!input || !list) return;
+        const term = input.value.trim().toLocaleLowerCase();
+        let visibleCount = 0;
+        list.querySelectorAll('.bulk-product-card').forEach(card => {
+            const name = card.querySelector('.bulk-card-title')?.textContent?.toLocaleLowerCase() || '';
+            const visible = name.includes(term);
+            card.classList.toggle('d-none', !visible);
+            if (visible) visibleCount++;
+        });
+        const badge = document.getElementById(side === 'available' ? 'availableCountBadge' : 'assignedCountBadge');
+        if (badge) badge.textContent = side === 'available' ? visibleCount : `${visibleCount} Included`;
+    }
+
+    function submitOfferToggle(categoryId) {
+        const form = document.getElementById('activateOfferForm');
+        let field = form.querySelector('input[name="offer_category_id"][type="hidden"]');
+        if (!field) {
+            field = document.createElement('input');
+            field.type = 'hidden';
+            field.name = 'offer_category_id';
+            form.appendChild(field);
+        }
+        field.value = categoryId;
+        form.submit();
     }
 
     function toggleOfferStoreMode(show) {
@@ -853,6 +925,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(element) {
+            if (window.bootstrap?.Tooltip) new bootstrap.Tooltip(element);
+        });
+        ['available', 'assigned'].forEach(side => {
+            document.getElementById(`${side}ProductSearch`)?.addEventListener('input', () => filterProductBox(side));
+        });
+
         document.querySelectorAll('[data-category-filter]').forEach(function(filter) {
             const allCheckbox = filter.querySelector('[data-category-filter-all]');
             const options = Array.from(filter.querySelectorAll('[data-category-filter-option]'));
@@ -1009,6 +1088,23 @@
             if (data.success) {
                 if (action === 'add' && card) {
                     card.classList.add('border-warning');
+                    let offerBadge = card.querySelector('.current-offer-badge');
+                    if (!offerBadge) {
+                        offerBadge = document.createElement('span');
+                        offerBadge.className = 'text-warning current-offer-badge';
+                        offerBadge.setAttribute('tabindex', '0');
+                        offerBadge.setAttribute('data-bs-toggle', 'tooltip');
+                        offerBadge.setAttribute('data-bs-placement', 'top');
+                        offerBadge.innerHTML = '<i class="fa-solid fa-crown"></i>';
+                        const details = card.querySelector('.product-meta-row');
+                        details?.appendChild(offerBadge);
+                    }
+                    offerBadge.setAttribute('title', `Already assigned to: ${data.offer_category_name || 'this offer'}`);
+                    offerBadge.setAttribute('aria-label', `Already assigned to ${data.offer_category_name || 'this offer'}`);
+                    if (window.bootstrap?.Tooltip) {
+                        bootstrap.Tooltip.getInstance(offerBadge)?.dispose();
+                        new bootstrap.Tooltip(offerBadge);
+                    }
                     let btn = card.querySelector('.add-prod-btn, .remove-prod-btn');
                     if (btn) {
                         btn.className = 'btn btn-outline-danger rounded-circle shadow-xs flex-shrink-0 remove-prod-btn bulk-action-btn-circle';
@@ -1019,6 +1115,7 @@
                     }
                 } else if (action === 'remove' && card) {
                     card.classList.remove('border-warning');
+                    card.querySelector('.current-offer-badge')?.remove();
                     let btn = card.querySelector('.add-prod-btn, .remove-prod-btn');
                     if (btn) {
                         btn.className = 'btn btn-warning rounded-circle shadow-xs flex-shrink-0 add-prod-btn bulk-action-btn-circle';
@@ -1049,8 +1146,10 @@
         const availCount = availableEl ? availableEl.querySelectorAll('.bulk-product-card').length : 0;
         const assignCount = assignedEl ? assignedEl.querySelectorAll('.bulk-product-card').length : 0;
 
-        if (availableBadge) availableBadge.textContent = `${availCount}`;
-        if (assignedBadge) assignedBadge.textContent = `${assignCount} Included`;
+        if (availableBadge) availableBadge.textContent = document.getElementById('availableProductSearch')?.value.trim() ? `${availableEl.querySelectorAll('.bulk-product-card:not(.d-none)').length} / ${availCount}` : `${availCount}`;
+        if (assignedBadge) assignedBadge.textContent = document.getElementById('assignedProductSearch')?.value.trim() ? `${assignedEl.querySelectorAll('.bulk-product-card:not(.d-none)').length} / ${assignCount} Included` : `${assignCount} Included`;
+        filterProductBox('available');
+        filterProductBox('assigned');
     }
 </script>
 @endsection

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ImageOptimizerService;
+use App\Services\ProductCategoryAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -203,25 +204,20 @@ class CategoryController extends Controller
         return view('admin.categories.products', compact('category', 'insideProducts', 'outsideProducts', 'filter', 'side'));
     }
 
-    public function attachProduct(Request $request, Category $category, Product $product)
+    public function attachProduct(Request $request, Category $category, Product $product, ProductCategoryAssignmentService $categoryAssignments)
     {
         abort_unless($product->status === 'active', 422, 'Only active products can be assigned to a category.');
-
-        DB::transaction(function () use ($category, $product) {
-            $category->products()->syncWithoutDetaching([$product->id]);
-            if (!$product->category_id) {
-                $product->category_id = $category->id;
-                $product->save();
-            }
-            $this->syncProductCollectionVisibility($product->fresh());
-        });
+        $categoryAssignments->assign($product, $category->is_offer_category || $category->is_combo_offer ? [] : [$category->id], $category->is_offer_category || $category->is_combo_offer ? (int) $category->id : null);
 
         return response()->json(['success' => true, 'message' => 'Product added to category.']);
     }
 
-    public function detachProduct(Request $request, Category $category, Product $product)
+    public function detachProduct(Request $request, Category $category, Product $product, ProductCategoryAssignmentService $categoryAssignments)
     {
-        DB::transaction(function () use ($category, $product) {
+        DB::transaction(function () use ($category, $product, $categoryAssignments) {
+            if ((int) $product->combo_category_id === (int) $category->id) {
+                $categoryAssignments->assign($product, []);
+            }
             $category->products()->detach($product->id);
             if ((int) $product->category_id === (int) $category->id) {
                 $nextCategoryId = DB::table('category_product')->where('product_id', $product->id)->value('category_id');

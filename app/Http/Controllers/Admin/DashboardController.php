@@ -66,9 +66,13 @@ class DashboardController extends Controller
         $completedOrders = (clone $realOrdersQuery)->where('order_status', 'delivered')->count();
         $cancelledOrders = (clone $realOrdersQuery)->where('order_status', 'cancelled')->count();
 
-        $refundsQuery = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
-            ->whereDate('refund_date', '>=', $businessStartDate)->whereDate('refund_date', '<=', $selectedDate);
-        $allTimeOperationRefunds = (float) (clone $refundsQuery)->sum('refund_amount');
+        $refundOrderDateExpr = 'COALESCE(orders.sale_date, orders.created_at)';
+        $refundsQuery = \App\Models\OrderRefund::query()
+            ->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+            ->whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($refundOrderDateExpr), '>=', $businessStartDate)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($refundOrderDateExpr), '<=', $selectedDate);
+        $allTimeOperationRefunds = (float) (clone $refundsQuery)->sum('order_refunds.refund_amount');
 
         // Success Orders (Paid / Completed orders, excluding cancelled)
         $successOrdersQuery = (clone $realOrdersQuery)
@@ -97,9 +101,17 @@ class DashboardController extends Controller
             ->whereDate(\Illuminate\Support\Facades\DB::raw($saleExpr), $selectedDate)
             ->sum('grand_total');
 
-        $todayRefunds = (float) (clone $refundsQuery)->whereDate('refund_date', $selectedDate)->sum('refund_amount');
+        $todayRefunds = (float) (clone $refundsQuery)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($refundOrderDateExpr), $selectedDate)
+            ->sum('order_refunds.refund_amount');
+        $todayRefundPayments = (clone $refundsQuery)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($refundOrderDateExpr), $selectedDate)
+            ->select('order_refunds.*')
+            ->with(['order.payment', 'orderOperation'])
+            ->orderBy('order_refunds.id')
+            ->get();
 
-        $todaySales = $todayGrossSales - $todayRefunds;
+        $todaySales = max(0, $todayGrossSales - $todayRefunds);
         
         $todayExpensesData = \App\Http\Controllers\Admin\ExpenseController::getBusinessExpensesSummary($selectedDate, $selectedDate);
         $todayExpenses = $todayExpensesData['total'];
@@ -113,6 +125,36 @@ class DashboardController extends Controller
             ->orderBy(\Illuminate\Support\Facades\DB::raw($saleExpr), 'asc')
             ->orderBy('id', 'asc')
             ->get();
+
+        $dailySalesLedger = collect();
+        foreach ($todayPaidOrdersList as $paidOrder) {
+            $dailySalesLedger->push([
+                'type' => 'sale',
+                'occurred_at' => $paidOrder->sale_date ?? $paidOrder->created_at,
+                'order' => $paidOrder,
+                'method' => $paidOrder->payment_method ?: 'unknown',
+                'amount' => (float) $paidOrder->grand_total,
+            ]);
+        }
+        foreach ($todayRefundPayments as $refundPayment) {
+            $dailySalesLedger->push([
+                'type' => 'refund',
+                // Refunds are included in the selected sale-day figures by their order's sale date.
+                'occurred_at' => $refundPayment->order?->sale_date ?? $refundPayment->order?->created_at,
+                'order' => $refundPayment->order,
+                'method' => $refundPayment->payment_method ?: 'manual',
+                'reference' => $refundPayment->transaction_reference,
+                'amount' => (float) $refundPayment->refund_amount,
+            ]);
+        }
+        $dailySalesLedger = $dailySalesLedger->sortBy(fn ($entry) => $entry['occurred_at']?->timestamp ?? 0)->values();
+        $dailyRunningTotal = 0.0;
+        $dailySalesLedger = $dailySalesLedger->map(function ($entry) use (&$dailyRunningTotal) {
+            $dailyRunningTotal += $entry['type'] === 'refund' ? -$entry['amount'] : $entry['amount'];
+            $entry['running_total'] = $dailyRunningTotal;
+
+            return $entry;
+        });
 
         $todayOrdersCount = (int) (clone $todayPaidOrdersQuery)->count();
         $todayBookingsCount = Product::where('is_out_of_stock', 1)->count();
@@ -180,9 +222,11 @@ class DashboardController extends Controller
             ->groupBy(\Illuminate\Support\Facades\DB::raw("DATE({$saleExpr})"))
             ->get();
 
-        $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
-            ->selectRaw("DATE(refund_date) as refund_day, SUM(refund_amount) as total_refund")
-            ->groupBy(\Illuminate\Support\Facades\DB::raw('DATE(refund_date)'))
+        $dailyRefundsData = \App\Models\OrderRefund::query()
+            ->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+            ->whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw("DATE({$refundOrderDateExpr}) as refund_day, SUM(order_refunds.refund_amount) as total_refund")
+            ->groupBy(\Illuminate\Support\Facades\DB::raw("DATE({$refundOrderDateExpr})"))
             ->pluck('total_refund', 'refund_day');
 
         $highestSalesDay = null;
@@ -234,9 +278,11 @@ class DashboardController extends Controller
             'todaySales',
             'todayGrossSales',
             'todayRefunds',
+            'todayRefundPayments',
             'todayExpenses',
             'todayOrdersCount',
             'todayPaidOrdersList',
+            'dailySalesLedger',
             'todayBookingsCount',
             'allTimeCapital',
             'allTimeTotalRevenue',

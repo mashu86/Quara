@@ -65,13 +65,18 @@ class BusinessStatistics
             ->pluck('total', 'day') : collect();
         $expenses = $this->dailyTotals(Expense::whereDate('expense_date', '>=', $startDate)->whereDate('expense_date', '<=', $endDate), 'expense_date', 'amount');
         $operations = $this->dailyTotals(OrderOperation::where('status', 'active')->whereBetween('created_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]), 'created_at', 'additional_expense_total');
-        $refunds = $this->dailyTotals(OrderRefund::whereHas('orderOperation', fn (Builder $query) => $query->where('status', 'active'))->whereDate('refund_date', '>=', $startDate)->whereDate('refund_date', '<=', $endDate), 'refund_date', 'refund_amount');
+        $refundOrderDate = 'COALESCE(orders.sale_date, orders.created_at)';
+        $refunds = $this->dailyTotals(OrderRefund::query()
+            ->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+            ->whereHas('orderOperation', fn (Builder $query) => $query->where('status', 'active'))
+            ->whereDate(DB::raw($refundOrderDate), '>=', $startDate)
+            ->whereDate(DB::raw($refundOrderDate), '<=', $endDate), $refundOrderDate, 'order_refunds.refund_amount');
 
         $days = [];
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             $day = $date->toDateString();
-            $dailySales = (float) ($sales[$day] ?? 0);
-            $dailyExpenses = round(($costs[$day] ?? 0) + ($fees[$day] ?? 0) + ($expenses[$day] ?? 0) + ($operations[$day] ?? 0) + ($refunds[$day] ?? 0), 2);
+            $dailySales = max(0, round((float) ($sales[$day] ?? 0) - (float) ($refunds[$day] ?? 0), 2));
+            $dailyExpenses = round(($costs[$day] ?? 0) + ($fees[$day] ?? 0) + ($expenses[$day] ?? 0) + ($operations[$day] ?? 0), 2);
             $days[] = [
                 'date' => $day,
                 'sales' => round($dailySales, 2),
@@ -81,10 +86,8 @@ class BusinessStatistics
         }
 
         $businessDays = max(1, (int) $businessStart->diffInDays($asOf) + 1);
-        $totalSales = (float) (clone $salesQuery)
-            ->whereBetween(DB::raw($saleDate), [$businessStart->copy()->startOfDay(), $asOf->copy()->endOfDay()])
-            ->sum('grand_total');
         $rankedDays = collect($days)->where('date', '>=', $businessStart->toDateString());
+        $totalSales = (float) $rankedDays->sum('sales');
         $highest = $rankedDays->max('sales');
         $lowest = $rankedDays->min('sales');
 

@@ -39,14 +39,37 @@ class OrderController extends Controller
             });
         }
 
-        // Today's Sales Stats (Asia/Kolkata Timezone)
+        // Selected / Today's Sales Stats (Asia/Kolkata Timezone)
         $saleExpr = "COALESCE(sale_date, created_at)";
         $todayDateStr = \Carbon\Carbon::now('Asia/Kolkata')->toDateString();
-        $todayQuery = (clone $baseSalesQuery)->whereDate(DB::raw($saleExpr), $todayDateStr);
+
+        $selectedDate = $request->input('date');
+        if (!$selectedDate) {
+            if ($request->filled('start_date') && $request->filled('end_date') && $request->input('start_date') === $request->input('end_date')) {
+                $selectedDate = $request->input('start_date');
+            } else {
+                $selectedDate = $todayDateStr;
+            }
+        }
+
+        $todayQuery = (clone $baseSalesQuery)->whereDate(DB::raw($saleExpr), $selectedDate);
         $todayGrossAmount = (float) $todayQuery->sum('grand_total');
-        $todayRefunds = (float) \App\Models\OrderRefund::whereDate('refund_date', $todayDateStr)->sum('refund_amount');
+        $todayPaidOrdersList = (clone $todayQuery)
+            ->with('payment')
+            ->orderBy(DB::raw($saleExpr), 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+        $selectedDateLabel = \Carbon\Carbon::parse($selectedDate)->format('d M Y');
+        $refundOrderDateExpr = 'COALESCE(orders.sale_date, orders.created_at)';
+        $todayRefunds = (float) \App\Models\OrderRefund::query()
+            ->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+            ->whereDate(DB::raw($refundOrderDateExpr), $selectedDate)
+            ->sum('order_refunds.refund_amount');
 
         $todaySalesAmount = max(0, $todayGrossAmount - $todayRefunds);
+        $todayRefundsList = \App\Models\OrderRefund::with('order')
+            ->whereHas('order', fn ($query) => $query->whereDate(DB::raw('COALESCE(sale_date, created_at)'), $selectedDate))
+            ->orderBy('created_at')->orderBy('id')->get();
         $todayOrdersCount = (int) $todayQuery->count();
         $todayProductsCount = (int) \App\Models\OrderItem::whereIn('order_id', (clone $todayQuery)->pluck('id'))
             ->whereIn('item_status', ['active', 'exchanged'])
@@ -65,9 +88,11 @@ class OrderController extends Controller
             ->groupBy(DB::raw("DATE({$saleExpr})"))
             ->get();
 
-        $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
-            ->selectRaw("DATE(refund_date) as refund_day, SUM(refund_amount) as total_refund")
-            ->groupBy(DB::raw('DATE(refund_date)'))
+        $dailyRefundsData = \App\Models\OrderRefund::query()
+            ->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+            ->whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw("DATE({$refundOrderDateExpr}) as refund_day, SUM(order_refunds.refund_amount) as total_refund")
+            ->groupBy(DB::raw("DATE({$refundOrderDateExpr})"))
             ->pluck('total_refund', 'refund_day');
 
         $highestSalesDay = null;
@@ -103,15 +128,18 @@ class OrderController extends Controller
         if ($startDate && $endDate) {
             $periodQuery->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '>=', $startDate)
                         ->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '<=', $endDate);
-            $periodRefunds = (float) \App\Models\OrderRefund::whereBetween('refund_date', [$startDate, $endDate])->sum('refund_amount');
+            $periodRefunds = (float) \App\Models\OrderRefund::query()->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+                ->whereDate(DB::raw($refundOrderDateExpr), '>=', $startDate)->whereDate(DB::raw($refundOrderDateExpr), '<=', $endDate)->sum('order_refunds.refund_amount');
             $periodLabel = \Carbon\Carbon::parse($startDate)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($endDate)->format('d M Y');
         } elseif ($startDate) {
             $periodQuery->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '>=', $startDate);
-            $periodRefunds = (float) \App\Models\OrderRefund::where('refund_date', '>=', $startDate)->sum('refund_amount');
+            $periodRefunds = (float) \App\Models\OrderRefund::query()->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+                ->whereDate(DB::raw($refundOrderDateExpr), '>=', $startDate)->sum('order_refunds.refund_amount');
             $periodLabel = 'From ' . \Carbon\Carbon::parse($startDate)->format('d M Y');
         } elseif ($endDate) {
             $periodQuery->whereDate(DB::raw('COALESCE(sale_date, created_at)'), '<=', $endDate);
-            $periodRefunds = (float) \App\Models\OrderRefund::where('refund_date', '<=', $endDate)->sum('refund_amount');
+            $periodRefunds = (float) \App\Models\OrderRefund::query()->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+                ->whereDate(DB::raw($refundOrderDateExpr), '<=', $endDate)->sum('order_refunds.refund_amount');
             $periodLabel = 'Until ' . \Carbon\Carbon::parse($endDate)->format('d M Y');
         } else {
             // Default: Current Month
@@ -119,7 +147,8 @@ class OrderController extends Controller
                         ->whereYear(DB::raw('COALESCE(sale_date, created_at)'), \Carbon\Carbon::now('Asia/Kolkata')->year);
             $currentMonthStart = \Carbon\Carbon::now('Asia/Kolkata')->startOfMonth()->toDateString();
             $currentMonthEnd = \Carbon\Carbon::now('Asia/Kolkata')->endOfMonth()->toDateString();
-            $periodRefunds = (float) \App\Models\OrderRefund::whereBetween('refund_date', [$currentMonthStart, $currentMonthEnd])->sum('refund_amount');
+            $periodRefunds = (float) \App\Models\OrderRefund::query()->join('orders', 'order_refunds.order_id', '=', 'orders.id')
+                ->whereDate(DB::raw($refundOrderDateExpr), '>=', $currentMonthStart)->whereDate(DB::raw($refundOrderDateExpr), '<=', $currentMonthEnd)->sum('order_refunds.refund_amount');
         }
 
         $periodGrossAmount = (float) $periodQuery->sum('grand_total');
@@ -257,8 +286,12 @@ class OrderController extends Controller
         return view('admin.orders.index', compact(
             'orders',
             'todayDateStr',
+            'selectedDate',
             'todayGrossAmount',
+            'todayPaidOrdersList',
+            'selectedDateLabel',
             'todayRefunds',
+            'todayRefundsList',
             'todaySalesAmount',
             'todayOrdersCount',
             'todayProductsCount',

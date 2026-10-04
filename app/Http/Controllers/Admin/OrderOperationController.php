@@ -162,13 +162,15 @@ class OrderOperationController extends Controller
 
             $actionType = $validated['operation_type'] ?? 'product_returned';
             $invCondition = $validated['inventory_condition'];
-            $returnDate = !empty($validated['return_date']) ? \Carbon\Carbon::parse($validated['return_date'])->toDateString() : now()->toDateString();
+            $returnDate = !empty($validated['return_date'])
+                ? \Carbon\Carbon::parse($validated['return_date'])->toDateString()
+                : \Carbon\Carbon::parse($order->sale_date ?? $order->created_at)->toDateString();
             
             $refundOption = $validated['refund_option'];
             $refundAmount = ($refundOption === 'refund') ? (float) ($validated['refund_amount'] ?? 0) : 0.00;
-            $refundDate = ($refundAmount > 0 && !empty($validated['refund_date'])) 
-                ? \Carbon\Carbon::parse($validated['refund_date'])->toDateString() 
-                : ($refundAmount > 0 ? now()->toDateString() : null);
+            $refundDate = $refundAmount > 0
+                ? \Carbon\Carbon::parse($order->sale_date ?? $order->created_at)->toDateString()
+                : null;
 
             // 1. Update OrderItem Status & Fields
             $newItemStatus = 'returned';
@@ -280,7 +282,7 @@ class OrderOperationController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $order) {
-            $refundDate = \Carbon\Carbon::parse($validated['refund_date'])->toDateString();
+            $refundDate = \Carbon\Carbon::parse($order->sale_date ?? $order->created_at)->toDateString();
             $refundAmount = (float) $validated['refund_amount'];
 
             $orderItem = !empty($validated['order_item_id']) 
@@ -543,14 +545,100 @@ class OrderOperationController extends Controller
 
     public function edit(OrderOperation $operation)
     {
-        return redirect()->route('admin.order-operations.create', $operation->order_id)
-            ->with('error', 'Order adjustments are finalized and locked. Editing is not permitted.');
+        $operation->load(['order', 'orderItem', 'product', 'refunds']);
+        return view('admin.order_operations.edit', compact('operation'));
     }
 
     public function update(Request $request, OrderOperation $operation)
     {
+        $validated = $request->validate([
+            'inventory_condition' => 'required|in:return_to_stock,do_not_restock',
+            'refund_option' => 'required|in:no_refund,refund',
+            'refund_amount' => 'nullable|numeric|min:0',
+            'return_date' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        DB::transaction(function () use ($validated, $operation) {
+            $operation->loadMissing(['order', 'orderItem']);
+            $amount = $validated['refund_option'] === 'refund' ? (float) ($validated['refund_amount'] ?? 0) : 0.0;
+            $refundDate = $amount > 0
+                ? \Carbon\Carbon::parse($operation->order->sale_date ?? $operation->order->created_at)->toDateString()
+                : null;
+            $returnDate = \Carbon\Carbon::parse($validated['return_date'])->toDateString();
+
+            $newInventoryCondition = $validated['inventory_condition'];
+            $wasRestored = (bool) $operation->is_product_restored;
+            $willBeRestored = $newInventoryCondition === 'return_to_stock';
+            $orderItem = $operation->orderItem;
+
+            if ($wasRestored !== $willBeRestored && $orderItem?->product_size_id) {
+                $productSize = ProductSize::find($orderItem->product_size_id);
+                if ($productSize) {
+                    $previousStock = (int) $productSize->stock;
+                    $desiredStock = $previousStock + ($willBeRestored ? (int) $operation->quantity : -(int) $operation->quantity);
+                    $newStock = max(0, $desiredStock);
+                    $difference = $newStock - $previousStock;
+                    $productSize->update(['stock' => $newStock]);
+                    Product::whereKey($productSize->product_id)->update(['is_out_of_stock' => $newStock <= 0]);
+
+                    StockMovement::create([
+                        'product_id' => $productSize->product_id,
+                        'product_size_id' => $productSize->id,
+                        'size' => $productSize->size,
+                        'previous_stock' => $previousStock,
+                        'new_stock' => $newStock,
+                        'difference' => $difference,
+                        'reason' => "Order Adjustment #{$operation->order->order_number} edited",
+                        'admin_name' => auth()->check() ? auth()->user()->name : 'Admin',
+                    ]);
+                }
+            }
+
+            $operation->update([
+                'inventory_condition' => $newInventoryCondition,
+                'is_product_restored' => $willBeRestored,
+                'is_money_refunded' => $amount > 0,
+                'product_refund_amount' => $amount,
+                'total_refund_amount' => $amount,
+                'return_date' => $returnDate,
+                'refund_date' => $refundDate,
+                'total_financial_adjustment' => $amount + (float) $operation->additional_expense_total,
+                'notes' => $validated['notes'] ?? null,
+                'updated_by' => auth()->check() ? auth()->user()->name : 'Admin',
+            ]);
+
+            $refunds = $operation->refunds()->orderBy('id')->get();
+            if ($amount <= 0) {
+                $operation->refunds()->delete();
+            } elseif ($refunds->isEmpty()) {
+                \App\Models\OrderRefund::create([
+                    'order_id' => $operation->order_id,
+                    'order_operation_id' => $operation->id,
+                    'order_item_id' => $operation->order_item_id,
+                    'refund_amount' => $amount,
+                    'refund_date' => $refundDate,
+                    'notes' => $validated['notes'] ?? 'Product Return Refund',
+                    'created_by' => auth()->check() ? auth()->user()->name : 'Admin',
+                ]);
+            } else {
+                $firstRefund = $refunds->first();
+                $firstRefund->update(['refund_amount' => $amount, 'refund_date' => $refundDate, 'notes' => $validated['notes'] ?? $firstRefund->notes]);
+                $operation->refunds()->where('id', '!=', $firstRefund->id)->delete();
+            }
+
+            if ($orderItem) {
+                $orderItem->update([
+                    'inventory_condition' => $newInventoryCondition,
+                    'return_date' => $returnDate,
+                    'refund_amount' => $amount,
+                    'refund_date' => $refundDate,
+                ]);
+            }
+        });
+
         return redirect()->route('admin.order-operations.create', $operation->order_id)
-            ->with('error', 'Order adjustments are finalized and locked. Editing is not permitted.');
+            ->with('success', 'Adjustment details updated successfully.');
     }
 
     public function toggleStatus(Request $request, OrderOperation $operation)

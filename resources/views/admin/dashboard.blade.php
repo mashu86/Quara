@@ -140,30 +140,10 @@
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
         <div class="stat-card admin-dash-stat-card bg-white border h-100 position-relative">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-                <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Actual {{ $dailyLabel }} Sale</span>
-                <button type="button" class="btn btn-link p-0 text-warning text-decoration-none shadow-none ms-1" data-bs-toggle="modal" data-bs-target="#todayPaidSalesModal" title="View Today's Paid Sales List">
-                    <i class="fa-solid fa-coins fs-6"></i>
-                </button>
-            </div>
-            <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todayGrossSales, 2) }}</h6>
-            <span class="admin-dash-stat-sub text-muted">Online & Offline</span>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-        <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">{{ $dailyLabel }} Refund</span>
-            <h6 class="admin-dash-stat-val fw-bold text-danger">₹{{ number_format($todayRefunds, 2) }}</h6>
-            <span class="admin-dash-stat-sub text-muted">Includes refunds for earlier orders</span>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-        <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">After {{ $dailyLabel }} Refund</span>
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold pe-5">Total Sale - {{ $dailyLabel }} Refund</span>
+            <button type="button" class="btn btn-sm btn-outline-warning rounded-circle position-absolute top-0 end-0 mt-2 me-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" data-bs-toggle="modal" data-bs-target="#todayRefundPaymentsModal" title="View refund payment details" aria-label="View refund payment details"><i class="fa-solid fa-coins"></i></button>
             <h6 class="admin-dash-stat-val fw-bold {{ $todaySales < 0 ? 'text-danger' : 'text-success' }}">₹{{ number_format($todaySales, 2) }}</h6>
-            <span class="admin-dash-stat-sub text-muted">Actual sale minus refunds</span>
+            <span class="admin-dash-stat-sub text-muted"><span class="text-success fw-bold">₹{{ number_format($todayGrossSales, 2) }}</span> - <span class="text-danger fw-bold">₹{{ number_format($todayRefunds, 2) }}</span></span>
         </div>
     </div>
 
@@ -471,6 +451,43 @@
         </div>
     </div>
     --}}
+</div>
+
+<div class="modal fade" id="todayRefundPaymentsModal" tabindex="-1" aria-labelledby="todayRefundPaymentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2" id="todayRefundPaymentsModalLabel"><i class="fa-solid fa-coins text-warning"></i> Sales &amp; Refund Breakdown ({{ $selectedDateLabel }})</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="small text-muted fw-semibold">Paid Orders: <strong class="text-dark">{{ $todayPaidOrdersList->count() }}</strong> &middot; Sales: <strong class="text-success">₹{{ number_format($todayGrossSales, 2) }}</strong></span>
+                    <span class="small text-muted fw-semibold">Refund Records: <strong class="text-dark">{{ $todayRefundPayments->count() }}</strong> &middot; Refunds: <strong class="text-danger">₹{{ number_format($todayRefunds, 2) }}</strong></span>
+                    <span class="small text-muted fw-semibold">Net Total: <strong class="{{ $todaySales < 0 ? 'text-danger' : 'text-dark' }}">₹{{ number_format($todaySales, 2) }}</strong></span>
+                </div>
+                <div class="table-responsive" style="max-height: 520px;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light sticky-top" style="font-size: 0.72rem;"><tr><th class="ps-3">CUSTOMER</th><th>DATE AND TIME</th><th class="text-end">AMOUNT</th><th class="text-end pe-3">TOTAL</th></tr></thead>
+                        <tbody>
+                            @forelse($dailySalesLedger as $entry)
+                                @php $entryAmount = $entry['type'] === 'refund' ? -$entry['amount'] : $entry['amount']; @endphp
+                                <tr>
+                                    <td class="ps-3 fw-semibold text-dark">{{ $entry['order']?->customer_name ?: 'Guest Customer' }}</td>
+                                    <td class="text-muted">{{ $entry['occurred_at']?->format('d M Y, h:i A') ?? '&#8212;' }}</td>
+                                    <td class="text-end fw-bold {{ $entryAmount < 0 ? 'text-danger' : 'text-success' }}">{{ $entryAmount < 0 ? '-' : '' }}&#8377;{{ number_format(abs($entryAmount), 2) }}</td>
+                                    <td class="text-end pe-3 fw-bold text-dark">&#8377;{{ number_format($entry['running_total'], 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-center py-4 text-muted">No payment or refund records found for {{ $selectedDateLabel }}.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 py-2 px-3"><button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal for Today's Paid Sales -->

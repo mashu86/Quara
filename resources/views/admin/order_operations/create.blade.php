@@ -155,6 +155,7 @@
                                     @php
                                         $alreadyAdjusted = ($item->item_status === 'returned' || $item->item_status === 'exchanged' || $item->item_status === 'cancelled' || ($itemOps && $itemOps->where('status', 'active')->count() > 0));
                                         $activeOp = $itemOps ? $itemOps->where('status', 'active')->first() : null;
+                                        $editableReturnOp = $activeOp && $activeOp->operation_type === 'product_returned' ? $activeOp : null;
 
                                         $itemPayload = [
                                             'id' => $item->id,
@@ -166,6 +167,8 @@
                                             'item_status' => $item->item_status,
                                             'inventory_condition' => $item->inventory_condition,
                                             'refund_amount' => (float) $item->refund_amount,
+                                            'return_date' => $item->return_date?->format('Y-m-d'),
+                                            'order_date' => ($order->sale_date ?? $order->created_at)->format('Y-m-d'),
                                             'product' => $prod ? [
                                                 'primary_image_url' => $prod->primary_image_url,
                                             ] : null,
@@ -176,6 +179,8 @@
                                             'operation_type' => $activeOp->operation_type,
                                             'inventory_condition' => $activeOp->inventory_condition,
                                             'total_refund_amount' => (float) $activeOp->total_refund_amount,
+                                            'is_money_refunded' => (bool) $activeOp->is_money_refunded,
+                                            'return_date' => $activeOp->return_date?->format('Y-m-d'),
                                             'price_difference' => (float) $activeOp->price_difference,
                                             'replacement_quantity' => (int) $activeOp->replacement_quantity,
                                             'created_at' => $activeOp->created_at ? $activeOp->created_at->format('d-m-Y h:i A') : '',
@@ -205,9 +210,21 @@
                                                     <i class="fa-solid fa-file-invoice text-dark"></i>
                                                     <span>Return Details</span>
                                                 </button>
-                                                <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This item has already been adjusted / returned and cannot be edited or adjusted again.">
-                                                    <i class="fa-solid fa-lock me-1 text-warning"></i> Locked
-                                                </span>
+                                                @if($editableReturnOp)
+                                                    <button type="button" class="btn op-adjust-btn d-inline-flex align-items-center gap-1 flex-shrink-0"
+                                                            data-item-b64="{{ $itemB64 }}"
+                                                            data-op-b64="{{ $opB64 }}"
+                                                            onclick="triggerOpenItemAdjustment(this)"
+                                                            title="Edit Adjustment" aria-label="Edit Adjustment"
+                                                            style="padding: 0.25rem 0.75rem !important; font-size: 0.72rem !important;">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                        <span class="d-none d-sm-inline">Edit Adjustment</span>
+                                                    </button>
+                                                @else
+                                                    <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This adjustment cannot be edited here.">
+                                                        <i class="fa-solid fa-lock me-1 text-warning"></i> Locked
+                                                    </span>
+                                                @endif
                                             @else
                                                 <button type="button" class="btn op-adjust-btn d-inline-flex align-items-center gap-1 flex-shrink-0"
                                                         data-item-b64="{{ $itemB64 }}"
@@ -352,8 +369,9 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.order-operations.store', $order->id) }}" method="POST" id="itemAdjustmentForm">
+            <form action="{{ route('admin.order-operations.store', $order->id) }}" method="POST" id="itemAdjustmentForm" data-store-url="{{ route('admin.order-operations.store', $order->id) }}" data-update-url-template="{{ route('admin.order-operations.update', ['operation' => '__OPERATION__']) }}">
                 @csrf
+                <input type="hidden" name="_method" id="modal_form_method" value="">
                 <input type="hidden" name="order_item_id" id="modal_order_item_id" value="">
 
                 <div class="modal-body p-4">
@@ -377,7 +395,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold text-dark">Return Date <span class="text-danger">*</span></label>
-                        <input type="date" name="return_date" id="modal_return_date" class="form-control rounded-3" value="{{ date('Y-m-d') }}" required>
+                        <input type="date" name="return_date" id="modal_return_date" class="form-control rounded-3" value="{{ ($order->sale_date ?? $order->created_at)->format('Y-m-d') }}" required>
                         <div class="form-text small text-muted">The date when the product return took place.</div>
                     </div>
 
@@ -434,7 +452,7 @@
                             </div>
                         </div>
 
-                        <!-- Refund Amount & Refund Date Input (Shown when Refund option selected) -->
+                        <!-- Refund Amount Input (Shown when Refund option selected) -->
                         <div id="refundAmountBox" class="p-3 bg-light rounded-3 border d-none">
                             <div class="mb-2">
                                 <label class="form-label fw-bold small text-dark mb-1">Enter Refund Amount (₹) <span class="text-danger">*</span></label>
@@ -443,25 +461,21 @@
                                     <input type="number" step="0.01" name="refund_amount" id="modal_refund_amount" class="form-control" placeholder="0.00" min="0">
                                 </div>
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label fw-bold small text-dark mb-1">Refund Date <span class="text-danger">*</span></label>
-                                <input type="date" name="refund_date" id="modal_refund_date" class="form-control" value="{{ date('Y-m-d') }}">
-                                <div class="form-text small text-muted">Financial reports aggregate refund based on this refund date.</div>
-                            </div>
-                            <div class="form-text small text-muted">Amount to be deducted from order realized revenue and logged as an immutable refund record.</div>
+                            <div class="form-text small text-muted">Refund date will use this order's date: {{ \Carbon\Carbon::parse($order->sale_date ?? $order->created_at)->format('d M Y') }}.</div>
+                            <div class="form-text small text-muted">Amount to be deducted from order realized revenue and logged as a refund record.</div>
                         </div>
                     </div>
 
                     <!-- Notes -->
                     <div class="mb-2">
                         <label class="form-label fw-bold small text-dark">Notes / Reason (Optional)</label>
-                        <textarea name="notes" class="form-control rounded-3" rows="2" placeholder="e.g. Size didn't fit customer / Returned via courier..."></textarea>
+                        <textarea name="notes" id="modal_adjustment_notes" class="form-control rounded-3" rows="2" placeholder="e.g. Size didn't fit customer / Returned via courier..."></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light rounded-bottom-4 border-0 px-4 py-3">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                    <button type="submit" id="modal_adjustment_submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
                         <i class="fa-solid fa-check me-1"></i> Save Adjustment
                     </button>
                 </div>
@@ -624,8 +638,8 @@
                 <div class="alert alert-warning border border-warning-subtle rounded-3 p-2.5 mb-0 d-flex align-items-center gap-2" style="font-size: 0.78rem;">
                     <i class="fa-solid fa-lock text-dark fs-5 flex-shrink-0"></i>
                     <div>
-                        <strong class="text-dark">Adjustment Finalized &amp; Locked:</strong>
-                        <span class="text-muted">This product adjustment is permanent and read-only. Editing is not permitted (a product can only be adjusted/exchanged once per order).</span>
+                        <strong class="text-dark">Adjustment Recorded:</strong>
+                        <span class="text-muted">Use Edit Adjustment on this product to update the return details.</span>
                     </div>
                 </div>
             </div>
@@ -683,9 +697,11 @@
     function triggerOpenItemAdjustment(btn) {
         try {
             const itemB64 = btn.getAttribute('data-item-b64');
+            const opB64 = btn.getAttribute('data-op-b64');
             const itemData = itemB64 ? JSON.parse(atob(itemB64)) : null;
+            const opData = (opB64 && opB64 !== 'null') ? JSON.parse(atob(opB64)) : null;
             if (itemData) {
-                openItemAdjustmentModal(itemData);
+                openItemAdjustmentModal(itemData, opData);
             }
         } catch (e) {
             console.error('Error parsing item data payload:', e);
@@ -805,8 +821,19 @@
     let activeItemData = null;
     let opPickerContext = 'exchange'; // 'exchange' or 'add_product'
 
-    function openItemAdjustmentModal(itemData) {
+    function openItemAdjustmentModal(itemData, opData = null) {
         activeItemData = itemData;
+
+        const adjustmentForm = document.getElementById('itemAdjustmentForm');
+        const isEditing = !!(opData && opData.id);
+        const submitButton = document.getElementById('modal_adjustment_submit');
+        adjustmentForm.action = isEditing
+            ? adjustmentForm.dataset.updateUrlTemplate.replace('__OPERATION__', opData.id)
+            : adjustmentForm.dataset.storeUrl;
+        document.getElementById('modal_form_method').value = isEditing ? 'PUT' : '';
+        submitButton.innerHTML = isEditing
+            ? '<i class="fa-solid fa-floppy-disk me-1"></i> Update Adjustment'
+            : '<i class="fa-solid fa-check me-1"></i> Save Adjustment';
         
         document.getElementById('modal_order_item_id').value = itemData.id;
         document.getElementById('modal_product_name').textContent = itemData.product_name;
@@ -820,15 +847,22 @@
         opTypeSelect.value = 'product_returned';
 
         // Set inventory condition
-        if (itemData.inventory_condition === 'do_not_restock') {
+        const currentCondition = opData?.inventory_condition || itemData.inventory_condition;
+        if (currentCondition === 'do_not_restock') {
             document.getElementById('invDoNotRestock').checked = true;
         } else {
             document.getElementById('invRestock').checked = true;
         }
 
+        document.getElementById('modal_return_date').value = isEditing
+            ? (opData.return_date || itemData.return_date || itemData.order_date)
+            : itemData.order_date;
+        document.getElementById('modal_adjustment_notes').value = opData?.notes || '';
+
         // Set refund option
-        const refundAmt = parseFloat(itemData.refund_amount || 0);
-        if (refundAmt > 0) {
+        const refundAmt = parseFloat(opData?.total_refund_amount ?? itemData.refund_amount ?? 0);
+        const isRefunded = opData ? (opData.is_money_refunded && refundAmt > 0) : refundAmt > 0;
+        if (isRefunded) {
             document.getElementById('refundYes').checked = true;
             document.getElementById('modal_refund_amount').value = refundAmt.toFixed(2);
         } else {

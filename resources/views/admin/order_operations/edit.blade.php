@@ -20,7 +20,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
     <div>
         <h3 class="fw-bold mb-1 op-form-title">Edit Order Adjustment #{{ $operation->id }}</h3>
-        <p class="text-muted small mb-0 op-form-subtitle">Update inventory condition or refund amount for Order #{{ $operation->order->order_number }}</p>
+        <p class="text-muted small mb-0 op-form-subtitle">Edit the confirmed adjustment for Order #{{ $operation->order->order_number }}</p>
     </div>
     <a href="{{ route('admin.order-operations.create', $operation->order_id) }}" class="btn btn-outline-dark rounded-3 px-3 py-1.5 fw-bold shadow-sm op-back-btn">
         &larr; Back<span class="d-none d-md-inline"> to Order</span>
@@ -63,42 +63,38 @@
                             <label class="form-label text-muted small mb-0">Recorded Date:</label>
                             <div class="fw-bold text-dark fs-6">{{ $operation->created_at->format('M d, Y h:i A') }}</div>
                         </div>
+                        <div class="col-sm-6">
+                            <label for="operation_return_date" class="form-label text-muted small mb-1">Return Date:</label>
+                            <input type="date" id="operation_return_date" name="return_date" class="form-control rounded-3" value="{{ old('return_date', $operation->return_date?->format('Y-m-d') ?? ($operation->order->sale_date ?? $operation->order->created_at)->format('Y-m-d')) }}" required>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Inventory Condition -->
+            <!-- Inventory Condition -->
             <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-2 border-bottom pb-2 text-dark">
                         <i class="fa-solid fa-warehouse text-warning me-2"></i> Inventory Condition
                     </h5>
-                    <p class="text-muted small mb-3">Choose whether the product should be added back into live website stock or kept frozen.</p>
-
                     @php
                         $currentCondition = old('inventory_condition', $operation->inventory_condition ?? ($operation->is_product_restored ? 'return_to_stock' : 'do_not_restock'));
                     @endphp
-
-                    <div class="d-flex flex-column gap-2.5">
-                        <div class="form-check p-3 border rounded-3 bg-light cursor-pointer">
-                            <input class="form-check-input ms-0 me-2" type="radio" name="inventory_condition" id="editInvReturn" value="return_to_stock" {{ $currentCondition === 'return_to_stock' ? 'checked' : '' }}>
-                            <label class="form-check-label fw-bold text-dark small cursor-pointer" for="editInvReturn">
-                                <i class="fa-solid fa-arrow-rotate-left text-success me-1"></i> Return to Stock & Website
-                                <span class="d-block text-muted fw-normal" style="font-size: 0.76rem;">Restores product stock to inventory so it becomes purchasable again on the website.</span>
-                            </label>
-                        </div>
-                        <div class="form-check p-3 border rounded-3 bg-light cursor-pointer">
-                            <input class="form-check-input ms-0 me-2" type="radio" name="inventory_condition" id="editInvDoNotRestock" value="do_not_restock" {{ $currentCondition === 'do_not_restock' ? 'checked' : '' }}>
-                            <label class="form-check-label fw-bold text-dark small cursor-pointer" for="editInvDoNotRestock">
-                                <i class="fa-solid fa-snowflake text-danger me-1"></i> Do Not Restock / Freeze Item
-                                <span class="d-block text-muted fw-normal" style="font-size: 0.76rem;">Product is damaged, defective, or kept by customer. Stock is NOT restored to inventory.</span>
-                            </label>
-                        </div>
+                    <div class="d-flex flex-column gap-2">
+                        <label class="form-check p-3 border rounded-3 bg-light">
+                            <input class="form-check-input" type="radio" name="inventory_condition" value="return_to_stock" {{ $currentCondition === 'return_to_stock' ? 'checked' : '' }}>
+                            <span class="form-check-label fw-bold text-dark small">Return to stock</span>
+                        </label>
+                        <label class="form-check p-3 border rounded-3 bg-light">
+                            <input class="form-check-input" type="radio" name="inventory_condition" value="do_not_restock" {{ $currentCondition === 'do_not_restock' ? 'checked' : '' }}>
+                            <span class="form-check-label fw-bold text-dark small">Do not restock</span>
+                        </label>
                     </div>
+                    <span class="text-muted d-block mt-2" style="font-size: 0.75rem;">Changing this updates the stock record and inventory movement.</span>
                 </div>
             </div>
 
-            <!-- 3. Refund Details -->
+            <!-- Refund Details -->
             <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-2 border-bottom pb-2 text-dark">

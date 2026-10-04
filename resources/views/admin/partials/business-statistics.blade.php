@@ -3,7 +3,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
             <div>
                 <h4 class="fs-5 fw-bold mb-1">Business Statistics</h4>
-                <p class="small text-muted mb-0">Daily performance in rupees. Revenue (profit) = Sales &minus; Expenses.</p>
+                <p class="small text-muted mb-0">Daily net sales in rupees after refunds. Revenue (profit) = Net Sales &minus; Expenses.</p>
             </div>
             <div class="border rounded-3 p-3 bg-light">
                 <div class="small text-muted">Average Daily Sale</div>
@@ -72,7 +72,7 @@
                 </div>
             @endforeach
         </div>
-        <p class="small text-muted mb-2">Sales are paid/completed, non-cancelled online and offline orders, before refunds. Expenses include product costs, payment fees, general expenses, active operation costs and refunds. Zero-sale days count towards the average and lowest sales day. Business started on {{ \Illuminate\Support\Carbon::parse($businessStats['businessStart'])->format('d M Y') }}.</p>
+        <p class="small text-muted mb-2">Net sales are paid/completed, non-cancelled online and offline orders, minus refunds for those orders. Expenses include product costs, payment fees, general expenses and active operation costs. Zero-sale days count towards the average and lowest sales day. Business started on {{ \Illuminate\Support\Carbon::parse($businessStats['businessStart'])->format('d M Y') }}.</p>
         <details>
             <summary class="small fw-semibold">Daily figures</summary>
             <div class="table-responsive mt-2" style="max-height: 320px;">

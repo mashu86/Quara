@@ -10,7 +10,24 @@
         </h3>
         <p class="text-muted small mb-0 d-none d-sm-block">Live sales reporting, date-wise analytics & order fulfillment control</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <form action="{{ route('admin.orders.index') }}" method="GET" class="d-flex align-items-center gap-1">
+            @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif
+            @if(request('search'))<input type="hidden" name="search" value="{{ request('search') }}">@endif
+            @if(request('payment_method'))<input type="hidden" name="payment_method" value="{{ request('payment_method') }}">@endif
+            @if(request('sale_channel'))<input type="hidden" name="sale_channel" value="{{ request('sale_channel') }}">@endif
+            
+            <div class="input-group input-group-sm">
+                <input type="date" name="date" class="form-control form-control-sm px-2 py-1 rounded-start-3" style="font-size: 0.78rem;" value="{{ $selectedDate }}" max="{{ $todayDateStr }}" required>
+                <button type="submit" class="btn btn-dark btn-sm fw-semibold rounded-end-3" style="font-size: 0.78rem;">
+                    Apply
+                </button>
+            </div>
+            @if($selectedDate !== $todayDateStr)
+                <a href="{{ route('admin.orders.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" style="font-size: 0.75rem;" title="Reset to Today">Today</a>
+            @endif
+        </form>
+
         <button type="button" onclick="previewBlankCourierAddress()" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1.5 fw-semibold shadow-sm" style="font-size: 0.78rem;" title="Print Blank Courier Shipping Label">
             <i class="fa-solid fa-print text-warning me-1"></i> Print Blank Label
         </button>
@@ -49,88 +66,40 @@
         + (request()->filled('payment_method') ? 1 : 0)
         + (request()->filled('sale_channel') ? 1 : 0)
         + (request()->filled('start_date') ? 1 : 0)
-        + (request()->filled('end_date') ? 1 : 0);
+        + (request()->filled('end_date') ? 1 : 0)
+        + (request()->filled('date') ? 1 : 0);
 @endphp
 
 <!-- SALES ANALYTICS KPI SUMMARY CARDS -->
 <div class="row g-2 g-sm-3 mb-3 mb-md-4">
-    <!-- Today Gross Sales Card -->
-    <div class="col-12 col-sm-6 col-xl-3">
+    <!-- Gross Sales Card -->
+    <div class="col-12 col-sm-6 col-xl-4">
         <div class="card border-0 rounded-4 shadow-sm text-white h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #111111 0%, #2b2b2b 100%);">
             <div class="card-body p-2.5 p-sm-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-warning text-uppercase font-mono fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-calendar-day me-1"></i> Today Sales
+                        <i class="fa-solid fa-calendar-day me-1"></i> {{ $selectedDate === $todayDateStr ? 'Today Sales' : \Carbon\Carbon::parse($selectedDate)->format('d M Y') . ' Sales' }}
                     </span>
                     <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">{{ $todayOrdersCount }} Orders</span>
                 </div>
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h4 class="fw-bold mb-0 text-warning fs-5">₹{{ number_format($todayGrossAmount, 2) }}</h4>
-                        <div class="text-light opacity-90 mt-1" style="font-size: 0.7rem;">
-                            <i class="fa-solid fa-box-open text-warning me-1"></i> <strong>{{ $todayProductsCount }}</strong> Sold
-                        </div>
+                        <h4 class="fw-bold mb-0 text-warning fs-5">&#8377;{{ number_format($todaySalesAmount, 2) }}</h4>
+                        <div class="mt-1" style="font-size: 0.7rem;"><span class="text-success fw-semibold">(&#8377;{{ number_format($todayGrossAmount, 2) }}</span> <span class="text-danger fw-semibold">- &#8377;{{ number_format($todayRefunds, 2) }})</span></div>
+                        <div class="text-light opacity-90 mt-1" style="font-size: 0.7rem;"><i class="fa-solid fa-box-open text-warning me-1"></i> <strong>{{ $todayProductsCount }}</strong> Sold</div>
                     </div>
-                    <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-20 rounded-3 text-warning flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
-                        <i class="fa-solid fa-chart-line fs-6"></i>
-                    </div>
+                    <button type="button" class="btn d-flex align-items-center justify-content-center bg-warning bg-opacity-20 rounded-3 text-warning flex-shrink-0 ms-2 p-0" style="width: 36px; height: 36px;" data-bs-toggle="modal" data-bs-target="#ordersPaidSalesModal" title="View paid orders for {{ $selectedDateLabel }}" aria-label="View paid orders for {{ $selectedDateLabel }}">
+                        <i class="fa-solid fa-coins fs-6"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Today Refund Amount Card -->
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-danger h-100">
-            <div class="card-body p-2.5 p-sm-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-danger text-uppercase font-mono fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-rotate-left me-1"></i> Today Refund
-                    </span>
-                    <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">Actual Paid</span>
-                </div>
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h4 class="fw-bold mb-0 text-danger fs-5">₹{{ number_format($todayRefunds, 2) }}</h4>
-                        <div class="text-muted mt-1" style="font-size: 0.7rem;">
-                            <i class="fa-solid fa-arrow-down-left text-danger me-1"></i> Based on Refund Date
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-3 text-danger flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
-                        <i class="fa-solid fa-hand-holding-dollar fs-6"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Today Net Sales Card -->
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-success h-100">
-            <div class="card-body p-2.5 p-sm-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-success text-uppercase font-mono fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-scale-balanced me-1"></i> Today Net Sales
-                    </span>
-                    <span class="badge bg-success text-white rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">Sales - Refund</span>
-                </div>
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h4 class="fw-bold mb-0 text-success fs-5">₹{{ number_format($todaySalesAmount, 2) }}</h4>
-                        <div class="text-muted mt-1" style="font-size: 0.7rem;">
-                            <i class="fa-solid fa-shield-halved text-success me-1"></i> Net Business Revenue
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-center bg-success bg-opacity-10 rounded-3 text-success flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
-                        <i class="fa-solid fa-sack-dollar fs-6"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Monthly / Selected Period Sales Card -->
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-12 col-sm-6 col-xl-4">
         <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-warning h-100">
             <div class="card-body p-2.5 p-sm-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -155,6 +124,72 @@
                         <i class="fa-solid fa-bag-shopping fs-6"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="ordersPaidSalesModal" tabindex="-1" aria-labelledby="ordersPaidSalesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2" id="ordersPaidSalesModalLabel">
+                    <i class="fa-solid fa-coins text-warning"></i> Paid Orders ({{ $selectedDateLabel }})
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                    <span class="small text-muted fw-semibold">Paid Orders: <strong class="text-dark">{{ $todayPaidOrdersList->count() }}</strong></span>
+                    <span class="small text-muted fw-semibold">Net Sales: <strong class="text-warning">₹{{ number_format($todaySalesAmount, 2) }}</strong></span>
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light sticky-top" style="font-size: 0.75rem;">
+                            <tr>
+                                <th>CUSTOMER NAME</th>
+                                <th>TIME</th>
+                                <th class="text-end">AMOUNT</th>
+                                <th class="text-end pe-3">RUNNING TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $paidRunningTotal = 0; @endphp
+                            @forelse($todayPaidOrdersList as $paidIndex => $paidOrder)
+                                @php
+                                    $paidRunningTotal += (float) $paidOrder->grand_total;
+                                    $paidOrderTime = ($paidOrder->sale_date ?? $paidOrder->created_at)->format('h:i A');
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $paidOrder->customer_name ?: 'Guest Customer' }}</div>
+                                        @if($paidOrder->customer_phone)<div class="text-muted" style="font-size: 0.72rem;">{{ $paidOrder->customer_phone }}</div>@endif
+                                    </td>
+                                    <td class="text-muted" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ $paidOrderTime }}</td>
+                                    <td class="text-end fw-semibold text-dark">₹{{ number_format($paidOrder->grand_total, 2) }}</td>
+                                    <td class="text-end pe-3 fw-bold text-success">₹{{ number_format($paidRunningTotal, 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fs-3 mb-2 d-block text-secondary"></i>No paid orders found for {{ $selectedDateLabel }}.</td></tr>
+                            @endforelse
+                            @foreach($todayRefundsList as $refundIndex => $refund)
+                                @php
+                                    $paidRunningTotal -= (float) $refund->refund_amount;
+                                    $refundTime = ($refund->created_at ?? $refund->refund_date)->format('h:i A');
+                                @endphp
+                                <tr class="table-danger table-opacity-25">
+                                    <td><div class="fw-semibold text-dark">{{ $refund->order?->customer_name ?: 'Guest Customer' }}</div>@if($refund->order?->customer_phone)<div class="text-muted" style="font-size: 0.72rem;">{{ $refund->order->customer_phone }}</div>@endif</td>
+                                    <td class="text-muted" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ $refundTime }}</td>
+                                    <td class="text-end fw-semibold text-danger">-&#8377;{{ number_format($refund->refund_amount, 2) }}</td>
+                                    <td class="text-end pe-3 fw-bold {{ $paidRunningTotal < 0 ? 'text-danger' : 'text-success' }}">&#8377;{{ number_format($paidRunningTotal, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

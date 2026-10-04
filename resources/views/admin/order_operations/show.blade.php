@@ -20,7 +20,7 @@
     </div>
     <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end align-items-center">
         <span class="badge bg-secondary text-white rounded-3 px-3 py-2 fw-bold shadow-sm op-top-btn">
-            <i class="fa-solid fa-lock text-warning me-1"></i> Adjustment Finalized (Locked)
+            <i class="fa-solid fa-lock text-warning me-1"></i> Adjustment Recorded
         </span>
         <a href="{{ route('admin.order-operations.create', $operation->order_id) }}" class="btn btn-dark rounded-3 px-3 py-1.5 fw-bold shadow-sm op-top-btn">
             &larr; Back to Order

@@ -24,10 +24,11 @@ class HomeCarouselSetting extends Model
     public static function current(): self
     {
         $setting = static::firstOrCreate([], [
-            'enabled' => false,
+            'enabled' => true,
             'carousel_type' => 'hero',
             'animation' => 'slide',
             'interval_ms' => 5000,
+            'smart_speed_ms' => 600,
             'visible_count' => 5,
         ]);
 

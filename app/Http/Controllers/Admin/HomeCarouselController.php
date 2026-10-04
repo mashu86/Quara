@@ -9,6 +9,7 @@ use App\Models\HomePageSection;
 use App\Models\HomeTestimonial;
 use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HomeCarouselController extends Controller
 {
@@ -153,12 +154,30 @@ class HomeCarouselController extends Controller
         HomePageSection::syncDefaults();
         $sections = HomePageSection::orderBy('sort_order')->get()->keyBy('section_key');
         $slides = $this->slideList();
+        $builderSection = in_array($request->query('section'), ['hero', 'lookbook'], true)
+            ? $request->query('section')
+            : ($slide?->section_key ?? 'hero');
 
-        if (!$slide && $slides->isNotEmpty()) {
-            $slide = $slides->first();
+        if (!$slide) {
+            $slide = $slides->firstWhere('section_key', $builderSection);
         }
 
-        return view('admin.home_carousel.builder', compact('settings', 'sections', 'slides', 'slide'));
+        return view('admin.home_carousel.builder', compact('settings', 'sections', 'slides', 'slide', 'builderSection'));
+    }
+
+    public function toggleHero(Request $request)
+    {
+        $data = $request->validate(['enabled' => 'required|boolean']);
+        $enabled = (bool) $data['enabled'];
+        HomeCarouselSetting::current()->update(['enabled' => $enabled]);
+        $section = HomePageSection::firstOrCreate(['section_key' => 'hero'], [
+            'enabled' => $enabled,
+            'sort_order' => 1,
+            'items_to_show' => 5,
+        ]);
+        $section->update(['enabled' => $enabled]);
+
+        return response()->json(['success' => true, 'enabled' => $enabled]);
     }
 
     public function saveSlideFull(Request $request)
@@ -186,7 +205,7 @@ class HomeCarouselController extends Controller
             'button_text' => $data['button_text'] ?? '',
             'link_url' => $data['link_url'] ?? '',
             'status' => $data['status'],
-            'sort_order' => $data['sort_order'] ?? ($slide ? $slide->sort_order : 1),
+            'sort_order' => $data['sort_order'] ?? ($slide ? $slide->sort_order : ((int) HomeCarouselSlide::where('section_key', $data['section_key'])->max('sort_order') + 1)),
             'overlay_items' => $data['overlay_items'] ?? [],
         ];
 
@@ -225,8 +244,35 @@ class HomeCarouselController extends Controller
 
     public function destroy(HomeCarouselSlide $slide)
     {
+        $sectionKey = $slide->section_key;
         $slide->delete();
+        HomeCarouselSlide::where('section_key', $sectionKey)->orderBy('sort_order')->orderBy('id')->get()
+            ->each(fn($remainingSlide, $index) => $remainingSlide->update(['sort_order' => $index + 1]));
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->route('admin.home-carousel.index')->with('success', 'Carousel slide deleted.');
+    }
+
+    public function reorderSlides(Request $request)
+    {
+        $data = $request->validate([
+            'section_key' => 'required|in:hero,lookbook',
+            'slide_ids' => 'required|array|min:1',
+            'slide_ids.*' => 'required|integer|distinct',
+        ]);
+
+        $slides = HomeCarouselSlide::where('section_key', $data['section_key'])->get()->keyBy('id');
+        abort_unless($slides->count() === count($data['slide_ids']) && collect($data['slide_ids'])->every(fn($id) => $slides->has($id)), 422, 'Slide order does not match this carousel section.');
+
+        DB::transaction(function () use ($data, $slides) {
+            foreach ($data['slide_ids'] as $index => $id) {
+                $slides->get($id)->update(['sort_order' => $index + 1]);
+            }
+        });
+
+        return response()->json(['success' => true]);
     }
 
     public function storeTestimonial(Request $request)

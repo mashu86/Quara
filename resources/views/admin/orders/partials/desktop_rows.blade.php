@@ -26,6 +26,7 @@
         @php
             $modalItems = $order->items->map(function ($item) {
                 $imgUrl = $item->product ? $item->product->primary_image_url : \App\Models\Setting::logoUrl();
+                $sizeDetails = $item->productSize ?: $item->product?->sizes?->firstWhere('size', $item->size);
                 return [
                     'id' => $item->id,
                     'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
@@ -34,6 +35,19 @@
                     'unit_price' => $item->unit_price,
                     'final_unit_price' => $item->final_unit_price,
                     'image_url' => $imgUrl,
+                    'category' => $item->product?->category?->name,
+                    'description' => $item->product?->description,
+                    'catalog_price' => $item->product?->price,
+                    'discount_amount' => $item->discount_amount,
+                    'subtotal' => $item->subtotal,
+                    'item_status' => $item->item_status,
+                    'is_combo_offer' => $item->is_combo_offer,
+                    'measurements' => array_filter([
+                        'Chest' => $sizeDetails?->chest,
+                        'Waist' => $sizeDetails?->waist,
+                        'Hip' => $sizeDetails?->hip,
+                        'Length' => $sizeDetails?->length,
+                    ], fn ($value) => filled($value)),
                 ];
             });
         @endphp

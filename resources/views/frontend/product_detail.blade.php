@@ -474,8 +474,13 @@
                                             <span class="text-muted fw-normal ms-1" style="font-size:0.68rem;">(Out)</span>
                                         @endif
                                     </div>
-                                    @if($isDownGarment && ($pSize->hip || $pSize->length))
-                                        <div class="small mt-1" style="font-size:0.68rem;">{{ implode(' · ', array_filter([$pSize->hip ? 'Hip: '.$pSize->hip.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null])) }}</div>
+                                    @php
+                                        $sizeMeasurementParts = $isDownGarment
+                                            ? array_filter([$pSize->hip ? 'Hip: '.$pSize->hip.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null])
+                                            : array_filter([$pSize->chest ? 'Chest: '.$pSize->chest.'"' : null, $pSize->waist ? 'Waist: '.$pSize->waist.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null]);
+                                    @endphp
+                                    @if(count($sizeMeasurementParts))
+                                        <div class="small mt-1 text-secondary" style="font-size:0.68rem;">{{ implode(' · ', $sizeMeasurementParts) }}</div>
                                     @endif
                                 </label>
                             @empty

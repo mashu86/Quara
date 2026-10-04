@@ -297,7 +297,16 @@
             height: 100%;
             object-fit: cover;
             z-index: 0;
+            transition: opacity .45s ease, transform .65s ease;
         }
+
+        .qw-canvas-frame.is-default-preview img#canvasBgImage { opacity: .35; transform: scale(1.035); }
+        .qw-canvas-frame.is-default-preview .qw-canvas-elements-layer { opacity: 0; }
+        .qw-canvas-frame.is-default-preview .qw-canvas-arrow { pointer-events: auto; cursor: pointer; }
+        .qw-canvas-frame.is-default-preview .qw-canvas-dots { pointer-events: auto; }
+        .qw-canvas-frame.is-default-preview .qw-canvas-dots span { cursor: pointer; transition: all .25s ease; }
+        .qw-canvas-preview-title { position:absolute; z-index:3; left:8%; bottom:18%; max-width:75%; color:#fff; font:700 clamp(22px,4vw,48px) Georgia,serif; text-shadow:0 2px 12px #000; opacity:0; transform:translateY(12px); transition:opacity .35s ease,transform .35s ease; pointer-events:none; }
+        .qw-canvas-preview-title.visible { opacity:1; transform:translateY(0); }
 
         .qw-canvas-elements-layer {
             position: absolute;
@@ -403,7 +412,13 @@
             flex-direction: column;
             gap: 2px;
             transition: 0.15s;
+            position: relative;
         }
+
+        .qw-slide-thumb-card.is-dragging { opacity: .45; }
+        .qw-slide-thumb-card.drop-target { border-color: #6bb4ff; transform: scale(1.04); }
+        .qw-thumb-delete { position:absolute; z-index:3; top:2px; right:2px; width:20px; height:20px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; background:#a92335e8; color:#fff; font-size:10px; cursor:pointer; }
+        .qw-thumb-delete:hover { background:#dc3545; }
 
         .qw-slide-thumb-card.active, .qw-slide-thumb-card:hover {
             border-color: #f0c75e;
@@ -549,6 +564,34 @@
             padding: 1px !important;
             height: 24px !important;
         }
+
+        @media (max-width: 1050px) {
+            .qw-builder-navbar { height: auto; min-height: 54px; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+            .qw-builder-body { height: calc(100vh - 90px); }
+            .qw-navbar-left, .qw-navbar-center, .qw-navbar-right { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+            .qw-navbar-left { flex: 1 1 240px; }
+            .qw-navbar-center { flex: 1 1 260px; justify-content: center; }
+            .qw-navbar-right { flex: 1 1 100%; justify-content: flex-end; }
+            .qw-navbar-left .me-3 { margin-right: .35rem !important; }
+        }
+
+        @media (max-width: 600px) {
+            .qw-builder-body { height: calc(100vh - 118px); }
+            .qw-brand-title { font-size: .8rem; }
+            .qw-brand-sub { font-size: .62rem; }
+            .qw-navbar-left { flex-basis: 100%; }
+            .qw-navbar-center { flex-basis: 100%; justify-content: flex-start; }
+            .qw-navbar-right { flex-basis: 100%; justify-content: flex-start; }
+            .qw-navbar-right .btn { padding-inline: .55rem !important; font-size: .65rem; }
+            .qw-sidebar-wrapper { width: 145px; }
+            .qw-sidebar-wrapper.collapsed { width: 44px; }
+            .qw-drawer-panel { min-width: 101px; padding: 5px; }
+            .qw-inspector-panel { width: 132px; }
+            .qw-inspector-body { padding: 6px; }
+            .qw-canvas-viewport { padding: 8px 4px; }
+            .qw-slide-manager-strip { height: 76px; padding: 4px 6px; }
+            .qw-slide-thumb-card { flex-shrink: 0; }
+        }
     </style>
 </head>
 <body>
@@ -567,6 +610,7 @@
         </div>
 
         <div class="qw-navbar-center">
+            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 me-2" id="btnDefaultPreview" title="Preview the carousel with its default slide animation"><i class="fa-solid fa-play me-1"></i> Default</button>
             <div class="btn-group me-2">
                 <button type="button" class="btn btn-sm btn-dark" id="btnUndo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
                 <button type="button" class="btn btn-sm btn-dark" id="btnRedo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
@@ -583,6 +627,10 @@
         </div>
 
         <div class="qw-navbar-right">
+            <label class="form-check form-switch text-light small mb-0 me-2 d-flex align-items-center gap-2" title="Show or hide the hero carousel on the homepage">
+                <input class="form-check-input mt-0" type="checkbox" id="heroCarouselToggle" {{ $settings->enabled && ($sections->get('hero')?->enabled ?? true) ? 'checked' : '' }}>
+                <span>Hero carousel</span>
+            </label>
             <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" id="btnSaveDraft"><i class="fa-regular fa-bookmark me-1"></i> Save Draft</button>
             <a href="{{ route('home') }}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3" id="btnLivePreview"><i class="fa-regular fa-eye me-1"></i> Live Site</a>
             <button type="button" class="btn btn-sm btn-danger rounded-pill fw-bold px-4 shadow-sm" id="btnPublish"><i class="fa-solid fa-paper-plane me-1"></i> Publish Slide</button>
@@ -670,6 +718,8 @@
                 <!-- TEMPLATES TAB -->
                 <div class="qw-tab-content" id="tab-templates">
                     <h6 class="qw-drawer-title">Quick Start Templates</h6>
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 mb-2" id="btnGenerateSample">Generate sample text and button</button>
+                    <p class="small text-secondary">Only adds sample content when you choose it.</p>
                     <div class="qw-template-cards">
                         <div class="qw-template-card" data-template="new_arrivals">
                             <div class="qw-template-thumb bg-blush">
@@ -696,6 +746,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Upload Slide Image</label>
                         <input type="file" id="inputSlideImage" class="form-control form-control-sm" accept="image/*">
+                        <small class="d-block text-muted mt-2">Hero image: 1500 × 1000 px (3:2 landscape) recommended. Use a sharp, high-resolution image; keep key content near the center.</small>
                     </div>
                 </div>
 
@@ -774,21 +825,24 @@
                 <!-- Outer Aspect Frame matching Canva Canvas -->
                 <div class="qw-canvas-frame" id="canvasFrame">
                     <!-- Slide Background Image Layer -->
-                    <img id="canvasBgImage" src="{{ $slide?->image_url ?: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1440&auto=format&fit=crop' }}" alt="Background slide">
+                    <img id="canvasBgImage" src="{{ $slide?->image_url ?: '' }}" alt="Background slide" @if(!$slide?->image_url) hidden @endif>
                     
                     <!-- Decorative Canvas SVG Overlay -->
                     <div class="qw-canvas-art-layer" id="canvasArtLayer"></div>
 
                     <!-- Interactive Elements Container Layer -->
                     <div class="qw-canvas-elements-layer" id="canvasElementsLayer"></div>
+                    <div class="qw-canvas-preview-title" id="canvasPreviewTitle"></div>
                     
                     <!-- Navigation Arrows Preview -->
                     <div class="qw-canvas-arrow left-arrow"><i class="fa-solid fa-chevron-left"></i></div>
                     <div class="qw-canvas-arrow right-arrow"><i class="fa-solid fa-chevron-right"></i></div>
                     
                     <!-- Pagination Dots Preview -->
-                    <div class="qw-canvas-dots">
-                        <span class="active"></span><span></span><span></span><span></span>
+                    <div class="qw-canvas-dots" id="canvasPreviewDots">
+                        @foreach($slides->where('section_key', $builderSection) as $index => $previewSlide)
+                            <span class="{{ $index === 0 ? 'active' : '' }}" data-preview-index="{{ $index }}"></span>
+                        @endforeach
                     </div>
 
                     <!-- Mobile View Bounds Guide Overlay -->
@@ -801,14 +855,15 @@
             <!-- BOTTOM SLIDE MANAGER STRIP -->
             <div class="qw-slide-manager-strip">
                 <div class="d-flex justify-content-between align-items-center me-2">
-                    <span class="fw-bold small text-light"><i class="fa-solid fa-film me-1 text-warning"></i> Slides ({{ $slides->count() }})</span>
+                    <span class="fw-bold small text-light"><i class="fa-solid fa-film me-1 text-warning"></i> Slides ({{ $slides->where('section_key', $builderSection)->count() }}) <span class="text-secondary fw-normal">Drag to reorder</span></span>
                 </div>
                 <div class="qw-slide-thumbs-wrapper" id="slideThumbsList">
-                    @foreach($slides as $index => $item)
-                        <div class="qw-slide-thumb-card {{ ($slide?->id === $item->id) ? 'active' : '' }}" data-slide-id="{{ $item->id }}" data-slide-url="{{ route('admin.home-carousel.builder', $item->id) }}">
+                    @foreach($slides->where('section_key', $builderSection)->values() as $index => $item)
+                        <div class="qw-slide-thumb-card {{ ($slide?->id === $item->id) ? 'active' : '' }}" data-slide-id="{{ $item->id }}" data-slide-url="{{ route('admin.home-carousel.builder', $item->id) }}" draggable="true">
                             <div class="qw-thumb-img-wrap">
                                 <img src="{{ $item->image_url }}" alt="Slide {{ $index+1 }}">
                                 <span class="qw-thumb-num">{{ $index+1 }}</span>
+                                <button type="button" class="qw-thumb-delete" data-delete-url="{{ route('admin.home-carousel.slides.destroy', $item->id) }}" aria-label="Delete {{ $item->heading ?: 'slide ' . ($index + 1) }}" title="Delete slide"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                             <div class="qw-thumb-info">
                                 <span class="qw-thumb-title">{{ $item->heading ?: 'Slide #' . ($index+1) }}</span>
@@ -944,6 +999,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-light">Slide Image <span class="text-danger">*</span></label>
                     <input type="file" name="image" class="form-control" accept="image/*" required>
+                    <small class="d-block text-light opacity-75 mt-2">Hero: 1500 × 1000 px (3:2 landscape) recommended. Lookbook: 1200 × 800 px. JPG, PNG or WebP.</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-light">Slide Title</label>
@@ -963,8 +1019,9 @@
 (() => {
     // Current Slide & Carousel Data
     const currentSlideId = {{ $slide?->id ?? 'null' }};
-    const currentSectionKey = "{{ $slide?->section_key ?? 'hero' }}";
+    const currentSectionKey = "{{ $slide?->section_key ?? $builderSection }}";
     const initialOverlayItems = @json($slide?->overlay_items ?? []);
+    const carouselPreviewSlides = @json($slides->where('section_key', $builderSection)->values()->map(fn($item) => ['image' => $item->image_url, 'heading' => $item->heading])->all());
     
     // Canvas & Viewport References
     const canvasFrame = document.getElementById('canvasFrame');
@@ -979,18 +1036,55 @@
     let historyStack = [];
     let historyIndex = -1;
     let zoomScale = 1;
+    let defaultPreviewTimer = null;
+    const initialPreviewSlideIndex = Math.max(0, carouselPreviewSlides.findIndex(item => item.image === @json($slide?->image_url)));
+    let previewSlideIndex = initialPreviewSlideIndex;
+
+    function showPreviewSlide(index) {
+        if (!carouselPreviewSlides.length) return;
+        previewSlideIndex = (index + carouselPreviewSlides.length) % carouselPreviewSlides.length;
+        const item = carouselPreviewSlides[previewSlideIndex];
+        canvasBgImage.style.opacity = '0';
+        const previewTitle = document.getElementById('canvasPreviewTitle');
+        previewTitle.classList.remove('visible');
+        window.setTimeout(() => {
+            canvasBgImage.src = item.image || '';
+            canvasBgImage.hidden = !item.image;
+            previewTitle.textContent = item.heading || '';
+            canvasBgImage.style.opacity = '';
+            requestAnimationFrame(() => previewTitle.classList.toggle('visible', !!item.heading));
+        }, 180);
+        document.querySelectorAll('.qw-canvas-dots span').forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === previewSlideIndex));
+    }
+
+    function stopDefaultPreview() {
+        window.clearInterval(defaultPreviewTimer);
+        defaultPreviewTimer = null;
+        canvasFrame.classList.remove('is-default-preview');
+        document.getElementById('canvasPreviewTitle').classList.remove('visible');
+        document.getElementById('btnDefaultPreview').innerHTML = '<i class="fa-solid fa-play me-1"></i> Default';
+        canvasBgImage.src = @json($slide?->image_url ?: '');
+        canvasBgImage.hidden = !@json((bool) $slide?->image_url);
+        document.querySelectorAll('.qw-canvas-dots span').forEach((dot, index) => dot.classList.toggle('active', index === initialPreviewSlideIndex));
+    }
+
+    document.getElementById('btnDefaultPreview')?.addEventListener('click', () => {
+        if (defaultPreviewTimer) { stopDefaultPreview(); return; }
+        if (carouselPreviewSlides.length < 2) { alert('Add at least two slides to preview the carousel.'); return; }
+        canvasFrame.classList.add('is-default-preview');
+        document.getElementById('btnDefaultPreview').innerHTML = '<i class="fa-solid fa-stop me-1"></i> Stop Preview';
+        showPreviewSlide(previewSlideIndex);
+        defaultPreviewTimer = window.setInterval(() => showPreviewSlide(previewSlideIndex + 1), {{ (int) ($settings->interval_ms ?? 4000) }});
+    });
+    document.querySelector('.qw-canvas-arrow.left-arrow')?.addEventListener('click', () => { if (defaultPreviewTimer) showPreviewSlide(previewSlideIndex - 1); });
+    document.querySelector('.qw-canvas-arrow.right-arrow')?.addEventListener('click', () => { if (defaultPreviewTimer) showPreviewSlide(previewSlideIndex + 1); });
+    document.querySelectorAll('#canvasPreviewDots span').forEach(dot => dot.addEventListener('click', () => {
+        if (defaultPreviewTimer) showPreviewSlide(Number(dot.dataset.previewIndex));
+    }));
 
     // Load initial slide overlay items or default template
     function initCanvas() {
-        if (initialOverlayItems && initialOverlayItems.length > 0) {
-            elements = JSON.parse(JSON.stringify(initialOverlayItems));
-        } else {
-            elements = [
-                { id: 'el_1', type: 'text', text: 'New Arrivals', x: 12, y: 32, font: 'Playfair Display', size: 56, weight: '700', color: '#6B1E3F', bg: 'transparent', align: 'left', italic: false, underline: false, uppercase: false, linkHas: true, linkUrl: '/shop', animation: 'fade-up' },
-                { id: 'el_2', type: 'text', text: 'Trendy Styles for Every You', x: 12, y: 52, font: 'Lora', size: 24, weight: '400', color: '#21180a', bg: 'transparent', align: 'left', italic: true, underline: false, uppercase: false, linkHas: false, linkUrl: '', animation: 'fade-up' },
-                { id: 'el_3', type: 'button', text: 'SHOP NOW →', x: 12, y: 70, font: 'Inter', size: 15, weight: '800', color: '#ffffff', bg: '#6B1E3F', align: 'center', italic: false, underline: false, uppercase: true, linkHas: true, linkUrl: '/shop', animation: 'bounce', radius: 30, padding: 10 }
-            ];
-        }
+        elements = Array.isArray(initialOverlayItems) ? JSON.parse(JSON.stringify(initialOverlayItems)) : [];
         pushHistory();
         renderCanvas();
     }
@@ -1326,6 +1420,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 canvasBgImage.src = e.target.result;
+                canvasBgImage.hidden = false;
             };
             reader.readAsDataURL(this.files[0]);
         }
@@ -1446,6 +1541,33 @@
     }
 
     // Save Draft & Publish Buttons
+    document.getElementById('heroCarouselToggle')?.addEventListener('change', async event => {
+        const toggle = event.currentTarget;
+        toggle.disabled = true;
+        try {
+            const response = await fetch("{{ route('admin.home-carousel.hero-toggle') }}", {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: toggle.checked })
+            });
+            if (!response.ok) throw new Error('Could not update hero carousel.');
+        } catch (error) {
+            toggle.checked = !toggle.checked;
+            alert(error.message);
+        } finally { toggle.disabled = false; }
+    });
+
+    document.getElementById('btnGenerateSample')?.addEventListener('click', () => {
+        const stamp = Date.now();
+        elements = [
+            { id: `el_${stamp}_1`, type: 'text', text: 'New Arrivals', x: 12, y: 32, font: 'Playfair Display', size: 56, weight: '700', color: '#6B1E3F', bg: 'transparent', align: 'left', linkHas: false, linkUrl: '' },
+            { id: `el_${stamp}_2`, type: 'text', text: 'Trendy Styles for Every You', x: 12, y: 52, font: 'Lora', size: 24, weight: '400', color: '#21180a', bg: 'transparent', align: 'left', italic: true },
+            { id: `el_${stamp}_3`, type: 'button', text: 'SHOP NOW →', x: 12, y: 70, font: 'Inter', size: 15, weight: '800', color: '#ffffff', bg: '#6B1E3F', align: 'center', linkHas: true, linkUrl: '/shop', radius: 30, padding: 10 }
+        ];
+        pushHistory();
+        renderCanvas();
+    });
+
     document.getElementById('btnPublish')?.addEventListener('click', () => saveSlide('active'));
     document.getElementById('btnSaveDraft')?.addEventListener('click', () => saveSlide('inactive'));
 
@@ -1488,9 +1610,75 @@
     // Slide Thumbnails Switching
     document.querySelectorAll('.qw-slide-thumb-card').forEach(card => {
         card.addEventListener('click', (e) => {
+            if (e.target.closest('.qw-thumb-delete')) return;
             window.location.href = card.dataset.slideUrl;
         });
+
+        card.querySelector('.qw-thumb-delete')?.addEventListener('click', async event => {
+            event.stopPropagation();
+            if (!confirm('Delete this slide? This cannot be undone.')) return;
+            const button = event.currentTarget;
+            button.disabled = true;
+            try {
+                const response = await fetch(button.dataset.deleteUrl, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Could not delete this slide.');
+                window.location.href = "{{ route('admin.home-carousel.builder', ['section' => $builderSection]) }}";
+            } catch (error) {
+                button.disabled = false;
+                alert(error.message);
+            }
+        });
+
+        card.addEventListener('dragstart', event => {
+            if (event.target.closest('.qw-thumb-delete')) { event.preventDefault(); return; }
+            card.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', card.dataset.slideId);
+        });
+        card.addEventListener('dragend', () => {
+            card.classList.remove('is-dragging');
+            document.querySelectorAll('.qw-slide-thumb-card.drop-target').forEach(item => item.classList.remove('drop-target'));
+        });
+        card.addEventListener('dragover', event => {
+            event.preventDefault();
+            if (!card.classList.contains('is-dragging')) card.classList.add('drop-target');
+        });
+        card.addEventListener('dragleave', event => {
+            if (!card.contains(event.relatedTarget)) card.classList.remove('drop-target');
+        });
+        card.addEventListener('drop', event => {
+            event.preventDefault();
+            card.classList.remove('drop-target');
+            const dragged = document.querySelector('.qw-slide-thumb-card.is-dragging');
+            if (!dragged || dragged === card) return;
+            const bounds = card.getBoundingClientRect();
+            const insertAfter = event.clientX > bounds.left + bounds.width / 2;
+            card.parentElement.insertBefore(dragged, insertAfter ? card.nextSibling : card);
+            saveSlideOrder();
+        });
     });
+
+    async function saveSlideOrder() {
+        const slideIds = [...document.querySelectorAll('#slideThumbsList .qw-slide-thumb-card')].map(card => Number(card.dataset.slideId));
+        try {
+            const response = await fetch("{{ route('admin.home-carousel.slides.reorder') }}", {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section_key: currentSectionKey, slide_ids: slideIds })
+            });
+            if (!response.ok) throw new Error('Could not save slide order.');
+            document.querySelectorAll('#slideThumbsList .qw-slide-thumb-card').forEach((card, index) => {
+                const number = card.querySelector('.qw-thumb-num');
+                if (number) number.textContent = index + 1;
+            });
+        } catch (error) {
+            alert(error.message);
+            window.location.reload();
+        }
+    }
 
     // Add Slide Modal Trigger
     document.getElementById('btnAddSlideModal')?.addEventListener('click', () => {
@@ -1503,7 +1691,6 @@
         e.preventDefault();
         const formData = new FormData(this);
         formData.append('status', 'active');
-        formData.append('overlay_items', JSON.stringify([]));
 
         fetch("{{ route('admin.home-carousel.builder.save') }}", {
             method: 'POST',

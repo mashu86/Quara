@@ -193,7 +193,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/home-carousel', [AdminHomeCarouselController::class, 'index'])->name('home-carousel.index');
         Route::post('/home-carousel/settings', [AdminHomeCarouselController::class, 'updateSettings'])->name('home-carousel.settings');
         Route::get('/home-carousel/builder/{slide?}', [AdminHomeCarouselController::class, 'builder'])->name('home-carousel.builder');
+        Route::post('/home-carousel/hero-toggle', [AdminHomeCarouselController::class, 'toggleHero'])->name('home-carousel.hero-toggle');
         Route::post('/home-carousel/builder/save', [AdminHomeCarouselController::class, 'saveSlideFull'])->name('home-carousel.builder.save');
+        Route::post('/home-carousel/slides/reorder', [AdminHomeCarouselController::class, 'reorderSlides'])->name('home-carousel.slides.reorder');
         Route::post('/home-carousel/slides', [AdminHomeCarouselController::class, 'store'])->name('home-carousel.slides.store');
         Route::get('/home-carousel/slides/{slide}/edit', [AdminHomeCarouselController::class, 'edit'])->name('home-carousel.slides.edit');
         Route::put('/home-carousel/slides/{slide}', [AdminHomeCarouselController::class, 'update'])->name('home-carousel.slides.update');

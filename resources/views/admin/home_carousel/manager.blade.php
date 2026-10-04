@@ -6,6 +6,15 @@
     $currentSlideSection = old('section_key', $editing ? $slide->section_key : 'hero');
     $previewSlides = $slides->where('section_key', $currentSlideSection)->where('status', 'active');
     $previewSlide = $editing ? $slide : $previewSlides->first();
+    $sectionBuilderLinks = [
+        'hero' => route('admin.home-carousel.builder', ['slide' => $slides->firstWhere('section_key', 'hero')?->id, 'section' => 'hero']),
+        'categories' => route('admin.display-order.index'),
+        'new_arrivals' => route('admin.products.index'),
+        'best_sellers' => route('admin.products.index'),
+        'offers' => route('admin.offer-sale.index'),
+        'lookbook' => route('admin.home-carousel.builder', ['slide' => $slides->firstWhere('section_key', 'lookbook')?->id, 'section' => 'lookbook']),
+        'reviews' => route('admin.home-carousel.index') . '#customer-reviews',
+    ];
     $fontOptions = ['serif' => 'Georgia Serif', 'sans' => 'Arial Sans', 'trebuchet' => 'Trebuchet', 'classic' => 'Times New Roman', 'system' => 'System Default'];
     $fontCss = ['serif' => 'Georgia, serif', 'sans' => 'Arial, sans-serif', 'trebuchet' => 'Trebuchet MS, sans-serif', 'classic' => 'Times New Roman, serif', 'system' => 'system-ui, sans-serif'];
     $previewSlidesJson = $slides->where('status', 'active')->groupBy('section_key')->map(fn($group) => $group->map(fn($item) => ['image' => $item->image_url, 'heading' => $item->heading, 'subheading' => $item->subheading, 'heading_color' => $item->heading_color, 'subheading_color' => $item->subheading_color, 'font' => $item->heading_font])->values());
@@ -26,14 +35,15 @@
                 <h5 class="fw-bold mb-1">Section order and visibility</h5>
                 <p class="small text-muted">Categories, products, offers, lookbook, reviews etc. will be displayed as card carousels after the hero banner.</p>
                 <div class="table-responsive"><table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>Section</th><th>Show</th><th>Order</th><th>Items</th></tr></thead><tbody>
+                    <thead><tr><th>Section</th><th>Show</th><th>Order</th><th>Items</th><th>Builder</th></tr></thead><tbody>
                     @foreach(\App\Models\HomePageSection::TITLES as $key => $label)
                         @php($section = $sections->get($key))
                         <tr>
                             <td class="fw-semibold">{{ $label }} @if($key === 'hero')<span class="badge bg-warning text-dark">Recommended</span>@endif</td>
-                            <td>@if($key === 'hero')<input type="checkbox" class="form-check-input" name="enabled" value="1" id="heroEnabled" {{ old('enabled', $settings->enabled) ? 'checked' : '' }}>@else<input type="checkbox" class="form-check-input" name="sections[{{ $key }}][enabled]" value="1" {{ old("sections.$key.enabled", $section?->enabled) ? 'checked' : '' }}>@endif</td>
+                            <td><div class="form-check form-switch mb-0">@if($key === 'hero')<input type="checkbox" class="form-check-input" name="enabled" value="1" id="heroEnabled" {{ old('enabled', $settings->enabled) ? 'checked' : '' }}>@else<input type="checkbox" class="form-check-input" name="sections[{{ $key }}][enabled]" value="1" {{ old("sections.$key.enabled", $section?->enabled) ? 'checked' : '' }}>@endif</div></td>
                             <td><input type="number" class="form-control form-control-sm" name="sections[{{ $key }}][sort_order]" min="1" max="99" value="{{ old("sections.$key.sort_order", $section?->sort_order ?? 1) }}" required></td>
                             <td><input type="number" class="form-control form-control-sm" name="sections[{{ $key }}][items_to_show]" min="1" max="30" value="{{ old("sections.$key.items_to_show", $section?->items_to_show ?? 8) }}" required></td>
+                            <td><a class="btn btn-sm btn-outline-danger" href="{{ $sectionBuilderLinks[$key] }}" title="Open {{ $label }} carousel builder" aria-label="Open {{ $label }} carousel builder"><i class="fa-solid fa-door-open"></i></a></td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -50,7 +60,7 @@
                     <div class="col-6 col-md-3"><label class="form-label small">Items tablet</label><input class="form-control" type="number" name="items_tablet" min="1" max="4" step="0.1" value="{{ old('items_tablet', $settings->items_tablet ?? 1.2) }}" required></div>
                     <div class="col-6 col-md-3"><label class="form-label small">Items mobile</label><input class="form-control" type="number" name="items_mobile" min="1" max="2" step="0.05" value="{{ old('items_mobile', $settings->items_mobile ?? 1.05) }}" required></div>
                     <div class="col-6 col-md-3"><label class="form-label small">Card gap (px)</label><input class="form-control" type="number" name="margin_px" min="0" max="60" step="1" value="{{ old('margin_px', $settings->margin_px ?? 14) }}" required></div>
-                    <div class="col-6 col-md-3"><label class="form-label small">Slide speed (ms)</label><input class="form-control" type="number" name="smart_speed_ms" min="60" max="2000" step="1" value="{{ old('smart_speed_ms', $settings->smart_speed_ms ?? 450) }}" required></div>
+                    <div class="col-6 col-md-3"><label class="form-label small">Hero transition (ms)</label><input class="form-control" type="number" name="smart_speed_ms" min="60" max="2000" step="1" value="{{ old('smart_speed_ms', $settings->smart_speed_ms ?? 600) }}" required><small class="text-muted">Default: 600 ms. Autoplay delay: 5 seconds.</small></div>
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3">
                     @foreach(['loop'=>'Loop slides','center_mode'=>'Center active slide','show_nav'=>'Show arrows','show_dots'=>'Show dots','autoplay'=>'Autoplay','pause_on_hover'=>'Pause on hover'] as $option => $label)
@@ -151,7 +161,7 @@
     </section>
 </div>
 
-<div class="card border-0 rounded-4 shadow-sm"><div class="card-body p-3 p-lg-4">
+<div class="card border-0 rounded-4 shadow-sm" id="customer-reviews"><div class="card-body p-3 p-lg-4">
     <h5 class="fw-bold mb-1">Customer Reviews</h5><p class="small text-muted">Add approved customer reviews for the last carousel section. No reviews are shown until active entries are added.</p>
     <form action="{{ route('admin.home-carousel.testimonials.store') }}" method="POST" class="row g-2 align-items-end mb-3">@csrf
         <div class="col-md-2"><label class="form-label small fw-semibold">Customer</label><input class="form-control" name="customer_name" maxlength="120" required></div>

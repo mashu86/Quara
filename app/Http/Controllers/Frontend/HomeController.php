@@ -24,7 +24,8 @@ class HomeController extends Controller
             ->where('status', 'active')
             ->first();
 
-        $carouselSettings = HomeCarouselSetting::first();
+        $carouselSettings = HomeCarouselSetting::current();
+        HomePageSection::syncDefaults();
         $homeSections = HomePageSection::orderBy('sort_order')->get()->keyBy('section_key');
 
         $categories = Category::publicActive()->withCount(['products' => function ($q) {

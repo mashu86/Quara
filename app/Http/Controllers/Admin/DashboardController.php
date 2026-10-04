@@ -88,11 +88,13 @@ class DashboardController extends Controller
                 ->sum('quantity');
         }
 
+        $saleExpr = "COALESCE(sale_date, created_at)";
+
         // Daily cards use the selected day (Asia/Kolkata timezone).
         $todayGrossSales = (float) (clone $realOrdersQuery)
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate)
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($saleExpr), $selectedDate)
             ->sum('grand_total');
 
         $todayRefunds = (float) (clone $refundsQuery)->whereDate('refund_date', $selectedDate)->sum('refund_amount');
@@ -105,15 +107,18 @@ class DashboardController extends Controller
         $todayPaidOrdersQuery = (clone $realOrdersQuery)
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate);
+            ->whereDate(\Illuminate\Support\Facades\DB::raw($saleExpr), $selectedDate);
+
+        $todayPaidOrdersList = (clone $todayPaidOrdersQuery)
+            ->orderBy(\Illuminate\Support\Facades\DB::raw($saleExpr), 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
 
         $todayOrdersCount = (int) (clone $todayPaidOrdersQuery)->count();
         $todayBookingsCount = Product::where('is_out_of_stock', 1)->count();
 
         // Today Sold Products Pcs
-        $todaySuccessOrderIds = (clone $successOrdersQuery)
-            ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), $selectedDate)
-            ->pluck('id');
+        $todaySuccessOrderIds = (clone $todayPaidOrdersQuery)->pluck('id');
 
         $todaySoldProductsPcs = 0;
         if (count($todaySuccessOrderIds) > 0) {
@@ -164,7 +169,7 @@ class DashboardController extends Controller
 
         // Calculate All-Time Highest Sales Day
         $dailySalesData = Order::query()
-            ->selectRaw("DATE(COALESCE(sale_date, created_at)) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
+            ->selectRaw("DATE({$saleExpr}) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
             ->whereNotIn('id', $inactiveOrderIds)
             ->where(function ($q) {
                 $q->whereNull('customer_phone')
@@ -172,7 +177,7 @@ class DashboardController extends Controller
             })
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->groupBy(\Illuminate\Support\Facades\DB::raw('DATE(COALESCE(sale_date, created_at))'))
+            ->groupBy(\Illuminate\Support\Facades\DB::raw("DATE({$saleExpr})"))
             ->get();
 
         $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
@@ -231,6 +236,7 @@ class DashboardController extends Controller
             'todayRefunds',
             'todayExpenses',
             'todayOrdersCount',
+            'todayPaidOrdersList',
             'todayBookingsCount',
             'allTimeCapital',
             'allTimeTotalRevenue',

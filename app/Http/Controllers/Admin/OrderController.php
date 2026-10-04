@@ -40,8 +40,9 @@ class OrderController extends Controller
         }
 
         // Today's Sales Stats (Asia/Kolkata Timezone)
+        $saleExpr = "COALESCE(sale_date, created_at)";
         $todayDateStr = \Carbon\Carbon::now('Asia/Kolkata')->toDateString();
-        $todayQuery = (clone $baseSalesQuery)->whereDate(DB::raw('COALESCE(sale_date, created_at)'), $todayDateStr);
+        $todayQuery = (clone $baseSalesQuery)->whereDate(DB::raw($saleExpr), $todayDateStr);
         $todayGrossAmount = (float) $todayQuery->sum('grand_total');
         $todayRefunds = (float) \App\Models\OrderRefund::whereDate('refund_date', $todayDateStr)->sum('refund_amount');
 
@@ -53,7 +54,7 @@ class OrderController extends Controller
 
         // Calculate All-Time Highest Sales Day
         $dailySalesData = Order::query()
-            ->selectRaw("DATE(COALESCE(sale_date, created_at)) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
+            ->selectRaw("DATE({$saleExpr}) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
             ->whereNotIn('id', $inactiveOrderIds)
             ->where(function ($q) {
                 $q->whereNull('customer_phone')
@@ -61,7 +62,7 @@ class OrderController extends Controller
             })
             ->whereIn('payment_status', ['paid', 'completed'])
             ->where('order_status', '!=', 'cancelled')
-            ->groupBy(DB::raw('DATE(COALESCE(sale_date, created_at))'))
+            ->groupBy(DB::raw("DATE({$saleExpr})"))
             ->get();
 
         $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
@@ -255,6 +256,7 @@ class OrderController extends Controller
 
         return view('admin.orders.index', compact(
             'orders',
+            'todayDateStr',
             'todayGrossAmount',
             'todayRefunds',
             'todaySalesAmount',

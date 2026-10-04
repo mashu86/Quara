@@ -139,8 +139,13 @@
 <!-- Selected day metrics -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
-        <div class="stat-card admin-dash-stat-card bg-white border h-100">
-            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Actual {{ $dailyLabel }} Sale</span>
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 position-relative">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Actual {{ $dailyLabel }} Sale</span>
+                <button type="button" class="btn btn-link p-0 text-warning text-decoration-none shadow-none ms-1" data-bs-toggle="modal" data-bs-target="#todayPaidSalesModal" title="View Today's Paid Sales List">
+                    <i class="fa-solid fa-coins fs-6"></i>
+                </button>
+            </div>
             <h6 class="admin-dash-stat-val fw-bold text-success">₹{{ number_format($todayGrossSales, 2) }}</h6>
             <span class="admin-dash-stat-sub text-muted">Online & Offline</span>
         </div>
@@ -466,6 +471,82 @@
         </div>
     </div>
     --}}
+</div>
+
+<!-- Modal for Today's Paid Sales -->
+<div class="modal fade" id="todayPaidSalesModal" tabindex="-1" aria-labelledby="todayPaidSalesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2" id="todayPaidSalesModalLabel">
+                    <i class="fa-solid fa-coins text-warning"></i> Today's Paid Sales List ({{ $selectedDateLabel }})
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                    <span class="small text-muted fw-semibold">Paid Orders: <strong class="text-dark">{{ count($todayPaidOrdersList) }}</strong></span>
+                    <span class="small text-muted fw-semibold">Total Paid Amount: <strong class="text-success">₹{{ number_format($todayGrossSales, 2) }}</strong></span>
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light sticky-top" style="font-size: 0.75rem;">
+                            <tr>
+                                <th class="ps-3">#</th>
+                                <th>CUSTOMER NAME</th>
+                                <th>STATUS</th>
+                                <th>TIME</th>
+                                <th class="text-end">AMOUNT</th>
+                                <th class="text-end pe-3">RUNNING TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $runningTotal = 0; @endphp
+                            @forelse($todayPaidOrdersList as $index => $order)
+                                @php 
+                                    $runningTotal += $order->grand_total; 
+                                    $orderTime = ($order->sale_date ?? $order->created_at)->format('h:i A');
+                                @endphp
+                                <tr>
+                                    <td class="ps-3 text-muted" style="font-size: 0.78rem;">{{ $index + 1 }}</td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $order->customer_name ?: 'Guest Customer' }}</div>
+                                        @if($order->customer_phone)
+                                            <div class="text-muted" style="font-size: 0.72rem;">{{ $order->customer_phone }}</div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill text-capitalize" style="font-size: 0.7rem;">
+                                            <i class="fa-solid fa-circle-check me-1" style="font-size: 0.6rem;"></i>{{ $order->payment_status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted" style="font-size: 0.8rem;">
+                                        <i class="fa-regular fa-clock me-1 text-muted"></i>{{ $orderTime }}
+                                    </td>
+                                    <td class="text-end fw-semibold text-dark">
+                                        ₹{{ number_format($order->grand_total, 2) }}
+                                    </td>
+                                    <td class="text-end pe-3 fw-bold text-success">
+                                        ₹{{ number_format($runningTotal, 2) }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fa-solid fa-inbox fs-3 mb-2 d-block text-secondary"></i>
+                                        No paid orders found for {{ $selectedDateLabel }}.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 

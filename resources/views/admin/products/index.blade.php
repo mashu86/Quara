@@ -176,9 +176,11 @@
             <div class="col-lg-2">
                 <select name="category_id" class="form-select rounded-3">
                     <option value="">All Categories</option>
-                    @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ request()->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ request()->category_id == $cat->id ? 'selected' : '' }}>
+                                    {{ ($cat->is_offer_category || $cat->is_combo_offer) ? '👑 ' . $cat->name . ' (Offer Category)' : $cat->name }}
+                                </option>
+                            @endforeach
                 </select>
             </div>
             <div class="col-lg-2">
@@ -234,7 +236,9 @@
                         <select name="category_id" class="form-select rounded-3">
                             <option value="">All Categories</option>
                             @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}" {{ request()->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                <option value="{{ $cat->id }}" {{ request()->category_id == $cat->id ? 'selected' : '' }}>
+                                    {{ ($cat->is_offer_category || $cat->is_combo_offer) ? '👑 ' . $cat->name . ' (Offer Category)' : $cat->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>

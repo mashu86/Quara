@@ -588,12 +588,11 @@ window.openImagePreviewModal = function(imageUrl, title) {
                 @endif
 
                 @if($order->payment_status !== 'paid' && ($order->payment_method === 'online' || $order->razorpay_order_id))
-                    <form action="{{ route('admin.orders.recheck-razorpay', $order->id) }}" method="POST" class="mt-2.5">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-bold py-1.5 shadow-sm" style="font-size: 0.75rem;">
+                    <div class="mt-2.5">
+                        <button type="button" onclick="syncRazorpayOrder(this, {{ $order->id }}, '{{ route('admin.orders.recheck-razorpay', $order->id) }}')" class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-bold py-1.5 shadow-sm" style="font-size: 0.75rem;">
                             <i class="fa-solid fa-arrows-rotate me-1 text-primary"></i> Re-check Razorpay Status
                         </button>
-                    </form>
+                    </div>
                 @endif
 
                 @if($order->payment_method === 'online' || $order->razorpay_total_charge > 0)
@@ -781,4 +780,44 @@ window.openImagePreviewModal = function(imageUrl, title) {
 </div>
 
 @include('admin.orders.partials.courier-label')
+
+<script>
+function syncRazorpayOrder(btn, orderId, url) {
+    if (!confirm('Sync and verify this order with Razorpay API?')) return;
+
+    const icon = btn.querySelector('i');
+    const originalIconClass = icon ? icon.className : '';
+    btn.disabled = true;
+    if (icon) icon.className = 'fa-solid fa-spinner fa-spin me-1';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken || '',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        if (icon) icon.className = originalIconClass;
+
+        if (data.success) {
+            alert('✓ ' + (data.message || 'Razorpay order sync completed successfully.'));
+            window.location.reload();
+        } else {
+            alert('ℹ ' + (data.message || 'Razorpay check returned no matching payment.'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        if (icon) icon.className = originalIconClass;
+        alert('An error occurred while syncing with Razorpay. Please try again.');
+    });
+}
+</script>
 @endsection

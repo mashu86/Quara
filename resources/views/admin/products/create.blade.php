@@ -133,10 +133,17 @@
                                     <div id="categoryListContainer" style="max-height: 230px; overflow-y: auto;">
                                         @php $oldCategoryIds = old('category_ids', old('category_id') ? [old('category_id')] : ($retainedCategoryIds ?? request('category_ids', []))); @endphp
                                         @foreach($categories as $cat)
+                                            @php $isOfferCat = $cat->is_offer_category || $cat->is_combo_offer; @endphp
                                             <label class="category-item d-flex align-items-center gap-2 py-2 px-2 rounded cursor-pointer user-select-none" style="cursor: pointer; transition: background 0.15s ease-in-out;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
                                                 <input class="form-check-input category-checkbox m-0 flex-shrink-0" type="checkbox" name="category_ids[]" value="{{ $cat->id }}" id="cat_cb_{{ $cat->id }}" onchange="updateCategorySelectionDisplay()" {{ in_array($cat->id, (array)$oldCategoryIds) ? 'checked' : '' }} style="width: 18px; height: 18px; cursor: pointer;">
-                                                <span class="text-dark small fw-medium flex-grow-1">
+                                                <span class="text-dark small fw-medium flex-grow-1 category-name-text">
+                                                    @if($isOfferCat)
+                                                        <span title="Offer Category">👑</span>
+                                                    @endif
                                                     {{ $cat->name }}
+                                                    @if($isOfferCat)
+                                                        <span class="badge bg-warning text-dark border border-warning ms-1" style="font-size: 0.65rem;"><i class="fa-solid fa-crown me-0.5"></i> Offer Category</span>
+                                                    @endif
                                                 </span>
                                             </label>
                                         @endforeach
@@ -656,7 +663,9 @@
         } else {
             const labels = Array.from(checkboxes).map(cb => {
                 const item = cb.closest('.category-item');
-                return item ? item.innerText.trim() : '';
+                if (!item) return '';
+                const nameEl = item.querySelector('.category-name-text');
+                return nameEl ? nameEl.innerText.replace(/Offer Category/g, '').trim() : item.innerText.trim();
             }).filter(Boolean);
 
             if (checkboxes.length === 1) {

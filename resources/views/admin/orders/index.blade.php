@@ -14,8 +14,33 @@
         <button type="button" onclick="previewBlankCourierAddress()" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1.5 fw-semibold shadow-sm" style="font-size: 0.78rem;" title="Print Blank Courier Shipping Label">
             <i class="fa-solid fa-print text-warning me-1"></i> Print Blank Label
         </button>
-    </div>
 </div>
+
+@if(!empty($isTodayHighestSalesDay))
+    <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #047857 100%);">
+        <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                    <span class="fs-3">🎉</span>
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-0.5 text-uppercase mb-1" style="font-size: 0.68rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-crown me-1"></i> ALL-TIME HIGHEST RECORD DAY!
+                    </span>
+                    <h5 class="fw-bold mb-1 text-white text-uppercase" style="font-size: 1.05rem; letter-spacing: 0.3px;">
+                        Congratulations! Today is your highest sales day ever!
+                    </h5>
+                    <p class="text-white-50 small mb-0">
+                        Today's Total Net Sales: <strong class="text-white">₹{{ number_format($todaySalesAmount, 2) }}</strong> ({{ $todayOrdersCount }} Orders, {{ $todayProductsCount }} Pcs) &middot; Highest single-day record achieved!
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('admin.orders.index', ['start_date' => $todayDateStr, 'end_date' => $todayDateStr]) }}" class="btn btn-warning rounded-pill px-3 py-2 fw-bold text-dark text-nowrap btn-sm shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                <i class="fa-solid fa-receipt me-1"></i> View Today's Orders
+            </a>
+        </div>
+    </div>
+@endif
 
 @php
     $activeOrderFilterCount = (request()->filled('search') ? 1 : 0)
@@ -122,6 +147,37 @@
                     </div>
                     <div class="d-flex align-items-center justify-content-center bg-light border rounded-3 text-dark flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
                         <i class="fa-solid fa-bag-shopping fs-6"></i>
+                    </div>
+                </div>
+            </div>
+    <!-- All-Time Highest Sales Day Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-warning h-100">
+            <div class="card-body p-2.5 p-sm-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-warning-emphasis text-uppercase fw-bold text-truncate me-1" style="font-size: 0.68rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-crown text-warning me-1"></i> Highest Sales Day Ever
+                    </span>
+                    @if(!empty($highestSalesDay))
+                        <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5 fw-bold flex-shrink-0" style="font-size: 0.65rem;">{{ $highestSalesDay['orders_count'] }} Orders</span>
+                    @endif
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        @if(!empty($highestSalesDay))
+                            <h4 class="fw-bold mb-0 text-warning-emphasis fs-5">₹{{ number_format($highestSalesDay['amount'], 2) }}</h4>
+                            <div class="text-muted mt-1" style="font-size: 0.7rem;">
+                                <a href="{{ route('admin.orders.index', ['start_date' => $highestSalesDay['date'], 'end_date' => $highestSalesDay['date']]) }}" class="text-warning fw-bold text-decoration-none" title="Filter orders for {{ $highestSalesDay['date_formatted'] }}">
+                                    <i class="fa-regular fa-calendar-check me-1"></i> {{ $highestSalesDay['date_formatted'] }} &rarr;
+                                </a>
+                            </div>
+                        @else
+                            <h4 class="fw-bold mb-0 text-muted fs-5">₹0.00</h4>
+                            <div class="text-muted mt-1" style="font-size: 0.7rem;">No sales data yet</div>
+                        @endif
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-10 rounded-3 text-warning flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
+                        <i class="fa-solid fa-trophy fs-6"></i>
                     </div>
                 </div>
             </div>
@@ -893,6 +949,44 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+function syncRazorpayOrder(btn, orderId, url) {
+    if (!confirm('Sync and verify this order with Razorpay API?')) return;
+
+    const icon = btn.querySelector('i');
+    const originalIconClass = icon ? icon.className : '';
+    btn.disabled = true;
+    if (icon) icon.className = 'fa-solid fa-spinner fa-spin fs-6';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken || '',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        if (icon) icon.className = originalIconClass;
+
+        if (data.success) {
+            alert('✓ ' + (data.message || 'Razorpay order sync completed successfully.'));
+            window.location.reload();
+        } else {
+            alert('ℹ ' + (data.message || 'Razorpay check returned no matching payment.'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        if (icon) icon.className = originalIconClass;
+        alert('An error occurred while syncing with Razorpay. Please try again.');
+    });
+}
 </script>
 
 @include('admin.orders.partials.courier-label')

@@ -49,7 +49,7 @@
                                 <button class="btn btn-sm btn-link p-0 text-decoration-none text-danger" type="button" id="removeAllCategories">Remove all</button>
                             </div>
                             @foreach($categories as $category)
-                                <label class="d-flex align-items-center gap-2 py-1 mb-1"><input class="form-check-input m-0 category-option" type="checkbox" name="category_ids[]" value="{{ $category->id }}" data-name="{{ $category->name }}"> <span>{{ $category->name }}</span></label>
+                                <label class="d-flex align-items-center gap-2 py-1 mb-1"><input class="form-check-input m-0 category-option" type="checkbox" name="category_ids[]" value="{{ $category->id }}" data-name="{{ $category->name }}"> <span>@if($category->is_offer_category || $category->is_combo_offer)👑 @endif{{ $category->name }}</span></label>
                             @endforeach
                         </div>
                     </div>

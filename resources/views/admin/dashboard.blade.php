@@ -87,6 +87,32 @@
     </div>
 </div>
 
+@if(!empty($isTodayHighestSalesDay))
+    <div class="card border-0 rounded-4 shadow-sm mb-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #047857 100%);">
+        <div class="card-body p-3.5 p-md-4 d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 54px; height: 54px;">
+                    <span class="fs-2">🎉</span>
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-crown me-1"></i> ALL-TIME HIGHEST RECORD DAY!
+                    </span>
+                    <h4 class="fw-bold mb-1 text-white text-uppercase" style="font-size: 1.12rem; letter-spacing: 0.3px;">
+                        Congratulations! Today is your highest sales day ever!
+                    </h4>
+                    <p class="text-white-50 small mb-0">
+                        Net Sales Today: <strong class="text-white fs-6">₹{{ number_format($todaySales, 2) }}</strong> ({{ $todayOrdersCount }} Orders, {{ $todaySoldProductsPcs }} Pcs) &middot; Your business achieved its highest single-day record!
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('admin.orders.index', ['start_date' => $selectedDate, 'end_date' => $selectedDate]) }}" class="btn btn-warning rounded-pill px-4 py-2.5 fw-bold text-dark text-nowrap shadow-sm" style="font-size: 0.85rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">
+                <i class="fa-solid fa-receipt me-1.5"></i> View Today's Orders &rarr;
+            </a>
+        </div>
+    </div>
+@endif
+
 <div class="card border-0 rounded-4 shadow-sm mb-3">
     <div class="card-body p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
@@ -231,6 +257,25 @@
             <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">Total Sold Products</span>
             <h6 class="admin-dash-stat-val fw-bold text-warning-emphasis">{{ number_format($totalSoldProductsPcs) }} Pcs</h6>
             <span class="admin-dash-stat-sub text-muted">Items Delivered / Sold</span>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="stat-card admin-dash-stat-card bg-white border h-100 border-start border-3 border-warning">
+            <span class="admin-dash-stat-title text-muted text-uppercase fw-bold">
+                <i class="fa-solid fa-crown text-warning me-1"></i> Highest Sales Day
+            </span>
+            @if(!empty($highestSalesDay))
+                <h6 class="admin-dash-stat-val fw-bold text-warning-emphasis">
+                    ₹{{ number_format($highestSalesDay['amount'], 2) }}
+                </h6>
+                <a href="{{ route('admin.orders.index', ['start_date' => $highestSalesDay['date'], 'end_date' => $highestSalesDay['date']]) }}" class="admin-dash-stat-sub text-warning fw-bold text-decoration-none" title="Click to view orders from {{ $highestSalesDay['date_formatted'] }}">
+                    {{ $highestSalesDay['date_formatted'] }} ({{ $highestSalesDay['orders_count'] }} Orders) &rarr;
+                </a>
+            @else
+                <h6 class="admin-dash-stat-val fw-bold text-muted">₹0.00</h6>
+                <span class="admin-dash-stat-sub text-muted">No sales records yet</span>
+            @endif
         </div>
     </div>
 

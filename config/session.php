@@ -18,9 +18,10 @@ return [
     |
     */
 
-    // File sessions avoid making every request depend on database access to
-    // the sessions table, which may be restricted on shared hosting.
-    'driver' => env('SESSION_DRIVER', 'file'),
+    // Use filesystem sessions because this deployment's database user cannot
+    // reliably read the sessions table. This must not be overridden by a stale
+    // SESSION_DRIVER=database value in the hosting environment.
+    'driver' => 'file',
 
     /*
     |--------------------------------------------------------------------------

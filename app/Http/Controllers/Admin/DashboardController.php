@@ -162,6 +162,47 @@ class DashboardController extends Controller
         // Dummy / Test Orders listing for separate tab
         $dummyOrders = (clone $dummyOrdersQuery)->orderBy(\Illuminate\Support\Facades\DB::raw('COALESCE(sale_date, created_at)'), 'desc')->orderBy('id', 'desc')->take(10)->get();
 
+        // Calculate All-Time Highest Sales Day
+        $dailySalesData = Order::query()
+            ->selectRaw("DATE(COALESCE(sale_date, created_at)) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
+            ->whereNotIn('id', $inactiveOrderIds)
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            })
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->groupBy(\Illuminate\Support\Facades\DB::raw('DATE(COALESCE(sale_date, created_at))'))
+            ->get();
+
+        $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw("DATE(refund_date) as refund_day, SUM(refund_amount) as total_refund")
+            ->groupBy(\Illuminate\Support\Facades\DB::raw('DATE(refund_date)'))
+            ->pluck('total_refund', 'refund_day');
+
+        $highestSalesDay = null;
+        $maxNetSales = 0;
+
+        foreach ($dailySalesData as $row) {
+            $dStr = $row->sale_day;
+            $ref = (float) ($dailyRefundsData[$dStr] ?? 0);
+            $net = max(0, (float)$row->gross_sales - $ref);
+            if ($net > $maxNetSales) {
+                $maxNetSales = $net;
+                $highestSalesDay = [
+                    'date' => $dStr,
+                    'date_formatted' => Carbon::parse($dStr)->format('d M Y'),
+                    'amount' => $net,
+                    'orders_count' => (int) $row->orders_count,
+                ];
+            }
+        }
+
+        $isTodayHighestSalesDay = false;
+        if ($highestSalesDay && $maxNetSales > 0 && ($selectedDate === $highestSalesDay['date'] || ($selectedDate === $todayStr && $todaySales >= $maxNetSales))) {
+            $isTodayHighestSalesDay = true;
+        }
+
         $unreadNotifications = Notification::where('is_read', false)->orderBy('id', 'desc')->get();
 
         return view('admin.dashboard', compact(
@@ -202,7 +243,9 @@ class DashboardController extends Controller
             'newOrders',
             'recentOrders',
             'dummyOrders',
-            'unreadNotifications'
+            'unreadNotifications',
+            'highestSalesDay',
+            'isTodayHighestSalesDay'
         ));
     }
 }

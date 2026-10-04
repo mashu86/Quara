@@ -282,9 +282,17 @@ class ProductController extends Controller
             $categoryIds = [$request->category_id];
         }
 
-        $offerIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
         $selectedOfferId = $request->filled('combo_category_id') ? (int) $request->input('combo_category_id') : null;
-        if ($offerIds->count() > 1 || ($offerIds->isNotEmpty() && $selectedOfferId && !$offerIds->contains($selectedOfferId))) {
+        $allOfferIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
+
+        if ($selectedOfferId) {
+            $categoryIds = array_values(array_filter($categoryIds, fn ($id) => !$allOfferIds->contains((int)$id) || (int)$id === $selectedOfferId));
+            $offerIds = collect([$selectedOfferId]);
+        } else {
+            $offerIds = $allOfferIds;
+        }
+
+        if ($offerIds->count() > 1) {
             return back()->withErrors(['category_ids' => 'Select at most one Offer Category.'])->withInput();
         }
         if (!$selectedOfferId && $offerIds->isNotEmpty()) $selectedOfferId = (int) $offerIds->first();
@@ -468,9 +476,17 @@ class ProductController extends Controller
             $categoryIds = [$request->category_id];
         }
 
-        $offerIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
         $selectedOfferId = $request->filled('combo_category_id') ? (int) $request->input('combo_category_id') : null;
-        if ($offerIds->count() > 1 || ($offerIds->isNotEmpty() && $selectedOfferId && !$offerIds->contains($selectedOfferId))) {
+        $allOfferIds = Category::whereIn('id', $categoryIds)->where(fn ($q) => $q->where('is_offer_category', true)->orWhere('is_combo_offer', true))->pluck('id');
+
+        if ($selectedOfferId) {
+            $categoryIds = array_values(array_filter($categoryIds, fn ($id) => !$allOfferIds->contains((int)$id) || (int)$id === $selectedOfferId));
+            $offerIds = collect([$selectedOfferId]);
+        } else {
+            $offerIds = $allOfferIds;
+        }
+
+        if ($offerIds->count() > 1) {
             return back()->withErrors(['category_ids' => 'Select at most one Offer Category.'])->withInput();
         }
         if (!$selectedOfferId && $offerIds->isNotEmpty()) $selectedOfferId = (int) $offerIds->first();

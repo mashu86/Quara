@@ -128,7 +128,11 @@
                                             <div class="form-check m-0 d-flex align-items-center gap-2">
                                                 <input class="form-check-input category-checkbox m-0" type="checkbox" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="filterProductsByCategory()">
                                                 <label class="form-check-label small fw-medium text-dark text-truncate flex-grow-1" for="cat_{{ $cat->id }}" title="{{ $cat->name }}" style="cursor: pointer;">
-                                                    {{ $cat->name }}
+                                                    @if($cat->is_offer_category || $cat->is_combo_offer)
+                                                        👑 {{ $cat->name }} (Offer Category)
+                                                    @else
+                                                        {{ $cat->name }}
+                                                    @endif
                                                 </label>
                                             </div>
                                         </div>

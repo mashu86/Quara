@@ -318,7 +318,7 @@
 
                                     <!-- Category Details -->
                                     <div class="p-2 text-center d-flex flex-column flex-grow-1">
-                                        <h6 class="fw-bold text-dark mb-1 text-truncate order-card-title" title="{{ $cat->name }}">{{ $cat->name }}</h6>
+                                        <h6 class="fw-bold text-dark mb-1 text-truncate order-card-title" title="{{ $cat->name }}">@if($cat->is_offer_category || $cat->is_combo_offer)<span class="text-warning me-0.5" title="Offer Category">👑</span>@endif{{ $cat->name }}</h6>
                                         <div class="d-flex justify-content-center align-items-center gap-1 mt-auto">
                                             <span class="badge bg-light text-dark border" style="font-size: 0.62rem;">{{ $cat->products_count }} Prods</span>
                                             @if($cat->is_active_offer)

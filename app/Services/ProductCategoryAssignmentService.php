@@ -31,7 +31,6 @@ class ProductCategoryAssignmentService
             }
             if (!$offerCategoryId && $requestedOfferIds->isNotEmpty()) {
                 $offerCategoryId = (int) $requestedOfferIds->first();
-                $normalCategoryIds = $normalCategoryIds->reject(fn ($id) => $id === $offerCategoryId)->values();
             }
             $offerCategory = null;
             if ($offerCategoryId) {
@@ -41,7 +40,12 @@ class ProductCategoryAssignmentService
                 if (!$offerCategory) {
                     throw ValidationException::withMessages(['combo_category_id' => 'Select a valid Offer Category.']);
                 }
-                if ($normalCategoryIds->contains(fn ($id) => Category::whereKey($id)->value('is_offer_category') || Category::whereKey($id)->value('is_combo_offer'))) {
+                $otherOfferIds = $normalCategoryIds->reject(fn ($id) => (int) $id === (int) $offerCategoryId)
+                    ->filter(function ($id) {
+                        $category = Category::find($id);
+                        return $category && ($category->is_offer_category || $category->is_combo_offer);
+                    });
+                if ($otherOfferIds->isNotEmpty()) {
                     throw ValidationException::withMessages(['category_ids' => 'Select only one Offer Category.']);
                 }
                 // An offer category is exclusive, even if old rows contain stale assignments.

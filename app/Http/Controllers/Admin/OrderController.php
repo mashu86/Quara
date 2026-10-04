@@ -51,6 +51,47 @@ class OrderController extends Controller
             ->whereIn('item_status', ['active', 'exchanged'])
             ->sum('quantity');
 
+        // Calculate All-Time Highest Sales Day
+        $dailySalesData = Order::query()
+            ->selectRaw("DATE(COALESCE(sale_date, created_at)) as sale_day, SUM(grand_total) as gross_sales, COUNT(id) as orders_count")
+            ->whereNotIn('id', $inactiveOrderIds)
+            ->where(function ($q) {
+                $q->whereNull('customer_phone')
+                  ->orWhere('customer_phone', 'NOT LIKE', '%9544832975%');
+            })
+            ->whereIn('payment_status', ['paid', 'completed'])
+            ->where('order_status', '!=', 'cancelled')
+            ->groupBy(DB::raw('DATE(COALESCE(sale_date, created_at))'))
+            ->get();
+
+        $dailyRefundsData = \App\Models\OrderRefund::whereHas('orderOperation', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw("DATE(refund_date) as refund_day, SUM(refund_amount) as total_refund")
+            ->groupBy(DB::raw('DATE(refund_date)'))
+            ->pluck('total_refund', 'refund_day');
+
+        $highestSalesDay = null;
+        $maxNetSales = 0;
+
+        foreach ($dailySalesData as $row) {
+            $dStr = $row->sale_day;
+            $ref = (float) ($dailyRefundsData[$dStr] ?? 0);
+            $net = max(0, (float)$row->gross_sales - $ref);
+            if ($net > $maxNetSales) {
+                $maxNetSales = $net;
+                $highestSalesDay = [
+                    'date' => $dStr,
+                    'date_formatted' => \Carbon\Carbon::parse($dStr)->format('d M Y'),
+                    'amount' => $net,
+                    'orders_count' => (int) $row->orders_count,
+                ];
+            }
+        }
+
+        $isTodayHighestSalesDay = false;
+        if ($highestSalesDay && $maxNetSales > 0 && ($todayDateStr === $highestSalesDay['date'] || $todaySalesAmount >= $maxNetSales)) {
+            $isTodayHighestSalesDay = true;
+        }
+
         // Date Filter Logic for Selected Period / Month
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -225,7 +266,9 @@ class OrderController extends Controller
             'periodLabel',
             'startDate',
             'endDate',
-            'statusCounts'
+            'statusCounts',
+            'highestSalesDay',
+            'isTodayHighestSalesDay'
         ));
     }
 
@@ -580,19 +623,29 @@ class OrderController extends Controller
 
     public function recheckRazorpayStatus(Request $request, Order $order)
     {
+        $isAjax = $request->ajax() || $request->wantsJson();
         if ($order->order_status === 'cancelled') {
-            return back()->with('info', 'Cancelled orders are excluded from Razorpay checks.');
+            $msg = 'Cancelled orders are excluded from Razorpay checks.';
+            return $isAjax ? response()->json(['success' => false, 'message' => $msg]) : back()->with('info', $msg);
         }
         try {
             $service = app(\App\Services\RazorpayOrderService::class);
             $payment = $service->findPayment($order, trim($request->input('razorpay_payment_id', '')));
             if (!$payment) {
-                return back()->with('info', 'Razorpay returned no matching payment attempt. Order unchanged.');
+                $msg = 'Razorpay returned no matching payment attempt. Order unchanged.';
+                return $isAjax ? response()->json(['success' => false, 'message' => $msg]) : back()->with('info', $msg);
             }
             if ($payment['status'] === 'captured') {
                 $result = $service->confirm($order, $payment, 'Razorpay Sync', true);
-                return back()->with(in_array($result, ['confirmed', 'already_processed']) ? 'success' : 'warning',
-                    'Razorpay check: '.str_replace('_', ' ', $result).'.');
+                $msg = 'Razorpay check: '.str_replace('_', ' ', $result).'.';
+                $isSuccess = in_array($result, ['confirmed', 'already_processed']);
+                return $isAjax ? response()->json([
+                    'success' => $isSuccess,
+                    'result' => $result,
+                    'payment_status' => $order->fresh()->payment_status,
+                    'order_status' => $order->fresh()->order_status,
+                    'message' => $msg
+                ]) : back()->with($isSuccess ? 'success' : 'warning', $msg);
             }
 
             DB::transaction(function () use ($order, $payment) {
@@ -616,10 +669,16 @@ class OrderController extends Controller
                     $lockedOrder->update(['reserved_until' => now()->addMinutes(2)]);
                 }
             });
-            return back()->with($payment['status'] === 'failed' ? 'info' : 'warning',
-                'Razorpay payment status: '.str_replace('_', ' ', $payment['status']).'. Stock hold updated accordingly.');
+            $msg = 'Razorpay payment status: '.str_replace('_', ' ', $payment['status']).'. Stock hold updated accordingly.';
+            return $isAjax ? response()->json([
+                'success' => true,
+                'payment_status' => $order->fresh()->payment_status,
+                'order_status' => $order->fresh()->order_status,
+                'message' => $msg
+            ]) : back()->with($payment['status'] === 'failed' ? 'info' : 'warning', $msg);
         } catch (\Exception $e) {
-            return back()->with('error', 'Razorpay Sync: '.$e->getMessage());
+            $msg = 'Razorpay Sync: '.$e->getMessage();
+            return $isAjax ? response()->json(['success' => false, 'message' => $msg], 500) : back()->with('error', $msg);
         }
     }
 

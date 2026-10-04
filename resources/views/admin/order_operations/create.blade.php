@@ -218,7 +218,7 @@
                                                             title="Edit Adjustment" aria-label="Edit Adjustment"
                                                             style="padding: 0.25rem 0.75rem !important; font-size: 0.72rem !important;">
                                                         <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span class="d-none d-sm-inline">Edit Adjustment</span>
+                                                        <span class="d-none d-lg-inline">Edit Adjustment</span>
                                                     </button>
                                                 @else
                                                     <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This adjustment cannot be edited here.">

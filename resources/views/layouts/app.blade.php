@@ -692,7 +692,7 @@
     @endif
 
     <!-- Alert Notifications -->
-    <div class="container mt-3">
+    <div class="container">
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm border-0" role="alert">
                 <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}

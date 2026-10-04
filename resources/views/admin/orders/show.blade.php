@@ -806,11 +806,13 @@ function syncRazorpayOrder(btn, orderId, url) {
         btn.disabled = false;
         if (icon) icon.className = originalIconClass;
 
-        if (data.success) {
-            alert('✓ ' + (data.message || 'Razorpay order sync completed successfully.'));
+        if (data.outcome === 'no_match') {
+            alert('No matching payment attempt. Order unchanged.');
+        } else if (data.success) {
+            alert(data.message || 'Razorpay order sync completed successfully.');
             window.location.reload();
         } else {
-            alert('ℹ ' + (data.message || 'Razorpay check returned no matching payment.'));
+            alert(data.message || 'Razorpay check could not be completed.');
         }
     })
     .catch(err => {

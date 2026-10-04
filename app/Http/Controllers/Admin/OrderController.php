@@ -668,7 +668,11 @@ class OrderController extends Controller
             $payment = $service->findPayment($order, trim($request->input('razorpay_payment_id', '')));
             if (!$payment) {
                 $msg = 'Razorpay returned no matching payment attempt. Order unchanged.';
-                return $isAjax ? response()->json(['success' => false, 'message' => $msg]) : back()->with('info', $msg);
+                return $isAjax ? response()->json([
+                    'success' => false,
+                    'outcome' => 'no_match',
+                    'message' => $msg,
+                ]) : back()->with('info', $msg);
             }
             if ($payment['status'] === 'captured') {
                 $result = $service->confirm($order, $payment, 'Razorpay Sync', true);

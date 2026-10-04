@@ -3,6 +3,22 @@
 @section('title', 'My Orders - ' . $siteName)
 @section('meta_robots', 'noindex, nofollow')
 
+@section('styles')
+<style>
+    #myOrderImageModal .modal-dialog { max-width: min(900px, calc(100vw - 2rem)); }
+    #myOrderImageModal .modal-content { max-height: calc(100dvh - 2rem); }
+    #myOrderImageModal .modal-body { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+    #myOrderImageModalImage { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; object-fit: contain; margin: 0 auto; }
+    .my-order-product-image { cursor: zoom-in; }
+    @media (max-width: 575.98px) {
+        #myOrderImageModal .modal-dialog { max-width: none; margin: .5rem; }
+        #myOrderImageModal .modal-content { max-height: calc(100dvh - 1rem); }
+        #myOrderImageModal .modal-body { padding: .5rem !important; }
+        #myOrderImageModalImage { max-height: 68vh; }
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="container py-5">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start mb-4 pb-2 border-bottom">
@@ -97,7 +113,7 @@
                                         @foreach($order->items as $item)
                                             <div class="d-flex align-items-center gap-3">
                                                 @if($item->product && $item->product->primary_image_url)
-                                                    <img src="{{ $item->product->primary_image_url }}" alt="{{ $item->product_name }}" class="rounded-3 border" style="width: 54px; height: 54px; object-fit: cover;">
+                                                    <img src="{{ $item->product->primary_image_url }}" alt="{{ $item->product_name }}" class="rounded-3 border my-order-product-image" style="width: 54px; height: 54px; object-fit: cover;" role="button" tabindex="0" data-order-image="{{ $item->product->primary_image_url }}" data-order-image-alt="{{ $item->product_name }}" aria-label="View image of {{ $item->product_name }}">
                                                 @else
                                                     <div class="bg-light rounded-3 d-flex align-items-center justify-content-center border" style="width: 54px; height: 54px;">
                                                         <i class="fa-solid fa-shirt text-muted"></i>
@@ -142,6 +158,46 @@
         </div>
     @endif
 </div>
+
+<div class="modal fade" id="myOrderImageModal" tabindex="-1" aria-labelledby="myOrderImageModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-3">
+            <div class="modal-header py-2">
+                <h2 class="modal-title fs-6 fw-bold text-truncate" id="myOrderImageModalTitle">Product image</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="myOrderImageModalImage" src="" alt="Product image">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const modalElement = document.getElementById('myOrderImageModal');
+        const previewImage = document.getElementById('myOrderImageModalImage');
+        const title = document.getElementById('myOrderImageModalTitle');
+        if (!modalElement || !window.bootstrap?.Modal) return;
+
+        const openPreview = (thumbnail) => {
+            previewImage.src = thumbnail.dataset.orderImage;
+            previewImage.alt = thumbnail.dataset.orderImageAlt || 'Product image';
+            title.textContent = previewImage.alt;
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        };
+
+        document.querySelectorAll('[data-order-image]').forEach(thumbnail => {
+            thumbnail.addEventListener('click', () => openPreview(thumbnail));
+            thumbnail.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openPreview(thumbnail);
+                }
+            });
+        });
+    })();
+</script>
 
 <!-- Include Reusable Email OTP Modal -->
 @include('frontend.partials.email_otp_modal')

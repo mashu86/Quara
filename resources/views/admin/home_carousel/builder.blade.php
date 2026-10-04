@@ -540,6 +540,24 @@
             box-shadow: 0 0 12px rgba(59,130,246,0.5);
         }
 
+        .qw-element-item .qw-resize-handle {
+            position: absolute;
+            z-index: 10;
+            width: 10px;
+            height: 10px;
+            padding: 0;
+            border: 1px solid #1d4ed8;
+            border-radius: 2px;
+            background: #fff;
+            touch-action: none;
+        }
+        .qw-resize-handle[data-resize="nw"] { top: -6px; left: -6px; cursor: nwse-resize; }
+        .qw-resize-handle[data-resize="ne"] { top: -6px; right: -6px; cursor: nesw-resize; }
+        .qw-resize-handle[data-resize="se"] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+        .qw-resize-handle[data-resize="sw"] { bottom: -6px; left: -6px; cursor: nesw-resize; }
+        .qw-resize-handle[data-resize="n"] { top: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+        .qw-resize-handle[data-resize="s"] { bottom: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+
         /* Form Controls Dark Theme - Compact Sizing */
         .form-control, .form-select {
             background-color: #1f2228 !important;
@@ -910,6 +928,16 @@
                     </select>
                 </div>
 
+                <!-- TEXT ALIGNMENT -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted" for="propTextAlign">Text Alignment</label>
+                    <select id="propTextAlign" class="form-select form-select-sm">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+
                 <!-- FONT SIZE & WEIGHT -->
                 <div class="row g-2 mb-3">
                     <div class="col-6">
@@ -927,6 +955,19 @@
                             <option value="800">Extra Bold</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- ELEMENT DIMENSIONS -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted" for="propElementWidth">Width (px)</label>
+                        <input type="number" id="propElementWidth" class="form-control form-control-sm" min="0" max="1080" step="1" placeholder="Auto">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted" for="propElementHeight">Height (px)</label>
+                        <input type="number" id="propElementHeight" class="form-control form-control-sm" min="0" max="450" step="1" placeholder="Auto">
+                    </div>
+                    <div class="col-12"><small class="text-muted">Set to 0 for automatic size.</small></div>
                 </div>
 
                 <!-- COLORS -->
@@ -1033,6 +1074,7 @@
     // Editor State Stack
     let elements = [];
     let selectedElementId = null;
+    let activeViewport = 'desktop';
     let historyStack = [];
     let historyIndex = -1;
     let zoomScale = 1;
@@ -1085,8 +1127,23 @@
     // Load initial slide overlay items or default template
     function initCanvas() {
         elements = Array.isArray(initialOverlayItems) ? JSON.parse(JSON.stringify(initialOverlayItems)) : [];
+        elements.forEach(ensureResponsiveConfig);
         pushHistory();
         renderCanvas();
+    }
+
+    function ensureResponsiveConfig(item) {
+        item.responsive = item.responsive && typeof item.responsive === 'object' ? item.responsive : {};
+        const base = { x: item.x ?? 20, y: item.y ?? 40, width: item.width ?? 0, height: item.height ?? 0, fontSize: item.size ?? 20 };
+        ['desktop', 'mobile'].forEach(view => {
+            const saved = item.responsive[view] && typeof item.responsive[view] === 'object' ? item.responsive[view] : {};
+            item.responsive[view] = { ...base, ...saved };
+        });
+        return item.responsive;
+    }
+
+    function viewportConfig(item, view = activeViewport) {
+        return ensureResponsiveConfig(item)[view];
     }
 
     // Push State to Undo History Stack
@@ -1124,17 +1181,18 @@
     function renderCanvas() {
         canvasElementsLayer.innerHTML = '';
         const isMobileMode = canvasFrame.classList.contains('mobile-mode');
-        const fontScale = isMobileMode ? 0.45 : 1.0;
+        activeViewport = isMobileMode ? 'mobile' : 'desktop';
 
         elements.forEach(item => {
+            const view = viewportConfig(item);
             const elNode = document.createElement('div');
             elNode.className = `qw-element-item ${selectedElementId === item.id ? 'selected' : ''}`;
             elNode.id = `node_${item.id}`;
-            elNode.style.left = `${item.x}%`;
-            elNode.style.top = `${item.y}%`;
+            elNode.style.left = `${view.x}%`;
+            elNode.style.top = `${view.y}%`;
             elNode.style.fontFamily = item.font || 'Inter';
             
-            const computedSize = Math.max(10, Math.round((item.size || 20) * fontScale));
+            const computedSize = Math.max(10, Math.round(view.fontSize || item.size || 20));
             elNode.style.fontSize = `${computedSize}px`;
             elNode.style.fontWeight = item.weight || '400';
             elNode.style.color = item.color || '#000000';
@@ -1144,18 +1202,40 @@
             elNode.style.textDecoration = item.underline ? 'underline' : 'none';
             elNode.style.textTransform = item.uppercase ? 'uppercase' : 'none';
             elNode.style.borderRadius = `${item.radius || 4}px`;
+            elNode.style.width = Number(view.width) > 0 ? `${Number(view.width)}px` : 'max-content';
+            elNode.style.height = Number(view.height) > 0 ? `${Number(view.height)}px` : 'auto';
+            elNode.style.boxSizing = 'border-box';
             
             const padVal = item.padding || 4;
-            const scaledPad = isMobileMode ? Math.max(2, Math.round(padVal * 0.5)) : padVal;
-            elNode.style.padding = `${scaledPad}px ${scaledPad * 1.5}px`;
+            elNode.style.padding = `${padVal}px ${padVal * 1.5}px`;
             elNode.textContent = item.text;
 
             // Selection Event
             elNode.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 selectElement(item.id);
+                // Re-render to create resize handles when a previously unselected
+                // saved element is selected from the canvas.
+                renderCanvas();
                 startDrag(e, item);
             });
+
+            if (selectedElementId === item.id) {
+                ['nw', 'n', 'ne', 'se', 's', 'sw'].forEach(direction => {
+                    const handle = document.createElement('button');
+                    handle.type = 'button';
+                    handle.className = 'qw-resize-handle';
+                    handle.dataset.resize = direction;
+                    handle.setAttribute('aria-label', `Resize ${direction}`);
+                    handle.addEventListener('pointerdown', event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        startResize(event, item, direction, elNode);
+                    });
+                    elNode.appendChild(handle);
+                });
+            }
 
             canvasElementsLayer.appendChild(elNode);
         });
@@ -1180,7 +1260,11 @@
 
         document.getElementById('propTextContent').value = item.text || '';
         document.getElementById('propFontFamily').value = item.font || 'Inter';
-        document.getElementById('propFontSize').value = item.size || 24;
+        document.getElementById('propTextAlign').value = ['left', 'center', 'right'].includes(item.align) ? item.align : 'left';
+        const view = viewportConfig(item);
+        document.getElementById('propFontSize').value = view.fontSize || item.size || 24;
+        document.getElementById('propElementWidth').value = Number(view.width) > 0 ? view.width : '';
+        document.getElementById('propElementHeight').value = Number(view.height) > 0 ? view.height : '';
         document.getElementById('propFontWeight').value = item.weight || '400';
         document.getElementById('propTextColor').value = item.color || '#6B1E3F';
         document.getElementById('propTextColorHex').value = (item.color || '#6B1E3F').toUpperCase();
@@ -1200,8 +1284,17 @@
     document.getElementById('propFontFamily')?.addEventListener('change', (e) => {
         updateActiveProp('font', e.target.value);
     });
+    document.getElementById('propTextAlign')?.addEventListener('change', (e) => {
+        updateActiveProp('align', e.target.value);
+    });
     document.getElementById('propFontSize')?.addEventListener('input', (e) => {
         updateActiveProp('size', parseInt(e.target.value) || 20);
+    });
+    document.getElementById('propElementWidth')?.addEventListener('input', (e) => {
+        updateActiveProp('width', Math.max(0, Math.min(1080, parseInt(e.target.value, 10) || 0)));
+    });
+    document.getElementById('propElementHeight')?.addEventListener('input', (e) => {
+        updateActiveProp('height', Math.max(0, Math.min(450, parseInt(e.target.value, 10) || 0)));
     });
     document.getElementById('propFontWeight')?.addEventListener('change', (e) => {
         updateActiveProp('weight', e.target.value);
@@ -1229,7 +1322,9 @@
         if (!selectedElementId) return;
         const item = elements.find(el => el.id === selectedElementId);
         if (item) {
-            item[key] = value;
+            const responsiveKey = key === 'size' ? 'fontSize' : key;
+            if (['x', 'y', 'width', 'height', 'size'].includes(key)) viewportConfig(item)[responsiveKey] = value;
+            else item[key] = value;
             renderCanvas();
             pushHistory();
         }
@@ -1241,8 +1336,9 @@
         const frameRect = canvasFrame.getBoundingClientRect();
         const startX = e.clientX;
         const startY = e.clientY;
-        const origX = item.x;
-        const origY = item.y;
+        const view = viewportConfig(item);
+        const origX = view.x;
+        const origY = view.y;
 
         function onPointerMove(moveEvent) {
             if (!isDragging) return;
@@ -1252,13 +1348,16 @@
             let newX = origX + (deltaX / frameRect.width) * 100;
             let newY = origY + (deltaY / frameRect.height) * 100;
 
-            item.x = Math.max(0, Math.min(92, newX));
-            item.y = Math.max(0, Math.min(92, newY));
+            const node = document.getElementById(`node_${item.id}`);
+            const maxX = Math.max(0, 100 - ((node?.offsetWidth || 0) / canvasFrame.clientWidth) * 100);
+            const maxY = Math.max(0, 100 - ((node?.offsetHeight || 0) / canvasFrame.clientHeight) * 100);
+            view.x = Math.max(0, Math.min(maxX, newX));
+            view.y = Math.max(0, Math.min(maxY, newY));
 
             const activeNode = document.getElementById(`node_${item.id}`);
             if (activeNode) {
-                activeNode.style.left = `${item.x}%`;
-                activeNode.style.top = `${item.y}%`;
+                activeNode.style.left = `${view.x}%`;
+                activeNode.style.top = `${view.y}%`;
             }
         }
 
@@ -1269,6 +1368,56 @@
                 window.removeEventListener('pointerup', onPointerUp);
                 pushHistory();
             }
+        }
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+    }
+
+    function startResize(e, item, direction, node) {
+        const frameRect = canvasFrame.getBoundingClientRect();
+        const scaleX = frameRect.width / canvasFrame.clientWidth || 1;
+        const scaleY = frameRect.height / canvasFrame.clientHeight || 1;
+        const nodeRect = node.getBoundingClientRect();
+        const view = viewportConfig(item);
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = nodeRect.width / scaleX;
+        const startHeight = nodeRect.height / scaleY;
+        const startLeft = view.x;
+        const startTop = view.y;
+        view.width = Math.round(startWidth);
+        view.height = Math.round(startHeight);
+
+        function onPointerMove(moveEvent) {
+            const dx = (moveEvent.clientX - startX) / scaleX;
+            const dy = (moveEvent.clientY - startY) / scaleY;
+            let width = startWidth;
+            let height = startHeight;
+            let x = startLeft;
+            let y = startTop;
+
+            if (direction.includes('e')) width += dx;
+            if (direction.includes('w')) { width -= dx; x += (dx / canvasFrame.clientWidth) * 100; }
+            if (direction.includes('s')) height += dy;
+            if (direction.includes('n')) { height -= dy; y += (dy / canvasFrame.clientHeight) * 100; }
+
+            view.width = Math.max(12, Math.min(canvasFrame.clientWidth, Math.round(width)));
+            view.height = Math.max(12, Math.min(canvasFrame.clientHeight, Math.round(height)));
+            view.x = Math.max(0, Math.min(100 - (view.width / canvasFrame.clientWidth) * 100, x));
+            view.y = Math.max(0, Math.min(100 - (view.height / canvasFrame.clientHeight) * 100, y));
+            node.style.width = `${view.width}px`;
+            node.style.height = `${view.height}px`;
+            node.style.left = `${view.x}%`;
+            node.style.top = `${view.y}%`;
+            document.getElementById('propElementWidth').value = view.width;
+            document.getElementById('propElementHeight').value = view.height;
+        }
+
+        function onPointerUp() {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+            pushHistory();
         }
 
         window.addEventListener('pointermove', onPointerMove);

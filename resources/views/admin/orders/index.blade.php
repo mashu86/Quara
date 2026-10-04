@@ -14,6 +14,7 @@
         <button type="button" onclick="previewBlankCourierAddress()" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1.5 fw-semibold shadow-sm" style="font-size: 0.78rem;" title="Print Blank Courier Shipping Label">
             <i class="fa-solid fa-print text-warning me-1"></i> Print Blank Label
         </button>
+    </div>
 </div>
 
 @if(!empty($isTodayHighestSalesDay))
@@ -141,43 +142,17 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h4 class="fw-bold mb-0 text-dark fs-5">₹{{ number_format($periodSalesAmount, 2) }}</h4>
-                        <div class="text-muted mt-1" style="font-size: 0.7rem;">
-                            <i class="fa-solid fa-boxes-packing text-warning me-1"></i> <strong>{{ $periodProductsCount }}</strong> Sold in Period
+                        <div class="text-muted mt-1 d-flex align-items-center justify-content-between gap-1" style="font-size: 0.7rem;">
+                            <span><i class="fa-solid fa-boxes-packing text-warning me-1"></i> <strong>{{ $periodProductsCount }}</strong> Sold</span>
+                            @if(!empty($highestSalesDay))
+                                <span class="badge bg-light text-dark border ms-1" title="Highest Sales Day Ever: {{ $highestSalesDay['date_formatted'] }}">
+                                    👑 Peak: {{ $highestSalesDay['date_formatted'] }} (₹{{ number_format($highestSalesDay['amount'], 0) }})
+                                </span>
+                            @endif
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-center bg-light border rounded-3 text-dark flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
                         <i class="fa-solid fa-bag-shopping fs-6"></i>
-                    </div>
-                </div>
-            </div>
-    <!-- All-Time Highest Sales Day Card -->
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 shadow-sm bg-white border-start border-4 border-warning h-100">
-            <div class="card-body p-2.5 p-sm-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-warning-emphasis text-uppercase fw-bold text-truncate me-1" style="font-size: 0.68rem; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-crown text-warning me-1"></i> Highest Sales Day Ever
-                    </span>
-                    @if(!empty($highestSalesDay))
-                        <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5 fw-bold flex-shrink-0" style="font-size: 0.65rem;">{{ $highestSalesDay['orders_count'] }} Orders</span>
-                    @endif
-                </div>
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        @if(!empty($highestSalesDay))
-                            <h4 class="fw-bold mb-0 text-warning-emphasis fs-5">₹{{ number_format($highestSalesDay['amount'], 2) }}</h4>
-                            <div class="text-muted mt-1" style="font-size: 0.7rem;">
-                                <a href="{{ route('admin.orders.index', ['start_date' => $highestSalesDay['date'], 'end_date' => $highestSalesDay['date']]) }}" class="text-warning fw-bold text-decoration-none" title="Filter orders for {{ $highestSalesDay['date_formatted'] }}">
-                                    <i class="fa-regular fa-calendar-check me-1"></i> {{ $highestSalesDay['date_formatted'] }} &rarr;
-                                </a>
-                            </div>
-                        @else
-                            <h4 class="fw-bold mb-0 text-muted fs-5">₹0.00</h4>
-                            <div class="text-muted mt-1" style="font-size: 0.7rem;">No sales data yet</div>
-                        @endif
-                    </div>
-                    <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-10 rounded-3 text-warning flex-shrink-0 ms-2" style="width: 34px; height: 34px;">
-                        <i class="fa-solid fa-trophy fs-6"></i>
                     </div>
                 </div>
             </div>

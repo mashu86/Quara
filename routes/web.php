@@ -71,6 +71,7 @@ Route::get('/product/{slug}', [ProductDetailController::class, 'show'])->name('p
 Route::get('/product/{slug}/check-shipping', [ProductDetailController::class, 'checkShipping'])->name('product.check-shipping');
 Route::get('/home-content/image/{homeContent}', [AdminHomeContentController::class, 'showImage'])->name('home_content.image');
 Route::get('/home-carousel/image/{slide}', [AdminHomeCarouselController::class, 'showImage'])->name('home_carousel.image');
+Route::get('/home-carousel/mobile-image/{slide}', [AdminHomeCarouselController::class, 'showMobileImage'])->name('home_carousel.mobile_image');
 Route::get('/media/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('media.show');
 Route::get('/storage/{path}', [StorageFileController::class, 'show'])->where('path', '.*')->name('storage.file');
 
@@ -153,6 +154,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('size-masters/chart/{sizeMaster}', [\App\Http\Controllers\Admin\SizeMasterController::class, 'getChartJson'])->name('size-masters.chart-json');
 
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
+        Route::post('products/{product}/images', [AdminProductController::class, 'storeImages'])->name('products.images.store');
         Route::resource('products', AdminProductController::class);
         Route::post('products/{product}/sizes/{size}/clear-label', [AdminProductController::class, 'clearSizeLabel'])->name('products.sizes.clear-label');
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');

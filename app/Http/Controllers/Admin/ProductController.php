@@ -675,6 +675,28 @@ class ProductController extends Controller
         return redirect()->route('admin.products.edit', $product->id)->with('success', 'Product updated successfully!');
     }
 
+    public function storeImages(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'new_images' => 'required|array|min:1',
+            'new_images.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:12288',
+        ]);
+
+        $maxSort = (int) (ProductImage::where('product_id', $product->id)->max('sort_order') ?? 0);
+        $hasPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->exists();
+        foreach ($validated['new_images'] as $i => $imageFile) {
+            $path = ImageOptimizerService::optimizeAndStore($imageFile, 'products', 'public');
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => 'storage/' . $path,
+                'is_primary' => (!$hasPrimary && $i === array_key_first($validated['new_images'])),
+                'sort_order' => $maxSort + $i + 1,
+            ]);
+        }
+
+        return redirect()->route('admin.products.edit', $product->id)->with('success', 'Product images uploaded successfully!');
+    }
+
     public function addStockBatch(Request $request, Product $product)
     {
         $validated = $request->validate([

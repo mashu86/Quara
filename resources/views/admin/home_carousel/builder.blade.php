@@ -284,10 +284,27 @@
 
         .qw-canvas-frame.mobile-mode {
             width: 360px !important;
-            height: 250px !important;
+            height: 480px !important;
             border-radius: 14px !important;
             box-shadow: 0 0 0 8px #1e2026, 0 25px 70px rgba(0,0,0,0.85) !important;
             border: 3px solid #3d414a !important;
+        }
+
+        .qw-no-mobile-badge {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(220, 53, 69, 0.95);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            pointer-events: none;
+            white-space: nowrap;
         }
 
         .qw-canvas-frame img#canvasBgImage {
@@ -419,6 +436,8 @@
         .qw-slide-thumb-card.drop-target { border-color: #6bb4ff; transform: scale(1.04); }
         .qw-thumb-delete { position:absolute; z-index:3; top:2px; right:2px; width:20px; height:20px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; background:#a92335e8; color:#fff; font-size:10px; cursor:pointer; }
         .qw-thumb-delete:hover { background:#dc3545; }
+        .qw-thumb-edit { position:absolute; z-index:3; top:2px; right:24px; width:20px; height:20px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; background:#0d6efde8; color:#fff; font-size:10px; cursor:pointer; }
+        .qw-thumb-edit:hover { background:#0b5ed7; }
 
         .qw-slide-thumb-card.active, .qw-slide-thumb-card:hover {
             border-color: #f0c75e;
@@ -762,9 +781,24 @@
                 <div class="qw-tab-content" id="tab-images">
                     <h6 class="qw-drawer-title">Background & Slide Image</h6>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Upload Slide Image</label>
+                        <label class="form-label small fw-bold">Desktop Image Preview</label>
+                        <div class="qw-tab-img-preview mb-2 p-1 rounded border border-secondary text-center bg-black">
+                            <img id="tabPreviewDesktop" src="{{ $slide?->image_url }}" alt="Desktop Image" class="img-fluid rounded" style="max-height:110px; object-fit:contain;" @if(!$slide?->image_url) hidden @endif>
+                            <span id="tabPreviewDesktopText" class="small text-muted @if($slide?->image_url) d-none @endif"><i class="fa-regular fa-image me-1"></i> No Desktop Image</span>
+                        </div>
+                        <label class="form-label small fw-bold">Upload New Desktop Image</label>
                         <input type="file" id="inputSlideImage" class="form-control form-control-sm" accept="image/*">
-                        <small class="d-block text-muted mt-2">Hero image: 1500 × 1000 px (3:2 landscape) recommended. Use a sharp, high-resolution image; keep key content near the center.</small>
+                        <small class="d-block text-muted mt-1">1500 × 1000 px (Landscape) recommended for desktop view.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-warning"><i class="fa-solid fa-mobile-screen me-1"></i> Mobile Image Preview</label>
+                        <div class="qw-tab-img-preview mb-2 p-1 rounded border border-secondary text-center bg-black">
+                            <img id="tabPreviewMobile" src="{{ $slide?->mobile_image_url }}" alt="Mobile Image" class="img-fluid rounded" style="max-height:110px; object-fit:contain;" @if(!$slide?->has_mobile_image) hidden @endif>
+                            <span id="tabPreviewMobileText" class="small text-muted @if($slide?->has_mobile_image) d-none @endif"><i class="fa-solid fa-mobile-screen me-1"></i> No Separate Mobile Image</span>
+                        </div>
+                        <label class="form-label small fw-bold text-warning">Upload New Mobile Image</label>
+                        <input type="file" id="inputMobileSlideImage" class="form-control form-control-sm" accept="image/*">
+                        <small class="d-block text-muted mt-1">1080 × 1080 px (Square) or 1080 × 1350 px (Portrait) recommended for mobile view.</small>
                     </div>
                 </div>
 
@@ -867,6 +901,9 @@
                     <div class="qw-mobile-guide d-none" id="mobileGuide">
                         <div class="qw-mobile-safe-label">Mobile Safe Zone</div>
                     </div>
+                    <div class="qw-no-mobile-badge d-none" id="noMobileNotice">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> No mobile image uploaded (showing desktop fallback)
+                    </div>
                 </div>
             </div>
 
@@ -881,6 +918,7 @@
                             <div class="qw-thumb-img-wrap">
                                 <img src="{{ $item->image_url }}" alt="Slide {{ $index+1 }}">
                                 <span class="qw-thumb-num">{{ $index+1 }}</span>
+                                <button type="button" class="qw-thumb-edit" data-slide-id="{{ $item->id }}" data-heading="{{ $item->heading }}" data-desktop-url="{{ $item->image_url }}" data-mobile-url="{{ $item->has_mobile_image ? $item->mobile_image_url : '' }}" data-has-mobile="{{ $item->has_mobile_image ? '1' : '0' }}" title="Edit slide images and title"><i class="fa-solid fa-pen"></i></button>
                                 <button type="button" class="qw-thumb-delete" data-delete-url="{{ route('admin.home-carousel.slides.destroy', $item->id) }}" aria-label="Delete {{ $item->heading ?: 'slide ' . ($index + 1) }}" title="Delete slide"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                             <div class="qw-thumb-info">
@@ -1026,25 +1064,39 @@
         <form class="modal-content rounded-4 border-0 shadow bg-dark text-white" id="formAddSlide" enctype="multipart/form-data">
             @csrf
             <div class="modal-header border-bottom border-secondary pb-3">
-                <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-plus me-2"></i>Create New Slide</h5>
+                <h5 class="modal-title fw-bold text-warning" id="modalSlideTitle"><i class="fa-solid fa-plus me-2"></i>Create New Slide</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <input type="hidden" name="slide_id" id="modalSlideId" value="">
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-light">Slide Section</label>
-                    <select name="section_key" class="form-select" required>
+                    <select name="section_key" id="inputModalSection" class="form-select" required>
                         <option value="hero">Hero Banner</option>
                         <option value="lookbook">Lookbook</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold text-light">Slide Image <span class="text-danger">*</span></label>
-                    <input type="file" name="image" class="form-control" accept="image/*" required>
-                    <small class="d-block text-light opacity-75 mt-2">Hero: 1500 × 1000 px (3:2 landscape) recommended. Lookbook: 1200 × 800 px. JPG, PNG or WebP.</small>
+                    <label class="form-label fw-semibold text-light">Desktop Slide Image <span class="text-danger" id="desktopImageRequired">*</span></label>
+                    <div class="mb-2 p-2 rounded-3 border border-secondary text-center bg-black">
+                        <img id="modalPreviewDesktop" src="" alt="Desktop Image Preview" class="img-fluid rounded" style="max-height:120px; object-fit:contain;" hidden>
+                        <span id="modalPreviewDesktopText" class="small text-muted"><i class="fa-regular fa-image me-1"></i> No Desktop Image Selected</span>
+                    </div>
+                    <input type="file" name="image" id="inputModalDesktopImage" class="form-control form-control-sm" accept="image/*">
+                    <small class="d-block text-light opacity-75 mt-1">Hero: 1500 × 1000 px (3:2 landscape) recommended. Lookbook: 1200 × 800 px. JPG, PNG or WebP.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-warning"><i class="fa-solid fa-mobile-screen me-1"></i> Mobile View Image <span class="text-light opacity-75 fw-normal">(Optional)</span></label>
+                    <div class="mb-2 p-2 rounded-3 border border-secondary text-center bg-black">
+                        <img id="modalPreviewMobile" src="" alt="Mobile Image Preview" class="img-fluid rounded" style="max-height:120px; object-fit:contain;" hidden>
+                        <span id="modalPreviewMobileText" class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> No Separate Mobile Image (Falls back to Desktop)</span>
+                    </div>
+                    <input type="file" name="mobile_image" id="inputModalMobileImage" class="form-control form-control-sm" accept="image/*">
+                    <small class="d-block text-light opacity-75 mt-1">Recommended: 1080 × 1080 px (Square) or 1080 × 1350 px (Portrait) for mobile screen view.</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-light">Slide Title</label>
-                    <input type="text" name="heading" class="form-control" placeholder="New Collection">
+                    <input type="text" name="heading" id="inputModalHeading" class="form-control" placeholder="New Collection">
                 </div>
             </div>
             <div class="modal-footer border-top border-secondary">
@@ -1075,6 +1127,9 @@
     let elements = [];
     let selectedElementId = null;
     let activeViewport = 'desktop';
+    let hasMobileImage = @json((bool) ($slide?->has_mobile_image));
+    let currentSlideDesktopUrl = @json($slide?->image_url ?: '');
+    let currentSlideMobileUrl = @json($slide?->has_mobile_image ? $slide->mobile_image_url : '');
     let historyStack = [];
     let historyIndex = -1;
     let zoomScale = 1;
@@ -1182,6 +1237,25 @@
         canvasElementsLayer.innerHTML = '';
         const isMobileMode = canvasFrame.classList.contains('mobile-mode');
         activeViewport = isMobileMode ? 'mobile' : 'desktop';
+
+        const notice = document.getElementById('noMobileNotice');
+        if (activeViewport === 'mobile') {
+            if (hasMobileImage && currentSlideMobileUrl) {
+                canvasBgImage.src = currentSlideMobileUrl;
+                canvasBgImage.hidden = false;
+                if (notice) notice.classList.add('d-none');
+            } else {
+                canvasBgImage.src = currentSlideDesktopUrl;
+                canvasBgImage.hidden = !currentSlideDesktopUrl;
+                if (notice) notice.classList.remove('d-none');
+            }
+        } else {
+            if (notice) notice.classList.add('d-none');
+            if (currentSlideDesktopUrl) {
+                canvasBgImage.src = currentSlideDesktopUrl;
+                canvasBgImage.hidden = false;
+            }
+        }
 
         elements.forEach(item => {
             const view = viewportConfig(item);
@@ -1568,8 +1642,55 @@
         if (this.files && this.files[0]) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                canvasBgImage.src = e.target.result;
-                canvasBgImage.hidden = false;
+                currentSlideDesktopUrl = e.target.result;
+                const tabImg = document.getElementById('tabPreviewDesktop');
+                const tabTxt = document.getElementById('tabPreviewDesktopText');
+                if (tabImg) { tabImg.src = currentSlideDesktopUrl; tabImg.hidden = false; }
+                if (tabTxt) { tabTxt.classList.add('d-none'); }
+                renderCanvas();
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    document.getElementById('inputMobileSlideImage')?.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentSlideMobileUrl = e.target.result;
+                hasMobileImage = true;
+                const tabImg = document.getElementById('tabPreviewMobile');
+                const tabTxt = document.getElementById('tabPreviewMobileText');
+                if (tabImg) { tabImg.src = currentSlideMobileUrl; tabImg.hidden = false; }
+                if (tabTxt) { tabTxt.classList.add('d-none'); }
+                renderCanvas();
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Modal Live Image Previews
+    document.getElementById('inputModalDesktopImage')?.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgDesktop = document.getElementById('modalPreviewDesktop');
+                const txtDesktop = document.getElementById('modalPreviewDesktopText');
+                if (imgDesktop) { imgDesktop.src = e.target.result; imgDesktop.hidden = false; }
+                if (txtDesktop) { txtDesktop.classList.add('d-none'); }
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    document.getElementById('inputModalMobileImage')?.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgMobile = document.getElementById('modalPreviewMobile');
+                const txtMobile = document.getElementById('modalPreviewMobileText');
+                if (imgMobile) { imgMobile.src = e.target.result; imgMobile.hidden = false; }
+                if (txtMobile) { txtMobile.classList.add('d-none'); }
             };
             reader.readAsDataURL(this.files[0]);
         }
@@ -1656,6 +1777,7 @@
     document.getElementById('btnViewDesktop')?.addEventListener('click', () => {
         document.getElementById('btnViewDesktop').classList.add('active');
         document.getElementById('btnViewMobile').classList.remove('active');
+        activeViewport = 'desktop';
         canvasFrame.classList.remove('mobile-mode');
         if (mobileGuide) mobileGuide.classList.add('d-none');
         renderCanvas();
@@ -1664,6 +1786,7 @@
     document.getElementById('btnViewMobile')?.addEventListener('click', () => {
         document.getElementById('btnViewMobile').classList.add('active');
         document.getElementById('btnViewDesktop').classList.remove('active');
+        activeViewport = 'mobile';
         canvasFrame.classList.add('mobile-mode');
         if (mobileGuide) mobileGuide.classList.remove('d-none');
         renderCanvas();
@@ -1726,25 +1849,37 @@
             return;
         }
 
-        const payload = {
-            slide_id: currentSlideId,
-            section_key: currentSectionKey,
-            status: status,
-            overlay_items: elements
-        };
+        const formData = new FormData();
+        formData.append('slide_id', currentSlideId);
+        formData.append('section_key', currentSectionKey);
+        formData.append('status', status);
+        formData.append('overlay_items', JSON.stringify(elements));
+
+        const desktopInput = document.getElementById('inputSlideImage');
+        if (desktopInput && desktopInput.files[0]) {
+            formData.append('image', desktopInput.files[0]);
+        }
+
+        const mobileInput = document.getElementById('inputMobileSlideImage');
+        if (mobileInput && mobileInput.files[0]) {
+            formData.append('mobile_image', mobileInput.files[0]);
+        }
 
         fetch("{{ route('admin.home-carousel.builder.save') }}", {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Accept': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: formData
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (data.slide) {
+                    if (data.slide.image_url) currentSlideDesktopUrl = data.slide.image_url;
+                    if (data.slide.mobile_image_url) currentSlideMobileUrl = data.slide.mobile_image_url;
+                }
                 alert(status === 'active' ? 'Slide Published Successfully!' : 'Slide Draft Saved Successfully!');
             } else {
                 alert('Error saving slide: ' + (data.message || 'Unknown error'));
@@ -1759,8 +1894,54 @@
     // Slide Thumbnails Switching
     document.querySelectorAll('.qw-slide-thumb-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if (e.target.closest('.qw-thumb-delete')) return;
+            if (e.target.closest('.qw-thumb-delete') || e.target.closest('.qw-thumb-edit')) return;
             window.location.href = card.dataset.slideUrl;
+        });
+
+        card.querySelector('.qw-thumb-edit')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const btn = e.currentTarget;
+            const slideId = btn.dataset.slideId;
+            const heading = btn.dataset.heading || '';
+            const desktopUrl = btn.dataset.desktopUrl || '';
+            const mobileUrl = btn.dataset.mobileUrl || '';
+            const hasMobile = btn.dataset.hasMobile === '1';
+
+            document.getElementById('modalSlideTitle').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Edit Slide Details & Images';
+            document.getElementById('modalSlideId').value = slideId;
+            document.getElementById('inputModalHeading').value = heading;
+
+            const imgDesktop = document.getElementById('modalPreviewDesktop');
+            const txtDesktop = document.getElementById('modalPreviewDesktopText');
+            if (desktopUrl) {
+                imgDesktop.src = desktopUrl;
+                imgDesktop.hidden = false;
+                txtDesktop.classList.add('d-none');
+            } else {
+                imgDesktop.hidden = true;
+                txtDesktop.classList.remove('d-none');
+            }
+
+            const imgMobile = document.getElementById('modalPreviewMobile');
+            const txtMobile = document.getElementById('modalPreviewMobileText');
+            if (hasMobile && mobileUrl) {
+                imgMobile.src = mobileUrl;
+                imgMobile.hidden = false;
+                txtMobile.classList.add('d-none');
+            } else {
+                imgMobile.hidden = true;
+                txtMobile.classList.remove('d-none');
+                txtMobile.textContent = 'No Separate Mobile Image (Falls back to Desktop)';
+            }
+
+            const reqSpan = document.getElementById('desktopImageRequired');
+            if (reqSpan) reqSpan.classList.add('d-none');
+            const fileDesktop = document.getElementById('inputModalDesktopImage');
+            if (fileDesktop) fileDesktop.required = false;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalAddSlide'));
+            modal.show();
         });
 
         card.querySelector('.qw-thumb-delete')?.addEventListener('click', async event => {
@@ -1782,7 +1963,7 @@
         });
 
         card.addEventListener('dragstart', event => {
-            if (event.target.closest('.qw-thumb-delete')) { event.preventDefault(); return; }
+            if (event.target.closest('.qw-thumb-delete') || event.target.closest('.qw-thumb-edit')) { event.preventDefault(); return; }
             card.classList.add('is-dragging');
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', card.dataset.slideId);
@@ -1829,8 +2010,27 @@
         }
     }
 
-    // Add Slide Modal Trigger
+    // Add Slide Modal Trigger Reset
     document.getElementById('btnAddSlideModal')?.addEventListener('click', () => {
+        document.getElementById('modalSlideTitle').innerHTML = '<i class="fa-solid fa-plus me-2"></i>Create New Slide';
+        document.getElementById('modalSlideId').value = '';
+        document.getElementById('inputModalHeading').value = '';
+
+        const imgDesktop = document.getElementById('modalPreviewDesktop');
+        const txtDesktop = document.getElementById('modalPreviewDesktopText');
+        if (imgDesktop) imgDesktop.hidden = true;
+        if (txtDesktop) txtDesktop.classList.remove('d-none');
+
+        const imgMobile = document.getElementById('modalPreviewMobile');
+        const txtMobile = document.getElementById('modalPreviewMobileText');
+        if (imgMobile) imgMobile.hidden = true;
+        if (txtMobile) txtMobile.classList.remove('d-none');
+
+        const reqSpan = document.getElementById('desktopImageRequired');
+        if (reqSpan) reqSpan.classList.remove('d-none');
+        const fileDesktop = document.getElementById('inputModalDesktopImage');
+        if (fileDesktop) fileDesktop.required = true;
+
         const modal = new bootstrap.Modal(document.getElementById('modalAddSlide'));
         modal.show();
     });
@@ -1854,7 +2054,7 @@
             if (data.success) {
                 window.location.href = "{{ url('/admin/home-carousel/builder') }}/" + data.slide.id;
             } else {
-                alert('Error creating slide: ' + (data.message || 'Unknown error'));
+                alert('Error saving slide: ' + (data.message || 'Unknown error'));
             }
         });
     });

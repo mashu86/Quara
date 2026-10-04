@@ -39,12 +39,12 @@ class HomeController extends Controller
         $carouselSlides = collect();
         $lookbookSlides = collect();
         if ($carouselSettings && $carouselSettings->enabled && $homeSections->get('hero')?->enabled) {
-            $carouselSlides = HomeCarouselSlide::select(['id','section_key','heading','heading_color','heading_font','subheading','subheading_color','image_mime','sort_order','status','heading_size','subheading_font','subheading_size','button_text','link_url','text_x','text_y','heading_x','heading_y','subheading_x','subheading_y','button_x','button_y','overlay_items'])
+            $carouselSlides = HomeCarouselSlide::select(['id','section_key','heading','heading_color','heading_font','subheading','subheading_color','image_mime','mobile_image_mime','sort_order','status','heading_size','subheading_font','subheading_size','button_text','link_url','text_x','text_y','heading_x','heading_y','subheading_x','subheading_y','button_x','button_y','overlay_items'])
                 ->where('section_key', 'hero')->where('status', 'active')->orderBy('sort_order')->orderBy('id')
                 ->limit(min($carouselSettings->visible_count, $homeSections->get('hero')->items_to_show))->get();
         }
         if ($homeSections->get('lookbook')?->enabled) {
-            $lookbookSlides = HomeCarouselSlide::select(['id','section_key','heading','heading_color','heading_font','subheading','subheading_color','image_mime','sort_order','status','heading_size','subheading_font','subheading_size','button_text','link_url','text_x','text_y','heading_x','heading_y','subheading_x','subheading_y','button_x','button_y','overlay_items'])
+            $lookbookSlides = HomeCarouselSlide::select(['id','section_key','heading','heading_color','heading_font','subheading','subheading_color','image_mime','mobile_image_mime','sort_order','status','heading_size','subheading_font','subheading_size','button_text','link_url','text_x','text_y','heading_x','heading_y','subheading_x','subheading_y','button_x','button_y','overlay_items'])
                 ->where('section_key', 'lookbook')->where('status', 'active')->orderBy('sort_order')->orderBy('id')
                 ->limit($homeSections->get('lookbook')->items_to_show)->get();
         }

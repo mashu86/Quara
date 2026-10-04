@@ -71,7 +71,8 @@ class HomeCarouselController extends Controller
     public function store(Request $request)
     {
         $data = $this->validatedSlide($request, true);
-        $this->attachImage($request, $data);
+        $this->attachImage($request, $data, 'image', 'image_mime', 'image_blob');
+        $this->attachImage($request, $data, 'mobile_image', 'mobile_image_mime', 'mobile_image_blob');
         HomeCarouselSlide::create($data);
         return redirect()->route('admin.home-carousel.index')->with('success', 'Carousel slide added.');
     }
@@ -91,7 +92,8 @@ class HomeCarouselController extends Controller
         $data = $this->validatedSlide($request, false);
         $data['heading_x'] = $data['text_x'];
         $data['heading_y'] = $data['text_y'];
-        $this->attachImage($request, $data);
+        $this->attachImage($request, $data, 'image', 'image_mime', 'image_blob');
+        $this->attachImage($request, $data, 'mobile_image', 'mobile_image_mime', 'mobile_image_blob');
         $slide->update($data);
         return redirect()->route('admin.home-carousel.index')->with('success', 'Carousel slide updated.');
     }
@@ -182,6 +184,16 @@ class HomeCarouselController extends Controller
 
     public function saveSlideFull(Request $request)
     {
+        if ($request->has('overlay_items') && is_string($request->input('overlay_items'))) {
+            $rawOverlay = $request->input('overlay_items');
+            $decoded = json_decode($rawOverlay, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge(['overlay_items' => $decoded]);
+            } else {
+                $request->merge(['overlay_items' => []]);
+            }
+        }
+
         $data = $request->validate([
             'slide_id' => 'nullable|integer',
             'section_key' => 'required|in:hero,lookbook',
@@ -193,6 +205,7 @@ class HomeCarouselController extends Controller
             'sort_order' => 'nullable|integer',
             'overlay_items' => 'nullable|array',
             'image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:12288',
+            'mobile_image' => 'nullable|image|mimes:jpeg,jpg,png,webp,gif|max:12288',
         ]);
 
         $slideId = $request->input('slide_id');
@@ -210,7 +223,10 @@ class HomeCarouselController extends Controller
         ];
 
         if ($request->hasFile('image')) {
-            $this->attachImage($request, $updateData);
+            $this->attachImage($request, $updateData, 'image', 'image_mime', 'image_blob');
+        }
+        if ($request->hasFile('mobile_image')) {
+            $this->attachImage($request, $updateData, 'mobile_image', 'mobile_image_mime', 'mobile_image_blob');
         }
 
         if ($slide) {
@@ -230,6 +246,8 @@ class HomeCarouselController extends Controller
                 'heading' => $slide->heading,
                 'subheading' => $slide->subheading,
                 'image_url' => $slide->image_url,
+                'mobile_image_url' => $slide->mobile_image_url,
+                'has_mobile_image' => $slide->has_mobile_image,
                 'status' => $slide->status,
                 'overlay_items' => $slide->overlay_items,
             ],
@@ -237,6 +255,8 @@ class HomeCarouselController extends Controller
                 'id' => $s->id,
                 'heading' => $s->heading ?: 'Slide #' . $s->id,
                 'image_url' => $s->image_url,
+                'mobile_image_url' => $s->mobile_image_url,
+                'has_mobile_image' => $s->has_mobile_image,
                 'status' => $s->status,
             ]),
         ]);
@@ -296,7 +316,23 @@ class HomeCarouselController extends Controller
     public function showImage(HomeCarouselSlide $slide)
     {
         abort_unless($slide->image_blob && $slide->image_mime, 404);
-        return response($slide->image_blob)->header('Content-Type', $slide->image_mime)->header('Cache-Control', 'public, max-age=86400');
+        return response($slide->image_blob)
+            ->header('Content-Type', $slide->image_mime)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+    }
+
+    public function showMobileImage(HomeCarouselSlide $slide)
+    {
+        if ($slide->mobile_image_blob && $slide->mobile_image_mime) {
+            return response($slide->mobile_image_blob)
+                ->header('Content-Type', $slide->mobile_image_mime)
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        }
+        return $this->showImage($slide);
     }
 
     private function validatedSlide(Request $request, bool $imageRequired): array
@@ -318,23 +354,26 @@ class HomeCarouselController extends Controller
             'sort_order' => 'required|integer|min:0|max:9999',
             'status' => 'required|in:active,inactive',
             'image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:12288'],
+            'mobile_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:12288'],
         ]);
     }
 
-    private function attachImage(Request $request, array &$data): void
+    private function attachImage(Request $request, array &$data, string $inputKey = 'image', string $mimeCol = 'image_mime', string $blobCol = 'image_blob'): void
     {
-        if (!$request->hasFile('image')) return;
-        $file = $request->file('image');
-        $optimized = ImageOptimizerService::optimizeBinary($file, 1920, 1080, 85);
-        $data['image_mime'] = $optimized !== null && function_exists('imagewebp') ? 'image/webp' : ($file->getMimeType() ?: 'image/jpeg');
-        $data['image_blob'] = $optimized ?? file_get_contents($file->getRealPath());
+        if (!$request->hasFile($inputKey)) return;
+        $file = $request->file($inputKey);
+        $maxW = $inputKey === 'mobile_image' ? 1080 : 1920;
+        $maxH = $inputKey === 'mobile_image' ? 1350 : 1080;
+        $optimized = ImageOptimizerService::optimizeBinary($file, $maxW, $maxH, 85);
+        $data[$mimeCol] = $optimized !== null && function_exists('imagewebp') ? 'image/webp' : ($file->getMimeType() ?: 'image/jpeg');
+        $data[$blobCol] = $optimized ?? file_get_contents($file->getRealPath());
     }
 
     private function slideList()
     {
         return HomeCarouselSlide::select([
             'id', 'heading', 'heading_color', 'heading_font', 'subheading', 'subheading_color',
-            'section_key', 'image_mime', 'sort_order', 'status', 'created_at', 'updated_at',
+            'section_key', 'image_mime', 'mobile_image_mime', 'sort_order', 'status', 'created_at', 'updated_at',
             'heading_size', 'subheading_font', 'subheading_size', 'button_text', 'link_url', 'text_x', 'text_y',
             'heading_x', 'heading_y', 'subheading_x', 'subheading_y', 'button_x', 'button_y', 'overlay_items',
         ])->orderBy('sort_order')->orderBy('id')->get();

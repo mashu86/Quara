@@ -479,16 +479,8 @@
                     @endif
 
                     <!-- Upload New Images -->
-                    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.products.images.store', $product->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        @method('PUT')
-                        <input type="hidden" name="name" value="{{ $product->name }}">
-                        <input type="hidden" name="category_id" value="{{ $product->category_id }}">
-                        <input type="hidden" name="price" value="{{ $product->price }}">
-                        <input type="hidden" name="discount_type" value="{{ $product->discount_type }}">
-                        <input type="hidden" name="discount_value" value="{{ $product->discount_value }}">
-                        <input type="hidden" name="status" value="{{ $product->status }}">
-                        <input type="hidden" name="delivery_charge_type" value="{{ $product->delivery_charge_type }}">
 
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">

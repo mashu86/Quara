@@ -34,7 +34,12 @@
                             $captionSurface = $headingBrightness > 0.58 ? 'rgba(20,16,13,.78)' : 'rgba(255,250,241,.93)';
                         @endphp
                         <article class="qw-hero-card" role="group" aria-roledescription="slide" aria-label="{{ $loop->iteration }} of {{ $loop->count }}" @if(!$loop->first) inert aria-hidden="true" @endif style="--slide-art:url('{{ $slide->image_url }}');--caption-surface:{{ $captionSurface }}">
-                            <img src="{{ $slide->image_url }}" alt="{{ $slide->heading ?: 'Quara Wardrobe collection' }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                            <picture class="qw-slide-picture">
+                                @if($slide->has_mobile_image)
+                                    <source media="(max-width: 767.98px)" srcset="{{ $slide->mobile_image_url }}">
+                                @endif
+                                <img src="{{ $slide->image_url }}" alt="{{ $slide->heading ?: 'Quara Wardrobe collection' }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                            </picture>
                             @if(!empty($slide->overlay_items) && count($slide->overlay_items) > 0)
                                 @foreach($slide->overlay_items as $overlay)
                                     @php
@@ -125,7 +130,12 @@
             <div class="qw-horizontal-track qw-lookbook-track" id="qw-track-lookbook" data-interval="{{ $carouselSettings->interval_ms ?? 5000 }}">
                 @foreach($lookbookSlides as $slide)
                     <article class="qw-lookbook-card" style="--slide-art:url('{{ $slide->image_url }}')">
-                        <img src="{{ $slide->image_url }}" alt="{{ $slide->heading ?: 'Quara Wardrobe lookbook' }}" loading="lazy">
+                        <picture class="qw-slide-picture">
+                            @if($slide->has_mobile_image)
+                                <source media="(max-width: 767.98px)" srcset="{{ $slide->mobile_image_url }}">
+                            @endif
+                            <img src="{{ $slide->image_url }}" alt="{{ $slide->heading ?: 'Quara Wardrobe lookbook' }}" loading="lazy">
+                        </picture>
                         @if($slide->heading)<h3 class="qw-story-element qw-story-heading" style="left:{{ $slide->heading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->heading_y ?? $slide->text_y ?? 60 }}%;color:{{ $slide->heading_color }};font-family:{{ $fontFamilies[$slide->heading_font] ?? $fontFamilies['serif'] }};font-size:{{ min(48, $slide->heading_size ?? 40) }}px">{{ $slide->heading }}</h3>@endif
                         @if($slide->subheading)<p class="qw-story-element qw-story-subheading" style="left:{{ $slide->subheading_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->subheading_y ?? 74 }}%;color:{{ $slide->subheading_color }};font-family:{{ $fontFamilies[$slide->subheading_font ?? 'sans'] ?? $fontFamilies['sans'] }};font-size:{{ min(32, $slide->subheading_size ?? 17) }}px">&ldquo;{{ $slide->subheading }}&rdquo;</p>@endif
                         @if($slide->link_url)<a class="qw-story-element qw-hero-cta" style="left:{{ $slide->button_x ?? $slide->text_x ?? 3 }}%;top:{{ $slide->button_y ?? 88 }}%" href="{{ $slide->link_url }}">{{ $slide->button_text ?: 'Explore' }}</a>@endif
@@ -177,9 +187,11 @@
 @endif
 
 <style>
+.qw-slide-picture, .qw-editorial-hero .qw-hero-card picture, .qw-lookbook-card picture { display: block !important; position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
+.qw-slide-picture img, .qw-editorial-hero .qw-hero-card picture img, .qw-lookbook-card picture img { display: block !important; position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: center !important; }
 @media(max-width:767.98px){.qw-editorial-hero .qw-overlay-item,.qw-lookbook-card .qw-overlay-item{left:var(--mobile-x)!important;top:var(--mobile-y)!important;width:var(--mobile-width, max-content)!important;height:var(--mobile-height, auto)!important;font-size:var(--mobile-font-size)!important;padding:var(--mobile-padding)!important;max-width:calc(100% - var(--mobile-x))!important;}}
 @media(min-width:768px) and (max-width:991.98px){.qw-hero-track{--hero-items:var(--hero-tablet,1.5)}}
-@media(max-width:767.98px){.qw-home-section{padding:0.85rem 0}.qw-horizontal-track{gap:12px}.qw-horizontal-track>*{flex-basis:56%}.qw-hero-track{--hero-items:var(--hero-mobile,1.04);--hero-gap:12px}.qw-hero-card{height:clamp(230px,68vw,330px);border-radius:12px}.qw-hero-card img{object-fit:cover !important}.qw-category-slide-image{height:clamp(130px,38vw,185px)}.qw-product-slide{flex-basis:57%}.qw-product-slide-image{height:clamp(195px,62vw,280px)}.qw-lookbook-card{flex-basis:88%!important;height:clamp(260px,76vw,360px)}.qw-review-card{flex-basis:90%!important}.qw-section-heading{margin-bottom:10px}.qw-overlay-item{font-size:max(10px, calc(var(--el-size, 16) * 0.52 * 1px)) !important;padding:2px 6px !important;max-width:90% !important;word-wrap:break-word !important;white-space:normal !important;line-height:1.15 !important;}}
+@media(max-width:767.98px){.qw-home-section{padding:0.85rem 0}.qw-horizontal-track{gap:12px}.qw-horizontal-track>*{flex-basis:56%}.qw-hero-track{--hero-items:var(--hero-mobile,1.04);--hero-gap:12px;aspect-ratio:var(--hero-image-ratio, 16 / 9);height:auto !important}.qw-editorial-hero .qw-hero-card{height:100% !important;border-radius:12px}.qw-category-slide-image{height:clamp(130px,38vw,185px)}.qw-product-slide{flex-basis:57%}.qw-product-slide-image{height:clamp(195px,62vw,280px)}.qw-lookbook-card{flex-basis:88%!important;height:clamp(260px,76vw,360px)}.qw-review-card{flex-basis:90%!important}.qw-section-heading{margin-bottom:10px}.qw-overlay-item{font-size:max(10px, calc(var(--el-size, 16) * 0.52 * 1px)) !important;padding:2px 6px !important;max-width:90% !important;word-wrap:break-word !important;white-space:normal !important;line-height:1.15 !important;}}
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

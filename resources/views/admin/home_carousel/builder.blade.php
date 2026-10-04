@@ -1092,7 +1092,7 @@
                         <span id="modalPreviewMobileText" class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> No Separate Mobile Image (Falls back to Desktop)</span>
                     </div>
                     <input type="file" name="mobile_image" id="inputModalMobileImage" class="form-control form-control-sm" accept="image/*">
-                    <small class="d-block text-light opacity-75 mt-1">Recommended: 1080 × 1080 px (Square) or 1080 × 1350 px (Portrait) for mobile screen view.</small>
+                    <small class="d-block text-light opacity-75 mt-1">Recommended: 1080 x 1920 px (9:16 portrait) for a phone-height mobile carousel.</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-light">Slide Title</label>

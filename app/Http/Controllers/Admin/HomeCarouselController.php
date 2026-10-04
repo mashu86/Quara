@@ -363,7 +363,7 @@ class HomeCarouselController extends Controller
         if (!$request->hasFile($inputKey)) return;
         $file = $request->file($inputKey);
         $maxW = $inputKey === 'mobile_image' ? 1080 : 1920;
-        $maxH = $inputKey === 'mobile_image' ? 1350 : 1080;
+        $maxH = $inputKey === 'mobile_image' ? 1920 : 1080;
         $optimized = ImageOptimizerService::optimizeBinary($file, $maxW, $maxH, 85);
         $data[$mimeCol] = $optimized !== null && function_exists('imagewebp') ? 'image/webp' : ($file->getMimeType() ?: 'image/jpeg');
         $data[$blobCol] = $optimized ?? file_get_contents($file->getRealPath());

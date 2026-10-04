@@ -45,6 +45,9 @@
         box-shadow: 0 6px 14px rgba(201, 147, 24, 0.42) !important;
         color: #000 !important;
     }
+    @media (max-width: 991.98px) {
+        .edit-adjustment-text { display: none !important; }
+    }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
@@ -218,7 +221,7 @@
                                                             title="Edit Adjustment" aria-label="Edit Adjustment"
                                                             style="padding: 0.25rem 0.75rem !important; font-size: 0.72rem !important;">
                                                         <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span class="d-none d-lg-inline">Edit Adjustment</span>
+                                                        <span class="edit-adjustment-text d-none d-lg-inline">Edit Adjustment</span>
                                                     </button>
                                                 @else
                                                     <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This adjustment cannot be edited here.">
@@ -639,7 +642,7 @@
                     <i class="fa-solid fa-lock text-dark fs-5 flex-shrink-0"></i>
                     <div>
                         <strong class="text-dark">Adjustment Recorded:</strong>
-                        <span class="text-muted">Use Edit Adjustment on this product to update the return details.</span>
+                        <span class="text-muted">Use the edit icon on this product to update the return details.</span>
                     </div>
                 </div>
             </div>

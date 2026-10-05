@@ -198,6 +198,9 @@ function formatOrderToAddressHtml(order) {
 
     // Line 3: Area / Landmark, City/Town
     let area = (order.area || '').toString().trim();
+    // Manual counter sales may have this legacy placeholder saved as the area.
+    // It is not a delivery location and must not appear on courier labels.
+    if (/^counter\s+sale$/i.test(area)) area = '';
     let city = (order.city || '').toString().trim();
     if (area && city) {
         lines.push(escapeHtml(area) + ', ' + escapeHtml(city));

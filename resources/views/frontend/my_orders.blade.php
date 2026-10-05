@@ -7,14 +7,14 @@
 <style>
     #myOrderImageModal .modal-dialog { max-width: min(900px, calc(100vw - 2rem)); }
     #myOrderImageModal .modal-content { max-height: calc(100dvh - 2rem); }
-    #myOrderImageModal .modal-body { min-height: 0; overflow: auto; overscroll-behavior: contain; }
-    #myOrderImageModalImage { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; object-fit: contain; margin: 0 auto; }
+    #myOrderImageModal .modal-body { min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; overscroll-behavior: contain; }
+    #myOrderImageModalImage { display: block; max-width: 100%; max-height: calc(100dvh - 8rem); width: auto; height: auto; object-fit: contain; margin: 0 auto; }
     .my-order-product-image { cursor: zoom-in; }
     @media (max-width: 575.98px) {
         #myOrderImageModal .modal-dialog { max-width: none; margin: .5rem; }
-        #myOrderImageModal .modal-content { max-height: calc(100dvh - 1rem); }
+        #myOrderImageModal .modal-content { height: calc(100dvh - 1rem); max-height: calc(100dvh - 1rem); }
         #myOrderImageModal .modal-body { padding: .5rem !important; }
-        #myOrderImageModalImage { max-height: 68vh; }
+        #myOrderImageModalImage { max-width: 100%; max-height: calc(100dvh - 7rem); }
     }
 </style>
 @endsection
@@ -160,7 +160,7 @@
 </div>
 
 <div class="modal fade" id="myOrderImageModal" tabindex="-1" aria-labelledby="myOrderImageModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-3">
             <div class="modal-header py-2">
                 <h2 class="modal-title fs-6 fw-bold text-truncate" id="myOrderImageModalTitle">Product image</h2>

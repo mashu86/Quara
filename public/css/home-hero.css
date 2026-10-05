@@ -89,6 +89,29 @@
 .qw-editorial-hero [data-animation="fade"] > .qw-hero-card:first-child:not([aria-hidden="true"]),
 .qw-editorial-hero [data-animation="fade"] > .qw-hero-card.is-active { opacity: 1; pointer-events: auto; z-index: 1; }
 
+@media (min-width: 1024px) {
+    .qw-hero-intro {
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(10px, 1.5vh, 18px);
+        min-height: 100%;
+        padding-block: clamp(10px, 1.5vh, 20px);
+        text-align: center;
+    }
+    .qw-hero-intro > .qw-hero-eyebrow,
+    .qw-hero-intro > .qw-hero-kicker,
+    .qw-hero-intro > #qw-hero-title,
+    .qw-hero-intro > .qw-hero-description,
+    .qw-hero-intro > .qw-hero-actions { margin-block: 0; }
+    .qw-hero-intro > .qw-hero-eyebrow { justify-content: center; }
+    .qw-hero-intro > .qw-hero-description { max-width: 100%; }
+    .qw-hero-intro > .qw-hero-actions { justify-content: center; }
+    .qw-hero-intro > .qw-hero-note { justify-content: center; margin-top: 0; text-align: left; }
+}
+
 @media (max-width: 991.98px) {
     .qw-hero-layout { gap: 28px; width: 92%; }
     .qw-editorial-hero #qw-hero-title { font-size: clamp(2.2rem, 4.2vw, 3.4rem) !important; }

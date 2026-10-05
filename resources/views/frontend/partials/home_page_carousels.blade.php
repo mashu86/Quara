@@ -207,6 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.querySelectorAll('.qw-horizontal-track').forEach(track => {
         const isHero=track.classList.contains('qw-hero-track');
+        // The hero carousel is controlled by home-hero.js (transform based).
+        // Keep this scroll-based controller for the other horizontal sections only.
+        if(isHero)return;
         const slides=[...track.children].filter(slide=>!slide.classList.contains('qw-hero-nav'));
         const dots=document.querySelector(`[data-dots-for="${track.id}"]`);
         const targetFor=index=>{const slide=slides[index];return slide ? Math.max(0,slide.offsetLeft-track.offsetLeft-(track.dataset.center==='1'?(track.clientWidth-slide.clientWidth)/2:0)) : 0;};

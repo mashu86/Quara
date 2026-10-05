@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function schedule() {
         stop();
         if (!autoplay || paused || hovered || document.hidden || slides.length < 2) return;
-        if (feature.contains(document.activeElement)) return;
         if (!loop && current === slides.length - 1) return;
         timer = window.setTimeout(() => goTo(current + 1), interval);
     }
@@ -109,6 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: true });
     stage.addEventListener('touchcancel', () => { touchStart = null; schedule(); }, { passive: true });
     document.addEventListener('visibilitychange', schedule);
+    // A page restored from the back/forward cache does not fire DOMContentLoaded
+    // again. Restart the timer when the browser returns to this page.
+    window.addEventListener('pageshow', schedule);
     reducedMotion.addEventListener('change', event => {
         paused = event.matches;
         schedule();

@@ -451,6 +451,39 @@
         .orders-table .btn:not(.rounded-circle) { font-size: 0.65rem !important; padding: 0.2rem 0.4rem !important; }
         .orders-table .badge, .orders-mobile-card .badge { font-size: 0.6rem !important; padding: 0.2em 0.4em !important; }
     }
+
+    /* Keep the order image preview inside the available phone viewport. */
+    @media (max-width: 575.98px) {
+        #orderImageCarouselModal .modal-dialog {
+            width: calc(100% - 1rem);
+            max-width: none;
+            margin: 0.5rem auto;
+        }
+        #orderImageCarouselModal .modal-content {
+            max-height: calc(100dvh - 1rem);
+        }
+        #orderImageCarouselModal .modal-body {
+            min-height: 0 !important;
+            padding: 0.75rem !important;
+            align-items: flex-start !important;
+        }
+        #orderImageCarouselModal #orderModalProductImg {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: 38dvh !important;
+            object-fit: contain;
+        }
+        #orderImageCarouselModal #orderModalProductName {
+            min-width: 0;
+        }
+        #orderImageCarouselModal .modal-footer {
+            gap: 0.5rem;
+        }
+        #orderImageCarouselModal #orderModalFooterNote {
+            font-size: 0.65rem;
+        }
+    }
 </style>
 
 <!-- Quick Status Filter Dropdown -->

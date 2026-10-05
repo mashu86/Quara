@@ -11,10 +11,10 @@
     #myOrderImageModalImage { display: block; max-width: 100%; max-height: calc(100dvh - 8rem); width: auto; height: auto; object-fit: contain; margin: 0 auto; }
     .my-order-product-image { cursor: zoom-in; }
     @media (max-width: 575.98px) {
-        #myOrderImageModal .modal-dialog { max-width: none; margin: .5rem; }
-        #myOrderImageModal .modal-content { height: calc(100dvh - 1rem); max-height: calc(100dvh - 1rem); }
-        #myOrderImageModal .modal-body { padding: .5rem !important; }
-        #myOrderImageModalImage { max-width: 100%; max-height: calc(100dvh - 7rem); }
+        #myOrderImageModal .modal-dialog { width: 100%; max-width: none; height: 100dvh; margin: 0; }
+        #myOrderImageModal .modal-content { height: 100%; max-height: 100%; border-radius: 0 !important; }
+        #myOrderImageModal .modal-body { min-height: 0; flex: 1 1 auto; padding: .5rem !important; overflow: auto; overscroll-behavior: contain; }
+        #myOrderImageModalImage { flex: 0 0 auto; width: auto; max-width: 100%; height: auto; max-height: calc(100dvh - 4.5rem); object-fit: contain; object-position: center; }
     }
 </style>
 @endsection
@@ -179,6 +179,12 @@
         const previewImage = document.getElementById('myOrderImageModalImage');
         const title = document.getElementById('myOrderImageModalTitle');
         if (!modalElement || !window.bootstrap?.Modal) return;
+        const modalBody = modalElement.querySelector('.modal-body');
+
+        modalElement.addEventListener('shown.bs.modal', () => {
+            // Reset any previous image's scroll position when opening on mobile.
+            if (modalBody) modalBody.scrollTop = 0;
+        });
 
         const openPreview = (thumbnail) => {
             previewImage.src = thumbnail.dataset.orderImage;

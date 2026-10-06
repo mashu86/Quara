@@ -206,8 +206,8 @@ class ManualSalesController extends Controller
                 'customer_email' => $validated['customer_email'] ?? null,
                 'house_building' => $validated['house_building'] ?? 'Offline Store',
                 'street' => $validated['street'] ?? 'Direct Purchase',
-                // The orders table requires an area, but counter sales may not have one.
-                'area' => $validated['area'] ?: 'Counter Sale',
+                // The orders table requires a non-null area, but walk-in sales may not have one.
+                'area' => $validated['area'] ?? '',
                 'city' => $validated['city'] ?? 'Naduvil',
                 'district' => $validated['district'] ?? 'Kannur',
                 'state' => $validated['state'] ?? 'Kerala',
@@ -439,8 +439,8 @@ class ManualSalesController extends Controller
                     'customer_email' => $validated['customer_email'] ?? null,
                     'house_building' => $validated['house_building'] ?? 'Offline Store',
                     'street' => $validated['street'] ?? 'Direct Purchase',
-                    // Keep the required address column populated for walk-in sales.
-                    'area' => $validated['area'] ?: 'Counter Sale',
+                    // Keep the required address column non-null without adding a fake address.
+                    'area' => $validated['area'] ?? '',
                     'city' => $validated['city'] ?? 'Naduvil',
                     'district' => $validated['district'] ?? 'Kannur',
                     'state' => $validated['state'] ?? 'Kerala',

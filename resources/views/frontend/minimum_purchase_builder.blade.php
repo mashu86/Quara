@@ -62,7 +62,8 @@
     <div class="row minimum-builder-grid">
         @forelse($products as $product)
             @php
-                $sizes = $product->sizes->filter(fn($size) => trim((string) $size->size) !== '' && $size->available_stock > 0);
+                $sizeVariants = $product->sizes->filter(fn($size) => trim((string) $size->size) !== '');
+                $sizes = $sizeVariants->filter(fn($size) => $size->available_stock > 0);
                 $hasNoSizeStock = $product->sizes->filter(fn($size) => trim((string) $size->size) === '')->sum(fn($size) => $size->available_stock) > 0;
                 $available = !$product->is_out_of_stock && empty($product->booked_by) && ($sizes->isNotEmpty() || $hasNoSizeStock);
                 $defaultSize = '';
@@ -91,10 +92,10 @@
                         </div>
                         <div class="qw-product-price minimum-product-price mb-1.5">₹{{ number_format($product->final_price, 2) }}</div>
                         <div class="minimum-card-details">
-                            @if($sizes->isNotEmpty())
+                            @if($sizeVariants->isNotEmpty())
                                 <input type="hidden" class="minimum-product-size" value="{{ $defaultSize }}">
                                 <div class="d-flex flex-wrap gap-1 align-items-center mb-1 minimum-product-size-display">
-                                    @foreach($sizes as $size)<span class="badge bg-light text-dark border-0 px-2 py-1 rounded-2 fw-bold" style="font-size:.63rem">{{ $size->size }}</span>@endforeach
+                                    @foreach($sizeVariants as $size)<span class="badge {{ $size->available_stock > 0 ? 'bg-light text-dark' : 'bg-secondary-subtle text-secondary' }} border-0 px-2 py-1 rounded-2 fw-bold" style="font-size:.63rem">{{ $size->size }}</span>@endforeach
                                 </div>
                             @elseif($hasNoSizeStock)
                                 <input type="hidden" class="minimum-product-size" value="">

@@ -79,7 +79,7 @@
                 <article class="card h-100 qw-product-card overflow-hidden minimum-product-card" data-product-id="{{ $product->id }}">
                     <div class="minimum-product-image-box">
                         <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="qw-product-img minimum-product-image" loading="lazy">
-                        @if(!$available)<span class="badge bg-danger position-absolute top-0 start-0 m-2">Unavailable</span>@endif
+                        @if(!$available)<span class="badge bg-danger position-absolute top-0 start-0 m-2">SOLD OUT</span>@endif
                     </div>
                     <div class="qw-card-body p-2 p-sm-3 d-flex flex-column flex-grow-1">
                         <div class="minimum-product-name-row mb-1.5">
@@ -98,13 +98,13 @@
                             @elseif($hasNoSizeStock)
                                 <input type="hidden" class="minimum-product-size" value="">
                             @else
-                                <div class="small text-danger mb-2">Currently unavailable</div>
+                                <div class="small text-danger mb-2">Sold Out</div>
                             @endif
                             @if($allMeasurements)
                                 <div class="text-muted fw-semibold w-100 mt-1.5 text-truncate" style="font-size:.63rem;line-height:1.3" title="{{ implode(' | ', $allMeasurements) }}"><i class="fa-solid fa-ruler text-warning me-1"></i>{{ implode(' / ', $allMeasurements) }}</div>
                             @endif
                         </div>
-                        <button type="button" class="btn btn-qw-gold rounded-pill w-100 minimum-select-btn" data-id="{{ $product->id }}" {{ !$available ? 'disabled' : '' }}>Add</button>
+                        <button type="button" class="btn btn-qw-gold rounded-pill w-100 minimum-select-btn" data-id="{{ $product->id }}" {{ !$available ? 'disabled' : '' }}>{{ $available ? 'Add' : 'Sold Out' }}</button>
                     </div>
                 </article>
             </div>
@@ -122,9 +122,9 @@
                                     <h3 class="h6 fw-bold">Sizes and Measurements</h3>
                                     @if($product->sizes->isNotEmpty())
                                         <div class="table-responsive"><table class="table table-sm table-bordered align-middle"><thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hip</th><th>Length</th><th>Availability</th></tr></thead><tbody>
-                                            @foreach($product->sizes as $size)<tr><td>{{ $size->size ?: 'Standard' }}</td><td>{{ $size->chest ? $size->chest.'″' : '—' }}</td><td>{{ $size->waist ? $size->waist.'″' : '—' }}</td><td>{{ $size->hip ? $size->hip.'″' : '—' }}</td><td>{{ $size->length ? $size->length.'″' : '—' }}</td><td>{{ $size->available_stock > 0 ? $size->available_stock.' available' : 'Unavailable' }}</td></tr>@endforeach
+                                            @foreach($product->sizes as $size)<tr><td>{{ $size->size ?: 'Standard' }}</td><td>{{ $size->chest ? $size->chest.'″' : '—' }}</td><td>{{ $size->waist ? $size->waist.'″' : '—' }}</td><td>{{ $size->hip ? $size->hip.'″' : '—' }}</td><td>{{ $size->length ? $size->length.'″' : '—' }}</td><td>{{ $size->available_stock > 0 ? $size->available_stock.' available' : 'Sold Out' }}</td></tr>@endforeach
                                         </tbody></table></div>
-                                    @else<div class="text-muted small">Size details are unavailable.</div>@endif
+                                    @else<div class="text-muted small">No size information.</div>@endif
                                 </div>
                             </div>
                         </div>
@@ -165,7 +165,7 @@
             : `Select ${MINIMUM - count} more to reach the minimum.`;
         document.querySelectorAll('.minimum-select-btn').forEach(button => {
             const active = selected.has(Number(button.dataset.id));
-            button.textContent = active ? 'Added · Remove' : 'Add';
+            button.textContent = active ? 'Added · Remove' : (button.disabled ? 'Sold Out' : 'Add');
         });
     }
 

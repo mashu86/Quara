@@ -18,6 +18,7 @@
     .minimum-product-name { min-width: 0; min-height: 2.2rem; }
     .minimum-card-details { min-height: 2.6rem; }
     .minimum-select-btn { min-height: 34px; margin-top: auto !important; padding: .3rem .65rem; font-size: .88rem; white-space: nowrap; }
+    .minimum-select-btn:disabled { background: #fff !important; border: 1px solid #dc3545 !important; color: #dc3545 !important; opacity: 1; }
     .minimum-buy-bar { position: fixed; z-index: 1030; left: 0; right: 0; bottom: 0; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); border-top: 2px solid #d4af37; box-shadow: 0 -5px 22px rgba(0,0,0,.12); }
     .minimum-buy-inner { width: min(100%, 1100px); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .minimum-buy-summary { min-width: 0; }

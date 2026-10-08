@@ -219,28 +219,28 @@
 </div>
 
 <!-- Desktop Search & Unified Filters (d-none d-lg-block) -->
-<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block">
+<div class="card border-0 rounded-4 shadow-sm mb-4 d-none d-lg-block order-filter-card">
     <div class="card-body p-3 p-sm-4">
-        <form action="{{ route('admin.orders.index') }}" method="GET" class="row g-2.5 align-items-end">
-            <div class="col-12 col-xl-3">
+        <form action="{{ route('admin.orders.index') }}" method="GET" class="orders-filter-grid">
+            <div class="orders-filter-field orders-filter-search">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-magnifying-glass text-warning me-1"></i> Search
                 </label>
                 <input type="text" name="search" class="form-control rounded-3" placeholder="Order #, Name, Phone..." value="{{ request()->search }}">
             </div>
-            <div class="col-6 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-regular fa-calendar text-warning me-1"></i> Start Date
                 </label>
                 <input type="date" name="start_date" class="form-control rounded-3 py-1.5" value="{{ request('start_date') }}">
             </div>
-            <div class="col-6 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-regular fa-calendar-check text-warning me-1"></i> End Date
                 </label>
                 <input type="date" name="end_date" class="form-control rounded-3 py-1.5" value="{{ request('end_date') }}">
             </div>
-            <div class="col-12 col-sm-4 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-tags text-warning me-1"></i> Order Status
                 </label>
@@ -256,7 +256,7 @@
                     <option value="returned" {{ request()->status === 'returned' || request()->status === 'has_return' ? 'selected' : '' }}>Returned / Operations ({{ $statusCounts['returned'] ?? 0 }})</option>
                 </select>
             </div>
-            <div class="col-12 col-sm-4 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-cart-flatbed text-warning me-1"></i> Sale Source
                 </label>
@@ -266,7 +266,7 @@
                     <option value="manual" {{ request()->sale_channel === 'manual' ? 'selected' : '' }}>📝 Manual / Offline Sales</option>
                 </select>
             </div>
-            <div class="col-12 col-sm-4 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-wallet text-warning me-1"></i> Payment Method
                 </label>
@@ -277,7 +277,7 @@
                     <option value="offline_sale" {{ request()->payment_method === 'offline_sale' ? 'selected' : '' }}>Offline Sale</option>
                 </select>
             </div>
-            <div class="col-12 col-sm-4 col-xl-2">
+            <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-credit-card text-warning me-1"></i> Payment Status
                 </label>
@@ -289,15 +289,15 @@
                     <option value="refunded" {{ request()->payment_status === 'refunded' ? 'selected' : '' }}>Refunded</option>
                 </select>
             </div>
-            <div class="col-12 col-xl-3 d-flex gap-2 ms-auto mt-2 mt-xl-0">
-                <button type="submit" class="btn btn-dark rounded-pill fw-semibold py-2 shadow-sm flex-grow-1">
+            <div class="orders-filter-actions">
+                <button type="submit" class="btn btn-dark rounded-pill fw-semibold py-2 shadow-sm orders-filter-apply">
                     <i class="fa-solid fa-filter me-1 text-warning"></i> Apply Filters
                 </button>
                 @if($activeOrderFilterCount > 0)
-                    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill px-3 py-2" title="Reset All Filters">Reset</a>
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill px-3 py-2 orders-filter-reset" title="Reset All Filters">Reset</a>
                 @endif
             </div>
-            <div class="col-12 mt-2">
+            <div class="orders-filter-test">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" name="include_test_orders" value="1" id="includeTestOrdersSwitch" onchange="this.form.submit()" {{ request()->boolean('include_test_orders') ? 'checked' : '' }}>
                     <label class="form-check-label small text-muted" for="includeTestOrdersSwitch">
@@ -411,6 +411,38 @@
 </div>
 
 <style>
+    .orders-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .9rem .85rem;
+        align-items: end;
+    }
+    .orders-filter-grid > * { min-width: 0; margin: 0; }
+    .orders-filter-search { grid-column: span 2; }
+    .orders-filter-grid .form-label {
+        display: block;
+        min-height: 1.35em;
+        font-size: .88rem;
+    }
+    .orders-filter-grid .form-control,
+    .orders-filter-grid .form-select { min-height: 44px; font-size: .95rem; }
+    .orders-filter-actions {
+        display: flex;
+        gap: .6rem;
+        align-items: stretch;
+        min-width: 0;
+    }
+    .orders-filter-actions .btn { min-height: 44px; white-space: nowrap; }
+    .orders-filter-apply { flex: 1 1 auto; }
+    .orders-filter-reset { flex: 0 0 auto; }
+    .orders-filter-test { grid-column: 1 / -1; padding-top: .15rem; }
+
+    @media (min-width: 1400px) {
+        .orders-filter-grid { grid-template-columns: minmax(0, 1.45fr) repeat(4, minmax(0, 1fr)); }
+        .orders-filter-search { grid-column: auto; }
+        .orders-filter-actions { grid-column: 4 / -1; }
+    }
+
     /* Sticky Order # & Customer columns on horizontal x-axis scroll */
     .orders-table th:nth-child(1),
     .orders-table td:nth-child(1) {

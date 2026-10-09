@@ -211,6 +211,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('social-media', AdminSocialMediaController::class)->parameters(['social-media' => 'social_media']);
 
         // Orders & Manual Offline Sales Management
+        Route::get('/bulk-article-number', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'index'])->name('bulk-article.index');
+        Route::post('/bulk-article-number/proceed', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'proceed'])->name('bulk-article.proceed');
+        Route::delete('/bulk-article-number/bucket/{order}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'remove'])->name('bulk-article.remove');
+        Route::get('/bulk-article-number/upload', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'uploadPage'])->name('bulk-article.upload');
+        Route::post('/bulk-article-number/upload', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'parse'])->name('bulk-article.parse');
+        Route::post('/bulk-article-number/match', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'match'])->name('bulk-article.match');
+        Route::post('/bulk-article-number/save', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'save'])->name('bulk-article.save');
+        Route::get('/article-tracking-history', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'history'])->name('bulk-article.history');
+        Route::delete('/article-tracking-history', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'bulkDestroy'])->name('bulk-article.bulk-destroy');
+        Route::get('/article-tracking-history/{shipment}/edit', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'edit'])->name('bulk-article.edit');
+        Route::put('/article-tracking-history/{shipment}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'update'])->name('bulk-article.update');
+        Route::delete('/article-tracking-history/{shipment}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'destroy'])->name('bulk-article.destroy');
+        Route::get('/orders/{order}/article-number', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'manual'])->name('orders.article-number');
+        Route::post('/orders/{order}/article-number', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'storeManual'])->name('orders.article-number.store');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::get('/orders/{order}/edit', [AdminOrderController::class, 'edit'])->name('orders.edit');

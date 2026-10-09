@@ -445,6 +445,16 @@
 
                 <li class="nav-heading">Orders & Offline Sales</li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.bulk-article.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.index', 'admin.bulk-article.upload', 'admin.bulk-article.parse', 'admin.bulk-article.match', 'admin.bulk-article.save') ? 'active' : '' }}">
+                        <i class="fa-solid fa-barcode me-2"></i> Bulk Article Number
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.bulk-article.history') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.history', 'admin.bulk-article.edit', 'admin.bulk-article.update') ? 'active' : '' }}">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i> Article / Tracking History
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-receipt me-2"></i> My Sales
                         @if(($unreadOrderCount ?? 0) > 0)

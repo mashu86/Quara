@@ -193,6 +193,11 @@ class Order extends Model
         return $this->hasOne(Payment::class);
     }
 
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(OrderShipment::class);
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);

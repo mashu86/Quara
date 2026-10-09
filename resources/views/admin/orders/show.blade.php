@@ -53,6 +53,11 @@ window.openImagePreviewModal = function(imageUrl, title) {
                 $isOrderedCustomerShow = ($order->payment_status === 'paid' || $order->payment_method === 'offline_sale' || $order->order_source === 'manual' || !in_array($order->order_status, ['pending', 'cancelled']));
             @endphp
             @if($isOrderedCustomerShow)
+                @if($order->payment_status === 'paid' && !$order->shipment && !$order->tracking_number)
+                    <a href="{{ route('admin.orders.article-number', $order) }}" class="btn btn-sm btn-outline-success rounded-pill px-2">Generate Article Number</a>
+                @elseif($order->shipment || $order->tracking_number)
+                    <a href="{{ route('admin.bulk-article.history', ['order_id' => $order->order_number]) }}" class="btn btn-sm btn-outline-success rounded-pill px-2">Tracking: {{ $order->shipment?->tracking_number ?? $order->tracking_number }}</a>
+                @endif
                 <button type="button" onclick="previewCourierAddress({{ json_encode($order) }})" class="btn btn-sm btn-outline-info rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm order-show-header-btn" title="Preview Courier Address Label">
                     <i class="fa-solid fa-eye"></i>
                 </button>

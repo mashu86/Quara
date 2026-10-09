@@ -266,8 +266,7 @@ class CheckoutController extends Controller
             }
 
             if ($validated['payment_method'] === 'cod' || (float) $order->grand_total <= 0) {
-                $this->cartService->clear();
-                session()->forget('master_coupon');
+                $this->clearPurchasedCart();
                 $this->whatsAppService->sendOrderConfirmation($order);
 
                 if ($order->customer_email) {
@@ -327,8 +326,7 @@ class CheckoutController extends Controller
         }
 
         if ($verified) {
-            $this->cartService->clear();
-            session()->forget('master_coupon');
+            $this->clearPurchasedCart();
             $this->whatsAppService->sendOrderConfirmation($order);
 
             if ($order->customer_email) {
@@ -353,6 +351,24 @@ class CheckoutController extends Controller
             ->firstOrFail();
 
         return view('frontend.order_success', compact('order'));
+    }
+
+    /** Clear the purchased checkout cart, restoring the shopper's original cart after Buy Now. */
+    private function clearPurchasedCart(): void
+    {
+        if (!session('buy_now_mode')) {
+            $this->cartService->clear();
+            session()->forget('master_coupon');
+            return;
+        }
+
+        session(['cart' => session('buy_now_original_cart', [])]);
+        if (session('buy_now_original_coupon')) {
+            session(['master_coupon' => session('buy_now_original_coupon')]);
+        } else {
+            session()->forget('master_coupon');
+        }
+        session()->forget(['buy_now_mode', 'buy_now_original_cart', 'buy_now_original_coupon']);
     }
 
     /**

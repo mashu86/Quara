@@ -618,7 +618,7 @@
                         <i class="fa-solid fa-bag-shopping"></i>
                         @php $cartCount = count(session('cart', [])); @endphp
                         @if($cartCount > 0)
-                            <span class="cart-badge">{{ $cartCount }}</span>
+                            <span class="cart-badge" data-cart-items-count>{{ $cartCount }}</span>
                         @endif
                     </a>
                 </div>
@@ -664,7 +664,7 @@
                             <i class="fa-solid fa-bag-shopping text-gold"></i>
                             <span>Cart</span>
                             @if($cartCount > 0)
-                                <span class="badge bg-gold rounded-pill">{{ $cartCount }}</span>
+                                <span class="badge bg-gold rounded-pill" data-cart-items-count>{{ $cartCount }}</span>
                             @endif
                         </a>
                     </div>

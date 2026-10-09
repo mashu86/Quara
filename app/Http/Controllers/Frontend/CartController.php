@@ -17,6 +17,10 @@ class CartController extends Controller
 
     public function index()
     {
+        if (session('buy_now_mode')) {
+            $this->restoreCartAfterBuyNow();
+        }
+
         $cart = $this->cartService->getCart();
         $summary = $this->cartService->getSummary();
         $stockValidation = $this->cartService->validateCartStock();
@@ -121,15 +125,21 @@ class CartController extends Controller
         $result = $this->cartService->remove($cartKey);
 
         if (request()->wantsJson() || request()->ajax()) {
+            $result['stock_validation'] = $this->cartService->validateCartStock();
+            $cart = $this->cartService->getCart();
+            $result['cart_items_count'] = count($cart);
+            $result['cart_cards_html'] = view('frontend.partials.cart_cards', ['cart' => $cart])->render();
+            $result['summary_html'] = view('frontend.partials.cart_summary', [
+                'summary' => $result['summary'],
+                'stockValidation' => $result['stock_validation'],
+            ])->render();
             return response()->json($result);
         }
 
         return redirect()->route('cart.index')->with('success', $result['message']);
     }
 
-    /**
-     * Buy Now flow: clears cart, adds selected item, and redirects directly to checkout.
-     */
+    /** Start an isolated checkout for one selected product without discarding the cart. */
     public function buyNow(Request $request)
     {
         $validated = $request->validate([
@@ -140,7 +150,15 @@ class CartController extends Controller
             'product_id.required' => 'This product could not be identified. Please reload the page and try again.',
         ]);
 
-        $this->cartService->clear();
+        if (!session('buy_now_mode')) {
+            session([
+                'buy_now_original_cart' => session('cart', []),
+                'buy_now_original_coupon' => session('master_coupon'),
+            ]);
+        }
+        session()->forget('master_coupon');
+        session(['cart' => []]);
+
         $result = $this->cartService->add(
             (int) $validated['product_id'],
             $validated['size'] ?? '',
@@ -148,9 +166,24 @@ class CartController extends Controller
         );
 
         if (!$result['success']) {
+            $this->restoreCartAfterBuyNow();
             return back()->with('error', $result['message'])->withInput();
         }
 
+        session(['buy_now_mode' => true]);
         return redirect()->route('checkout.index');
+    }
+
+    private function restoreCartAfterBuyNow(): void
+    {
+        if (!session('buy_now_mode') && !session()->has('buy_now_original_cart')) return;
+
+        session(['cart' => session('buy_now_original_cart', [])]);
+        if (session()->has('buy_now_original_coupon')) {
+            session(['master_coupon' => session('buy_now_original_coupon')]);
+        } else {
+            session()->forget('master_coupon');
+        }
+        session()->forget(['buy_now_mode', 'buy_now_original_cart', 'buy_now_original_coupon']);
     }
 }

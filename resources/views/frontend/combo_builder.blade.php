@@ -201,7 +201,7 @@
                         <strong class="text-gold fw-bold ms-0.5" style="font-size: 0.98rem;">₹{{ number_format($category->combo_price, 2) }}</strong>!
                     </p>
                     @if($category->allow_pre_min_purchase)
-                        <p class="text-white-50 small mb-2">You may buy fewer items at {{ $category->pre_min_purchase_offer_price ? 'combo offer price' : 'regular product price' }}.</p>
+                        <p class="text-white-50 small mb-2">You may buy fewer items at regular product prices. Combo pricing and delivery benefits start after the minimum is reached.</p>
                     @endif
                     <div class="d-flex align-items-center justify-content-between gap-2 w-100">
                         <span class="badge rounded-pill fw-bold px-2.5 py-1" style="background: #D4AF37; color: #111111; font-size: 0.68rem;">
@@ -479,7 +479,6 @@
     const UNIT_COMBO_PRICE = {{ $unitComboPrice === null ? 'null' : (float) $unitComboPrice }};
     const COMBO_CATEGORY_ID = {{ (int) $category->id }};
     const ALLOW_PRE_MIN_PURCHASE = @json((bool) $category->allow_pre_min_purchase);
-    const PRE_MIN_OFFER_PRICE = @json((bool) $category->pre_min_purchase_offer_price);
     const ADD_COMBO_URL = "{{ route('cart.add_combo') }}";
     const CSRF_TOKEN = "{{ csrf_token() }}";
 
@@ -632,7 +631,7 @@
             if (count < MIN_COUNT) {
                 const diff = MIN_COUNT - count;
                 el.innerHTML = `<span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill w-100 text-wrap" style="font-size: 0.75rem;">
-                    ${ALLOW_PRE_MIN_PURCHASE ? (PRE_MIN_OFFER_PRICE ? 'Combo offer price applies.' : 'Regular product prices apply.') : `Add ${diff} more item${diff > 1 ? 's' : ''} to unlock combo price!`}
+                    ${ALLOW_PRE_MIN_PURCHASE ? 'Regular product prices apply until the minimum is reached.' : `Add ${diff} more item${diff > 1 ? 's' : ''} to unlock combo price!`}
                 </span>`;
             } else {
                 el.innerHTML = `<span class="badge bg-success px-3 py-1.5 rounded-pill w-100 text-wrap" style="font-size: 0.75rem;">
@@ -675,9 +674,9 @@
         // Calculate Totals - Ceil round total combo price to nearest whole rupee (e.g. 583.33 -> 584)
         let originalTotal = selectedComboItems.reduce((sum, item) => sum + item.original_price, 0);
         let rawComboTotal = (COMBO_PRICE / MIN_COUNT) * count;
-        let comboTotal = count < MIN_COUNT && !PRE_MIN_OFFER_PRICE ? originalTotal : Math.ceil(rawComboTotal);
+        let comboTotal = count < MIN_COUNT ? originalTotal : Math.ceil(rawComboTotal);
         document.querySelectorAll('.combo-price-unit').forEach(el => {
-            el.textContent = count < MIN_COUNT && !PRE_MIN_OFFER_PRICE
+            el.textContent = count < MIN_COUNT
                 ? 'Regular price until minimum'
                 : (UNIT_COMBO_PRICE === null ? 'Regular product price' : String.fromCharCode(8377) + Number(UNIT_COMBO_PRICE).toFixed(2));
         });

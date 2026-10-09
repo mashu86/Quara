@@ -197,8 +197,7 @@ class ShopController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        $unitComboPrice = $category->min_count > 0 ? round($category->combo_price / $category->min_count, 2) : 0;
-        $unitComboPrice = $category->pre_min_purchase_offer_price ? $unitComboPrice : null;
+        $unitComboPrice = null; // Show the combo unit price only after the minimum is reached in the cart.
         $seoTitle = '👑 ' . $category->name . ' - Offer Combo Package | Quara Wardrobe';
         $seoDescription = 'Choose ' . $category->min_count . '+ items for just ₹' . number_format($category->combo_price, 2) . ' in our ' . $category->name . ' offer combo. Select your sizes & enjoy fast pan-India shipping.';
         $canonicalUrl = route('category.products', $category->slug);

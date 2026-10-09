@@ -99,18 +99,15 @@
                             <!-- Combo Offer Specific Fields -->
                             <div id="comboFieldsSection" class="row g-3 border-top pt-3 {{ old('offer_type', 'combo') === 'combo' ? '' : 'd-none' }}">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold small">Allow purchase before minimum count?</label>
+                                    <label class="form-label fw-bold small">Allow purchase below minimum at regular prices?</label>
                                     <select name="allow_pre_min_purchase" id="allow_pre_min_purchase" class="form-select rounded-3">
                                         <option value="0" {{ (string) old('allow_pre_min_purchase', '0') === '0' ? 'selected' : '' }}>No</option>
                                         <option value="1" {{ old('allow_pre_min_purchase') === '1' ? 'selected' : '' }}>Yes</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 {{ old('allow_pre_min_purchase') === '1' ? '' : 'd-none' }}" id="preMinOfferPriceWrapper">
-                                    <label class="form-label fw-bold small">Apply combo offer price before minimum count?</label>
-                                    <select name="pre_min_purchase_offer_price" class="form-select rounded-3">
-                                        <option value="0" {{ old('pre_min_purchase_offer_price', '0') === '0' ? 'selected' : '' }}>No — use actual product price</option>
-                                        <option value="1" {{ old('pre_min_purchase_offer_price') === '1' ? 'selected' : '' }}>Yes — use combo offer price</option>
-                                    </select>
+                                    <input type="hidden" name="pre_min_purchase_offer_price" value="0">
+                                    <label class="form-label fw-bold small">Combo pricing requires the full minimum quantity from this category.</label>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-bold small">Minimum Count <span class="text-danger">*</span></label>

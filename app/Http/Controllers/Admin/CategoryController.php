@@ -113,7 +113,7 @@ class CategoryController extends Controller
         $validated['delivery_charge_mode'] = $isOfferCategory ? $request->input('delivery_charge_mode', 'free') : 'master';
         $validated['delivery_charge'] = $validated['delivery_charge_mode'] === 'custom' ? (float) $request->input('delivery_charge', 0) : 0.00;
         $validated['allow_pre_min_purchase'] = $isOfferCategory && $offerType === 'combo' && $request->boolean('allow_pre_min_purchase');
-        $validated['pre_min_purchase_offer_price'] = $validated['allow_pre_min_purchase'] && $request->boolean('pre_min_purchase_offer_price');
+        $validated['pre_min_purchase_offer_price'] = false;
         $validated['minimum_purchase_required'] = !$isOfferCategory && $request->boolean('minimum_purchase_required');
         $validated['minimum_purchase_count'] = $validated['minimum_purchase_required'] ? (int) $request->input('minimum_purchase_count') : null;
 
@@ -307,7 +307,7 @@ class CategoryController extends Controller
         $validated['delivery_charge_mode'] = $isOfferCategory ? $request->input('delivery_charge_mode', 'free') : 'master';
         $validated['delivery_charge'] = $validated['delivery_charge_mode'] === 'custom' ? (float) $request->input('delivery_charge', 0) : 0.00;
         $validated['allow_pre_min_purchase'] = $isOfferCategory && $offerType === 'combo' && $request->boolean('allow_pre_min_purchase');
-        $validated['pre_min_purchase_offer_price'] = $validated['allow_pre_min_purchase'] && $request->boolean('pre_min_purchase_offer_price');
+        $validated['pre_min_purchase_offer_price'] = false;
         $validated['minimum_purchase_required'] = !$isOfferCategory && $request->boolean('minimum_purchase_required');
         $validated['minimum_purchase_count'] = $validated['minimum_purchase_required'] ? (int) $request->input('minimum_purchase_count') : null;
 

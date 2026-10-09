@@ -78,7 +78,7 @@ class CartService
                 $comboCategory = \App\Models\Category::find($comboCategoryId);
 
                 // If combo category was deleted, disabled or offer turned off -> revert to regular price
-                if (!$comboCategory || $comboCategory->status !== 'active' || !$comboCategory->is_combo_offer) {
+                if (!$comboCategory || $comboCategory->status !== 'active' || !$comboCategory->is_active_offer || !$comboCategory->is_combo_offer) {
                     $effectivePrice = (float) $product->effective_final_price;
                     $updatedCart[$key] = [
                         'product_id' => $product->id,
@@ -265,7 +265,7 @@ class CartService
         }, 0);
     }
 
-    /** Price eligible regular products at the active combo category's per-item offer rate. */
+    /** Rebuild combo pricing from current product mappings and cart quantities. */
     private function applyCategoryComboPrices(array $cart, bool &$changed): array
     {
         $offerCategories = Category::where('status', 'active')
@@ -279,22 +279,38 @@ class CartService
             ->where('min_count', '>', 0)
             ->get();
 
-        if ($offerCategories->isEmpty()) {
-            return $cart;
-        }
-
         $products = Product::with(['category', 'categories', 'comboCategory'])->findMany(
             collect($cart)->pluck('product_id')->unique()->all()
         )->keyBy('id');
 
-        foreach ($offerCategories as $category) {
+        $productsInCart = [];
+        foreach ($cart as $key => $item) {
+            $productsInCart[$key] = $products->get((int) ($item['product_id'] ?? 0));
+            $product = $productsInCart[$key];
+            if (!$product) continue;
+            $normalPrice = (float) $product->effective_final_price;
+            if ((float) ($cart[$key]['final_price'] ?? 0) !== $normalPrice
+                || !empty($cart[$key]['is_combo_offer'])
+                || !empty($cart[$key]['combo_category_id'])) {
+                $changed = true;
+            }
+            $cart[$key]['price'] = (float) $product->price;
+            $cart[$key]['final_price'] = $normalPrice;
+            $cart[$key]['discount_amount'] = max(0, round((float) $product->price - $normalPrice, 2));
+            $cart[$key]['subtotal'] = round($normalPrice * (int) ($item['quantity'] ?? 1), 2);
+            $cart[$key]['is_combo_offer'] = false;
+            unset($cart[$key]['combo_category_id'], $cart[$key]['combo_delivery_charge'], $cart[$key]['combo_delivery_charge_mode'], $cart[$key]['combo_min_count'], $cart[$key]['combo_pre_minimum']);
+        }
+
+        // A product assigned to overlapping offer categories can only receive one
+        // combo price. Stable category order keeps the selected offer deterministic.
+        $claimedKeys = [];
+        foreach ($offerCategories->sortBy('id') as $category) {
             $eligibleKeys = [];
             $eligibleQty = 0;
             foreach ($cart as $key => $item) {
-                if (!empty($item['is_combo_offer'])) {
-                    continue;
-                }
-                $product = $products->get((int) ($item['product_id'] ?? 0));
+                if (isset($claimedKeys[$key])) continue;
+                $product = $productsInCart[$key] ?? null;
                 if (!$product) {
                     continue;
                 }
@@ -312,7 +328,9 @@ class CartService
             }
 
             $offerApplies = $eligibleQty >= (int) $category->min_count;
-            $useComboPrice = $offerApplies || (bool) $category->pre_min_purchase_offer_price;
+            $useComboPrice = $offerApplies;
+
+            if (!$useComboPrice) continue;
 
             $targetTotal = $useComboPrice
                 ? (float) ceil(((float) $category->combo_price / (int) $category->min_count) * $eligibleQty)
@@ -325,13 +343,14 @@ class CartService
                 $item = $cart[$key];
                 $qty = (int) $item['quantity'];
                 $basePrice = (float) ($item['price'] ?? 0);
-                $unitPrice = $useComboPrice ? $baseUnitPrice : (float) $product->effective_final_price;
+                $unitPrice = $baseUnitPrice;
                 if ($useComboPrice && $unitIndex < $remainderCents) {
                     $unitPrice = round($unitPrice + 0.01, 2);
                 }
                 $unitIndex += $qty;
 
                 if ((float) ($item['final_price'] ?? 0) !== $unitPrice
+                    || empty($item['is_combo_offer'])
                     || ($offerApplies && (int) ($item['combo_category_id'] ?? 0) !== (int) $category->id)
                     || (!$offerApplies && (int) ($item['combo_category_id'] ?? 0) === (int) $category->id)) {
                     $changed = true;
@@ -339,11 +358,12 @@ class CartService
                 $cart[$key]['final_price'] = $unitPrice;
                 $cart[$key]['discount_amount'] = max(0, round($basePrice - $unitPrice, 2));
                 $cart[$key]['subtotal'] = round($unitPrice * $qty, 2);
-                if ($offerApplies) {
-                    $cart[$key]['combo_category_id'] = $category->id;
-                } else {
-                    unset($cart[$key]['combo_category_id']);
-                }
+                $cart[$key]['is_combo_offer'] = true;
+                $cart[$key]['combo_category_id'] = $category->id;
+                $cart[$key]['combo_delivery_charge'] = (float) $category->delivery_charge;
+                $cart[$key]['combo_delivery_charge_mode'] = $category->delivery_charge_mode ?? 'free';
+                $cart[$key]['combo_min_count'] = (int) $category->min_count;
+                $claimedKeys[$key] = true;
             }
         }
 
@@ -352,7 +372,7 @@ class CartService
 
     public function addComboItems(array $items, \App\Models\Category $comboCategory): array
     {
-        if (!$comboCategory->is_combo_offer || $comboCategory->status !== 'active') {
+        if (!$comboCategory->is_combo_offer || $comboCategory->status !== 'active' || !$comboCategory->is_active_offer) {
             return ['success' => false, 'message' => 'This combo offer is currently unavailable.'];
         }
         $minCount = (int) $comboCategory->min_count;
@@ -384,8 +404,8 @@ class CartService
             }
         }
 
-        $useComboPrice = $totalQty >= $minCount || $comboCategory->pre_min_purchase_offer_price;
-        // Before the minimum is met, ordinary product prices remain in effect unless opted in.
+        $useComboPrice = $totalQty >= $minCount;
+        // The configured combo price is available only after this category's minimum is met.
         $rawComboTotal = $minCount > 0 ? ($comboPrice / $minCount) * $totalQty : 0;
         $targetComboTotal = $useComboPrice ? (float) ceil($rawComboTotal) : 0.0;
 
@@ -401,9 +421,15 @@ class CartService
             $size = (string) ($itm['size'] ?? '');
             $qty = (int) ($itm['quantity'] ?? 1);
 
-            $product = Product::active()->with(['images', 'sizes'])->find($productId);
+            $product = Product::active()->with(['images', 'sizes', 'category', 'categories', 'comboCategory'])->find($productId);
             if (!$product) {
                 return ['success' => false, 'message' => 'Selected product is currently unavailable.'];
+            }
+            $belongsToOfferCategory = (int) $product->combo_category_id === (int) $comboCategory->id
+                || (int) $product->category_id === (int) $comboCategory->id
+                || $product->categories->contains('id', $comboCategory->id);
+            if (!$belongsToOfferCategory) {
+                return ['success' => false, 'message' => "{$product->name} does not belong to the {$comboCategory->name} offer category."];
             }
             $selectableSizes = $product->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '');
             if ($selectableSizes->isEmpty()) {
@@ -419,7 +445,7 @@ class CartService
             }
 
             // Distribute 1 paisa (0.01) to first N items to absorb remainder cents
-            $unitComboPrice = $useComboPrice ? $baseUnitPrice : (float) $product->price;
+            $unitComboPrice = $useComboPrice ? $baseUnitPrice : (float) $product->effective_final_price;
             if ($useComboPrice && $itemIndex < $remainderCents) {
                 $unitComboPrice = round($baseUnitPrice + 0.01, 2);
             }
@@ -432,7 +458,7 @@ class CartService
                 'slug' => $product->slug,
                 'size' => $size,
                 'price' => (float) $product->price,
-                'discount_amount' => max(0, (float) ($product->price - $unitComboPrice)),
+                'discount_amount' => max(0, round((float) ($product->price - $unitComboPrice), 2)),
                 'final_price' => $unitComboPrice,
                 'quantity' => $qty,
                 'available_stock' => $stockCheck['available_stock'],
@@ -447,6 +473,8 @@ class CartService
             ];
         }
 
+        $changed = false;
+        $cart = $this->applyCategoryComboPrices($cart, $changed);
         Session::put('cart', $cart);
 
         return [

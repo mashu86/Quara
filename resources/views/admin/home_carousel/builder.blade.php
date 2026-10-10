@@ -553,6 +553,36 @@
             border-radius: 4px;
         }
 
+        @keyframes qw-sticker-tap { 0%,100% { transform: translateY(0) rotate(-8deg) scale(1); } 45% { transform: translateY(-7px) rotate(2deg) scale(1.08); } 65% { transform: translateY(0) rotate(-5deg) scale(.96); } }
+        .qw-sticker-gallery { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; max-height: 320px; overflow: auto; padding: 3px 4px 8px 2px; }
+        .qw-sticker-choice { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.05); cursor: pointer; }
+        .qw-sticker-choice:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+        .qw-editor-sticker { position: relative; display: inline-grid; place-items: center; width: auto !important; height: auto !important; max-width: none !important; overflow: visible; border: 0; border-radius: 0; padding: 0 !important; color: #fff !important; font-size: inherit; line-height: 1 !important; white-space: nowrap; background: transparent !important; box-shadow: none; transform-origin: center; animation: qw-sticker-tap 1.1s ease-in-out infinite; }
+        .qw-editor-sticker::after { content: ''; position: absolute; inset: -5px; border: 2px solid rgba(255,255,255,.65); border-radius: 50%; animation: qw-sticker-ripple 1.5s ease-out infinite; pointer-events: none; }
+        @keyframes qw-sticker-pulse { 50% { transform: scale(1.2); } }
+        @keyframes qw-sticker-bounce { 35%,65% { transform: translateY(-8px); } }
+        @keyframes qw-sticker-wiggle { 20%,60% { transform: rotate(-16deg); } 40%,80% { transform: rotate(16deg); } }
+        @keyframes qw-sticker-slide { 35% { transform: translateX(9px); } 70% { transform: translateX(-5px); } }
+        @keyframes qw-sticker-pop { 30% { transform: scale(1.35); } 55% { transform: scale(.88); } }
+        @keyframes qw-sticker-shake { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+        @keyframes qw-sticker-tilt { 30% { transform: rotate(20deg) scale(1.08); } 70% { transform: rotate(-12deg); } }
+        @keyframes qw-sticker-nudge { 30% { transform: translate(4px,5px) scale(.9); } 65% { transform: translate(-2px,-2px); } }
+        .qw-editor-sticker.qw-sticker-style-0,.qw-sticker-choice .qw-sticker-style-0 { background: transparent !important; animation-name: qw-sticker-tap; }
+        .qw-editor-sticker.qw-sticker-style-1,.qw-sticker-choice .qw-sticker-style-1 { background: transparent !important; animation-name: qw-sticker-pulse; }
+        .qw-editor-sticker.qw-sticker-style-2,.qw-sticker-choice .qw-sticker-style-2 { background: transparent !important; animation-name: qw-sticker-bounce; }
+        .qw-editor-sticker.qw-sticker-style-3,.qw-sticker-choice .qw-sticker-style-3 { background: transparent !important; animation-name: qw-sticker-wiggle; }
+        .qw-editor-sticker.qw-sticker-style-4,.qw-sticker-choice .qw-sticker-style-4 { background: transparent !important; animation-name: qw-sticker-slide; }
+        .qw-editor-sticker.qw-sticker-style-5,.qw-sticker-choice .qw-sticker-style-5 { background: transparent !important; animation-name: qw-sticker-pop; }
+        .qw-editor-sticker.qw-sticker-style-6,.qw-sticker-choice .qw-sticker-style-6 { background: transparent !important; animation-name: qw-sticker-shake; }
+        .qw-editor-sticker.qw-sticker-style-7,.qw-sticker-choice .qw-sticker-style-7 { background: transparent !important; animation-name: qw-sticker-tilt; }
+        .qw-editor-sticker.qw-sticker-style-8,.qw-sticker-choice .qw-sticker-style-8 { background: transparent !important; animation-name: qw-sticker-nudge; }
+        .qw-editor-sticker.qw-sticker-style-9,.qw-sticker-choice .qw-sticker-style-9 { background: transparent !important; animation-name: qw-sticker-tap; animation-duration: .8s; }
+        @keyframes qw-cursor-click { 0%,100% { transform: translate(0,0) scale(1); } 28% { transform: translate(3px,4px) scale(.88); } 55% { transform: translate(0,0) scale(1); } }
+        @keyframes qw-cursor-ripple { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(4.5); opacity: 0; } }
+        .qw-editor-sticker.qw-sticker-cursor { width: 1.1em !important; height: 1.25em !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; animation: qw-cursor-click 1.1s ease-in-out infinite !important; }
+        .qw-editor-sticker.qw-sticker-cursor::after { inset: auto; left: 68%; top: 70%; width: .25em; height: .25em; border: 2px solid currentColor; border-radius: 50%; animation: qw-cursor-ripple 1.1s ease-out infinite; }
+        @keyframes qw-sticker-ripple { 0% { transform: scale(.78); opacity: .8; } 100% { transform: scale(1.55); opacity: 0; } }
+
         .qw-element-item.selected {
             border-color: #3b82f6;
             outline: 2px solid #3b82f6;
@@ -734,6 +764,11 @@
                             <span class="qw-badge-preview promo-flag">Flat 50% OFF</span>
                         </div>
                     </div>
+                    <h6 class="qw-drawer-title mt-4">Stickers</h6>
+                    <p class="small text-secondary">Choose from 130 animated hand and cursor stickers. No text labels.</p>
+                    <input type="search" class="form-control form-control-sm mb-2" id="stickerSearch" placeholder="Search hand or cursor styles…" aria-label="Search stickers">
+                    <div class="small text-secondary mb-2" id="stickerCount">130 stickers</div>
+                    <div class="qw-sticker-gallery" id="stickerGallery"></div>
                 </div>
 
                 <!-- TEXT TAB -->
@@ -1282,7 +1317,21 @@
             
             const padVal = item.padding || 4;
             elNode.style.padding = `${padVal}px ${padVal * 1.5}px`;
-            elNode.textContent = item.text;
+            elNode.textContent = item.type === 'sticker' ? (item.stickerIcon || String.fromCodePoint(0x1F446)) : item.text;
+            if (item.type === 'sticker') {
+                elNode.classList.add('qw-editor-sticker');
+                elNode.classList.add(`qw-sticker-style-${Math.max(0, Math.min(9, Number(item.stickerStyle) || 0))}`);
+                if (item.sticker === 'cursor-click') {
+                    elNode.classList.add('qw-sticker-cursor');
+                    const cursorIcon = document.createElement('i');
+                    cursorIcon.className = 'fa-solid fa-arrow-pointer';
+                    cursorIcon.setAttribute('aria-hidden', 'true');
+                    elNode.replaceChildren(cursorIcon);
+                }
+                elNode.style.backgroundColor = 'transparent';
+                elNode.style.padding = '0';
+                elNode.style.lineHeight = '1';
+            }
 
             // Selection Event
             elNode.addEventListener('pointerdown', (e) => {
@@ -1456,6 +1505,40 @@
         const view = viewportConfig(item);
         const startX = e.clientX;
         const startY = e.clientY;
+        if (item.type === 'sticker') {
+            const startSize = Number(view.fontSize || item.size || 44);
+            const startLeft = view.x;
+            const startTop = view.y;
+
+            function resizeSticker(moveEvent) {
+                const dx = (moveEvent.clientX - startX) / scaleX;
+                const dy = (moveEvent.clientY - startY) / scaleY;
+                const factors = [];
+                if (direction.includes('e')) factors.push(1 + dx / Math.max(1, nodeRect.width / scaleX));
+                if (direction.includes('w')) factors.push(1 - dx / Math.max(1, nodeRect.width / scaleX));
+                if (direction.includes('s')) factors.push(1 + dy / Math.max(1, nodeRect.height / scaleY));
+                if (direction.includes('n')) factors.push(1 - dy / Math.max(1, nodeRect.height / scaleY));
+                const factor = factors.length ? Math.max(...factors) : 1;
+                view.fontSize = Math.max(10, Math.min(140, Math.round(startSize * factor)));
+                view.x = Math.max(0, Math.min(100, startLeft + (direction.includes('w') ? dx / canvasFrame.clientWidth * 100 : 0)));
+                view.y = Math.max(0, Math.min(100, startTop + (direction.includes('n') ? dy / canvasFrame.clientHeight * 100 : 0)));
+                node.style.fontSize = `${view.fontSize}px`;
+                node.style.left = `${view.x}%`;
+                node.style.top = `${view.y}%`;
+                document.getElementById('propFontSize').value = view.fontSize;
+            }
+
+            function finishStickerResize() {
+                window.removeEventListener('pointermove', resizeSticker);
+                window.removeEventListener('pointerup', finishStickerResize);
+                pushHistory();
+                renderCanvas();
+            }
+
+            window.addEventListener('pointermove', resizeSticker);
+            window.addEventListener('pointerup', finishStickerResize);
+            return;
+        }
         const startWidth = nodeRect.width / scaleX;
         const startHeight = nodeRect.height / scaleY;
         const startLeft = view.x;
@@ -1723,6 +1806,62 @@
             if (preset === 'free_delivery') addElement({ type: 'badge', text: '🚚 ₹300+ FREE Delivery', x: 15, y: 80, font: 'Inter', size: 12, weight: '700', color: '#ffffff', bg: '#10b981', radius: 20, padding: 5 });
         });
     });
+
+    const stickerGestures = [
+        { key: 'tap-up', name: 'Point up', icon: String.fromCodePoint(0x1F446), search: 'finger tap point up' },
+        { key: 'tap-down', name: 'Point down', icon: String.fromCodePoint(0x1F447), search: 'finger tap point down' },
+        { key: 'tap-right', name: 'Point right', icon: String.fromCodePoint(0x1F449), search: 'finger tap point right' },
+        { key: 'tap-left', name: 'Point left', icon: String.fromCodePoint(0x1F448), search: 'finger tap point left' },
+        { key: 'tap-index', name: 'Index tap', icon: String.fromCodePoint(0x261D), search: 'finger tap index' },
+        { key: 'cursor', name: 'Mouse click', icon: String.fromCodePoint(0x1F5B1), search: 'mouse cursor click' },
+        { key: 'cursor-click', name: 'Cursor click', icon: '', search: 'cursor arrow pointer click' },
+        { key: 'tap-up-soft', name: 'Soft tap up', icon: String.fromCodePoint(0x1F446, 0x1F3FB), search: 'finger tap up light' },
+        { key: 'tap-up-medium', name: 'Tap up', icon: String.fromCodePoint(0x1F446, 0x1F3FD), search: 'finger tap up medium' },
+        { key: 'tap-down-soft', name: 'Soft tap down', icon: String.fromCodePoint(0x1F447, 0x1F3FB), search: 'finger tap down light' },
+        { key: 'tap-right-medium', name: 'Tap right', icon: String.fromCodePoint(0x1F449, 0x1F3FD), search: 'finger tap right medium' },
+        { key: 'tap-palm', name: 'Open hand', icon: String.fromCodePoint(0x1F590), search: 'hand palm touch' },
+        { key: 'tap-you', name: 'Point at you', icon: String.fromCodePoint(0x1FAF5), search: 'hand point at you tap' }
+    ];
+    const stickerGallery = document.getElementById('stickerGallery');
+    const stickerSearch = document.getElementById('stickerSearch');
+    const stickerCount = document.getElementById('stickerCount');
+    const stickerCatalog = stickerGestures.flatMap(gesture => Array.from({ length: 10 }, (_, styleIndex) => ({ ...gesture, styleIndex })));
+
+    function renderStickerGallery(filter = '') {
+        if (!stickerGallery) return;
+        const query = filter.trim().toLowerCase();
+        const matching = stickerCatalog.filter(item => `${item.search} ${item.name}`.toLowerCase().includes(query));
+        stickerGallery.replaceChildren();
+        stickerCount.textContent = `${matching.length} sticker${matching.length === 1 ? '' : 's'}`;
+        matching.forEach(item => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'qw-sticker-choice';
+            button.title = `${item.name} sticker`;
+            button.setAttribute('aria-label', `Add ${item.name} sticker, style ${item.styleIndex + 1}`);
+            const preview = document.createElement('span');
+            preview.className = `qw-editor-sticker qw-sticker-style-${item.styleIndex}${item.key === 'cursor-click' ? ' qw-sticker-cursor' : ''}`;
+            preview.style.fontSize = '12px';
+            if (item.key === 'cursor-click') {
+                const cursorIcon = document.createElement('i');
+                cursorIcon.className = 'fa-solid fa-arrow-pointer';
+                cursorIcon.setAttribute('aria-hidden', 'true');
+                preview.appendChild(cursorIcon);
+            } else {
+                preview.textContent = item.icon;
+            }
+            button.appendChild(preview);
+            button.addEventListener('click', () => addElement({
+                type: 'sticker', sticker: item.key,
+                stickerIcon: item.icon, stickerStyle: item.styleIndex, text: item.name,
+                x: 68, y: 65, size: 44, weight: '700', color: '#ffffff', bg: 'transparent', padding: 0, radius: 999,
+                linkHas: true, linkUrl: ''
+            }));
+            stickerGallery.appendChild(button);
+        });
+    }
+    stickerSearch?.addEventListener('input', event => renderStickerGallery(event.target.value));
+    renderStickerGallery();
 
     function addElement(data) {
         const newEl = Object.assign({ id: 'el_' + Date.now(), x: 20, y: 40, font: 'Inter', size: 20, weight: '400', color: '#000000', bg: 'transparent' }, data);

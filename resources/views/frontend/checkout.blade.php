@@ -90,15 +90,15 @@
                     <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom"><i class="fa-solid fa-wallet me-2 text-gold"></i> Payment Method</h5>
 
                     <input type="hidden" name="payment_method" value="online">
-                    <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa-solid fa-circle-check text-success fs-5"></i>
-                            <div>
-                                <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
-                                <div class="text-muted small">Pay securely using UPI (Google Pay, PhonePe, Paytm), Cards, Netbanking or Wallets via Razorpay</div>
-                            </div>
+                    <div class="checkout-payment-option p-3 rounded-3 border bg-light">
+                        <div class="checkout-payment-heading d-flex align-items-center justify-content-between gap-3 mb-2">
+                            <i class="fa-solid fa-circle-check text-success fs-5 flex-shrink-0"></i>
+                            <span class="checkout-payment-badge badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay</span>
                         </div>
-                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> Razorpay</span>
+                        <div class="checkout-payment-details">
+                            <div class="fw-bold fs-6 text-dark"><i class="fa-solid fa-credit-card text-warning me-2"></i> Online Payment</div>
+                            <div class="text-muted small">Pay securely using UPI (Google Pay, PhonePe, Paytm), Cards, Netbanking or Wallets via Razorpay</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -106,15 +106,22 @@
 
             <!-- Order Review Sidebar -->
             <div class="col-lg-5">
-                <div class="bg-white p-4 rounded-4 shadow-sm border sticky-top" style="top: 90px;">
+                <div class="checkout-order-card bg-white p-3 p-md-4 rounded-4 shadow-sm border sticky-top" style="top: 90px;">
                     <h5 class="font-serif fw-bold mb-3 pb-2 border-bottom">ITEMS IN ORDER</h5>
 
-                    <div class="mb-4" style="max-height: 280px; overflow-y: auto;">
+                    <div class="checkout-order-items mb-4">
                         @foreach($cart as $item)
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="rounded-3 border" style="width: 50px; height: 65px; object-fit: cover;">
-                                <div class="flex-grow-1">
-                                    <h6 class="font-serif fw-bold mb-0 text-truncate" style="max-width: 180px;">{{ $item['name'] }}</h6>
+                            <div class="checkout-order-item d-flex align-items-center gap-3 mb-3">
+                                <div class="checkout-order-image-wrap position-relative flex-shrink-0">
+                                    <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="checkout-order-image rounded-3 border" style="width: 58px; height: 76px; object-fit: cover;">
+                                    @if($product = $productsById->get($item['product_id']))
+                                        <button type="button" class="checkout-image-details-btn" data-bs-toggle="modal" data-bs-target="#checkoutProductInfo{{ $loop->index }}" aria-label="View {{ $item['name'] }} details" title="View product details">
+                                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
+                                </div>
+                                <div class="checkout-order-copy flex-grow-1">
+                                    <h6 class="font-serif fw-bold mb-0">{{ $item['name'] }}</h6>
                                     <div class="text-muted small">@if(!empty($item['size']))Size: <span class="fw-bold text-dark">{{ $item['size'] }}</span> | @endif Qty: {{ $item['quantity'] }}</div>
                                 </div>
                                 @if(!empty($item['is_combo_offer']))
@@ -123,6 +130,35 @@
                                     <div class="fw-bold text-gold">₹{{ number_format($item['subtotal'], 2) }}</div>
                                 @endif
                             </div>
+                            @if($product)
+                                <div class="modal fade" id="checkoutProductInfo{{ $loop->index }}" tabindex="-1" aria-labelledby="checkoutProductInfoTitle{{ $loop->index }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+                                        <div class="modal-content border-0 rounded-4">
+                                            <div class="modal-header">
+                                                <h2 class="modal-title h5 fw-bold" id="checkoutProductInfoTitle{{ $loop->index }}">{{ $product->name }}</h2>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-5"><img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3 w-100" style="max-height:420px;object-fit:cover"></div>
+                                                    <div class="col-md-7">
+                                                        <div class="h5 fw-bold text-warning mb-3">₹{{ number_format((float) ($item['final_price'] ?? $product->effective_final_price), 2) }}</div>
+                                                        <div class="text-secondary mb-3">{!! $product->description !!}</div>
+                                                        @if($product->sizes->isNotEmpty())
+                                                            <h3 class="h6 fw-bold">Sizes and measurements</h3>
+                                                            <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0"><thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hip</th><th>Length</th></tr></thead><tbody>
+                                                                @foreach($product->sizes as $size)
+                                                                    <tr class="{{ $size->size === ($item['size'] ?? null) ? 'table-warning' : '' }}"><td>{{ $size->size ?: 'Standard' }}{{ $size->size === ($item['size'] ?? null) ? ' (Selected)' : '' }}</td><td>{{ $size->chest ? $size->chest.'″' : '—' }}</td><td>{{ $size->waist ? $size->waist.'″' : '—' }}</td><td>{{ $size->hip ? $size->hip.'″' : '—' }}</td><td>{{ $size->length ? $size->length.'″' : '—' }}</td></tr>
+                                                                @endforeach
+                                                            </tbody></table></div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
 
@@ -174,6 +210,35 @@
         </div>
     </form>
 </div>
+
+<style>
+    .checkout-payment-heading { min-height: 2rem; }
+    .checkout-payment-badge { white-space: nowrap; font-size: 9px; }
+    .checkout-order-items { max-height: 280px; overflow-y: auto; }
+    .checkout-order-copy { min-width: 0; }
+    .checkout-order-copy h6 { overflow-wrap: anywhere; }
+    .checkout-order-item > .fw-bold.text-gold { flex: 0 0 auto; white-space: nowrap; }
+    .checkout-order-image-wrap { width: 58px; height: 76px; }
+    .checkout-image-details-btn {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0.5rem;
+        color: #fff; background: rgba(0, 0, 0, 0.38); opacity: 0;
+        transition: opacity 0.18s ease; cursor: pointer;
+    }
+    .checkout-image-details-btn i { font-size: 0.8rem; }
+    .checkout-order-image-wrap:hover .checkout-image-details-btn,
+    .checkout-image-details-btn:focus-visible { opacity: 1; }
+
+    @media (max-width: 575.98px) {
+        .checkout-order-card { position: static !important; }
+        .checkout-order-items { max-height: none; overflow: visible; }
+        .checkout-order-item { gap: 0.75rem !important; }
+        .checkout-order-image { width: 56px !important; height: 72px !important; flex: 0 0 56px; }
+        .checkout-order-image-wrap { width: 56px; height: 72px; }
+        .checkout-image-details-btn { opacity: 1; background: rgba(0, 0, 0, 0.2); }
+        .checkout-order-item > .fw-bold.text-gold { font-size: 0.95rem; }
+    }
+</style>
 
 @include('frontend.partials.email_otp_modal')
 

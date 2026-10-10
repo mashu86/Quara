@@ -98,7 +98,12 @@ document.addEventListener('submit', async (event) => {
 
 @section('content')
 <div class="container py-4">
-    <h5 class="font-serif fw-bold fs-5 mb-3"><i class="fa-solid fa-bag-shopping text-gold me-2"></i> YOUR SHOPPING CART</h5>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h5 class="font-serif fw-bold fs-5 mb-0"><i class="fa-solid fa-bag-shopping text-gold me-2"></i> YOUR SHOPPING CART</h5>
+        <a href="{{ route('shop') }}" class="btn btn-qw-outline-gold btn-sm rounded-pill px-3 py-2">
+            <i class="fa-solid fa-arrow-left me-2" aria-hidden="true"></i>Back to Shop
+        </a>
+    </div>
 
     @if(empty($cart) || count($cart) === 0)
         <div class="bg-white p-4 rounded-4 shadow-sm border text-center my-4">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\ProductSize;
 use App\Services\CartService;
 use App\Services\DistrictOfferService;
@@ -53,6 +54,11 @@ class CheckoutController extends Controller
             return redirect()->route('cart.index')->with('error', implode(' ', $stockCheck['errors']));
         }
 
+        $productsById = Product::with('sizes')
+            ->whereIn('id', collect($cart)->pluck('product_id')->unique())
+            ->get()
+            ->keyBy('id');
+
         $summary = $this->cartService->getSummary();
         $summary['has_active_coupons'] = \App\Models\MasterCoupon::where('status', true)->where('starts_at', '<=', now())->where('ends_at', '>=', now())->exists();
         $coupon = session('master_coupon');
@@ -68,7 +74,7 @@ class CheckoutController extends Controller
             $lastOrder = Order::where('customer_email', $email)->latest()->first();
         }
 
-        return view('frontend.checkout', compact('cart', 'summary', 'lastOrder'));
+        return view('frontend.checkout', compact('cart', 'summary', 'lastOrder', 'productsById'));
     }
 
     public function applyCoupon(Request $request)

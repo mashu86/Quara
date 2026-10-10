@@ -12,6 +12,16 @@
                 <div class="alert alert-info text-start small mb-4">
                     Please wait until the payment process is complete. Do not close this page.
                 </div>
+                <div id="payment-status" class="alert alert-warning text-start mb-4" role="status" aria-live="polite" hidden>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+                        <div>
+                            <div class="fw-bold" id="payment-status-title">പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നു</div>
+                            <div id="payment-status-message" class="small">പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നതുവരെ ദയവായി കാത്തിരിക്കുക. ഈ പേജ് പുതുക്കുകയോ അടയ്ക്കുകയോ പിന്നിലേക്ക് പോകുകയോ ചെയ്യരുത്. പരമാവധി 5 മിനിറ്റ് വരെ എടുത്തേക്കാം.</div>
+                            <div class="fw-bold mt-2" id="payment-countdown" aria-label="ശേഷിക്കുന്ന സമയം">05:00</div>
+                        </div>
+                    </div>
+                </div>
                 <p class="text-muted mb-4">Please click the button below if the Razorpay payment window does not open automatically.</p>
 
                 <div class="card bg-light border-0 rounded-3 p-3 mb-4 text-start">
@@ -62,10 +72,56 @@
 @section('scripts')
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+    let paymentWaiting = false;
+    let countdownInterval = null;
+
+    function showPaymentStatus(title, message, showTimer = false) {
+        const box = document.getElementById('payment-status');
+        box.hidden = false;
+        document.getElementById('payment-status-title').textContent = title;
+        document.getElementById('payment-status-message').textContent = message;
+        document.querySelector('#payment-status .spinner-border').hidden = !showTimer;
+    }
+
+    function startConfirmationWait() {
+        if (paymentWaiting) return;
+        paymentWaiting = true;
+        document.getElementById('rzp-button')?.setAttribute('disabled', 'disabled');
+        showPaymentStatus(
+            'പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നു',
+            'പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നതുവരെ ദയവായി കാത്തിരിക്കുക. ഈ പേജ് പുതുക്കുകയോ അടയ്ക്കുകയോ പിന്നിലേക്ക് പോകുകയോ ചെയ്യരുത്. പരമാവധി 5 മിനിറ്റ് വരെ എടുത്തേക്കാം.',
+            true
+        );
+
+        let remaining = 5 * 60;
+        const timer = document.getElementById('payment-countdown');
+        countdownInterval = window.setInterval(() => {
+            remaining -= 1;
+            timer.textContent = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                showPaymentStatus(
+                    'സ്ഥിരീകരണം വൈകുന്നു',
+                    'പേയ്‌മെന്റ് നില ഇതുവരെ സ്ഥിരീകരിച്ചിട്ടില്ല. പണം അക്കൗണ്ടിൽ നിന്ന് പോയിട്ടുണ്ടെങ്കിൽ വീണ്ടും പേയ്‌മെന്റ് ചെയ്യരുത്. സ്ഥിരീകരണം ലഭിക്കുമ്പോൾ ഈ പേജ് ഫലം കാണിക്കും.',
+                    true
+                );
+                timer.textContent = '05:00 കഴിഞ്ഞു';
+            }
+        }, 1000);
+    }
+
+    window.addEventListener('beforeunload', function (event) {
+        if (!paymentWaiting) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
     function submitMockLocalPayment() {
+        startConfirmationWait();
         document.getElementById('razorpay_payment_id').value = 'pay_mock_local_' + Date.now();
         document.getElementById('razorpay_order_id').value = '{{ $paymentResult["razorpay_order_id"] ?? "" }}';
         document.getElementById('razorpay_signature').value = 'mock_signature_local';
+        paymentWaiting = false;
         document.getElementById('razorpayForm').submit();
     }
 
@@ -81,20 +137,17 @@
         @endif
         "handler": function (response){
             if (!response.razorpay_payment_id || !response.razorpay_signature) {
-                alert("Payment was not completed or failed verification. Please try again.");
-                window.location.href = "{{ route('checkout.index') }}";
+                showPaymentStatus('പേയ്‌മെന്റ് സ്ഥിരീകരിക്കാനായില്ല', 'പേയ്‌മെന്റ് നില പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. പണം അക്കൗണ്ടിൽ നിന്ന് പോയിട്ടുണ്ടെങ്കിൽ വീണ്ടും പണമടയ്ക്കരുത്.');
                 return;
             }
+            startConfirmationWait();
             document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id || '';
             document.getElementById('razorpay_order_id').value = response.razorpay_order_id || '{{ $paymentResult["razorpay_order_id"] ?? "" }}';
             document.getElementById('razorpay_signature').value = response.razorpay_signature || '';
+            paymentWaiting = false;
             document.getElementById('razorpayForm').submit();
         },
-        "modal": {
-            "ondismiss": function() {
-                console.log('Payment modal dismissed');
-            }
-        },
+        "modal": { "ondismiss": function() { console.log('Payment modal dismissed'); } },
         "prefill": {
             "name": "{{ $order->customer_name }}",
             "email": "{{ $order->customer_email }}",
@@ -112,8 +165,12 @@
     }
 
     rzp.on('payment.failed', function (response){
-        alert('Payment Failed: ' + (response.error.description || 'Transaction failed or bank error'));
-        window.location.href = "{{ route('checkout.index') }}";
+        paymentWaiting = false;
+        document.getElementById('rzp-button')?.removeAttribute('disabled');
+        showPaymentStatus('പേയ്‌മെന്റ് പരാജയപ്പെട്ടു', 'ഈ പേയ്‌മെന്റ് ശ്രമം പരാജയപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുന്നതിന് മുമ്പ് നിങ്ങളുടെ ബാങ്ക് അക്കൗണ്ടിലെ ഇടപാട് നില പരിശോധിക്കുക.');
+        document.querySelector('#payment-status .spinner-border').hidden = true;
+        document.getElementById('payment-countdown').hidden = true;
+        window.setTimeout(() => { window.location.href = "{{ route('checkout.index') }}"; }, 3000);
     });
 
     document.getElementById('rzp-button').onclick = function(e){

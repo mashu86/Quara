@@ -83,6 +83,16 @@
         min-width: 0;
     }
 
+    .product-detail-page { max-width: 1320px; }
+
+    .product-detail-nav {
+        font-size: 0.82rem;
+        color: #78756f;
+    }
+
+    .product-detail-nav a { color: #78756f; text-decoration: none; }
+    .product-detail-nav a:hover { color: #a57a20; }
+
     .product-detail-breadcrumb {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -101,14 +111,17 @@
 
     .product-main-image-wrap {
         aspect-ratio: 4 / 5;
-        max-height: 520px;
-        background-color: #f8f8f8;
+        max-height: 620px;
+        background: #f5f2ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .product-main-image {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         cursor: zoom-in;
     }
 
@@ -132,6 +145,82 @@
         white-space: normal;
     }
 
+    .product-gallery-card,
+    .product-info-card {
+        border-color: #ece8df !important;
+        box-shadow: 0 14px 40px rgba(38, 33, 24, 0.07) !important;
+    }
+
+    .product-gallery-card { overflow: hidden; }
+    .product-info-card { border-radius: 1.15rem !important; }
+    .product-info-card { min-width: 0; }
+    .product-eyebrow {
+        color: #92702b;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+    .product-title { letter-spacing: -0.025em; line-height: 1.15; }
+    .product-current-price { font-size: 1.9rem; letter-spacing: -0.035em; }
+    .product-description { max-width: 62ch; line-height: 1.7; }
+    .product-price-row { border-color: #ece8df !important; }
+    .product-quantity-section .input-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0;
+        overflow: visible;
+        border: 0 !important;
+        border-radius: 0;
+        background: transparent;
+    }
+    .product-quantity-section .input-group .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        margin: 0 !important;
+        padding: 0;
+        border: 1px solid #e9e3d7 !important;
+        border-radius: 50% !important;
+        background: #fff;
+        color: #6c6558;
+        font-size: 0.72rem;
+        box-shadow: 0 2px 5px rgba(38, 33, 24, 0.05);
+        transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    }
+    .product-quantity-section .input-group .btn:hover { border-color: #d5b75b !important; background: #fbf8ef; color: #8b6508; }
+    .product-quantity-section .input-group .btn:active { transform: scale(0.94); }
+    .product-quantity-section input {
+        flex: 0 0 38px;
+        min-width: 38px;
+        padding: 0;
+        margin: 0 !important;
+        border: 0 !important;
+        background: transparent;
+        box-shadow: none !important;
+        color: #25231f;
+        font-size: 1.05rem;
+        appearance: textfield;
+    }
+    .product-quantity-section input::-webkit-inner-spin-button,
+    .product-quantity-section input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+    .product-quantity-label {
+        display: inline-flex;
+        align-items: center;
+        margin: 0;
+        color: #514c42;
+        font-size: 0.84rem;
+        font-weight: 600;
+        letter-spacing: 0;
+    }
+    .product-quantity-section { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .product-purchase-actions .purchase-action { min-height: 48px; letter-spacing: 0.045em; }
+    .product-share-actions .product-share-btn { min-height: 42px; }
+
     @media (max-width: 575.98px) {
         .product-detail-page {
             padding-top: 0.85rem !important;
@@ -141,6 +230,8 @@
         .product-detail-page > .product-detail-nav {
             margin-bottom: 0.85rem !important;
         }
+
+        .product-detail-nav { font-size: 0.74rem; }
 
         .product-detail-row {
             --bs-gutter-y: 0.9rem;
@@ -152,7 +243,8 @@
         }
 
         .product-main-image-wrap {
-            max-height: none;
+            max-height: 520px;
+            aspect-ratio: 1 / 1.08;
             margin-bottom: 0.5rem !important;
             border-radius: 0.65rem !important;
         }
@@ -170,12 +262,12 @@
 
         .product-info-card {
             height: auto !important;
-            padding: 1rem !important;
-            border-radius: 0.85rem !important;
+            padding: 1.1rem !important;
+            border-radius: 1rem !important;
         }
 
         .product-title {
-            font-size: 1.18rem !important;
+            font-size: 1.45rem !important;
             line-height: 1.3;
             margin-bottom: 0.5rem !important;
             overflow-wrap: anywhere;
@@ -188,7 +280,7 @@
         }
 
         .product-current-price {
-            font-size: 1.35rem !important;
+            font-size: 1.7rem !important;
         }
 
         .product-original-price {
@@ -272,7 +364,7 @@
 
         .product-purchase-actions .purchase-action {
             width: 100%;
-            min-height: 44px;
+            min-height: 48px;
         }
 
         .product-share-actions {
@@ -300,6 +392,8 @@
         .product-share-actions .product-share-label {
             display: none !important;
         }
+
+        .product-size-option { min-height: 42px; }
 
         @media (min-width: 576px) {
             .product-share-actions .product-share-btn {
@@ -343,6 +437,17 @@
 @section('content')
 <div class="container py-4 product-detail-page">
 
+    <nav class="product-detail-nav mb-3" aria-label="Breadcrumb">
+        <ol class="breadcrumb product-detail-breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('shop') }}">Shop</a></li>
+            @if($product->category)
+                <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}">{{ $product->category->name }}</a></li>
+            @endif
+            <li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
+        </ol>
+    </nav>
+
     <div class="row g-4 g-lg-5 product-detail-row">
         <!-- Image Gallery -->
         <div class="col-lg-6">
@@ -385,6 +490,12 @@
         <!-- Product Details & Buying Actions -->
         <div class="col-lg-6">
             <div class="bg-white p-3 p-md-4 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                    <span class="product-eyebrow">{{ $product->category?->name ?? $siteName }}</span>
+                    @if($product->total_stock > 0)
+                        <span class="small text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i> In stock</span>
+                    @endif
+                </div>
                 <h1 class="fw-bold mb-2 text-dark product-title">{{ $product->name }}</h1>
 
                 <!-- Pricing Display -->
@@ -582,11 +693,11 @@
                     <!-- Quantity Selector -->
                     @if(!$minimumPurchaseCategory)
                     <div class="mb-3 product-quantity-section">
-                        <label class="form-label font-bold text-uppercase small" style="font-size: 0.78rem;">Quantity</label>
+                        <label class="product-quantity-label" for="quantityInput">Quantity</label>
                         <div class="input-group" style="max-width: 130px;">
-                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                            <button type="button" class="btn btn-outline-secondary quantity-adjust-btn" onclick="adjustQty(-1)" aria-label="Decrease quantity"><i class="fa-solid fa-minus"></i></button>
                             <input type="number" name="quantity" id="quantityInput" class="form-control text-center fw-bold" value="1" min="1" max="{{ $quantityLimit }}">
-                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
+                            <button type="button" class="btn btn-outline-secondary quantity-adjust-btn" onclick="adjustQty(1)" aria-label="Increase quantity"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                     @endif
@@ -636,7 +747,7 @@
                     $shareText = rawurlencode("Check out " . $product->name . " on {$siteName} (₹" . number_format($product->final_price, 2) . ")!");
                     $waShareUrl = "https://api.whatsapp.com/send?text=" . $shareText . "%20" . rawurlencode($productUrl);
                 @endphp
-                <div class="mt-auto pt-3 border-top">
+                <div class="mt-1 pt-3 border-top">
                     <div class="d-flex align-items-center justify-content-between mb-2.5">
                         <span class="fw-bold small text-muted text-uppercase tracking-wider" style="font-size: 0.75rem;">
                             <i class="fa-solid fa-share-nodes me-1 text-gold"></i> Share & Connect
@@ -809,6 +920,7 @@
         document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
         if (!elem.value) {
             input.max = Math.max(1, stock || 1);
+            syncQuantityButtons();
             if (parseInt(input.value) > stock) input.value = Math.max(1, stock);
             notice.className = stock > 0 ? 'text-muted fw-normal small' : 'text-danger fw-normal small';
                             notice.textContent = stock > 0 ? `${stock} available` : 'No stock available';
@@ -817,6 +929,7 @@
         }
         if (stock > 0) {
             input.max = stock;
+            syncQuantityButtons();
             if (parseInt(input.value) > stock) {
                 input.value = stock;
             }
@@ -824,6 +937,7 @@
             notice.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> In Stock (' + stock + ' available)';
         } else {
             input.max = 0;
+            syncQuantityButtons();
             input.value = 1;
             notice.className = 'text-danger fw-semibold small';
             notice.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> This size is out of stock';
@@ -869,6 +983,15 @@
         input.value = current;
     }
 
+    function syncQuantityButtons() {
+        const input = document.getElementById('quantityInput');
+        if (!input) return;
+        const onlyOneAvailable = parseInt(input.max, 10) <= 1;
+        document.querySelectorAll('.quantity-adjust-btn').forEach(button => {
+            button.hidden = onlyOneAvailable;
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const checkedSize = document.querySelector('input[name="size"]:checked');
         if (checkedSize) {
@@ -878,6 +1001,7 @@
             const notice = document.getElementById('stockStatusNotice');
             const input = document.getElementById('quantityInput');
             if (input) input.max = Math.max(1, stock);
+            syncQuantityButtons();
             if (notice) notice.textContent = stock > 0 ? 'Size is optional' : 'No stock available';
             document.querySelectorAll('.purchase-action').forEach(button => button.disabled = stock <= 0);
         }

@@ -82,6 +82,10 @@ Route::post('/cart/add-combo', [CartController::class, 'addCombo'])->name('cart.
 Route::post('/cart/add-category-minimum', [CartController::class, 'addMinimumCategory'])->name('cart.add_category_minimum');
 Route::post('/cart/update/{cartKey}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/remove/{cartKey}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/remove-selected', [CartController::class, 'removeSelected'])->name('cart.remove_selected');
+Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+Route::post('/cart/summary-preview', [CartController::class, 'previewSelection'])->name('cart.summary_preview');
+Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_now');
 
 // Checkout Routes

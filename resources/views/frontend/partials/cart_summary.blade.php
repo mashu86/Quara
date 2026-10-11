@@ -7,9 +7,18 @@
     </div>
 
     <div class="d-flex justify-content-between mb-2 small text-success {{ $summary['discount'] > 0 ? '' : 'd-none' }}">
-        <span>Total Discount</span>
+        <span>Total Discount
+            @if($summary['discount'] > 0)
+                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline text-success" data-bs-toggle="modal" data-bs-target="#discountBreakdownModal" aria-label="View discount details" title="View discount details">
+                    <i class="fa-solid fa-circle-info"></i>
+                </button>
+            @endif
+        </span>
         <span>-&#8377;{{ number_format($summary['discount'], 2) }}</span>
     </div>
+    @if($summary['discount'] > 0)
+        @include('frontend.partials.discount_breakdown_modal', ['summary' => $summary, 'discountBreakdown' => $discountBreakdown])
+    @endif
 
     <div class="d-flex justify-content-between mb-2 small">
         <span class="text-muted">Shipping Charge</span>
@@ -38,7 +47,12 @@
             @endforeach
         </div>
     @endif
-    <a href="{{ $stockValidation['valid'] ? route('checkout.index') : '#' }}" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold {{ !$stockValidation['valid'] ? 'disabled' : '' }}" style="font-size: 0.78rem; padding-top: 6px; padding-bottom: 6px;" aria-disabled="{{ $stockValidation['valid'] ? 'false' : 'true' }}" tabindex="{{ $stockValidation['valid'] ? '0' : '-1' }}">
-        PROCEED TO CHECKOUT <i class="fa-solid fa-arrow-right ms-1"></i>
-    </a>
+    <div id="cartSummaryCalculationStatus" class="small text-muted text-center mb-2" hidden></div>
+    <form action="{{ route('cart.checkout') }}" method="POST" id="cartCheckoutForm">
+        @csrf
+        <div id="cartSelectionNotice" class="small text-muted text-center mb-2">No items selected. All cart items will be included in this order.</div>
+        <button type="submit" class="btn btn-qw-gold btn-sm w-100 rounded-pill shadow-sm py-1-5 fw-bold" style="font-size: 0.78rem; padding-top: 6px; padding-bottom: 6px;" disabled aria-busy="true">
+            PROCEED TO CHECKOUT <i class="fa-solid fa-arrow-right ms-1"></i>
+        </button>
+    </form>
 </div>

@@ -60,6 +60,7 @@ class CheckoutController extends Controller
             ->keyBy('id');
 
         $summary = $this->cartService->getSummary();
+        $discountBreakdown = $this->cartService->getDiscountBreakdown();
         $summary['has_active_coupons'] = \App\Models\MasterCoupon::where('status', true)->where('starts_at', '<=', now())->where('ends_at', '>=', now())->exists();
         $coupon = session('master_coupon');
         if ($coupon) {
@@ -74,7 +75,7 @@ class CheckoutController extends Controller
             $lastOrder = Order::where('customer_email', $email)->latest()->first();
         }
 
-        return view('frontend.checkout', compact('cart', 'summary', 'lastOrder', 'productsById'));
+        return view('frontend.checkout', compact('cart', 'summary', 'discountBreakdown', 'lastOrder', 'productsById'));
     }
 
     public function applyCoupon(Request $request)
@@ -362,6 +363,12 @@ class CheckoutController extends Controller
     /** Clear the purchased checkout cart, restoring the shopper's original cart after Buy Now. */
     private function clearPurchasedCart(): void
     {
+        if (session()->has('checkout_original_cart')) {
+            session(['cart' => session('checkout_remaining_cart', [])]);
+            session()->forget(['checkout_original_cart', 'checkout_remaining_cart', 'master_coupon']);
+            return;
+        }
+
         if (!session('buy_now_mode')) {
             $this->cartService->clear();
             session()->forget('master_coupon');

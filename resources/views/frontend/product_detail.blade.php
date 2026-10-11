@@ -364,7 +364,11 @@
 
         .product-purchase-actions .purchase-action {
             width: 100%;
-            min-height: 48px;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0.3rem 0.65rem !important;
+            font-size: 0.70rem !important;
+            line-height: 1.1;
         }
 
         .product-share-actions {
@@ -386,7 +390,11 @@
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            font-size: 1.15rem !important;
+            font-size: 0.9rem !important;
+        }
+
+        .product-share-actions .product-share-btn > i {
+            font-size: 0.72rem !important;
         }
 
         .product-share-actions .product-share-label {

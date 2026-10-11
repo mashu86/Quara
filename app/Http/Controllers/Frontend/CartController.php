@@ -17,19 +17,22 @@ class CartController extends Controller
 
     public function index()
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         if (session('buy_now_mode')) {
             $this->restoreCartAfterBuyNow();
         }
 
         $cart = $this->cartService->getCart();
         $summary = $this->cartService->getSummary();
+        $discountBreakdown = $this->cartService->getDiscountBreakdown();
         $stockValidation = $this->cartService->validateCartStock();
 
-        return view('frontend.cart', compact('cart', 'summary', 'stockValidation'));
+        return view('frontend.cart', compact('cart', 'summary', 'discountBreakdown', 'stockValidation'));
     }
 
     public function add(Request $request)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         if ($request->input('purchase_action') === 'buy_now') {
             return $this->buyNow($request);
         }
@@ -59,6 +62,7 @@ class CartController extends Controller
 
     public function addCombo(Request $request)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         $request->validate([
             'combo_category_id' => 'required|exists:categories,id',
             'items' => 'required|array|min:1',
@@ -83,6 +87,7 @@ class CartController extends Controller
 
     public function addMinimumCategory(Request $request)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         $request->validate([
             'category_id' => 'required|exists:categories,id',
             'items' => 'required|array|min:1',
@@ -103,6 +108,7 @@ class CartController extends Controller
 
     public function update(Request $request, string $cartKey)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         $request->validate([
             'quantity' => 'required|integer|min:0',
         ]);
@@ -122,6 +128,7 @@ class CartController extends Controller
 
     public function remove(string $cartKey)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         $result = $this->cartService->remove($cartKey);
 
         if (request()->wantsJson() || request()->ajax()) {
@@ -129,8 +136,10 @@ class CartController extends Controller
             $cart = $this->cartService->getCart();
             $result['cart_items_count'] = count($cart);
             $result['cart_cards_html'] = view('frontend.partials.cart_cards', ['cart' => $cart])->render();
+            $discountBreakdown = $this->cartService->getDiscountBreakdown();
             $result['summary_html'] = view('frontend.partials.cart_summary', [
                 'summary' => $result['summary'],
+                'discountBreakdown' => $discountBreakdown,
                 'stockValidation' => $result['stock_validation'],
             ])->render();
             return response()->json($result);
@@ -139,9 +148,112 @@ class CartController extends Controller
         return redirect()->route('cart.index')->with('success', $result['message']);
     }
 
+    public function removeSelected(Request $request)
+    {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
+        $validated = $request->validate([
+            'cart_keys' => 'required|array|min:1',
+            'cart_keys.*' => 'required|string|max:255',
+        ]);
+
+        $cart = $this->cartService->getCart();
+        $keys = array_intersect($validated['cart_keys'], array_keys($cart));
+        if (!$keys) {
+            return redirect()->route('cart.index')->with('error', 'The selected items could not be found in your cart.');
+        }
+
+        foreach ($keys as $key) {
+            $this->cartService->remove((string) $key);
+        }
+
+        return redirect()->route('cart.index')->with('success', count($keys) . ' selected item(s) removed from your cart.');
+    }
+
+    public function clear()
+    {
+        $this->cartService->clear();
+        session()->forget(['checkout_original_cart', 'checkout_remaining_cart']);
+
+        return redirect()->route('cart.index')->with('success', 'All items have been removed from your cart.');
+    }
+
+    public function previewSelection(Request $request)
+    {
+        $validated = $request->validate([
+            'cart_keys' => 'nullable|array',
+            'cart_keys.*' => 'required|string|max:255',
+        ]);
+
+        $originalCart = $this->cartService->getCart();
+        $selectedKeys = collect($validated['cart_keys'] ?? [])->unique()->all();
+        $selectedCart = $selectedKeys
+            ? array_intersect_key($originalCart, array_flip($selectedKeys))
+            : $originalCart;
+
+        if ($selectedKeys && empty($selectedCart)) {
+            return response()->json(['success' => false, 'message' => 'The selected items could not be found in your cart.'], 422);
+        }
+
+        try {
+            session(['cart' => $selectedCart]);
+            $selectedCart = $this->cartService->getCart();
+            $summary = $this->cartService->getSummary();
+            $discountBreakdown = $this->cartService->getDiscountBreakdown();
+            $stockValidation = $this->cartService->validateCartStock();
+
+            return response()->json([
+                'success' => true,
+                'checkout_ready' => (bool) $stockValidation['valid'],
+                'calculation_complete' => true,
+                'summary_html' => view('frontend.partials.cart_summary', compact('summary', 'discountBreakdown', 'stockValidation'))->render(),
+            ]);
+        } finally {
+            session(['cart' => $originalCart]);
+        }
+    }
+
+    public function checkout(Request $request)
+    {
+        $validated = $request->validate([
+            'cart_keys' => 'nullable|array',
+            'cart_keys.*' => 'required|string|max:255',
+        ]);
+
+        // Restore the full source cart if the shopper resubmits from browser history.
+        if (session()->has('checkout_original_cart')) {
+            session(['cart' => session('checkout_original_cart', [])]);
+            session()->forget(['checkout_original_cart', 'checkout_remaining_cart']);
+        }
+
+        $cart = $this->cartService->getCart();
+        if (empty($cart)) {
+            return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
+        }
+
+        $selectedKeys = collect($validated['cart_keys'] ?? [])->unique()->all();
+        // With no selections, the shopper intends to check out the whole cart.
+        $selectedCart = $selectedKeys
+            ? array_intersect_key($cart, array_flip($selectedKeys))
+            : $cart;
+
+        if (empty($selectedCart)) {
+            return redirect()->route('cart.index')->with('error', 'The selected items could not be found in your cart.');
+        }
+
+        $remainingCart = array_diff_key($cart, $selectedCart);
+        session([
+            'checkout_original_cart' => $cart,
+            'checkout_remaining_cart' => $remainingCart,
+            'cart' => $selectedCart,
+        ]);
+
+        return redirect()->route('checkout.index');
+    }
+
     /** Start an isolated checkout for one selected product without discarding the cart. */
     public function buyNow(Request $request)
     {
+        $this->restoreCartAfterAbandonedSelectionCheckout();
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'size' => 'nullable|string|max:100',
@@ -185,5 +297,13 @@ class CartController extends Controller
             session()->forget('master_coupon');
         }
         session()->forget(['buy_now_mode', 'buy_now_original_cart', 'buy_now_original_coupon']);
+    }
+
+    private function restoreCartAfterAbandonedSelectionCheckout(): void
+    {
+        if (!session()->has('checkout_original_cart')) return;
+
+        session(['cart' => session('checkout_original_cart', [])]);
+        session()->forget(['checkout_original_cart', 'checkout_remaining_cart']);
     }
 }

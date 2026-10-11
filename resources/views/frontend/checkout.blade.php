@@ -171,7 +171,11 @@
 
                     @if($summary['discount'] > 0)
                         <div class="d-flex justify-content-between mb-2 text-success">
-                            <span>Discount</span>
+                            <span>Discount
+                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline text-success" data-bs-toggle="modal" data-bs-target="#discountBreakdownModal" aria-label="View discount details" title="View discount details">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                            </span>
                             <span>-₹{{ number_format($summary['discount'], 2) }}</span>
                         </div>
                     @endif
@@ -209,6 +213,9 @@
             </div>
         </div>
     </form>
+    @if($summary['discount'] > 0)
+        @include('frontend.partials.discount_breakdown_modal', ['summary' => $summary, 'discountBreakdown' => $discountBreakdown])
+    @endif
 </div>
 
 <style>

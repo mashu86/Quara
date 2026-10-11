@@ -2,7 +2,10 @@
     @foreach($cart as $key => $item)
         <article class="cart-mobile-card bg-white rounded-4 shadow-sm border mb-2">
             <div class="d-flex gap-3">
-                <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="cart-mobile-image rounded-3 border flex-shrink-0">
+                <div class="cart-item-image-wrap">
+                    <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="cart-mobile-image rounded-3 border">
+                    <input type="checkbox" class="cart-item-select" data-cart-select name="cart_keys[]" form="cartCheckoutForm" value="{{ $key }}" aria-label="Select {{ $item['name'] }}">
+                </div>
                 <div class="flex-grow-1 min-w-0">
                     <h6 class="cart-mobile-title fw-bold mb-2">
                         <a href="{{ route('product.detail', $item['slug']) }}" class="text-dark text-decoration-none">{{ $item['name'] }}</a>
@@ -24,11 +27,11 @@
                 </div>
             </div>
             <div class="cart-mobile-actions d-flex gap-2 mt-3 pt-2 border-top">
-                <form action="{{ route('cart.remove', $key) }}" method="POST" class="flex-fill" data-cart-remove>
+                <form action="{{ route('cart.remove', $key) }}" method="POST" class="flex-fill" data-cart-remove data-cart-key="{{ $key }}">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn rounded-3 w-100 fw-semibold" title="Remove {{ $item['name'] }} from cart" aria-label="Remove {{ $item['name'] }} from cart">
-                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Remove</span>
                     </button>
                 </form>
                 <form action="{{ route('cart.buy_now') }}" method="POST" class="flex-fill">

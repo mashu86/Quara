@@ -542,33 +542,37 @@ class CartService
         $shipping = 0.00;
         $matchedPolicy = null;
 
-        // Combo categories can provide free, custom or master-policy delivery.
-        $comboDeliveryMode = null;
-        $comboDeliveryCharge = 0.0;
+        // If multiple eligible combo categories provide a fixed delivery benefit,
+        // use the lowest qualifying charge for the single order shipment.
+        $comboDeliveryCharges = [];
+        $seenComboCategories = [];
         foreach ($cart as $item) {
             if (!empty($item['is_combo_offer'])) {
-                $cat = \App\Models\Category::find($item['combo_category_id'] ?? 0);
+                $categoryId = (int) ($item['combo_category_id'] ?? 0);
+                if (!$categoryId || isset($seenComboCategories[$categoryId])) continue;
+                $seenComboCategories[$categoryId] = true;
+
+                $cat = \App\Models\Category::find($categoryId);
                 $categoryQty = 0;
-                foreach ($cart as $comboItem) if (!empty($comboItem['is_combo_offer']) && (int) ($comboItem['combo_category_id'] ?? 0) === (int) ($item['combo_category_id'] ?? 0)) $categoryQty += (int) ($comboItem['quantity'] ?? 0);
+                foreach ($cart as $comboItem) {
+                    if (!empty($comboItem['is_combo_offer']) && (int) ($comboItem['combo_category_id'] ?? 0) === $categoryId) {
+                        $categoryQty += (int) ($comboItem['quantity'] ?? 0);
+                    }
+                }
                 if (!$cat && $categoryQty < (int) ($item['combo_min_count'] ?? PHP_INT_MAX)) continue;
                 if ($cat && $categoryQty < (int) $cat->min_count) {
                     continue; // Use Website Delivery Price Master before the category minimum is reached.
                 }
                 $mode = $item['combo_delivery_charge_mode'] ?? ((float) ($item['combo_delivery_charge'] ?? 0) === 0.0 ? 'free' : 'custom');
                 if ($mode === 'free' || $mode === 'custom') {
-                    $comboDeliveryMode = $mode;
-                    $comboDeliveryCharge = (float) ($item['combo_delivery_charge'] ?? 0);
-                    break;
+                    $comboDeliveryCharges[] = $mode === 'free' ? 0.0 : (float) ($item['combo_delivery_charge'] ?? 0);
                 }
             }
         }
 
-        if ($comboDeliveryMode === 'free') {
-            $shipping = 0.00;
-            $matchedPolicyName = 'Free Combo Offer Delivery';
-        } elseif ($comboDeliveryMode === 'custom') {
-            $shipping = $comboDeliveryCharge;
-            $matchedPolicyName = 'Combo Offer Delivery Charge';
+        if ($comboDeliveryCharges) {
+            $shipping = min($comboDeliveryCharges);
+            $matchedPolicyName = $shipping <= 0 ? 'Free Combo Offer Delivery' : 'Combo Offer Delivery Charge';
         } else if ($cartCount > 0) {
             $policies = \App\Models\ShippingPolicy::where('status', 'active')
                 ->orderBy('priority', 'asc')
@@ -604,8 +608,59 @@ class CartService
         ];
     }
 
+    /** Explain the product and combo offer savings currently reflected in the cart. */
+    public function getDiscountBreakdown(): array
+    {
+        $cart = $this->getCart();
+        $products = Product::with('comboCategory')->findMany(
+            collect($cart)->pluck('product_id')->unique()->all()
+        )->keyBy('id');
+        $breakdown = [];
+
+        foreach ($cart as $item) {
+            $discount = round((float) ($item['discount_amount'] ?? 0) * (int) ($item['quantity'] ?? 1), 2);
+            if ($discount <= 0) continue;
+
+            $product = $products->get((int) ($item['product_id'] ?? 0));
+            $category = $product?->comboCategory;
+            $quantity = (int) ($item['quantity'] ?? 1);
+
+            if (!empty($item['is_combo_offer'])) {
+                $categoryId = (int) ($item['combo_category_id'] ?? 0);
+                $key = 'combo:' . $categoryId;
+                $title = $category?->name ?? 'Combo Offer';
+                $detail = 'Combo Offer';
+            } elseif ($category?->is_offer_category
+                && $category?->offer_type === 'discount'
+                && $category?->is_active_offer
+                && $category?->status === 'active') {
+                $key = 'discount:' . $category->id;
+                $title = $category->name;
+                $detail = 'Discount Offer';
+            } else {
+                $key = 'product:' . (int) ($item['product_id'] ?? 0);
+                $title = $item['name'] ?? 'Product discount';
+                $detail = 'Product discount';
+            }
+
+            if (!isset($breakdown[$key])) {
+                $breakdown[$key] = [
+                    'title' => $title,
+                    'detail' => $detail,
+                    'quantity' => 0,
+                    'amount' => 0.0,
+                ];
+            }
+
+            $breakdown[$key]['quantity'] += $quantity;
+            $breakdown[$key]['amount'] = round($breakdown[$key]['amount'] + $discount, 2);
+        }
+
+        return array_values($breakdown);
+    }
+
     /**
-     * Revalidate whole cart before checkout against real-time DB stock.
+     * Revalidate the current cart (or selected checkout cart) against real-time DB stock.
      */
     public function validateCartStock(): array
     {

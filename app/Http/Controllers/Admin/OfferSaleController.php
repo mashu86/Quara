@@ -252,10 +252,15 @@ class OfferSaleController extends Controller
 
             Setting::set('offer_store_enabled', '1', 'offers');
 
-            // Each offer type has its own switch; Combo and Discount may both be active.
+            // Multiple combo categories may be active together. Keep the existing
+            // single-active-discount behavior; product assignments remain exclusive.
             $enable = !$isActive;
-            Category::where('is_offer_category', true)->where('offer_type', $requestedCategory->offer_type)
-                ->update(['is_active_offer' => false, 'status' => 'inactive']);
+            if ($requestedCategory->offer_type !== 'combo') {
+                Category::where('is_offer_category', true)
+                    ->where('offer_type', $requestedCategory->offer_type)
+                    ->where('id', '!=', $requestedCategory->id)
+                    ->update(['is_active_offer' => false, 'status' => 'inactive']);
+            }
             $requestedCategory->update(['is_active_offer' => $enable, 'status' => $enable ? 'active' : 'inactive']);
         });
 

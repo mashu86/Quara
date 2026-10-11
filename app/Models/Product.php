@@ -135,8 +135,18 @@ class Product extends Model
 
     public function getEffectiveFinalPriceAttribute(): float
     {
-        $activeOffer = Category::getActiveOfferCategory();
-        if ($activeOffer && $activeOffer->offer_type === 'discount' && ($this->combo_category_id == $activeOffer->id || $this->category_id == $activeOffer->id)) {
+        // Resolve the discount from this product's exclusive offer assignment.
+        // Other active combo categories must not shadow its discount category.
+        $assignedOfferId = $this->combo_category_id ?: $this->category_id;
+        $activeOffer = $assignedOfferId
+            ? Category::whereKey($assignedOfferId)
+                ->where('is_offer_category', true)
+                ->where('offer_type', 'discount')
+                ->where('is_active_offer', true)
+                ->where('status', 'active')
+                ->first()
+            : null;
+        if ($activeOffer) {
             $basePrice = (float) $this->price;
             $discVal = (float) $activeOffer->discount_value;
             if ($activeOffer->discount_type === 'percentage') {

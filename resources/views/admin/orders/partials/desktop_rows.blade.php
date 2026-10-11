@@ -1,4 +1,11 @@
 @forelse($orders as $order)
+    @php
+        $returnOperationTypes = ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'];
+        $returnedOrderItems = $order->items->filter(function ($item) use ($order, $returnOperationTypes) {
+            return $item->item_status === 'returned' || $order->operations->contains(fn ($operation) => $operation->status === 'active' && (int) $operation->order_item_id === (int) $item->id && in_array($operation->operation_type, $returnOperationTypes, true));
+        });
+        $returnedProductCount = (int) $returnedOrderItems->sum(fn ($item) => (int) ($item->quantity ?: 1));
+    @endphp
     <tr>
         <td class="ps-3">
             <a href="{{ route('admin.orders.show', $order->id) }}" class="fw-bold text-warning text-decoration-none">
@@ -24,7 +31,7 @@
             <div class="small text-muted"><i class="fa-solid fa-phone me-1"></i> {{ $order->customer_phone }}</div>
         </td>
         @php
-            $modalItems = $order->items->map(function ($item) {
+            $modalItems = $order->items->map(function ($item) use ($returnedOrderItems) {
                 $imgUrl = $item->product ? $item->product->primary_image_url : \App\Models\Setting::logoUrl();
                 $sizeDetails = $item->productSize ?: $item->product?->sizes?->firstWhere('size', $item->size);
                 return [
@@ -41,6 +48,7 @@
                     'discount_amount' => $item->discount_amount,
                     'subtotal' => $item->subtotal,
                     'item_status' => $item->item_status,
+                    'is_returned' => $returnedOrderItems->contains('id', $item->id),
                     'is_combo_offer' => $item->is_combo_offer,
                     'measurements' => array_filter([
                         'Chest' => $sizeDetails?->chest,
@@ -52,6 +60,9 @@
             });
         @endphp
         <td class="text-center">
+            @if($returnedProductCount > 0)
+                <div class="text-danger fw-bolder mb-1" style="font-size: 0.76rem;" title="Returned product quantity for this order">{{ $returnedProductCount }} {{ \Illuminate\Support\Str::plural('product', $returnedProductCount) }} returned</div>
+            @endif
             <div class="d-inline-flex align-items-center justify-content-center" style="padding-left: 10px;">
                 @foreach($modalItems->take(3) as $idx => $itemData)
                     <img src="{{ $itemData['image_url'] }}" 

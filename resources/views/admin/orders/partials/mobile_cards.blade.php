@@ -11,6 +11,11 @@
             $totExpense = (float) $activeOps->sum('additional_expense_total');
             $totIncome = (float) $activeOps->where('price_difference', '>', 0)->sum('price_difference');
             $netRealized = (float) $order->grand_total - $totRefund - $totExpense + $totIncome;
+        $returnOperationTypes = ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'];
+        $returnedOrderItems = $order->items->filter(function ($item) use ($order, $returnOperationTypes) {
+            return $item->item_status === 'returned' || $order->operations->contains(fn ($operation) => $operation->status === 'active' && (int) $operation->order_item_id === (int) $item->id && in_array($operation->operation_type, $returnOperationTypes, true));
+        });
+        $returnedProductCount = (int) $returnedOrderItems->sum(fn ($item) => (int) ($item->quantity ?: 1));
         @endphp
         <!-- Mobile Card Header -->
         <div class="card-header border-bottom py-2 px-2.5 d-flex justify-content-between align-items-center" style="{{ $isEven ? 'background-color: #FFFFFF;' : 'background-color: #EDF2F7;' }}">
@@ -67,7 +72,7 @@
                     @endif
                 </div>
                 @php
-                    $mobileModalItems = $order->items->map(function ($item) {
+                    $mobileModalItems = $order->items->map(function ($item) use ($returnedOrderItems) {
                         $imgUrl = $item->product ? $item->product->primary_image_url : \App\Models\Setting::logoUrl();
                         $sizeDetails = $item->productSize ?: $item->product?->sizes?->firstWhere('size', $item->size);
                         return [
@@ -84,6 +89,7 @@
                             'discount_amount' => $item->discount_amount,
                             'subtotal' => $item->subtotal,
                             'item_status' => $item->item_status,
+                            'is_returned' => $returnedOrderItems->contains('id', $item->id),
                             'is_combo_offer' => $item->is_combo_offer,
                             'measurements' => array_filter([
                                 'Chest' => $sizeDetails?->chest,
@@ -94,7 +100,11 @@
                         ];
                     });
                 @endphp
-                <div class="d-inline-flex align-items-center">
+                <div class="d-flex flex-column align-items-center">
+                    @if($returnedProductCount > 0)
+                        <div class="text-danger fw-bolder mb-1 text-center" style="font-size: 0.64rem;" title="Returned product quantity for this order">{{ $returnedProductCount }} {{ \Illuminate\Support\Str::plural('product', $returnedProductCount) }} returned</div>
+                    @endif
+                    <div class="d-inline-flex align-items-center">
                     @foreach($mobileModalItems->take(3) as $mIdx => $mItemData)
                         <img src="{{ $mItemData['image_url'] }}" 
                              alt="{{ $mItemData['product_name'] }}" 
@@ -109,6 +119,7 @@
                             +{{ $mobileModalItems->count() - 3 }}
                         </span>
                     @endif
+                    </div>
                 </div>
                 <div class="text-end">
                     <div class="mb-1">

@@ -174,7 +174,10 @@ class OrderController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'LIKE', '%' . $search . '%')
                     ->orWhere('customer_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('customer_phone', 'LIKE', '%' . $search . '%');
+                    ->orWhere('customer_phone', 'LIKE', '%' . $search . '%')
+                    ->orWhereHas('items', function ($itemQuery) use ($search) {
+                        $itemQuery->where('product_name', 'LIKE', '%' . $search . '%');
+                    });
             });
         }
 

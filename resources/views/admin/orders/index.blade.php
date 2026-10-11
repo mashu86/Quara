@@ -226,7 +226,7 @@
                 <label class="form-label small fw-bold text-muted mb-1">
                     <i class="fa-solid fa-magnifying-glass text-warning me-1"></i> Search
                 </label>
-                <input type="text" name="search" class="form-control rounded-3" placeholder="Order #, Name, Phone..." value="{{ request()->search }}">
+                <input type="text" name="search" class="form-control rounded-3" placeholder="Order #, Name, Phone, Product..." value="{{ request()->search }}">
             </div>
             <div class="orders-filter-field">
                 <label class="form-label small fw-bold text-muted mb-1">
@@ -325,7 +325,7 @@
                         <label class="form-label fw-semibold text-dark small mb-1">
                             <i class="fa-solid fa-magnifying-glass text-warning me-1"></i> Search Order # / Customer / Phone
                         </label>
-                        <input type="text" name="search" class="form-control form-control-sm rounded-3" placeholder="Search Order #, Name, Phone..." value="{{ request()->search }}">
+                        <input type="text" name="search" class="form-control form-control-sm rounded-3" placeholder="Search Order #, Name, Phone, Product..." value="{{ request()->search }}">
                     </div>
                     <div class="row g-2 mb-2.5">
                         <div class="col-6">
@@ -482,6 +482,25 @@
         .orders-table th, .orders-table td { font-size: 0.7rem !important; padding: 0.4rem 0.3rem !important; }
         .orders-table .btn:not(.rounded-circle) { font-size: 0.65rem !important; padding: 0.2rem 0.4rem !important; }
         .orders-table .badge, .orders-mobile-card .badge { font-size: 0.6rem !important; padding: 0.2em 0.4em !important; }
+    }
+
+    /* Give product photos more room on desktop while keeping the full image in view. */
+    @media (min-width: 768px) {
+        #orderImageCarouselModal .modal-dialog {
+            max-width: min(1100px, calc(100vw - 3rem));
+        }
+        #orderImageCarouselModal .modal-body {
+            align-items: flex-start !important;
+            min-height: 0 !important;
+            max-height: calc(100dvh - 10rem);
+        }
+        #orderImageCarouselModal #orderModalProductImg {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: min(62dvh, 700px) !important;
+            object-fit: contain;
+        }
     }
 
     /* Keep the order image preview inside the available phone viewport. */
@@ -904,6 +923,7 @@ function openIndexEditPaymentModal(order) {
                 <!-- Product Display Image -->
                 <div class="d-flex flex-column align-items-center justify-content-center w-100">
                     <img id="orderModalProductImg" src="" alt="Product Image" class="img-fluid rounded-3 border border-secondary shadow" style="max-height: 380px; object-fit: contain; background-color: #1a1a1d;">
+                    <div id="orderModalReturnNote" class="d-none mt-2 px-3 py-2 rounded-3 bg-danger text-white fw-bold small">This item was returned from this order.</div>
                     
                     <div class="mt-3 p-3 bg-dark bg-opacity-75 rounded-3 border border-secondary w-100 text-start" style="max-width: 600px;">
                         <div class="d-flex justify-content-between align-items-start gap-2">
@@ -973,6 +993,13 @@ function updateOrderModalDisplay() {
     document.getElementById('orderImageModalTitle').innerText = item.product_name || 'Product Detail';
     document.getElementById('orderModalProductName').innerText = item.product_name || 'Product Detail';
     document.getElementById('orderModalProductImg').src = item.image_url || '/images/placeholder.jpg';
+    const productImage = document.getElementById('orderModalProductImg');
+    productImage.classList.toggle('border-danger', !!item.is_returned);
+    productImage.classList.toggle('border-secondary', !item.is_returned);
+    productImage.style.setProperty('border-width', item.is_returned ? '5px' : '1px', 'important');
+    productImage.style.setProperty('border-style', 'solid', 'important');
+    productImage.style.setProperty('border-color', item.is_returned ? '#dc3545' : '#6c757d', 'important');
+    document.getElementById('orderModalReturnNote').classList.toggle('d-none', !item.is_returned);
     document.getElementById('orderModalProductMeta').innerText = `Size: ${item.size || 'N/A'} • Quantity: ${item.quantity || 1} Pcs • Unit price: ${money(item.final_unit_price || item.unit_price)}`;
     document.getElementById('orderModalCategory').innerText = item.category || '—';
     document.getElementById('orderModalCatalogPrice').innerText = item.catalog_price ? money(item.catalog_price) : '—';

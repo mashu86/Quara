@@ -23,6 +23,20 @@ class DuplicatePaidProductsReportController extends Controller
                 ->whereNotNull('oi.product_id')
                 ->where(function ($items) {
                     $items->whereNull('oi.item_status')->orWhereNotIn('oi.item_status', ['returned', 'cancelled']);
+                })
+                ->whereNotExists(function ($operations) {
+                    $operations->selectRaw('1')
+                        ->from('order_operations as op')
+                        ->whereColumn('op.order_id', 'oi.order_id')
+                        ->where('op.status', 'active')
+                        ->whereIn('op.operation_type', ['product_returned', 'customer_return', 'wrong_product_sent', 'product_damaged', 'product_lost'])
+                        ->where(function ($match) {
+                            $match->whereColumn('op.order_item_id', 'oi.id')
+                                ->orWhere(function ($legacyMatch) {
+                                    $legacyMatch->whereNull('op.order_item_id')
+                                        ->whereColumn('op.product_id', 'oi.product_id');
+                                });
+                        });
                 });
 
             if (!empty($validated['start_date'])) {

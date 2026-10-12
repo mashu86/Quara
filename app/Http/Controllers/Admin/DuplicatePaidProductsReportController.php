@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 class DuplicatePaidProductsReportController extends Controller
 {
+    private const NORMALIZED_PHONE_SQL = "SUBSTR(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(o.customer_phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), -10)";
+
     public function index(Request $request)
     {
         $validated = $request->validate([
@@ -21,6 +23,8 @@ class DuplicatePaidProductsReportController extends Controller
             $query->where('o.payment_status', 'paid')
                 ->where('o.order_status', '!=', 'cancelled')
                 ->whereNotNull('oi.product_id')
+                // Ignore the admin's own test purchases, even when stored with +91 or separators.
+                ->whereRaw(self::NORMALIZED_PHONE_SQL . ' <> ?', ['9544832975'])
                 ->where(function ($items) {
                     $items->whereNull('oi.item_status')->orWhereNotIn('oi.item_status', ['returned', 'cancelled']);
                 })
@@ -60,9 +64,10 @@ class DuplicatePaidProductsReportController extends Controller
         $groups = $groupsQuery
             ->select('oi.product_id', DB::raw('COALESCE(p.name, MAX(oi.product_name)) as product_name'))
             ->selectRaw('COUNT(DISTINCT oi.order_id) as paid_order_count')
+            ->selectRaw('COUNT(DISTINCT ' . self::NORMALIZED_PHONE_SQL . ') as buyer_count')
             ->selectRaw('SUM(oi.quantity) as total_quantity')
             ->groupBy('oi.product_id', 'p.name')
-            ->havingRaw('COUNT(DISTINCT oi.order_id) >= 2')
+            ->havingRaw('COUNT(DISTINCT ' . self::NORMALIZED_PHONE_SQL . ') >= 2')
             ->orderByDesc('paid_order_count')
             ->orderBy('product_name')
             ->paginate(20)

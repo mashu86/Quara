@@ -354,6 +354,15 @@
                                             </td>
                                             <td>
                                                 <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-outline-dark btn-sm rounded-pill py-0 px-2" style="font-size: 0.74rem;">Manage</a>
+                                                @if($order->order_status === 'pending' && $order->payment_status === 'paid')
+                                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-outline-warning btn-sm rounded-pill py-0 px-2 fw-bold" style="font-size: 0.74rem;" title="Paid order pending: adjustment or refund">
+                                                        <i class="fa-solid fa-sliders me-1"></i>Adjust / Refund
+                                                    </a>
+                                                @elseif($order->payment_method === 'online' && $order->order_status === 'pending' && $order->payment_status === 'pending')
+                                                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-outline-warning btn-sm rounded-pill py-0 px-2 fw-bold" style="font-size: 0.74rem;" title="Review payment and record an adjustment or refund">
+                                                        <i class="fa-solid fa-sliders me-1"></i>Adjust / Refund
+                                                    </a>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty

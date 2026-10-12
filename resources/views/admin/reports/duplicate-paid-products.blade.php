@@ -54,7 +54,8 @@
                 <div class="min-w-0 flex-grow-1">
                     <h6 class="fw-bold text-dark mb-1 text-break"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>{{ $group->product_name }}</h6>
                     <div class="d-flex gap-2 flex-wrap">
-                        <span class="badge bg-warning text-dark">{{ $group->paid_order_count }} paid orders</span>
+                        <span class="badge bg-warning text-dark">{{ $group->buyer_count }} different buyers</span>
+                        <span class="badge bg-light text-dark border">{{ $group->paid_order_count }} paid orders</span>
                         <span class="badge bg-light text-dark border">{{ $group->total_quantity }} units altogether</span>
                     </div>
                 </div>

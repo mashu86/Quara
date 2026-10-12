@@ -180,12 +180,17 @@
                     <i class="fa-solid fa-eye"></i>
                 </a>
                 @php
-                    $canAdjustOrder = !in_array($order->order_status, ['pending', 'cancelled']) 
+                    $pendingPaidAdjustment = $order->order_status === 'pending'
+                        && $order->payment_status === 'paid';
+                    $pendingPaymentReview = $order->order_status === 'pending'
+                        && $order->payment_status === 'pending'
+                        && $order->payment_method === 'online';
+                    $canAdjustOrder = $pendingPaidAdjustment || $pendingPaymentReview || (!in_array($order->order_status, ['pending', 'cancelled'])
                         && $order->payment_status !== 'pending' 
-                        && ($order->payment_status === 'paid' || $order->payment_method === 'offline_sale' || $order->order_source === 'manual' || $activeOps->count() > 0);
+                        && ($order->payment_status === 'paid' || $order->payment_method === 'offline_sale' || $order->order_source === 'manual' || $activeOps->count() > 0));
                 @endphp
                 @if($canAdjustOrder)
-                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" title="Adjust Order">
+                    <a href="{{ route('admin.order-operations.create', $order->id) }}" class="btn btn-sm btn-outline-warning text-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-sm btn-circle-mobile" title="{{ $pendingPaidAdjustment ? 'Paid / Order Pending Adjustment' : ($pendingPaymentReview ? 'Payment Pending / Refund Adjustment' : 'Adjust Order') }}">
                         <i class="fa-solid fa-sliders"></i>
                     </a>
                 @endif

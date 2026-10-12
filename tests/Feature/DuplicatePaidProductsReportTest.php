@@ -24,9 +24,9 @@ class DuplicatePaidProductsReportTest extends TestCase
             'price' => 169, 'final_price' => 169, 'status' => 'active',
         ]);
 
-        $makeItem = function (string $number) use ($product): OrderItem {
+        $makeItem = function (string $number, string $phone = '9876543210') use ($product): OrderItem {
             $order = Order::create([
-                'order_number' => $number, 'customer_name' => 'Report Customer', 'customer_phone' => '9876543210',
+                'order_number' => $number, 'customer_name' => 'Report Customer', 'customer_phone' => $phone,
                 'house_building' => 'House', 'street' => 'Street', 'area' => 'Area', 'city' => 'Kochi',
                 'district' => 'Ernakulam', 'state' => 'Kerala', 'pin_code' => '682001',
                 'subtotal' => 169, 'grand_total' => 169, 'payment_method' => 'online',
@@ -39,19 +39,21 @@ class DuplicatePaidProductsReportTest extends TestCase
             ]);
         };
 
-        $returnedItem = $makeItem('RETURNED-ORDER');
+        $returnedItem = $makeItem('RETURNED-ORDER', '9876500001');
         OrderOperation::create([
             'order_id' => $returnedItem->order_id, 'order_item_id' => $returnedItem->id,
             'product_id' => $product->id, 'operation_type' => 'product_returned', 'status' => 'active',
         ]);
-        $makeItem('PAID-ORDER-1');
+        $makeItem('PAID-ORDER-1', '9876500002');
+        $makeItem('PAID-ORDER-2-SAME-BUYER', '+91 98765 00002');
+        $makeItem('SELF-TEST-ORDER', '+91 95448-32975');
 
         $response = $this->actingAs($admin)->get(route('admin.reports.duplicate-paid-products'));
-        $response->assertOk()->assertDontSee('Report Test Shirt')->assertDontSee('RETURNED-ORDER');
+        $response->assertOk()->assertDontSee('Report Test Shirt')->assertDontSee('RETURNED-ORDER')->assertDontSee('SELF-TEST-ORDER');
 
-        $makeItem('PAID-ORDER-2');
+        $makeItem('PAID-ORDER-3', '9876500003');
         $response = $this->actingAs($admin)->get(route('admin.reports.duplicate-paid-products'));
-        $response->assertOk()->assertSee('Report Test Shirt')->assertSee('PAID-ORDER-1')->assertSee('PAID-ORDER-2')
-            ->assertDontSee('RETURNED-ORDER');
+        $response->assertOk()->assertSee('Report Test Shirt')->assertSee('PAID-ORDER-1')->assertSee('PAID-ORDER-3')
+            ->assertDontSee('RETURNED-ORDER')->assertDontSee('SELF-TEST-ORDER');
     }
 }

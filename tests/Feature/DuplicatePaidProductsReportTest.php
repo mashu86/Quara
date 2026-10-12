@@ -15,7 +15,7 @@ class DuplicatePaidProductsReportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_active_return_operation_excludes_the_returned_order_from_duplicate_list(): void
+    public function test_same_customer_repeated_paid_orders_are_duplicates_but_returns_and_self_test_orders_are_excluded(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $category = Category::create(['name' => 'Report Category', 'slug' => 'report-category', 'status' => 'active']);
@@ -45,15 +45,14 @@ class DuplicatePaidProductsReportTest extends TestCase
             'product_id' => $product->id, 'operation_type' => 'product_returned', 'status' => 'active',
         ]);
         $makeItem('PAID-ORDER-1', '9876500002');
-        $makeItem('PAID-ORDER-2-SAME-BUYER', '+91 98765 00002');
         $makeItem('SELF-TEST-ORDER', '+91 95448-32975');
 
         $response = $this->actingAs($admin)->get(route('admin.reports.duplicate-paid-products'));
         $response->assertOk()->assertDontSee('Report Test Shirt')->assertDontSee('RETURNED-ORDER')->assertDontSee('SELF-TEST-ORDER');
 
-        $makeItem('PAID-ORDER-3', '9876500003');
+        $makeItem('PAID-ORDER-2-SAME-BUYER', '+91 98765 00002');
         $response = $this->actingAs($admin)->get(route('admin.reports.duplicate-paid-products'));
-        $response->assertOk()->assertSee('Report Test Shirt')->assertSee('PAID-ORDER-1')->assertSee('PAID-ORDER-3')
+        $response->assertOk()->assertSee('Report Test Shirt')->assertSee('PAID-ORDER-1')->assertSee('PAID-ORDER-2-SAME-BUYER')
             ->assertDontSee('RETURNED-ORDER')->assertDontSee('SELF-TEST-ORDER');
     }
 }

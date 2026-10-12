@@ -548,6 +548,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.reports.duplicate-paid-products') }}" class="nav-link {{ request()->routeIs('admin.reports.duplicate-paid-products') ? 'active' : '' }}">
+                        <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i> Duplicate Paid Products
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.reports.razorpay-charges') }}" class="nav-link {{ request()->routeIs('admin.reports.razorpay-charges') ? 'active' : '' }}">
                         <i class="fa-brands fa-credit-card me-2"></i> Razorpay Charges Report
                     </a>

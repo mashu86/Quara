@@ -4,36 +4,53 @@
 
 @section('content')
 <style>
+    .duplicate-report-heading { font-size: 1.65rem !important; line-height: 1.2; letter-spacing: -.02em; }
+    .duplicate-report-subtitle { max-width: 760px; font-size: .94rem !important; line-height: 1.5; }
+    .duplicate-report-count { white-space: nowrap; font-size: .9rem; font-weight: 700; }
+    .duplicate-filter-card { border: 1px solid #edf0f2 !important; }
+    .duplicate-filter-card .form-label { margin-bottom: .45rem; color: #253044; font-size: .84rem; }
+    .duplicate-filter-card .form-control { min-height: 48px; border-color: #dce1e7; border-radius: 12px !important; }
+    .duplicate-filter-card .form-control:focus { border-color: #f2b900; box-shadow: 0 0 0 .2rem rgba(255, 193, 7, .16); }
+    .duplicate-filter-actions { display: flex; gap: .55rem; }
+    .duplicate-filter-actions .btn { min-height: 48px; border-radius: 12px !important; }
+    .duplicate-filter-submit { flex: 1 1 auto; white-space: nowrap; }
+    .duplicate-filter-reset { width: 48px; flex: 0 0 48px; }
     .duplicate-product-thumb { width: 68px; height: 82px; object-fit: cover; cursor: zoom-in; }
     .duplicate-order-row { border-top: 1px solid #edf0f2; }
     .duplicate-order-row:first-child { border-top: 0; }
+    @media (max-width: 767.98px) {
+        .duplicate-report-heading { font-size: 1.35rem !important; }
+        .duplicate-report-subtitle { font-size: .82rem !important; }
+        .duplicate-filter-card .card-body { padding: 1rem !important; }
+        .duplicate-filter-actions { grid-column: 1 / -1; }
+    }
 </style>
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
     <div>
-        <h4 class="fw-bold mb-1">Duplicate Paid Products</h4>
-        <p class="text-muted small mb-0">Products found in multiple paid orders. Returned and cancelled product lines are excluded.</p>
+        <h4 class="fw-bold mb-1 duplicate-report-heading"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Duplicate Paid Products</h4>
+        <p class="text-muted mb-0 duplicate-report-subtitle">Products found in multiple paid orders. Returned and cancelled product lines are excluded.</p>
     </div>
-    <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3 py-2">{{ $groups->total() }} products flagged</span>
+    <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3 py-2 duplicate-report-count">{{ $groups->total() }} products flagged</span>
 </div>
 
-<div class="card border-0 rounded-4 shadow-sm mb-4">
-    <div class="card-body">
+<div class="card border-0 rounded-4 shadow-sm mb-4 duplicate-filter-card">
+    <div class="card-body p-4">
         <form method="GET" action="{{ route('admin.reports.duplicate-paid-products') }}" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label small fw-bold">Search Product</label>
-                <input type="search" name="search" class="form-control rounded-3" value="{{ $search }}" placeholder="Product name">
+                <input type="search" name="search" class="form-control" value="{{ $search }}" placeholder="Product name">
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label small fw-bold">From date</label>
-                <input type="date" name="start_date" class="form-control rounded-3" value="{{ $startDate }}">
+                <input type="date" name="start_date" class="form-control" value="{{ $startDate }}">
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label small fw-bold">To date</label>
-                <input type="date" name="end_date" class="form-control rounded-3" value="{{ $endDate }}">
+                <input type="date" name="end_date" class="form-control" value="{{ $endDate }}">
             </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button class="btn btn-warning rounded-pill fw-bold flex-grow-1" type="submit"><i class="fa-solid fa-magnifying-glass me-1"></i>Search</button>
-                <a class="btn btn-outline-secondary rounded-pill" href="{{ route('admin.reports.duplicate-paid-products') }}" title="Reset filters"><i class="fa-solid fa-rotate-left"></i></a>
+            <div class="col-md-2 duplicate-filter-actions">
+                <button class="btn btn-warning fw-bold duplicate-filter-submit" type="submit"><i class="fa-solid fa-magnifying-glass me-1"></i>Search</button>
+                <a class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center duplicate-filter-reset" href="{{ route('admin.reports.duplicate-paid-products') }}" title="Reset filters" aria-label="Reset filters"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </form>
     </div>

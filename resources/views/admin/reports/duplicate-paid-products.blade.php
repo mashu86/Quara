@@ -65,7 +65,7 @@
                 <div class="duplicate-order-row p-3 px-md-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-secondary-subtle text-dark"><i class="fa-regular fa-calendar me-1"></i>{{ \Illuminate\Support\Carbon::parse($item->sale_date ?? $item->order_created_at)->format('d M Y') }}</span>
+                            <span class="badge bg-secondary-subtle text-dark"><i class="fa-regular fa-calendar me-1"></i>{{ \Illuminate\Support\Carbon::parse($item->sale_date ?? $item->order_created_at)->format('d M Y, h:i A') }}</span>
                             <a href="{{ route('admin.orders.show', $item->order_id) }}" class="badge bg-dark text-decoration-none"><i class="fa-solid fa-receipt me-1"></i>#{{ $item->order_number }}</a>
                             <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Paid</span>
                             <span class="badge bg-info-subtle text-dark border"><i class="fa-solid fa-truck-fast me-1"></i>{{ ucfirst(str_replace('_', ' ', $item->order_status)) }}</span>

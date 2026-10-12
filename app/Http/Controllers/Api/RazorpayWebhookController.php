@@ -53,7 +53,9 @@ class RazorpayWebhookController extends Controller
                             'failed_at' => now()->toIso8601String(),
                         ]),
                     ]);
-                    $order->update(['reserved_until' => null]);
+                    // Payment failure is retryable. Give the buyer a fresh five-minute window
+                    // after every attempt, including repeated incorrect UPI PIN attempts.
+                    $order->update(['reserved_until' => now()->addMinutes(5)]);
                 }
             });
             return response()->json(['status' => 'success']);

@@ -333,6 +333,9 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         $order = $this->pendingOrder('RETRY');
         $this->webhook($order, 'payment.failed')->assertOk();
         $this->assertEquals(0, $this->size->fresh()->available_stock);
+        $this->travel(4)->minutes();
+        $this->webhook($order, 'payment.failed')->assertOk();
+        $this->assertTrue($order->fresh()->reserved_until->gt(now()->addMinutes(4)));
         $this->webhook($order)->assertJson(['status' => 'success']);
         $this->assertEquals(0, $this->size->fresh()->stock);
     }

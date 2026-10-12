@@ -378,6 +378,12 @@
         </div>
 
         <nav class="mt-3 admin-sidebar-nav">
+            <div class="px-3 pb-2 position-sticky top-0" style="z-index: 2; background: var(--qw-sidebar-bg);">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark text-warning border-secondary"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="search" id="adminMenuSearch" class="form-control bg-dark text-white border-secondary" placeholder="Search menus..." aria-label="Search admin menus" autocomplete="off">
+                </div>
+            </div>
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -610,6 +616,7 @@
                     </form>
                 </li>
             </ul>
+            <div id="adminMenuNoResults" class="small text-center text-white-50 px-3 py-4 d-none">No matching menus</div>
         </nav>
     </aside>
 
@@ -795,6 +802,37 @@
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const menuSearch = document.getElementById('adminMenuSearch');
+            const menuList = menuSearch?.closest('nav')?.querySelector('ul');
+            const noMenuResults = document.getElementById('adminMenuNoResults');
+
+            menuSearch?.addEventListener('input', function() {
+                if (!menuList) return;
+                const query = this.value.trim().toLocaleLowerCase();
+                const entries = Array.from(menuList.children);
+                const items = entries.filter(entry => entry.classList.contains('nav-item'));
+                items.forEach(item => {
+                    const label = item.querySelector('.nav-link')?.textContent?.trim().toLocaleLowerCase() || '';
+                    item.classList.toggle('d-none', query !== '' && !label.includes(query));
+                });
+
+                entries.forEach((entry, index) => {
+                    if (!entry.classList.contains('nav-heading')) return;
+                    if (query === '') {
+                        entry.classList.remove('d-none');
+                        return;
+                    }
+                    const followingItems = entries.slice(index + 1).filter(next => next.classList.contains('nav-item'));
+                    const nextHeadingIndex = entries.findIndex((next, nextIndex) => nextIndex > index && next.classList.contains('nav-heading'));
+                    const sectionItems = nextHeadingIndex === -1
+                        ? followingItems
+                        : followingItems.filter(item => entries.indexOf(item) < nextHeadingIndex);
+                    entry.classList.toggle('d-none', !sectionItems.some(item => !item.classList.contains('d-none')));
+                });
+
+                const hasResults = items.some(item => !item.classList.contains('d-none'));
+                noMenuResults?.classList.toggle('d-none', hasResults || query === '');
+            });
 
             if (sidebarToggle) {
                 sidebarToggle.addEventListener('click', function(e) {

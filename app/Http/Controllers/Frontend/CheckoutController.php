@@ -155,6 +155,8 @@ class CheckoutController extends Controller
 
         $summary = $this->cartService->getSummary();
 
+        $order = null;
+
         // Verify offer eligibility independently; preserve the entered delivery address.
         try {
             $location = app(PincodeService::class)->lookup($validated['pin_code']);
@@ -208,8 +210,8 @@ class CheckoutController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $summary['grand_total'] <= 0 ? 'paid' : 'pending',
                     'order_status' => ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) ? 'confirmed' : 'pending',
-                    // Reserve online stock only after Razorpay submits a payment attempt.
-                    'reserved_until' => null,
+                    // Hold the last item as soon as checkout opens the online payment step.
+                    'reserved_until' => $summary['grand_total'] > 0 ? now()->addMinutes(5) : null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
@@ -292,6 +294,9 @@ class CheckoutController extends Controller
             return view('frontend.checkout_online_payment', compact('order', 'paymentResult'));
 
         } catch (Exception $e) {
+            if ($order instanceof Order && $order->exists && $order->payment_status === 'pending') {
+                $order->update(['reserved_until' => null]);
+            }
             return back()->with('error', 'Order creation failed: '.$e->getMessage())->withInput();
         }
     }

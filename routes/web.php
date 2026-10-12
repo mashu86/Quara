@@ -141,6 +141,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/change-password', [AdminAuthController::class, 'changePassword'])->name('change-password');
 
         // Category Master
+        Route::get('categories/merge', [AdminCategoryController::class, 'merge'])->name('categories.merge');
+        Route::post('categories/merge', [AdminCategoryController::class, 'mergeStore'])->name('categories.merge.store');
+        Route::get('categories/merge-report', [AdminCategoryController::class, 'mergeReport'])->name('categories.merge-report');
         Route::get('categories/{category}/products', [AdminCategoryController::class, 'products'])->name('categories.products');
         Route::post('categories/{category}/products/{product}', [AdminCategoryController::class, 'attachProduct'])->name('categories.products.attach');
         Route::delete('categories/{category}/products/{product}', [AdminCategoryController::class, 'detachProduct'])->name('categories.products.detach');

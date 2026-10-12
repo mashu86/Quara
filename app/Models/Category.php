@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
 
 class Category extends Model
 {
@@ -49,6 +50,12 @@ class Category extends Model
         'minimum_purchase_required' => 'boolean',
         'minimum_purchase_count' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        // Merged categories stay in storage for audit/history but are never selectable or visible.
+        static::addGlobalScope('unmerged', fn (Builder $query) => $query->whereNull('categories.merged_into_category_id'));
+    }
 
     public function products()
     {

@@ -13,9 +13,111 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
 {
+    public function merge()
+    {
+        $mergeMode = true;
+        $availableCategories = Category::orderBy('name')->get(['id', 'name', 'is_offer_category', 'offer_type']);
+        return view('admin.categories.create', compact('mergeMode', 'availableCategories'));
+    }
+
+    public function mergeReport()
+    {
+        $reports = DB::table('category_merge_reports')->orderByDesc('created_at')->paginate(20);
+        return view('admin.categories.merge-report', compact('reports'));
+    }
+
+    public function mergeStore(Request $request)
+    {
+        $isOffer = $request->boolean('is_offer_category');
+        $offerType = $request->input('offer_type');
+        $validated = $request->validate([
+            'category_ids' => ['required', 'array', 'min:1'],
+            'category_ids.*' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+            'name' => 'required|string|max:255|unique:categories,name',
+            'background_image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:12288',
+            'text_color' => 'required|string|max:10',
+            'status' => 'nullable|in:active,inactive',
+            'is_offer_category' => 'nullable|boolean',
+            'offer_type' => 'required_if:is_offer_category,1|nullable|in:combo,discount',
+            'min_count' => [$isOffer && $offerType === 'combo' ? 'required' : 'nullable', 'integer', 'min:1'],
+            'combo_price' => [$isOffer && $offerType === 'combo' ? 'required_without:unit_offer_price' : 'nullable', 'numeric', 'min:0'],
+            'unit_offer_price' => [$isOffer && $offerType === 'combo' ? 'required_without:combo_price' : 'nullable', 'numeric', 'min:0'],
+            'discount_value' => [$isOffer && $offerType === 'discount' ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'discount_type' => [$isOffer && $offerType === 'discount' ? 'required' : 'nullable', 'in:percentage,flat'],
+            'delivery_charge_mode' => ['required_if:is_offer_category,1', 'nullable', 'in:free,custom,master'],
+            'delivery_charge' => ['nullable', 'numeric', 'min:0', 'required_if:delivery_charge_mode,custom'],
+            'allow_pre_min_purchase' => 'nullable|boolean',
+            'minimum_purchase_required' => 'nullable|boolean',
+            'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOffer ? 'required' : 'nullable', 'integer', 'min:1'],
+            'show_in_collection' => 'nullable|boolean',
+        ]);
+
+        $sourceIds = collect($validated['category_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        $sources = Category::whereIn('id', $sourceIds)->get();
+        if ($sources->count() !== $sourceIds->count()) {
+            throw ValidationException::withMessages(['category_ids' => 'One or more selected categories are no longer available.']);
+        }
+        foreach ($sources as $source) {
+            if ((bool) $source->is_offer_category !== $isOffer || ($isOffer && $source->offer_type !== $offerType)) {
+                throw ValidationException::withMessages(['category_ids' => 'Merge categories with matching regular/offer type and offer rules.']);
+            }
+        }
+
+        DB::transaction(function () use ($request, $validated, $sourceIds, $sources, $isOffer, $offerType) {
+            $comboPrice = $isOffer && $offerType === 'combo'
+                ? ($request->filled('unit_offer_price') ? round((float) $request->input('unit_offer_price') * (int) $request->input('min_count'), 2) : (float) $request->input('combo_price'))
+                : null;
+            $deliveryMode = $isOffer ? $request->input('delivery_charge_mode', 'free') : 'master';
+            $category = Category::create([
+                'name' => $validated['name'], 'slug' => Str::slug($validated['name']),
+                'text_color' => $validated['text_color'], 'status' => $isOffer ? 'inactive' : ($request->input('status', 'active')),
+                'is_offer_category' => $isOffer, 'offer_type' => $isOffer ? $offerType : 'combo',
+                'is_combo_offer' => $isOffer && $offerType === 'combo',
+                'min_count' => $isOffer && $offerType === 'combo' ? $request->input('min_count') : null,
+                'combo_price' => $comboPrice,
+                'discount_value' => $isOffer && $offerType === 'discount' ? $request->input('discount_value') : null,
+                'discount_type' => $isOffer && $offerType === 'discount' ? $request->input('discount_type', 'percentage') : 'percentage',
+                'delivery_charge_mode' => $deliveryMode,
+                'delivery_charge' => $deliveryMode === 'custom' ? (float) $request->input('delivery_charge', 0) : 0,
+                'allow_pre_min_purchase' => $isOffer && $offerType === 'combo' && $request->boolean('allow_pre_min_purchase'),
+                'minimum_purchase_required' => !$isOffer && $request->boolean('minimum_purchase_required'),
+                'minimum_purchase_count' => !$isOffer && $request->boolean('minimum_purchase_required') ? $request->input('minimum_purchase_count') : null,
+                'show_in_collection' => $request->boolean('show_in_collection', true),
+            ]);
+            if ($request->hasFile('background_image')) {
+                $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
+                $category->update(['background_image' => 'storage/' . $path]);
+            }
+
+            $oldNames = $sources->pluck('name')->values()->all();
+            $productIds = DB::table('products')->whereIn('category_id', $sourceIds)->orWhereIn('combo_category_id', $sourceIds)->pluck('id')
+                ->merge(DB::table('category_product')->whereIn('category_id', $sourceIds)->pluck('product_id'))->unique();
+            foreach ($productIds as $productId) {
+                DB::table('category_product')->insertOrIgnore(['category_id' => $category->id, 'product_id' => $productId, 'created_at' => now(), 'updated_at' => now()]);
+            }
+            DB::table('products')->whereIn('category_id', $sourceIds)->update(['category_id' => $category->id]);
+            DB::table('products')->whereIn('combo_category_id', $sourceIds)->update(['combo_category_id' => $category->id]);
+            DB::table('category_product')->whereIn('category_id', $sourceIds)->delete();
+            Category::whereIn('id', $sourceIds)->update(['merged_into_category_id' => $category->id]);
+
+            foreach ($productIds as $productId) {
+                $productCategoryIds = DB::table('category_product')->where('product_id', $productId)->pluck('category_id')->push($category->id)->unique();
+                $visible = $productCategoryIds->isEmpty() || !Category::whereIn('id', $productCategoryIds)->where('show_in_collection', false)->exists();
+                DB::table('products')->where('id', $productId)->update(['collection_visible' => $visible]);
+            }
+            DB::table('category_merge_reports')->insert([
+                'new_category_id' => $category->id, 'new_category_name' => $category->name,
+                'old_categories' => json_encode($oldNames), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('admin.categories.merge-report')->with('success', 'Categories merged successfully.');
+    }
+
     public function index(Request $request)
     {
         $query = Category::withCount('products');

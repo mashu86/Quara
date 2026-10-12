@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
-    <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">Add New Category</h4>
+    <h4 class="fw-bold mb-0" style="font-size: 0.95rem;">{{ !empty($mergeMode) ? 'Merge Categories' : 'Add New Category' }}</h4>
     <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-dark rounded-pill btn-sm px-2.5 px-sm-3 py-1 text-nowrap" style="font-size: 0.78rem;">
         <i class="fa-solid fa-arrow-left me-0 me-sm-1"></i><span class="d-none d-sm-inline"> Back to Categories</span>
     </a>
@@ -12,8 +12,31 @@
 
 <div class="card border-0 rounded-4 shadow-sm">
     <div class="card-body p-3 p-md-5">
-        <form action="{{ route('admin.categories.store') }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
+        <form action="{{ !empty($mergeMode) ? route('admin.categories.merge.store') : route('admin.categories.store') }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
             @csrf
+
+            @if(!empty($mergeMode))
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Choose categories to merge</h5>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetMerge">Reset</button>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Available Categories</label>
+                        <input id="categorySearch" class="form-control mb-2" placeholder="Search available categories">
+                        <div id="availableCategories" class="border rounded-3 p-2" style="min-height:150px;max-height:280px;overflow:auto">
+                            @foreach($availableCategories as $available)
+                                <div class="merge-category badge bg-light text-dark border p-2 m-1" draggable="true" data-id="{{ $available->id }}" data-name="{{ $available->name }}" title="{{ $available->is_offer_category ? 'Offer category' : 'Regular category' }}">@if($available->is_offer_category)<i class="fa-solid fa-crown text-warning me-1" aria-label="Offer category"></i>@endif{{ $available->name }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Selected Categories</label>
+                        <div id="selectedCategories" class="border rounded-3 p-2" style="min-height:150px" data-dropzone="1"></div>
+                        <div id="categoryInputs"></div>
+                    </div>
+                </div>
+            @endif
 
             <div class="row g-3 g-md-4">
                 <div class="col-md-6">
@@ -163,7 +186,7 @@
 
                 <div class="col-12 mt-3 mt-md-4">
                     <button type="submit" class="btn btn-warning rounded-pill fw-bold w-100 w-sm-auto px-4 px-sm-5 py-2.5 py-sm-2 shadow-sm" style="font-size: 0.82rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">
-                        <i class="fa-solid fa-floppy-disk me-1"></i> SAVE CATEGORY
+                        <i class="fa-solid fa-floppy-disk me-1"></i> {{ !empty($mergeMode) ? 'MERGE TO NEW CATEGORY' : 'SAVE CATEGORY' }}
                     </button>
                 </div>
             </div>
@@ -174,6 +197,38 @@
 
 @section('scripts')
 <script>
+    @if(!empty($mergeMode))
+    document.addEventListener('DOMContentLoaded', () => {
+        const available = document.getElementById('availableCategories');
+        const selected = document.getElementById('selectedCategories');
+        const inputs = document.getElementById('categoryInputs');
+        const dragged = { el: null };
+        document.querySelectorAll('.merge-category').forEach(item => item.addEventListener('dragstart', () => dragged.el = item));
+        selected.addEventListener('dragover', event => event.preventDefault());
+        selected.addEventListener('drop', event => {
+            event.preventDefault();
+            if (!dragged.el || selected.querySelector(`[data-id="${dragged.el.dataset.id}"]`)) return;
+            const item = dragged.el;
+            const input = document.createElement('input'); input.type = 'hidden'; input.name = 'category_ids[]'; input.value = item.dataset.id;
+            inputs.appendChild(input);
+            item.className = 'merge-category badge bg-warning text-dark border p-2 m-1';
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn-close ms-2'; remove.setAttribute('aria-label', 'Remove');
+            remove.addEventListener('click', () => { item.remove(); input.remove(); });
+            item.appendChild(remove); selected.appendChild(item);
+        });
+        document.getElementById('categorySearch').addEventListener('input', event => {
+            const term = event.target.value.toLowerCase();
+            available.querySelectorAll('.merge-category').forEach(item => item.classList.toggle('d-none', !item.dataset.name.toLowerCase().includes(term)));
+        });
+        document.getElementById('resetMerge').addEventListener('click', () => {
+            selected.querySelectorAll('.merge-category').forEach(item => { item.querySelector('.btn-close')?.remove(); item.className = 'merge-category badge bg-light text-dark border p-2 m-1'; available.appendChild(item); });
+            inputs.replaceChildren();
+        });
+        document.querySelector('form').addEventListener('submit', event => {
+            if (!inputs.querySelector('input')) { event.preventDefault(); alert('Drag at least one category into Selected Categories.'); }
+        });
+    });
+    @endif
     document.addEventListener('DOMContentLoaded', function () {
         const switchEl = document.getElementById('isOfferCategorySwitch');
         const statusWrapper = document.getElementById('statusSelectWrapper');

@@ -397,8 +397,18 @@
                 </li>
                 <li class="nav-heading">Catalog Management</li>
                 <li class="nav-item">
-                    <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.index', 'admin.categories.create', 'admin.categories.edit', 'admin.categories.products') ? 'active' : '' }}">
                         <i class="fa-solid fa-layer-group me-2"></i> Category Master
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.categories.merge') }}" class="nav-link {{ request()->routeIs('admin.categories.merge') || request()->routeIs('admin.categories.merge.store') ? 'active' : '' }}">
+                        <i class="fa-solid fa-code-merge me-2"></i> Merge Category
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.categories.merge-report') }}" class="nav-link {{ request()->routeIs('admin.categories.merge-report') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-lines me-2"></i> Category Merge Report
                     </a>
                 </li>
                 <li class="nav-item">

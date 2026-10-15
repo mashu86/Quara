@@ -36,11 +36,9 @@
             <div class="parcel-from-wrapper">
                 <div class="parcel-label">From ,</div>
                 <div class="parcel-indent-box">
-                    akarsha Bakker<br>
-                    TK HOUSE VILAKKANNUR<br>
-                    NADUVIL PO:670582<br>
-                    PHN:8078037591<br>
-                    Kannur, Kerala
+                    @foreach(config('business.courier_sender_address') as $senderLine)
+                        {{ $senderLine }}@if(!$loop->last)<br>@endif
+                    @endforeach
                 </div>
             </div>
         </div>

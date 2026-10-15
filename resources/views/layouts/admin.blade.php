@@ -461,6 +461,11 @@
 
                 <li class="nav-heading">Orders & Offline Sales</li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.bulk-labels.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-labels.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-print me-2"></i> Bulk Mini Labels
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.bulk-article.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.index', 'admin.bulk-article.upload', 'admin.bulk-article.parse', 'admin.bulk-article.match', 'admin.bulk-article.save') ? 'active' : '' }}">
                         <i class="fa-solid fa-barcode me-2"></i> Bulk Article Number
                     </a>

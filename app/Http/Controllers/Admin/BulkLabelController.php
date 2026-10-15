@@ -19,6 +19,7 @@ class BulkLabelController extends Controller
         $orders = collect();
         if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
             $orders = $this->eligibleOrders($filters['start_date'], $filters['end_date'])
+                ->with('items.product.images')
                 ->orderByDesc(DB::raw('COALESCE(sale_date, created_at)'))
                 ->get();
         }

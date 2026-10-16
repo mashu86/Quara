@@ -45,7 +45,10 @@
             #labels { display: block !important; width: 105mm !important; margin: 0 !important; padding: 0 !important; }
             .label { display: flex !important; box-sizing: border-box !important; margin: 0 !important; border: 0 !important; width: 105mm !important; min-width: 105mm !important; max-width: 105mm !important; height: 145mm !important; min-height: 145mm !important; max-height: 145mm !important; padding: 6mm 7mm 5mm !important; overflow: hidden !important; }
             .addresses { flex: 1 1 auto !important; width: 100% !important; min-height: 0 !important; }
-            .block { min-width: 0 !important; }
+            .block, .caption, .name, .meta { min-width: 0 !important; font-size: 24px !important; font-weight: 800 !important; }
+            .block { line-height: 1.15 !important; }
+            .to-block { flex: 0 0 auto !important; min-height: 0 !important; max-height: none !important; }
+            .from-block { flex: 0 0 auto !important; width: 80mm !important; margin-top: 4mm !important; padding-top: 2mm !important; }
         }
     </style>
 </head>

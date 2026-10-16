@@ -59,8 +59,15 @@
         <label><input type="radio" name="layout" value="vertical" {{ $layout === 'vertical' ? 'checked' : '' }}> Vertical</label>
         <label><input type="radio" name="layout" value="split" {{ $layout === 'split' ? 'checked' : '' }}> Equal split</label>
         <button type="button" onclick="window.print()"><i>Print</i></button>
-        <button type="button" class="secondary" onclick="window.print()">Download PDF</button>
+        <button type="submit" form="bulkPdfDownloadForm" class="secondary">Download PDF</button>
     </div>
+    <form id="bulkPdfDownloadForm" method="POST" action="{{ route('admin.bulk-labels.download-pdf') }}">
+        @csrf
+        <input type="hidden" name="start_date" value="{{ $startDate }}">
+        <input type="hidden" name="end_date" value="{{ $endDate }}">
+        <input type="hidden" name="layout" id="downloadPdfLayout" value="{{ $layout }}">
+        @foreach($orders as $order)<input type="hidden" name="order_ids[]" value="{{ $order->id }}">@endforeach
+    </form>
     <main id="labels">
         @foreach($orders as $order)
             <article class="label">
@@ -89,6 +96,7 @@
         document.querySelectorAll('input[name="layout"]').forEach(input => input.addEventListener('change', () => {
             document.body.classList.toggle('split', input.value === 'split');
             document.body.classList.toggle('vertical', input.value === 'vertical');
+            document.getElementById('downloadPdfLayout').value = input.value;
         }));
     </script>
 </body>

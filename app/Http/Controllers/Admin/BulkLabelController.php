@@ -52,6 +52,7 @@ class BulkLabelController extends Controller
         return response()->view('admin.bulk_labels.print', [
             'orders' => $orders,
             'fromAddress' => config('business.courier_sender_address', []),
+            'customerId' => config('business.courier_customer_id', ''),
             'layout' => $data['layout'],
             'filename' => $data['start_date'].'_'.$data['end_date'].'_bulk_label.pdf',
             'startDate' => $data['start_date'],
@@ -75,7 +76,12 @@ class BulkLabelController extends Controller
         abort_if($orders->isEmpty(), 422, 'No eligible paid orders were selected in this date range.');
 
         $filename = $data['start_date'].'_'.$data['end_date'].'_bulk_label.pdf';
-        $content = $pdf->make($orders, $data['layout'], config('business.courier_sender_address', []));
+        $content = $pdf->make(
+            $orders,
+            $data['layout'],
+            config('business.courier_sender_address', []),
+            config('business.courier_customer_id', '')
+        );
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',

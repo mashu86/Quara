@@ -22,21 +22,26 @@
         .caption { display: block; font-size: 24px; font-weight: 800; text-transform: uppercase; margin-bottom: 2mm; }
         .name { font-size: 24px; font-weight: 800; margin-bottom: 0; }
         .meta { font-size: 24px; font-weight: 800; margin-top: 0; }
+        .label, .label * { font-size: 24px !important; font-weight: 800 !important; line-height: 1.15 !important; }
+        .label .sender-address { font-size: 21px !important; line-height: 1.15 !important; }
+        .label .customer-id { display: block; /* align-self: flex-end; */ width: 80mm; text-align: left; margin: 3mm 0 0; padding: 2mm 0 0; border-top: 2px dashed #111; }
         body.split .addresses { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
         body.split .block { min-width: 0; line-height: 1.1; }
         body.split .from-block { width: auto; border-top: 0; border-left: 2px solid #111; margin: 0; padding: 0 0 0 3mm; }
+        body.split .customer-id { grid-column: 2; width: auto; align-self: start; }
         body.split .caption, body.split .name, body.split .meta { font-size: 24px; }
         @media screen and (max-width: 600px) {
             .toolbar { position: static; padding: 10px; gap: 8px; }
             .toolbar strong { width: 100%; flex: 0 0 100%; overflow-wrap: anywhere; font-size: 13px; }
             .toolbar > span { margin-right: 2px; }
             .toolbar button { padding: 8px 10px; }
-            #labels { width: 100%; align-items: center; padding: 8px; gap: 8px; }
-            .label { width: min(105mm, calc(100vw - 32px)); min-width: 0; max-width: 105mm; height: auto; min-height: 0; max-height: none; aspect-ratio: 105 / 145; padding: 5.7%; }
+            #labels { width: 100%; align-items: flex-start; overflow-x: auto; padding: 8px; gap: 8px; }
+            .label { width: 105mm; min-width: 105mm; max-width: 105mm; height: 145mm; min-height: 145mm; max-height: 145mm; padding: 6mm 7mm 5mm; }
             .addresses { min-height: 0; }
             .block, .caption, .name, .meta { font-size: clamp(14px, 5.45vw, 24px); }
             .to-block { min-height: 0; max-height: none; }
             .from-block { width: 80%; }
+            .customer-id { width: 80%; }
         }
         @page { size: 105mm 145mm; margin: 0; }
         @media print {
@@ -77,7 +82,9 @@
                         <div class="name">{{ mb_strtoupper($order->customer_name ?? '') }}</div>
                         @php($houseStreet = collect([$order->house_building, $order->street])->filter()->implode(' - '))
                         @if($houseStreet)<div>{{ $houseStreet }}</div>@endif
-                        @php($areaCity = collect([$order->area, $order->city])->filter()->implode(', '))
+                        @php($area = trim((string) $order->area))
+                        @if($order->order_source === 'manual' && preg_match('/^counter\s+sale$/i', $area)) @php($area = '') @endif
+                        @php($areaCity = collect([$area, $order->city])->filter()->implode(', '))
                         @if($areaCity)<div>{{ $areaCity }}</div>@endif
                         @php($districtStatePin = collect([$order->district, $order->state])->filter()->implode(', '))
                         @if($order->pin_code)@php($districtStatePin = trim($districtStatePin . ', PIN: ' . $order->pin_code, ', '))@endif
@@ -85,9 +92,10 @@
                         @if($order->customer_phone)<div>PH: {{ $order->customer_phone }}</div>@endif
                     </section>
                     <section class="block from-block">
-                        <div class="caption">From ,</div>
-                        <div>@foreach($fromAddress as $senderLine){{ $senderLine }}@if(!$loop->last)<br>@endif @endforeach</div>
+                        <div class="caption">From:</div>
+                        <div class="sender-address">@foreach($fromAddress as $senderLine){{ $senderLine }}@if(!$loop->last)<br>@endif @endforeach</div>
                     </section>
+                    <div class="customer-id">Customer Id: {{ $customerId }}</div>
                 </div>
             </article>
         @endforeach

@@ -80,6 +80,13 @@ class AppServiceProvider extends ServiceProvider
             ]);
         }
 
+        if (! empty($settings['razorpay_webhook_secret'])) {
+            config([
+                'services.razorpay.webhook_secret' => Setting::decryptSecret($settings['razorpay_webhook_secret'])
+                    ?? config('services.razorpay.webhook_secret'),
+            ]);
+        }
+
         // Share layout data with views
         View::composer('layouts.app', function ($view) {
             $navCategories = Category::publicActive()->select(['id', 'name', 'slug'])->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();

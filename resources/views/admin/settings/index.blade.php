@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Master Settings - ' . $siteName . ' Admin')
 
@@ -99,10 +99,10 @@
                 <div class="col-md-6">
                     <label for="mail_password" class="form-label fw-bold">SMTP Password / App Password</label>
                     <div class="input-group">
-                        <input type="password" id="mail_password" name="mail_password" class="form-control rounded-start-3" autocomplete="new-password" placeholder="{{ $hasSavedMailPassword ? 'Saved securely — enter only to change' : 'Enter SMTP password' }}">
+                        <input type="password" id="mail_password" name="mail_password" class="form-control rounded-start-3" value="{{ old('mail_password', $mailPassword) }}" autocomplete="new-password" placeholder="Enter SMTP password">
                         <button type="button" class="btn btn-outline-secondary toggle-mail-password" title="Show or hide password"><i class="fa-solid fa-eye"></i></button>
                     </div>
-                    <div class="form-text">{{ $hasSavedMailPassword ? 'A password is already saved and encrypted. Leave blank to keep it.' : 'The current environment password remains active if this is left blank.' }}</div>
+                    <div class="form-text">{{ $hasSavedMailPassword ? 'The saved SMTP password is shown above (hidden). Use the eye button to view it.' : 'The current environment password remains active if this is left blank.' }}</div>
                 </div>
                 <div class="col-md-4">
                     <label for="mail_encryption" class="form-label fw-bold">Encryption</label>
@@ -154,11 +154,20 @@
                 <div class="col-md-6">
                     <label for="razorpay_secret" class="form-label fw-bold">Razorpay Secret Key</label>
                     <div class="input-group">
-                        <input type="password" id="razorpay_secret" name="razorpay_secret" class="form-control rounded-start-3" autocomplete="new-password" placeholder="{{ $hasSavedRazorpaySecret ? 'Saved securely — enter only to change' : 'Enter Razorpay Secret Key' }}">
+                        <input type="password" id="razorpay_secret" name="razorpay_secret" class="form-control rounded-start-3" autocomplete="new-password" placeholder="{{ $hasSavedRazorpaySecret ? 'Saved securely â€” enter only to change' : 'Enter Razorpay Secret Key' }}">
                         <button type="button" class="btn btn-outline-secondary toggle-razorpay-secret" title="Show or hide secret"><i class="fa-solid fa-eye"></i></button>
                     </div>
                     <div class="form-text">{{ $hasSavedRazorpaySecret ? 'A secret is already encrypted and saved. Leave blank to keep it.' : 'If left blank, the current environment secret remains active until one is saved.' }}</div>
                 </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="razorpay_webhook_secret" class="form-label fw-bold">Razorpay Webhook Secret</label>
+                <div class="input-group">
+                    <input type="password" id="razorpay_webhook_secret" name="razorpay_webhook_secret" class="form-control rounded-start-3 @error('razorpay_webhook_secret') is-invalid @enderror" value="{{ old('razorpay_webhook_secret', $razorpayWebhookSecret) }}" autocomplete="new-password" placeholder="Enter the secret configured in Razorpay Webhooks">
+                    <button type="button" class="btn btn-outline-secondary toggle-razorpay-webhook-secret" title="Show or hide secret"><i class="fa-solid fa-eye"></i></button>
+                </div>
+                <div class="form-text">{{ $hasSavedRazorpayWebhookSecret ? 'The saved webhook secret is shown above (hidden). Use the eye button to view it. This is different from the API Secret.' : 'Enter the same secret configured in the Razorpay Dashboard. This is different from the API Secret.' }}</div>
             </div>
 
             <hr class="my-4">
@@ -212,7 +221,7 @@
                 <div class="col-md-12">
                     <label for="gemini_api_key" class="form-label fw-bold">Google Gemini API Key</label>
                     <div class="input-group">
-                        <input type="password" id="gemini_api_key" name="gemini_api_key" class="form-control rounded-start-3 @error('gemini_api_key') is-invalid @enderror" autocomplete="new-password" placeholder="{{ $hasSavedGeminiKey ? 'Saved securely — enter only to change' : 'AIzaSy... or AQ...' }}">
+                        <input type="password" id="gemini_api_key" name="gemini_api_key" class="form-control rounded-start-3 @error('gemini_api_key') is-invalid @enderror" autocomplete="new-password" placeholder="{{ $hasSavedGeminiKey ? 'Saved securely â€” enter only to change' : 'AIzaSy... or AQ...' }}">
                         <button type="button" class="btn btn-outline-secondary toggle-gemini-key" title="Show or hide Gemini Key"><i class="fa-solid fa-eye"></i></button>
                     </div>
                     <div class="form-text">{{ $hasSavedGeminiKey ? 'A Gemini API key is currently saved and encrypted. Leave blank to keep it.' : 'Enter your Google AI Studio API key (starts with AQ... or AIza...).' }}</div>
@@ -251,6 +260,14 @@
 
     document.querySelector('.toggle-razorpay-secret')?.addEventListener('click', function () {
         const input = document.getElementById('razorpay_secret');
+        const icon = this.querySelector('i');
+        input.type = input.type === 'password' ? 'text' : 'password';
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
+
+    document.querySelector('.toggle-razorpay-webhook-secret')?.addEventListener('click', function () {
+        const input = document.getElementById('razorpay_webhook_secret');
         const icon = this.querySelector('i');
         input.type = input.type === 'password' ? 'text' : 'password';
         icon.classList.toggle('fa-eye');

@@ -28,9 +28,13 @@ class SettingController extends Controller
             'mailEncryption' => $settings['mail_encryption'] ?? $this->defaultEncryption(),
             'mailFromAddress' => $settings['mail_from_address'] ?? config('mail.from.address'),
             'mailFromName' => $settings['mail_from_name'] ?? config('mail.from.name', config('app.name')),
-            'hasSavedMailPassword' => ! empty($settings['mail_password']),
+            'hasSavedMailPassword' => ! empty($settings['mail_password']) || ! empty(config('mail.mailers.smtp.password')),
+            'mailPassword' => Setting::decryptSecret($settings['mail_password'] ?? null)
+                ?? config('mail.mailers.smtp.password', ''),
             'razorpayKey' => $settings['razorpay_key'] ?? config('services.razorpay.key'),
             'hasSavedRazorpaySecret' => ! empty($settings['razorpay_secret']),
+            'hasSavedRazorpayWebhookSecret' => ! empty($settings['razorpay_webhook_secret']),
+            'razorpayWebhookSecret' => Setting::decryptSecret($settings['razorpay_webhook_secret'] ?? null) ?? '',
             'geminiApiKey' => Setting::decryptSecret($settings['gemini_api_key'] ?? null) ?? config('services.gemini.api_key', ''),
             'hasSavedGeminiKey' => ! empty($settings['gemini_api_key']),
         ]);
@@ -55,6 +59,7 @@ class SettingController extends Controller
             'mail_from_name' => ['required', 'string', 'max:255'],
             'razorpay_key' => ['required', 'string', 'max:255', 'regex:/^rzp_(test|live)_[A-Za-z0-9]+$/'],
             'razorpay_secret' => ['nullable', 'string', 'max:1000'],
+            'razorpay_webhook_secret' => ['nullable', 'string', 'max:1000'],
             'gemini_api_key' => ['nullable', 'string', 'max:1000'],
             'razorpay_fee_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'razorpay_gst_percent' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -96,6 +101,10 @@ class SettingController extends Controller
 
         if (! empty($validated['razorpay_secret'])) {
             Setting::set('razorpay_secret', Crypt::encryptString($validated['razorpay_secret']), 'payment');
+        }
+
+        if (! empty($validated['razorpay_webhook_secret'])) {
+            Setting::set('razorpay_webhook_secret', Crypt::encryptString($validated['razorpay_webhook_secret']), 'payment');
         }
 
         if (! empty($validated['gemini_api_key'])) {

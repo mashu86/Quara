@@ -356,9 +356,10 @@ class ProductController extends Controller
 
             foreach ($validated['sizes'] as $index => $sizeName) {
                 $stockQty = max(0, (int) ($validated['stocks'][$index] ?? 0));
+                $sizeLabel = trim((string) ($sizeName ?? ''));
                 $pSize = ProductSize::create([
                     'product_id' => $product->id,
-                    'size' => trim($sizeName ?? ''),
+                    'size' => $sizeLabel !== '' ? $sizeLabel : 'Free Size',
                     'stock' => $stockQty,
                     'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
                     'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
@@ -566,9 +567,7 @@ class ProductController extends Controller
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
 
-            // Update existing size names, stock & measurements
-            // Read the validated form field directly so an intentionally blank label
-            // remains distinguishable from an omitted existing-size row.
+            // Update existing size names, stock & measurements.
             $existingSizes = $request->input('existing_sizes', []);
             $clearSizeLabelIds = array_map(
                 'intval',
@@ -577,7 +576,7 @@ class ProductController extends Controller
             if ($clearSizeLabelIds !== []) {
                 ProductSize::where('product_id', $product->id)
                     ->whereIn('id', $clearSizeLabelIds)
-                    ->update(['size' => '']);
+                    ->update(['size' => 'Free Size']);
             }
             $existingStocks = $validated['existing_stocks'] ?? [];
             $existingChests = $request->input('existing_chests', []);
@@ -601,9 +600,12 @@ class ProductController extends Controller
                 $updateData = [];
 
                 if (in_array((int) $sizeId, $clearSizeLabelIds, true)) {
-                    $updateData['size'] = '';
+                    $updateData['size'] = 'Free Size';
                 } elseif (array_key_exists($sizeId, $existingSizes)) {
                     $newSizeName = trim((string) ($existingSizes[$sizeId] ?? ''));
+                    if ($newSizeName === '') {
+                        $newSizeName = 'Free Size';
+                    }
                     if ($pSize->size !== $newSizeName) {
                         $updateData['size'] = $newSizeName;
                     }
@@ -659,9 +661,10 @@ class ProductController extends Controller
 
             foreach ($newSizes as $i => $nSize) {
                 $nStock = max(0, (int) ($newStocks[$i] ?? 0));
+                $newSizeLabel = trim((string) ($nSize ?? ''));
                 $pSize = ProductSize::create([
                     'product_id' => $product->id,
-                    'size' => trim($nSize ?? ''),
+                    'size' => $newSizeLabel !== '' ? $newSizeLabel : 'Free Size',
                     'stock' => $nStock,
                     'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
                     'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
@@ -746,11 +749,11 @@ class ProductController extends Controller
 
         ProductSize::where('product_id', $product->id)
             ->whereKey($size->id)
-            ->update(['size' => '']);
+            ->update(['size' => 'Free Size']);
         session()->forget('_old_input.existing_sizes.' . $size->id);
         session()->forget('_old_input.clear_size_labels.' . $size->id);
 
-        return response()->json(['success' => true, 'size_id' => $size->id, 'label' => '']);
+        return response()->json(['success' => true, 'size_id' => $size->id, 'label' => 'Free Size']);
     }
 
     public function setPrimaryImage(ProductImage $image)

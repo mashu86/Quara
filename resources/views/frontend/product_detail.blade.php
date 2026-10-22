@@ -439,6 +439,23 @@
             grid-template-columns: 1fr;
         }
     }
+
+    @media (min-width: 768px) {
+        #sizeButtonGroup .product-size-option {
+            border: 1px solid #d4af37 !important;
+            border-radius: 0.65rem !important;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+
+        #sizeButtonGroup .btn-check:checked + .product-size-option {
+            border-color: #a77b12 !important;
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        #sizeButtonGroup .product-size-option:not(.qw-size-btn-option) {
+            border-color: #d7d7d7 !important;
+        }
+    }
 </style>
 @endsection
 
@@ -594,12 +611,15 @@
                                         @endif
                                     </div>
                                     @php
-                                        $sizeMeasurementParts = $isDownGarment
-                                            ? array_filter([$pSize->hip ? 'Hip: '.$pSize->hip.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null])
-                                            : array_filter([$pSize->chest ? 'Chest: '.$pSize->chest.'"' : null, $pSize->waist ? 'Waist: '.$pSize->waist.'"' : null, $pSize->length ? 'Length: '.$pSize->length.'"' : null]);
+                                        $sizeMeasurementParts = array_filter([
+                                            $pSize->chest ? 'Chest: '.$pSize->chest.'"' : null,
+                                            $pSize->waist ? 'Waist: '.$pSize->waist.'"' : null,
+                                            $pSize->hip ? 'Hip: '.$pSize->hip.'"' : null,
+                                            $pSize->length ? 'Length: '.$pSize->length.'"' : null,
+                                        ]);
                                     @endphp
                                     @if(count($sizeMeasurementParts))
-                                        <div class="small mt-1 text-secondary" style="font-size:0.68rem;">{{ implode(' · ', $sizeMeasurementParts) }}</div>
+                                        <div class="small mt-1 text-secondary" style="font-size:0.65rem;">({{ implode(', ', $sizeMeasurementParts) }})</div>
                                     @endif
                                 </label>
                             @empty

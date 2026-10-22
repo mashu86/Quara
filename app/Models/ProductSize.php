@@ -11,6 +11,14 @@ class ProductSize extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $productSize) {
+            $size = trim((string) $productSize->size);
+            $productSize->size = $size !== '' ? $size : 'Free Size';
+        });
+    }
+
     protected $fillable = [
         'product_id',
         'size',

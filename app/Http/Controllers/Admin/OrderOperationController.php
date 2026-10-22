@@ -136,6 +136,7 @@ class OrderOperationController extends Controller
         $validated = $request->validate([
             'order_item_id' => 'required|exists:order_items,id',
             'operation_type' => 'nullable|string|in:order_cancelled,product_returned,product_exchange',
+            'quantity' => 'nullable|integer|min:1',
             'inventory_condition' => 'required|in:return_to_stock,do_not_restock',
             'return_date' => 'nullable|date',
             'refund_option' => 'required|in:no_refund,refund',
@@ -145,7 +146,7 @@ class OrderOperationController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $order, $request) {
-            $orderItem = OrderItem::findOrFail($validated['order_item_id']);
+            $orderItem = OrderItem::where('order_id', $order->id)->lockForUpdate()->findOrFail($validated['order_item_id']);
             
             // Enforce single adjustment rule: prevent re-adjusting an item that is already returned/exchanged/adjusted
             $hasActiveOp = OrderOperation::where('order_id', $order->id)
@@ -153,12 +154,18 @@ class OrderOperationController extends Controller
                 ->where('status', 'active')
                 ->exists();
 
-            if ($orderItem->item_status === 'returned' || $orderItem->item_status === 'exchanged' || $orderItem->item_status === 'cancelled' || $hasActiveOp) {
+            if (in_array($orderItem->item_status, ['exchanged', 'cancelled'], true) || ($hasActiveOp && $orderItem->item_status !== 'partially_returned')) {
                 throw new Exception("This product ({$orderItem->product_name}) has already been adjusted/returned and cannot be adjusted again.");
             }
 
             $productId = $orderItem->product_id;
-            $qtyToAdjust = (int) $orderItem->quantity;
+            $returnedBefore = (int) OrderOperation::where('order_item_id', $orderItem->id)
+                ->where('status', 'active')->where('operation_type', 'product_returned')->sum('quantity');
+            $remainingToReturn = max(0, (int) $orderItem->quantity - $returnedBefore);
+            $qtyToAdjust = (int) ($validated['quantity'] ?? $remainingToReturn);
+            if ($remainingToReturn < 1 || $qtyToAdjust > $remainingToReturn) {
+                throw new Exception("Only {$remainingToReturn} unit(s) remain eligible for return.");
+            }
 
             $actionType = $validated['operation_type'] ?? 'product_returned';
             $invCondition = $validated['inventory_condition'];
@@ -173,14 +180,14 @@ class OrderOperationController extends Controller
                 : null;
 
             // 1. Update OrderItem Status & Fields
-            $newItemStatus = 'returned';
+            $newItemStatus = ($returnedBefore + $qtyToAdjust) >= (int) $orderItem->quantity ? 'returned' : 'partially_returned';
 
             $orderItem->update([
                 'item_status' => $newItemStatus,
                 'inventory_condition' => $invCondition,
                 'return_date' => $returnDate,
-                'refund_date' => $refundDate,
-                'refund_amount' => $refundAmount,
+                'refund_date' => $refundDate ?? $orderItem->refund_date,
+                'refund_amount' => (float) $orderItem->refund_amount + $refundAmount,
             ]);
 
             // 2. Handle Inventory Condition for Original Product

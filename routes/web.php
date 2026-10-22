@@ -178,6 +178,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('products-booked-conflicts', [AdminProductController::class, 'bookedConflicts'])->name('products.booked-conflicts');
         Route::post('products/{product}/resolve-conflict', [AdminProductController::class, 'resolveConflict'])->name('products.resolve-conflict');
         Route::post('products/{product}/toggle-out-of-stock', [AdminProductController::class, 'toggleOutOfStock'])->name('products.toggle-out-of-stock');
+        Route::post('products/{product}/bookings', [\App\Http\Controllers\Admin\ProductBookingController::class, 'store'])->name('products.bookings.store');
+        Route::get('product-bookings', [\App\Http\Controllers\Admin\ProductBookingController::class, 'index'])->name('products.bookings.index');
+        Route::post('product-bookings/{booking}/release', [\App\Http\Controllers\Admin\ProductBookingController::class, 'release'])->name('products.bookings.release');
         Route::post('products/{product}/toggle-status', [AdminProductController::class, 'toggleStatus'])->name('products.toggle-status');
         Route::post('products/{product}/add-stock-batch', [AdminProductController::class, 'addStockBatch'])->name('products.add-stock-batch');
         Route::post('product-images/{image}/set-primary', [AdminProductController::class, 'setPrimaryImage'])->name('product-images.set-primary');

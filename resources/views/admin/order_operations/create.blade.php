@@ -147,6 +147,8 @@
                             $imgUrl = $prod ? $prod->primary_image_url : \App\Models\Setting::logoUrl();
                             $statusClass = 'status-' . ($item->item_status ?? 'active');
                             $itemOps = $order->operations->where('order_item_id', $item->id);
+                            $returnedQty = (int) $itemOps->where('status', 'active')->where('operation_type', 'product_returned')->sum('quantity');
+                            $returnableQty = max(0, (int) $item->quantity - $returnedQty);
                         @endphp
                         <div class="card border rounded-3 p-2.5 p-sm-3 bg-white shadow-sm item-adj-card {{ $statusClass }}">
                             <div class="d-flex align-items-start gap-2.5 gap-sm-3">
@@ -165,6 +167,7 @@
                                             'product_name' => $item->product_name,
                                             'size' => $item->size,
                                             'quantity' => (int) $item->quantity,
+                                            'returnable_quantity' => $returnableQty,
                                             'unit_price' => (float) $item->unit_price,
                                             'subtotal' => (float) $item->subtotal,
                                             'item_status' => $item->item_status,
@@ -223,6 +226,9 @@
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                         <span class="edit-adjustment-text d-none d-lg-inline">Edit Adjustment</span>
                                                     </button>
+                                                    @if($returnableQty > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill fw-bold" data-item-b64="{{ $itemB64 }}" onclick="triggerOpenItemAdjustment(this)" title="Record another partial return">Return Remaining ({{ $returnableQty }})</button>
+                                                    @endif
                                                 @else
                                                     <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1.5 ms-1" style="font-size: 0.68rem;" title="This adjustment cannot be edited here.">
                                                         <i class="fa-solid fa-lock me-1 text-warning"></i> Locked
@@ -251,6 +257,8 @@
                                     <div class="mt-2.5 pt-1.5 border-top border-light-subtle d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.68rem;">
                                         @if(($item->item_status ?? 'active') === 'cancelled')
                                             <span class="badge bg-danger px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-ban me-1"></i> Order Cancelled</span>
+                                        @elseif(($item->item_status ?? 'active') === 'partially_returned')
+                                            <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-rotate-left me-1"></i> Partially Returned ({{ $returnedQty }}/{{ $item->quantity }})</span>
                                         @elseif(($item->item_status ?? 'active') === 'returned')
                                             <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-rotate-left me-1"></i> Product Returned</span>
                                         @elseif(($item->item_status ?? 'active') === 'exchanged')
@@ -259,7 +267,9 @@
                                             <span class="badge bg-success px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-check me-1"></i> Active / Normal</span>
                                         @endif
 
-                                        @if($item->inventory_condition === 'return_to_stock')
+                                        @if(($item->item_status ?? '') === 'partially_returned')
+                                            <span class="badge {{ $item->inventory_condition === 'return_to_stock' ? 'bg-success' : 'bg-secondary' }} px-2 py-1" style="font-size: 0.68rem;">Recent return: {{ str_replace('_', ' ', $item->inventory_condition) }}</span>
+                                        @elseif($item->inventory_condition === 'return_to_stock')
                                             <span class="badge bg-success px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-box-archive me-1"></i> Restocked (+{{ $item->quantity }})</span>
                                         @elseif($item->inventory_condition === 'do_not_restock')
                                             <span class="badge bg-secondary px-2 py-1" style="font-size: 0.68rem;"><i class="fa-solid fa-snowflake me-1"></i> Frozen / Not Restocked</span>
@@ -394,6 +404,12 @@
                         <select name="operation_type" id="modal_operation_type" class="form-select rounded-3" required onchange="onModalActionChange()">
                             <option value="product_returned" selected>Product Returned</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Return quantity <span class="text-danger">*</span></label>
+                        <input type="number" name="quantity" id="modal_return_quantity" class="form-control rounded-3" min="1" value="1" required>
+                        <div class="form-text small text-muted" id="modal_return_quantity_help">Select how many pieces are being returned.</div>
                     </div>
 
                     <div class="mb-3">
@@ -841,6 +857,11 @@
         document.getElementById('modal_order_item_id').value = itemData.id;
         document.getElementById('modal_product_name').textContent = itemData.product_name;
         document.getElementById('modal_product_details').textContent = `Size: ${itemData.size} | Qty: ${itemData.quantity} pcs | Price: ₹${parseFloat(itemData.unit_price).toFixed(2)}`;
+        const returnQty = document.getElementById('modal_return_quantity');
+        const maxReturnable = parseInt(itemData.returnable_quantity ?? itemData.quantity, 10) || 0;
+        returnQty.max = maxReturnable;
+        returnQty.value = maxReturnable;
+        document.getElementById('modal_return_quantity_help').textContent = `${maxReturnable} piece(s) can still be returned.`;
         
         const imgUrl = (itemData.product && itemData.product.primary_image_url) ? itemData.product.primary_image_url : '{{ \App\Models\Setting::logoUrl() }}';
         document.getElementById('modal_product_img').src = imgUrl;

@@ -68,7 +68,7 @@ class ManualSalesController extends Controller
     public function create()
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])->with('productSize')])->get();
         $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
         return view('admin.manual_sales.create', compact('products', 'categories', 'geminiApiKeys'));
     }
@@ -102,6 +102,7 @@ class ManualSalesController extends Controller
             
             'items' => 'required|array|min:1',
             'items.*.product_size_id' => 'required|exists:product_sizes,id',
+            'items.*.product_booking_id' => 'nullable|integer|exists:product_bookings,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
 
@@ -125,8 +126,9 @@ class ManualSalesController extends Controller
 
         foreach ($qtyPerSize as $szId => $reqQty) {
             $pSize = ProductSize::with('product')->findOrFail($szId);
-            if ($pSize->stock < $reqQty) {
-                return back()->withInput()->with('error', "Insufficient stock for {$pSize->product->name} (Size {$pSize->size}). Requested: {$reqQty} pcs, Available: {$pSize->stock} pcs.");
+            $regularQty = collect($validated['items'])->filter(fn ($row) => (int) $row['product_size_id'] === (int) $szId && empty($row['product_booking_id']))->sum('quantity');
+            if ($regularQty > $pSize->available_stock) {
+                return back()->withInput()->with('error', "Insufficient unbooked stock for {$pSize->product->name} (Size {$pSize->size}). Requested: {$regularQty} pcs, Available: {$pSize->available_stock} pcs.");
             }
         }
 
@@ -147,6 +149,7 @@ class ManualSalesController extends Controller
                 'unit_price' => $unitPrice,
                 'quantity' => $qty,
                 'subtotal' => $itemSubtotal,
+                'bookingId' => $item['product_booking_id'] ?? null,
             ];
             $affectedProducts[$product->id] = $product;
         }
@@ -226,12 +229,23 @@ class ManualSalesController extends Controller
             ]);
 
             foreach ($orderItemsData as $it) {
+                $lockedSize = ProductSize::whereKey($it['productSize']->id)->lockForUpdate()->firstOrFail();
+                $booking = null;
+                if ($it['bookingId']) {
+                    $booking = \App\Models\ProductBooking::whereKey($it['bookingId'])->lockForUpdate()->firstOrFail();
+                    if ((int) $booking->product_id !== (int) $it['product']->id || (int) $booking->product_size_id !== (int) $lockedSize->id || !in_array($booking->status, ['active', 'partially_sold'], true) || $booking->remaining_quantity < $it['quantity']) {
+                        throw new \Exception('The selected booking no longer has that size/quantity available. Refresh and try again.');
+                    }
+                } elseif ($lockedSize->availableStockForOrder() < $it['quantity']) {
+                    throw new \Exception("Insufficient unbooked stock for {$it['product']->name} (Size {$it['productSize']->size}).");
+                }
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $it['product']->id,
-                    'product_size_id' => $it['productSize']->id,
+                    'product_size_id' => $lockedSize->id,
+                    'product_booking_id' => $booking?->id,
                     'product_name' => $it['product']->name,
-                    'size' => $it['productSize']->size,
+                    'size' => $lockedSize->size,
                     'unit_price' => $it['unit_price'],
                     'discount_amount' => 0.00,
                     'final_unit_price' => $it['unit_price'],
@@ -239,23 +253,28 @@ class ManualSalesController extends Controller
                     'subtotal' => $it['subtotal'],
                 ]);
 
-                $this->stockService->deductStock(
-                    $it['productSize']->id,
-                    $it['quantity'],
-                    'Manual Offline Sale (' . $orderNumber . ')',
-                    auth()->user()->name
-                );
+                if ($booking) {
+                    $prev = (int) $lockedSize->stock;
+                    $lockedSize->update(['stock' => $prev - $it['quantity']]);
+                    \App\Models\StockMovement::create([
+                        'product_id' => $it['product']->id, 'product_size_id' => $lockedSize->id,
+                        'size' => $lockedSize->size, 'previous_stock' => $prev,
+                        'new_stock' => $prev - $it['quantity'], 'difference' => -$it['quantity'],
+                        'reason' => 'Booked stock sold offline (' . $orderNumber . ')', 'admin_name' => auth()->user()->name,
+                    ]);
+                    $sold = $booking->sold_quantity + $it['quantity'];
+                    $booking->update(['sold_quantity' => $sold, 'status' => $sold >= $booking->quantity ? 'sold' : 'partially_sold']);
+                } else {
+                    $this->stockService->deductStock($lockedSize->id, $it['quantity'], 'Manual Offline Sale (' . $orderNumber . ')', auth()->user()->name);
+                }
             }
 
-            // Unblock reserved/out_of_stock status for all products involved in this sale
+            // Keep the old product-level booking behavior for legacy sales; size bookings above are separate.
             $productIdsToUnbook = array_keys($affectedProducts);
-            if (!empty($productIdsToUnbook)) {
-                \App\Models\Product::whereIn('id', $productIdsToUnbook)->update([
-                    'is_out_of_stock' => false,
-                    'booked_by' => null,
-                    'booking_type' => null,
-                    'booking_date' => null,
-                ]);
+            if ($productIdsToUnbook) {
+                \App\Models\Product::whereIn('id', $productIdsToUnbook)
+                    ->where('is_out_of_stock', true)
+                    ->update(['is_out_of_stock' => false, 'booked_by' => null, 'booking_type' => null, 'booking_date' => null]);
             }
         });
 
@@ -268,9 +287,13 @@ class ManualSalesController extends Controller
             return redirect()->route('admin.manual-sales.index')->with('error', 'Only manual offline sales can be edited here.');
         }
 
+        if ($order->items()->whereNotNull('product_booking_id')->exists()) {
+            return redirect()->route('admin.manual-sales.index')->with('error', 'This sale used reserved booking stock. Use the order adjustment flow to record a return so the booking inventory stays accurate.');
+        }
+
         $order->load(['items.product', 'items.productSize']);
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images'])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])])->get();
         $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
 
         return view('admin.manual_sales.edit', compact('order', 'products', 'categories', 'geminiApiKeys'));
@@ -280,6 +303,10 @@ class ManualSalesController extends Controller
     {
         if ($order->order_source !== 'manual') {
             return redirect()->route('admin.manual-sales.index')->with('error', 'Only manual offline sales can be edited here.');
+        }
+
+        if ($order->items()->whereNotNull('product_booking_id')->exists()) {
+            return redirect()->route('admin.manual-sales.index')->with('error', 'This sale used reserved booking stock. It cannot be edited here because its booking history must remain intact.');
         }
 
         if (!$request->has('items') && $request->filled('product_size_id')) {
@@ -357,8 +384,8 @@ class ManualSalesController extends Controller
 
                 foreach ($qtyPerSize as $szId => $reqQty) {
                     $pSize = ProductSize::with('product')->findOrFail($szId);
-                    if ($pSize->stock < $reqQty) {
-                        throw new \Exception("Insufficient stock for {$pSize->product->name} (Size {$pSize->size}). Required: {$reqQty} pcs, Available: {$pSize->stock} pcs.");
+                    if ($pSize->available_stock < $reqQty) {
+                        throw new \Exception("Insufficient unbooked stock for {$pSize->product->name} (Size {$pSize->size}). Required: {$reqQty} pcs, Available: {$pSize->available_stock} pcs.");
                     }
                 }
 

@@ -40,7 +40,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'categories', 'sizes', 'images']);
+        $query = Product::with(['category', 'categories', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])]);
 
         if ($request->filled('search')) {
             $query->where('name', 'LIKE', '%' . $request->search . '%');

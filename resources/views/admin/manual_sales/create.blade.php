@@ -438,7 +438,8 @@
                 originalPrice: {{ (float) $prod->price }},
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
-                sizes: @json($prod->sizes),
+                sizes: @json($prod->sizes->map(fn($size) => [...$size->toArray(), 'available_stock' => max(0, (int) $size->stock - (int) $prod->bookings->where('product_size_id', $size->id)->sum(fn($booking) => $booking->remaining_quantity))])),
+                bookings: @json($prod->bookings->map(fn($booking) => ['id' => $booking->id, 'size_id' => $booking->product_size_id, 'remaining' => $booking->remaining_quantity, 'booked_by' => $booking->booked_by, 'booking_type' => $booking->booking_type])),
                 isOut: {{ $isOut ? 'true' : 'false' }},
                 bookedBy: @json($prod->booked_by),
                 physicalStock: {{ $physicalStock }}
@@ -502,6 +503,14 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small mb-1">Booked stock (optional)</label>
+                        <select name="items[${index}][product_booking_id]" class="form-select rounded-3 booking-select" onchange="onRowBookingChange(this)">
+                            <option value="">Regular unbooked stock</option>
+                        </select>
+                        <div class="form-text small text-muted">Choose a booking to sell its reserved size/quantity.</div>
                     </div>
 
                     <div class="col-md-6">
@@ -604,6 +613,7 @@
         cards.forEach(card => {
             const prodSelect = card.querySelector('.product-select');
             const sizeSelect = card.querySelector('.size-select');
+            const bookingSelect = card.querySelector('.booking-select');
             const qtyInput = card.querySelector('.qty-input');
             const stockNotice = card.querySelector('.stock-notice');
             const qtyNotice = card.querySelector('.qty-error-notice');
@@ -615,6 +625,7 @@
             if (!prod) return;
 
             const currentSelectedSizeId = parseInt(sizeSelect ? sizeSelect.value : 0);
+            const selectedBooking = prod.bookings.find(b => String(b.id) === String(bookingSelect?.value || ''));
 
             Array.from(sizeSelect.options).forEach(opt => {
                 if (!opt.value) return;
@@ -622,7 +633,16 @@
                 const szObj = prod.sizes.find(s => s.id === szId);
                 if (!szObj) return;
 
-                const actualStock = szObj.stock;
+                if (selectedBooking) {
+                    const isBookedSize = szId === parseInt(selectedBooking.size_id);
+                    opt.disabled = !isBookedSize;
+                    opt.innerText = isBookedSize
+                        ? `Size: ${szObj.size} (Booked stock: ${selectedBooking.remaining} pcs)`
+                        : `Size: ${szObj.size} (select a booking for its reserved size)`;
+                    return;
+                }
+
+                const actualStock = szObj.available_stock ?? szObj.stock;
                 const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, szId);
                 const effectiveStock = Math.max(0, actualStock - allocatedOther);
 
@@ -643,12 +663,12 @@
                 const szObj = prod.sizes.find(s => s.id === currentSelectedSizeId);
                 if (szObj) {
                     const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, currentSelectedSizeId);
-                    const remainingStock = Math.max(0, szObj.stock - allocatedOther);
+                    const remainingStock = selectedBooking ? selectedBooking.remaining : Math.max(0, (szObj.available_stock ?? szObj.stock) - allocatedOther);
 
                     if (allocatedOther > 0) {
                         stockNotice.innerText = `Available Stock: ${remainingStock} pcs (${allocatedOther} allocated in another row)`;
                     } else {
-                        stockNotice.innerText = `Available Stock: ${szObj.stock} pcs`;
+                        stockNotice.innerText = selectedBooking ? `Booked stock remaining: ${remainingStock} pcs` : `Available Stock: ${szObj.available_stock ?? szObj.stock} pcs`;
                     }
 
                     if (qtyInput) {
@@ -684,6 +704,7 @@
         const card = selectElem.closest('.product-item-card');
         const prodId = parseInt(selectElem.value);
         const sizeSelect = card.querySelector('.size-select');
+        const bookingSelect = card.querySelector('.booking-select');
         const priceInput = card.querySelector('.price-input');
         const displayInput = card.querySelector('.product-display-input');
         const displayContainer = card.querySelector('.product-display-container');
@@ -695,6 +716,8 @@
 
         const prod = productsData.find(p => p.id === prodId);
         if (!prod) {
+            bookingSelect.innerHTML = '<option value="">Regular unbooked stock</option>';
+            card.querySelector('.qty-input').removeAttribute('max');
             if (displayInput) displayInput.value = '';
             if (priceInput) priceInput.value = '';
             if (thumbContainer) thumbContainer.classList.add('d-none');
@@ -712,13 +735,19 @@
         }
         if (displayContainer) displayContainer.classList.remove('d-none-mobile-empty');
 
+        bookingSelect.innerHTML = '<option value="">Regular unbooked stock</option>' + prod.bookings.filter(b => b.remaining > 0).map(b => {
+            const size = prod.sizes.find(s => s.id === b.size_id);
+            return `<option value="${b.id}">${size?.size || 'Size'} — ${b.remaining} pcs${b.booked_by ? ` (${b.booked_by})` : ' (Business booking)'}</option>`;
+        }).join('');
+
         prod.sizes.forEach(sz => {
             const opt = document.createElement('option');
             opt.value = sz.id;
             opt.setAttribute('data-stock', sz.stock);
             opt.setAttribute('data-size', sz.size);
-            opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
-            if (sz.stock <= 0) {
+            const available = sz.available_stock ?? sz.stock;
+            opt.innerText = `Size: ${sz.size} (Unbooked: ${available} pcs)`;
+            if (available <= 0) {
                 opt.disabled = true;
                 opt.innerText += ' - OUT OF STOCK';
             }
@@ -741,6 +770,31 @@
     }
 
     function onRowSizeChange(sizeSelectElem) {
+        updateAllRowsStockNotices();
+    }
+
+    function onRowBookingChange(selectElem) {
+        const card = selectElem.closest('.product-item-card');
+        const prod = productsData.find(p => p.id === parseInt(card.querySelector('.product-select').value));
+        const booking = prod?.bookings.find(b => String(b.id) === String(selectElem.value));
+        const sizeSelect = card.querySelector('.size-select');
+        if (booking) {
+            sizeSelect.value = String(booking.size_id);
+            Array.from(sizeSelect.options).forEach(option => {
+                if (option.value) option.disabled = option.value !== String(booking.size_id);
+            });
+            const qty = card.querySelector('.qty-input');
+            qty.max = booking.remaining;
+            if (parseInt(qty.value || '1') > booking.remaining) qty.value = booking.remaining;
+        } else {
+            Array.from(sizeSelect.options).forEach(option => {
+                if (option.value) {
+                    const size = prod?.sizes.find(s => String(s.id) === option.value);
+                    option.disabled = !size || (size.available_stock ?? size.stock) <= 0;
+                }
+            });
+            card.querySelector('.qty-input').removeAttribute('max');
+        }
         updateAllRowsStockNotices();
     }
 

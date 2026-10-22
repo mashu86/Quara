@@ -438,7 +438,7 @@
                 originalPrice: {{ (float) $prod->price }},
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
-                sizes: @json($prod->sizes),
+                sizes: @json($prod->sizes->map(fn($size) => [...$size->toArray(), 'available_stock' => max(0, (int) $size->stock - (int) $prod->bookings->where('product_size_id', $size->id)->sum(fn($booking) => $booking->remaining_quantity))])),
                 isOut: {{ $isOut ? 'true' : 'false' }},
                 bookedBy: @json($prod->booked_by),
                 physicalStock: {{ $physicalStock }}
@@ -484,6 +484,7 @@
             prod.sizes.forEach(sz => {
                 const extraQty = existingItemQtyPerSize[sz.id] || 0;
                 sz.stock += extraQty;
+                sz.available_stock = (sz.available_stock ?? (sz.stock - extraQty)) + extraQty;
                 totalStock += sz.stock;
             });
         }
@@ -742,7 +743,7 @@
                 const szObj = prod.sizes.find(s => s.id === szId);
                 if (!szObj) return;
 
-                const actualStock = szObj.stock;
+                const actualStock = szObj.available_stock ?? szObj.stock;
                 const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, szId);
                 const effectiveStock = Math.max(0, actualStock - allocatedOther);
 
@@ -763,12 +764,12 @@
                 const szObj = prod.sizes.find(s => s.id === currentSelectedSizeId);
                 if (szObj) {
                     const allocatedOther = getAllocatedQtyForSizeInOtherRows(card, currentSelectedSizeId);
-                    const remainingStock = Math.max(0, szObj.stock - allocatedOther);
+                    const remainingStock = Math.max(0, (szObj.available_stock ?? szObj.stock) - allocatedOther);
 
                     if (allocatedOther > 0) {
                         if (stockNotice) stockNotice.innerText = `Available Stock: ${remainingStock} pcs (${allocatedOther} allocated in another row)`;
                     } else {
-                        if (stockNotice) stockNotice.innerText = `Available Stock: ${szObj.stock} pcs`;
+                        if (stockNotice) stockNotice.innerText = `Available Stock: ${szObj.available_stock ?? szObj.stock} pcs`;
                     }
 
                     if (qtyInput) {
@@ -971,15 +972,15 @@
         prod.sizes.forEach(sz => {
             const opt = document.createElement('option');
             opt.value = sz.id;
-            opt.setAttribute('data-stock', sz.stock);
+            opt.setAttribute('data-stock', sz.available_stock ?? sz.stock);
             opt.setAttribute('data-size', sz.size);
-            opt.innerText = `Size: ${sz.size} (Stock: ${sz.stock} pcs)`;
+            opt.innerText = `Size: ${sz.size} (Stock: ${sz.available_stock ?? sz.stock} pcs)`;
 
             if (targetSizeId && parseInt(targetSizeId) === sz.id) {
                 opt.selected = true;
             }
 
-            if (sz.stock <= 0 && !opt.selected) {
+            if ((sz.available_stock ?? sz.stock) <= 0 && !opt.selected) {
                 opt.disabled = true;
                 opt.innerText += ' - OUT OF STOCK';
             }

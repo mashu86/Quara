@@ -416,6 +416,9 @@
         </div>
     </div>
 </div>
+<div class="d-flex justify-content-end mb-3">
+    <a href="{{ route('admin.products.bookings.index') }}" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fa-solid fa-bookmark me-1"></i> Size Bookings</a>
+</div>
 <div class="text-center py-2">
     <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
         <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
@@ -438,6 +441,15 @@
             </div>
             <div class="modal-body p-3.5">
                 <p class="small text-muted mb-3">Marking <strong id="bookedModalProductName" class="text-dark">Product</strong> as Booked. Add the booking details below.</p>
+                <div class="mb-3">
+                    <label for="modalBookingSize" class="form-label fw-bold small">Size <span class="text-danger">*</span></label>
+                    <select id="modalBookingSize" class="form-select rounded-3" required></select>
+                </div>
+                <div class="mb-3">
+                    <label for="modalBookingQuantity" class="form-label fw-bold small">Quantity <span class="text-danger">*</span></label>
+                    <input type="number" id="modalBookingQuantity" class="form-control rounded-3" min="1" value="1" required>
+                    <div id="modalBookingStock" class="form-text">Available stock</div>
+                </div>
                 <div class="mb-3">
                     <label for="modalBookingType" class="form-label fw-bold small">Booked type <span class="text-danger">*</span></label>
                     <select id="modalBookingType" class="form-select rounded-3" required>
@@ -674,6 +686,16 @@ document.addEventListener('DOMContentLoaded', function() {
         bookingDateInput.value = toggle.dataset.bookingDate || localToday();
         syncBookingTypeFields();
         document.getElementById('bookedModalProductName').textContent = toggle.dataset.productName || 'Product';
+        const sizeSelect = document.getElementById('modalBookingSize');
+        const sizeRows = JSON.parse(toggle.dataset.sizes || '[]');
+        sizeSelect.innerHTML = '<option value="">Select size</option>' + sizeRows.map(row => `<option value="${row.id}" ${row.available < 1 ? 'disabled' : ''}>${row.size} (${row.available} available)</option>`).join('');
+        const quantityInput = document.getElementById('modalBookingQuantity');
+        quantityInput.value = '1';
+        sizeSelect.onchange = () => {
+            const selected = sizeRows.find(row => String(row.id) === sizeSelect.value);
+            quantityInput.max = selected?.available || 0;
+            document.getElementById('modalBookingStock').textContent = selected ? `${selected.available} unbooked unit(s) available` : 'Choose a size';
+        };
         document.getElementById('toggleBookedModalLabel').innerHTML = editingExisting
             ? '<i class="fa-solid fa-user-tag text-warning me-2"></i> Edit Booking Details'
             : '<i class="fa-solid fa-user-tag text-warning me-2"></i> Mark Product as Booked';
@@ -877,7 +899,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentBookedToggle) return;
         const toggle = currentBookedToggle;
         const productId = toggle.getAttribute('data-product-id');
-        const url = toggle.getAttribute('data-url');
+        const url = editingExistingBooking ? toggle.getAttribute('data-url') : toggle.getAttribute('data-url').replace(/\/toggle-out-of-stock$/, '/bookings');
+        const productSizeId = document.getElementById('modalBookingSize').value;
+        const quantity = parseInt(document.getElementById('modalBookingQuantity').value || '0', 10);
         const bookedByVal = bookedByInput ? bookedByInput.value.trim() : '';
         const bookingType = bookingTypeInput.value;
         const bookingDate = bookingDateInput.value;
@@ -892,6 +916,7 @@ document.addEventListener('DOMContentLoaded', function() {
             bookingDateInput.focus();
             return;
         }
+        if (!editingExistingBooking && (!productSizeId || quantity < 1)) { alert('Select a size and valid quantity.'); return; }
 
         toggle.disabled = true;
         const saveBtn = document.getElementById('saveBookedModalBtn');
@@ -904,7 +929,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ is_out_of_stock: true, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate })
+            body: JSON.stringify(editingExistingBooking
+                ? { is_out_of_stock: true, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate }
+                : { product_size_id: productSizeId, quantity, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate })
         })
         .then(res => res.json())
         .then(data => {
@@ -912,6 +939,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (saveBtn) saveBtn.disabled = false;
 
             if (data.success) {
+                if (!editingExistingBooking) {
+                    if (bookedModalInstance) bookedModalInstance.hide();
+                    window.location.reload();
+                    return;
+                }
                 toggle.checked = true;
                 toggle.setAttribute('data-booked-by', data.booked_by || '');
                 toggle.dataset.bookingType = data.booking_type || '';

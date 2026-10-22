@@ -564,7 +564,7 @@
                             ? max(1, (int) $noSizeAvailableStock)
                             : 50;
                         $defaultSelectedSizeId = !$product->is_out_of_stock
-                            ? (int) ($selectableSizes->first(fn ($size) => $size->stock > 0)?->id ?? 0)
+                            ? (int) ($selectableSizes->first(fn ($size) => $size->available_stock > 0)?->id ?? 0)
                             : 0;
                     @endphp
 
@@ -585,7 +585,7 @@
                         <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
                             @forelse($selectableSizes as $pSize)
                                 @php
-                                    $effectiveStock = $product->is_out_of_stock ? 0 : $pSize->stock;
+                                    $effectiveStock = $product->is_out_of_stock ? 0 : $pSize->available_stock;
                                     $isAvailable = $effectiveStock > 0;
                                     $shouldCheck = $defaultSelectedSizeId === (int) $pSize->id;
                                 @endphp

@@ -102,6 +102,11 @@ class Product extends Model
         return $this->hasMany(ProductSize::class);
     }
 
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(ProductBooking::class);
+    }
+
     /** Rows with a blank size label may hold measurements only, not a selectable variant. */
     public function selectableSizes(): HasMany
     {

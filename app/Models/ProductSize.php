@@ -40,6 +40,11 @@ class ProductSize extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(ProductBooking::class);
+    }
+
     public function getAvailableStockAttribute(): int
     {
         return $this->availableStockForOrder();
@@ -63,6 +68,10 @@ class ProductSize extends Model
         }
         $held = $query->get(['order_items.quantity'])->sum('quantity');
 
-        return max(0, (int) $this->stock - (int) ($this->attributes['reserved_stock'] ?? 0) - $held);
+        $booked = ProductBooking::query()->where('product_size_id', $this->id)
+            ->whereIn('status', ['active', 'partially_sold'])
+            ->selectRaw('COALESCE(SUM(quantity - sold_quantity), 0) as remaining')->value('remaining');
+
+        return max(0, (int) $this->stock - (int) ($this->attributes['reserved_stock'] ?? 0) - $held - (int) $booked);
     }
 }

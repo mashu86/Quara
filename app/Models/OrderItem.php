@@ -14,6 +14,7 @@ class OrderItem extends Model
         'order_id',
         'product_id',
         'product_size_id',
+        'product_booking_id',
         'product_name',
         'size',
         'unit_price',
@@ -63,5 +64,21 @@ class OrderItem extends Model
     public function productSize(): BelongsTo
     {
         return $this->belongsTo(ProductSize::class);
+    }
+
+    public function productBooking(): BelongsTo
+    {
+        return $this->belongsTo(ProductBooking::class);
+    }
+
+    public function getReturnedQuantityAttribute(): int
+    {
+        return (int) $this->hasMany(OrderOperation::class, 'order_item_id')
+            ->where('status', 'active')->where('operation_type', 'product_returned')->sum('quantity');
+    }
+
+    public function getReturnableQuantityAttribute(): int
+    {
+        return max(0, (int) $this->quantity - $this->returned_quantity);
     }
 }

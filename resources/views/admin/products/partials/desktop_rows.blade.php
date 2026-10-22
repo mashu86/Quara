@@ -3,6 +3,16 @@
         $totalStock = $product->sizes->sum('stock');
         $imgSrc = $product->primary_image_url;
         $displayName = Str::limit($product->name, 22);
+        $sizeAvailabilityData = $product->sizes->map(function ($size) use ($product) {
+            $reserved = $product->bookings->where('product_size_id', $size->id)
+                ->sum(function ($booking) { return $booking->remaining_quantity; });
+
+            return [
+                'id' => $size->id,
+                'size' => $size->size,
+                'available' => max(0, (int) $size->stock - (int) $reserved),
+            ];
+        });
     @endphp
     <tr>
         <td class="prod-sticky-col text-center py-2 px-2">
@@ -50,8 +60,10 @@
         <td>
             <div class="d-flex flex-wrap gap-1" style="max-width: 180px;">
                 @foreach($product->sizes as $pSize)
-                    <span class="badge {{ $pSize->stock > 0 ? 'bg-dark' : 'bg-danger' }}" style="font-size: 0.68rem;" title="Size {{ $pSize->size }}">
+                    @php $reservedQty = (int) $product->bookings->where('product_size_id', $pSize->id)->sum(fn($booking) => $booking->remaining_quantity); @endphp
+                    <span class="badge {{ $pSize->stock > $reservedQty ? 'bg-dark' : ($reservedQty > 0 ? 'bg-warning text-dark' : 'bg-danger') }}" style="font-size: 0.68rem;" title="Size {{ $pSize->size }}; {{ $reservedQty }} reserved">
                         {{ $pSize->size }}: {{ $pSize->stock }}
+                        @if($reservedQty > 0)<span class="opacity-75">({{ $reservedQty }} booked)</span>@endif
                     </span>
                 @endforeach
             </div>
@@ -69,6 +81,7 @@
                        data-booking-type="{{ $product->booking_type }}"
                        data-booking-date="{{ $product->booking_date?->format('Y-m-d') }}"
                        data-total-stock="{{ $totalStock }}"
+                       data-sizes='@json($sizeAvailabilityData)'
                        data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
                        {{ $product->is_out_of_stock ? 'checked' : '' }}
                        {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'disabled' : '' }}

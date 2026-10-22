@@ -35,12 +35,12 @@
                                 <span class="input-group-text bg-light text-dark"><i class="fa-solid fa-at"></i></span>
                                 <input type="email" id="emailInput" class="form-control rounded-end-3" placeholder="name@example.com" required value="{{ session('customer_email') }}" style="font-size: 0.85rem;">
                             </div>
-                            <div class="form-text small" style="font-size: 0.72rem;">A 6-digit verification OTP will be sent to this email (valid for 60s).</div>
+                            <div class="form-text small" style="font-size: 0.72rem;">A 6-digit verification OTP will be sent to this email (valid for 5 minutes).</div>
                         </div>
 
                         <div class="d-grid gap-2 mt-3">
                             <button type="submit" id="sendEmailOtpBtn" class="btn btn-dark btn-sm rounded-pill py-2 fw-bold shadow-sm" style="font-size: 0.82rem;">
-                                <i class="fa-solid fa-paper-plane text-gold me-1"></i> SEND 6-DIGIT OTP (60s)
+                                <i class="fa-solid fa-paper-plane text-gold me-1"></i> SEND 6-DIGIT OTP
                             </button>
                             
                             <div class="text-center my-0">
@@ -56,11 +56,11 @@
 
                 <!-- Step 2: 6-Digit OTP Code Verification -->
                 <div id="emailOtpStep2" style="display: none;">
-                    <div class="text-center mb-3">
+                <div class="text-center mb-3">
                         <span class="badge bg-light text-dark border px-3 py-1-5 rounded-pill small mb-2" style="font-size: 0.75rem;">
                             OTP Sent to: <strong id="sentEmailDisplay">example@domain.com</strong>
                         </span>
-                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Enter the 6-digit OTP verification code sent to your inbox:</p>
+                    <p class="small text-muted mb-0" style="font-size: 0.78rem;">Enter the 6-digit OTP verification code sent to your inbox. It expires in 5 minutes.</p>
                     </div>
 
                     <form id="verifyEmailOtpForm" onsubmit="handleVerifyEmailOtp(event)">
@@ -68,7 +68,7 @@
                             <input type="text" id="emailOtpCodeInput" class="form-control text-center fw-bold font-monospace tracking-widest rounded-3 py-2" placeholder="------" maxlength="6" pattern="[0-9]{6}" required style="font-size: 1.25rem; letter-spacing: 0.4rem;">
                         </div>
 
-                        <!-- 60-Second Resend Countdown -->
+                        <!-- Resend cooldown -->
                         <div class="text-center mb-3">
                             <span id="timerContainer" class="small text-muted" style="font-size: 0.78rem;">
                                 <i class="fa-solid fa-clock text-warning me-1"></i> Resend OTP in: <strong id="resendCountdown" class="text-dark">60</strong>s
@@ -173,10 +173,7 @@
                 document.getElementById('emailOtpStep2').style.display = 'block';
 
                 if (successEl) {
-                    let msg = data.message || 'OTP Code sent successfully!';
-                    if (data.demo_otp) {
-                        msg += ' [Code: ' + data.demo_otp + ']';
-                    }
+                    const msg = data.message || 'OTP Code sent successfully!';
                     successEl.innerText = msg;
                     successEl.style.display = 'block';
                 }
@@ -198,7 +195,7 @@
         .finally(() => {
             if (sendBtn) {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-gold me-2"></i> SEND 6-DIGIT OTP (60s)';
+                sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-gold me-2"></i> SEND 6-DIGIT OTP';
             }
         });
     }

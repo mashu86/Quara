@@ -63,6 +63,87 @@
         font-size: 0.78rem;
     }
 
+    .mobile-product-card {
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        border-radius: 1rem;
+        box-shadow: 0 4px 14px rgba(28, 25, 20, 0.08);
+    }
+    .mobile-product-image-wrap {
+        position: relative;
+        aspect-ratio: 4 / 4.8;
+        overflow: hidden;
+        background: #f5f3ef;
+    }
+    .mobile-product-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .mobile-product-ribbon,
+    .mobile-product-offer {
+        position: absolute;
+        top: 0.5rem;
+        z-index: 1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .mobile-product-ribbon { left: 0.5rem; }
+    .mobile-product-offer { right: 0.5rem; }
+    .mobile-product-name {
+        min-height: 2.4em;
+        line-height: 1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .mobile-product-category {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .mobile-product-action {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 0.65rem;
+    }
+
+    @media (max-width: 767.98px) {
+        #products-mobile-grid { --bs-gutter-x: 0.45rem; --bs-gutter-y: 0.55rem; }
+        #products-mobile-grid > .col { display: flex; }
+        .mobile-product-card { width: 100%; border-radius: 0.7rem; box-shadow: 0 2px 8px rgba(28, 25, 20, 0.07); }
+        .mobile-product-image-wrap { height: clamp(92px, 29vw, 132px); aspect-ratio: auto; }
+        .mobile-product-image { object-fit: contain; padding: 0.2rem; }
+        .mobile-product-card .card-body { padding: 0.42rem !important; }
+        .mobile-product-name { min-height: 2.2em; font-size: 0.72rem; line-height: 1.1; margin-bottom: 0.25rem !important; }
+        .mobile-product-card .text-gold { font-size: 0.75rem; }
+        .mobile-product-card .small,
+        .mobile-product-card .badge { font-size: 0.56rem; }
+        .mobile-product-card .card-body > .d-flex.mb-2 { margin-bottom: 0.28rem !important; }
+        .mobile-product-card .card-body > .d-flex.flex-wrap { gap: 0.2rem !important; margin-bottom: 0.28rem !important; }
+        .mobile-product-category { max-width: 100%; padding: 0.2em 0.4em; }
+        .mobile-product-stock { margin-bottom: 0.28rem !important; }
+        .mobile-product-stock .mb-1 { margin-bottom: 0.15rem !important; }
+        .mobile-product-stock .gap-1 { gap: 0.18rem !important; }
+        .mobile-product-card .mobile-product-ribbon,
+        .mobile-product-card .mobile-product-offer { top: 0.3rem; font-size: 0.54rem; }
+        .mobile-product-ribbon { left: 0.3rem; }
+        .mobile-product-offer { right: 0.3rem; }
+        .mobile-product-action { width: 24px; height: 24px; font-size: 0.62rem; border-radius: 0.45rem; }
+        .mobile-product-card .border-top { padding-top: 0.28rem !important; }
+        .mobile-product-card .pt-2 { padding-top: 0.28rem !important; }
+        .mobile-product-card .gap-2 { gap: 0.3rem !important; }
+    }
+
+    @media (min-width: 992px) {
+        #products-mobile-grid { display: none !important; }
+    }
+
     @media (max-width: 767.98px) {
         .products-table {
             min-width: 680px !important;
@@ -297,8 +378,13 @@
     </div>
 </div>
 
-<!-- Products Table Container -->
-<div class="card border-0 rounded-4 shadow-sm overflow-hidden" id="products-table-card" style="max-width: 100%;">
+<!-- Mobile Product Cards -->
+<div class="row row-cols-2 g-2 d-lg-none mb-3" id="products-mobile-grid">
+    @include('admin.products.partials.mobile_cards', ['products' => $products])
+</div>
+
+<!-- Desktop Products Table -->
+<div class="card border-0 rounded-4 shadow-sm overflow-hidden d-none d-lg-block" id="products-table-card" style="max-width: 100%;">
     <div class="card-body p-0" style="max-width: 100%; overflow: hidden;">
         <div id="products-table-scroll-container" style="display: block; width: 100%; max-width: 100%; max-height: 75vh; overflow-x: auto; overflow-y: auto; -webkit-overflow-scrolling: touch;">
             <table class="table products-table align-middle mb-0">
@@ -329,14 +415,14 @@
             </table>
         </div>
     </div>
-    <div class="card-footer bg-white py-2 text-center border-top">
-        <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
-            <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
-            Loading more products...
-        </div>
-        <div id="infinite-scroll-end" class="{{ $products->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
-            <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $products->total() }} products loaded
-        </div>
+</div>
+<div class="text-center py-2">
+    <div id="infinite-scroll-loading" class="d-none text-muted small py-1">
+        <div class="spinner-border spinner-border-sm text-warning me-1" role="status"></div>
+        Loading more products...
+    </div>
+    <div id="infinite-scroll-end" class="{{ $products->hasMorePages() ? 'd-none' : '' }} text-muted small py-1">
+        <i class="fa-solid fa-circle-check text-success me-1"></i> All {{ $products->total() }} products loaded
     </div>
 </div>
 
@@ -643,7 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let isNearBottom = false;
 
-        if (desktopContainer) {
+        if (window.matchMedia('(min-width: 992px)').matches && desktopContainer) {
             const scrollBottom = desktopContainer.scrollTop + desktopContainer.clientHeight;
             const scrollHeight = desktopContainer.scrollHeight;
             isNearBottom = (scrollHeight - scrollBottom) < 150;
@@ -676,13 +762,18 @@ document.addEventListener('DOMContentLoaded', function() {
             isLoading = false;
             if (loadingSpinner) loadingSpinner.classList.add('d-none');
 
-            if (data.desktop_html) {
+            if (data.desktop_html || data.mobile_html) {
                 currentPage++;
                 hasMorePages = data.has_more;
 
                 const desktopTbody = document.getElementById('products-desktop-tbody');
                 if (desktopTbody) {
                     desktopTbody.insertAdjacentHTML('beforeend', data.desktop_html);
+                }
+
+                const mobileGrid = document.getElementById('products-mobile-grid');
+                if (mobileGrid && data.mobile_html) {
+                    mobileGrid.insertAdjacentHTML('beforeend', data.mobile_html);
                 }
 
                 initOutOfStockToggles();

@@ -12,24 +12,26 @@
                 <p class="text-muted">Enter your Order Number (e.g. QW-20260820-XXXXX) and mobile number below.</p>
             </div>
 
-            <!-- Lookup Form -->
-            <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
-                <form action="{{ route('order.tracking') }}" method="GET">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold">Order Number</label>
-                            <input type="text" name="order_number" class="form-control rounded-3" placeholder="QW-20260820-XXXXX" value="{{ request()->order_number }}" required>
+            @if(!$order)
+                <!-- Order lookup is only needed when this page is opened without a valid My Orders link. -->
+                <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
+                    <form action="{{ route('order.tracking') }}" method="GET">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Order Number</label>
+                                <input type="text" name="order_number" class="form-control rounded-3" placeholder="QW-20260820-XXXXX" value="{{ request()->order_number }}" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Mobile Phone Number</label>
+                                <input type="tel" name="phone" class="form-control rounded-3" placeholder="10-digit mobile" value="{{ request()->phone }}" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-qw-gold w-100 rounded-3">VIEW ORDER</button>
+                            </div>
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold">Mobile Phone Number</label>
-                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="10-digit mobile" value="{{ request()->phone }}" required>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-qw-gold w-100 rounded-3">TRACK</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+                    </form>
+                </div>
+            @endif
 
             @if(request()->filled('order_number') && !$order)
                 <div class="alert alert-danger text-center rounded-3 shadow-sm py-4">
@@ -49,6 +51,14 @@
                         <div class="mt-2 mt-sm-0 text-sm-end">
                             @if($order->order_status === 'cancelled')
                                 <span class="badge bg-danger fs-6 px-3 py-2 text-uppercase">Status: CANCELLED</span>
+                            @elseif(filled($trackingNumber))
+                                <span class="badge bg-success fs-6 px-3 py-2 text-uppercase">
+                                    <i class="fa-solid fa-truck-fast me-1"></i> Product Shipped
+                                </span>
+                            @elseif($order->order_status === 'packed')
+                                <span class="badge bg-warning text-dark fs-6 px-3 py-2 text-uppercase">
+                                    <i class="fa-solid fa-box-open me-1"></i> Packed · Ready to Ship
+                                </span>
                             @elseif(!$order->is_dispatched_to_courier)
                                 <span class="badge bg-warning text-dark fs-6 px-3 py-2 text-uppercase">
                                     <i class="fa-solid fa-box-open me-1"></i> Packing Process
@@ -61,84 +71,47 @@
                         </div>
                     </div>
 
-                    <!-- Courier Handover & Live Tracking Display -->
-                    @if($order->is_dispatched_to_courier)
-                        <div class="p-4 bg-light rounded-4 border border-success mb-4">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                                <h6 class="fw-bold mb-0 text-success"><i class="fa-solid fa-circle-check me-2"></i> Handed Over to Courier Office</h6>
-                                <span class="small text-muted">Dispatched Date: {{ \Carbon\Carbon::parse($order->dispatched_at)->format('M d, Y') }}</span>
-                            </div>
-                            <hr class="my-2">
-                            <div class="row g-3 align-items-center">
-                                <div class="col-sm-6">
-                                    <div class="small text-muted text-uppercase fw-bold">Courier Service Partner</div>
-                                    <div class="fw-bold text-dark fs-6">{{ $order->courier_partner ?: 'Express Courier' }}</div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="small text-muted text-uppercase fw-bold">Live Tracking Code / AWB</div>
-                                    <div class="font-monospace fw-bold text-dark fs-6">{{ $order->tracking_number ?: 'N/A' }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="p-3 bg-light rounded-3 border mb-4 text-center">
-                            <div class="fw-bold text-dark mb-1"><i class="fa-solid fa-boxes-packing text-warning me-2"></i> Status: Packing Process</div>
-                            <p class="mb-0 small text-muted">Your order is currently being quality checked, packed, and prepared for courier handover.</p>
-                        </div>
-                    @endif
-
                     @if($order->order_status !== 'cancelled')
                         <div class="p-3 p-md-4 rounded-4 border mb-4">
-                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-location-dot text-gold me-2"></i>Track on India Post</h6>
-                            <p class="small text-muted mb-3">For parcels sent through India Post, open Track 'N' Trace on their website to check the latest location and delivery updates.</p>
-                            @if(filled(trim((string) $order->tracking_number)))
-                                <label for="india-post-consignment" class="form-label small fw-bold">India Post Consignment Number</label>
-                                <div class="input-group mb-2">
-                                    <input id="india-post-consignment" type="text" class="form-control font-monospace" value="{{ trim($order->tracking_number) }}" readonly>
-                                    <button id="copy-india-post-consignment" type="button" class="btn btn-outline-dark">
-                                        <i class="fa-regular fa-copy me-1" aria-hidden="true"></i> Copy
-                                    </button>
+                            @if(filled($trackingNumber))
+                                <div class="alert alert-success mb-3" role="status">
+                                    <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>Your product has been shipped. Check your order status through India Post.
                                 </div>
-                                <p id="india-post-copy-status" class="small text-muted mb-3" role="status" aria-live="polite">Copy this number and paste it into India Post's Consignment Number field. Complete the verification shown there to view tracking.</p>
-                            @else
-                                <p class="small text-muted mb-3">Your consignment number has not been added yet. It will appear here after the shipment details are updated.</p>
-                            @endif
-                            <a href="https://www.indiapost.gov.in/" target="_blank" rel="noopener noreferrer" class="btn btn-qw-gold rounded-pill px-4">
-                                <i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i> Track on India Post
-                                <span class="visually-hidden">(opens in a new tab)</span>
-                            </a>
-                        </div>
-                    @endif
-
-                    <!-- Visual Timeline -->
-                    @php
-                        $statuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'delivered'];
-                        $currentIdx = array_search($order->order_status, $statuses);
-                        if ($currentIdx === false && $order->order_status === 'cancelled') {
-                            $currentIdx = -1;
-                        }
-                    @endphp
-
-                    @if($order->order_status === 'cancelled')
-                        <div class="alert alert-danger text-center fw-bold py-3 mb-4 rounded-3">
-                            <i class="fa-solid fa-ban me-2"></i> THIS ORDER HAS BEEN CANCELLED
-                        </div>
-                    @else
-                        <div class="position-relative my-4 py-3">
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $currentIdx >= 0 ? (($currentIdx + 1) / count($statuses)) * 100 : 0 }}%;"></div>
-                            </div>
-
-                            <div class="d-flex justify-content-between text-center position-relative mt-n3" style="margin-top: -24px;">
-                                @foreach($statuses as $idx => $st)
-                                    <div>
-                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center {{ $idx <= $currentIdx ? 'bg-gold text-white' : 'bg-light border text-muted' }}" style="width: 38px; height: 38px; font-size: 14px;">
-                                            <i class="fa-solid fa-{{ $idx <= $currentIdx ? 'check' : 'circle' }}"></i>
+                                <label for="india-post-consignment" class="form-label small fw-bold">India Post Tracking Number</label>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md">
+                                        <div class="input-group">
+                                            <input id="india-post-consignment" type="text" class="form-control font-monospace" value="{{ trim((string) $trackingNumber) }}" readonly>
+                                            <button id="copy-india-post-consignment" type="button" class="btn btn-outline-dark" aria-label="Copy tracking number" title="Copy tracking number">
+                                                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                                            </button>
                                         </div>
-                                        <div class="small fw-semibold mt-1 text-uppercase text-nowrap d-none d-sm-block" style="font-size: 0.7rem;">{{ $st }}</div>
                                     </div>
-                                @endforeach
-                            </div>
+                                    <div class="col-md-auto">
+                                        <a href="https://www.indiapost.gov.in/" target="_blank" rel="noopener noreferrer" class="btn btn-qw-gold rounded-pill px-4 w-100">
+                                            <i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i> Check Your Product Tracking
+                                            <span class="visually-hidden">(opens in a new tab)</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <p id="india-post-copy-status" class="small text-muted mt-2 mb-0" role="status" aria-live="polite">India Post opens in a new tab. Paste the copied number there to view tracking updates.</p>
+                            @else
+                                @if($trackingDetailsAvailable)
+                                    <div class="alert alert-warning mb-0" role="status">
+                                        <div class="fw-bold"><i class="fa-solid fa-boxes-packing me-2" aria-hidden="true"></i>Your product is being prepared for shipping.</div>
+                                        <p class="small mt-1 mb-3">The tracking number will be available soon and will appear here.</p>
+                                        <a href="https://www.indiapost.gov.in/" target="_blank" rel="noopener noreferrer" class="btn btn-qw-gold rounded-pill px-4">
+                                            <i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i> Check Your Product Tracking
+                                            <span class="visually-hidden">(opens in a new tab)</span>
+                                        </a>
+                                    </div>
+                                @else
+                                    <div class="alert alert-danger mb-0" role="status">
+                                        <div class="fw-bold"><i class="fa-solid fa-circle-exclamation me-2" aria-hidden="true"></i>Tracking number is not available for orders placed on or before October 17, 2026.</div>
+                                        <p class="small mb-0 mt-1">Please contact us if you need help with this order.</p>
+                                    </div>
+                                @endif
+                            @endif
                         </div>
                     @endif
 
@@ -178,7 +151,7 @@ document.getElementById('copy-india-post-consignment')?.addEventListener('click'
     try {
         if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
         await navigator.clipboard.writeText(input.value);
-        status.textContent = 'Consignment number copied. Open India Post and paste it into Track N Trace.';
+        status.textContent = 'Tracking number copied. Open India Post in the new tab and paste it to check your product tracking.';
     } catch (error) {
         input.focus();
         input.select();

@@ -187,10 +187,10 @@ class CheckoutController extends Controller
                 $order = Order::create([
                     ...$snapshot,
                     'order_number' => $orderNumber,
-                    'user_id' => auth()->check() ? auth()->id() : null,
+                    'user_id' => auth()->check() && auth()->user()->role === 'customer' ? auth()->id() : null,
                     'customer_name' => $validated['customer_name'],
                     'customer_phone' => $validated['customer_phone'],
-                    'customer_email' => $validated['customer_email'] ?? null,
+                    'customer_email' => filled($validated['customer_email'] ?? null) ? mb_strtolower(trim($validated['customer_email'])) : null,
                     'house_building' => $validated['house_building'],
                     'street' => $validated['street'],
                     'area' => $validated['area'],
@@ -268,6 +268,12 @@ class CheckoutController extends Controller
             }, 3);
 
             // Process Payment Response
+            if (! auth()->check() || auth()->user()->role !== 'customer') {
+                $guestOrderIds = collect(session('guest_order_ids', []));
+                $guestOrderIds->push($order->id);
+                session(['guest_order_ids' => $guestOrderIds->unique()->values()->all()]);
+            }
+
             if ((float) $order->grand_total <= 0) {
                 $paymentResult = [];
             } else {

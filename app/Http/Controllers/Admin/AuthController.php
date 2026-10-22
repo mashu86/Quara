@@ -11,7 +11,9 @@ class AuthController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::check() && Auth::user()->isAdmin()) {
+        $guard = Auth::guard('web');
+
+        if ($guard->check() && $guard->user()->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
         return view('admin.auth.login');
@@ -32,11 +34,13 @@ class AuthController extends Controller
             'password' => $request->input('password'),
         ];
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $user = Auth::user();
+        $guard = Auth::guard('web');
+
+        if ($guard->attempt($credentials, $request->boolean('remember'))) {
+            $user = $guard->user();
 
             if (!$user->isAdmin()) {
-                Auth::logout();
+                $guard->logout();
                 return back()->withErrors(['login' => 'Access denied. You do not have admin privileges.'])->withInput();
             }
 
@@ -49,7 +53,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('admin.login')->with('success', 'Logged out successfully.');
@@ -68,7 +72,7 @@ class AuthController extends Controller
         ]);
 
         /** @var \App\Models\User $user */
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         if (!Hash::check($request->old_password, $user->password)) {
             return back()->with('error', 'The current password you entered is incorrect.')->withInput();

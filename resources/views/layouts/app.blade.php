@@ -621,6 +621,20 @@
                             <span class="cart-badge" data-cart-items-count>{{ $cartCount }}</span>
                         @endif
                     </a>
+                    @if(auth()->check() && auth()->user()->role === 'customer')
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-link text-dark p-1 d-inline-flex align-items-center gap-1 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                                <i class="fa-regular fa-user"></i><span class="small fw-semibold">{{ auth()->user()->username ?: auth()->user()->name }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}">My Account</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><form action="{{ route('customer.logout') }}" method="POST">@csrf<button type="submit" class="dropdown-item text-danger">Logout</button></form></li>
+                            </ul>
+                        </div>
+                    @else
+                        <button type="button" class="btn btn-link text-dark p-1" data-customer-login aria-label="Sign in" title="Sign in"><i class="fa-regular fa-user"></i></button>
+                    @endif
                 </div>
 
                 <button class="navbar-toggler border-0 shadow-none p-1" type="button" data-bs-toggle="collapse" data-bs-target="#qwNavbar">
@@ -646,9 +660,6 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.my-orders') ? 'active' : '' }}" href="{{ route('customer.my-orders') }}">My Orders</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('order.tracking') ? 'active' : '' }}" href="{{ route('order.tracking') }}">Track Order</a>
-                        </li>
                     </ul>
 
                     <div class="d-none d-lg-flex align-items-center gap-2">
@@ -667,6 +678,20 @@
                                 <span class="badge bg-gold rounded-pill" data-cart-items-count>{{ $cartCount }}</span>
                             @endif
                         </a>
+                        @if(!auth()->check() || auth()->user()->role !== 'customer')
+                            <button type="button" class="btn btn-outline-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px" data-customer-login aria-label="Sign in" title="Sign in"><i class="fa-regular fa-user"></i></button>
+                        @elseif(auth()->user()->role === 'customer')
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-outline-dark rounded-pill px-3 d-inline-flex align-items-center gap-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                                    <i class="fa-regular fa-user"></i><span>{{ auth()->user()->username ?: auth()->user()->name }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}">My Account</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><form action="{{ route('customer.logout') }}" method="POST">@csrf<button type="submit" class="dropdown-item text-danger">Logout</button></form></li>
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </nav>
@@ -749,7 +774,6 @@
                         <li><a href="{{ route('home') }}"><i class="fa-solid fa-angle-right me-1"></i> Home</a></li>
                         <li><a href="{{ route('shop') }}"><i class="fa-solid fa-angle-right me-1"></i> Shop All</a></li>
                         <li><a href="{{ route('products.size-guide') }}"><i class="fa-solid fa-angle-right me-1"></i> Size Guide</a></li>
-                        <li><a href="{{ route('order.tracking') }}"><i class="fa-solid fa-angle-right me-1"></i> Track Order</a></li>
                         <li><a href="{{ route('cart.index') }}"><i class="fa-solid fa-angle-right me-1"></i> View Cart</a></li>
                     </ul>
                 </div>
@@ -810,6 +834,10 @@
 
     @include('frontend.partials.lucky_winners_modal')
     @include('frontend.partials.image_search_modal')
+    @include('frontend.partials.customer_auth_modal')
+    {{-- SMS phone login is deferred; uncomment this include to restore it later.
+    @include('frontend.partials.phone_otp_modal')
+    --}}
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

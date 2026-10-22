@@ -11,12 +11,14 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        $guard = Auth::guard('web');
+
+        if (!$guard->check()) {
             return redirect()->route('admin.login')->with('error', 'Please log in to access the admin area.');
         }
 
-        if (!Auth::user()->isAdmin()) {
-            Auth::logout();
+        if (!$guard->user()->isAdmin()) {
+            $guard->logout();
             return redirect()->route('admin.login')->with('error', 'Access denied. Admin privileges required.');
         }
 

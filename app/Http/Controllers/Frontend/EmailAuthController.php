@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendCustomerAccountOtp;
 use App\Models\Order;
-use App\Models\Setting;
-use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 
 class EmailAuthController extends Controller
 {
@@ -22,38 +22,36 @@ class EmailAuthController extends Controller
 
         $email = strtolower(trim($request->email));
 
-        // Generate 6-digit random OTP code
-        $otp = (string) rand(100000, 999999);
-        $expiresAt = now()->addSeconds(60);
+        $throttleKey = 'checkout-email-otp:'.hash('sha256', $email.'|'.$request->ip());
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return response()->json(['success' => false, 'message' => 'Too many OTP requests. Please try again later.'], 429);
+        }
+        RateLimiter::hit($throttleKey, 300);
+
+        $otp = (string) random_int(100000, 999999);
+        $expiresAt = now()->addMinutes(5);
 
         // Store OTP details in session
         session([
             'email_otp_code' => $otp,
             'email_otp_email' => $email,
             'email_otp_expires_at' => $expiresAt->timestamp,
+            'email_otp_attempts' => 0,
         ]);
 
-        // Attempt to send email
-        $mailSent = false;
         try {
-            $siteName = Setting::get('site_name', config('app.name'));
-            Mail::raw("Your {$siteName} verification code is: {$otp} (valid for 60 seconds).", function ($message) use ($email, $siteName) {
-                $message->to($email)
-                    ->subject($siteName.' - Your 6-Digit OTP Code');
-            });
-            $mailSent = true;
-        } catch (Exception $e) {
-            \Log::warning('Email OTP Mail Send Exception: '.$e->getMessage());
+            SendCustomerAccountOtp::dispatch($email, $otp, 'Email Verification');
+        } catch (\Throwable $exception) {
+            session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at', 'email_otp_attempts']);
+            report($exception);
+            return response()->json(['success' => false, 'message' => 'Could not send the verification email. Please try again later.'], 503);
         }
 
         return response()->json([
             'success' => true,
             'email' => $email,
-            'expires_in' => 60,
-            'demo_otp' => $otp, // Useful for testing in local environment
-            'message' => $mailSent
-                ? '6-digit OTP code sent to your email! (Valid for 60 seconds)'
-                : "OTP code generated: {$otp} (valid for 60 seconds).",
+            'expires_in' => 300,
+            'message' => '6-digit OTP code sent to your email! (Valid for 5 minutes)',
         ]);
     }
 
@@ -81,15 +79,21 @@ class EmailAuthController extends Controller
             ], 422);
         }
 
-        // Check 60-second expiration (with 120s grace period window for network delay)
-        if ($sessionExpires && time() > ($sessionExpires + 120)) {
+        if ($sessionExpires && time() > $sessionExpires) {
+            session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at', 'email_otp_attempts']);
             return response()->json([
                 'success' => false,
-                'message' => 'OTP code has expired (60s validity). Please request a new OTP code.',
+                'message' => 'OTP code has expired. Please request a new OTP code.',
             ], 422);
         }
 
-        if ($sessionCode !== $code && $code !== '123456') {
+        if ((int) session('email_otp_attempts', 0) >= 5) {
+            session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at', 'email_otp_attempts']);
+            return response()->json(['success' => false, 'message' => 'Too many incorrect attempts. Request a new code.'], 422);
+        }
+
+        if (! hash_equals((string) $sessionCode, $code)) {
+            session(['email_otp_attempts' => (int) session('email_otp_attempts', 0) + 1]);
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid OTP code. Please check your email and try again.',
@@ -100,7 +104,7 @@ class EmailAuthController extends Controller
         session(['customer_email' => $email]);
 
         // Clean up OTP temporary session
-        session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at']);
+        session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at', 'email_otp_attempts']);
 
         // Retrieve past order shipping details for auto-fill
         $lastOrder = Order::where('customer_email', $email)->latest()->first();
@@ -134,47 +138,29 @@ class EmailAuthController extends Controller
      */
     public function myOrders(Request $request)
     {
-        $email = session('customer_email');
-        $phone = session('customer_phone');
+        $user = Auth::guard('web')->user();
+        $isCustomer = $user && $user->role === 'customer';
+        $guestIds = collect($request->session()->get('guest_order_ids', []))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique();
 
-        if ($request->filled('contact')) {
-            $contact = trim($request->contact);
-            if (filter_var($contact, FILTER_VALIDATE_EMAIL)) {
-                $email = strtolower($contact);
-                session(['customer_email' => $email]);
-            } else {
-                $phone = preg_replace('/[^0-9]/', '', $contact);
-                if (! empty($phone)) {
-                    session(['customer_phone' => $phone]);
-                }
-            }
+        $successfulOrderStatuses = ['confirmed', 'processing', 'packed', 'shipped', 'delivered'];
+        $ordersQuery = Order::whereIn('order_status', $successfulOrderStatuses)
+            ->with(['items.product', 'payment', 'operations', 'shipment']);
+
+        if ($isCustomer) {
+            $ordersQuery->where('user_id', $user->id);
+        } else {
+            $ordersQuery->whereIn('id', $guestIds)->whereNull('user_id');
         }
 
-        if (! $email && $request->filled('email')) {
-            $email = strtolower(trim($request->email));
-            session(['customer_email' => $email]);
-        }
-        if (! $phone && $request->filled('phone')) {
-            $phone = preg_replace('/[^0-9]/', '', $request->phone);
-            session(['customer_phone' => $phone]);
-        }
+        $orders = $ordersQuery->latest()->get();
 
-        $orders = collect();
-        if ($email || $phone) {
-            $orders = Order::where(function ($query) use ($email, $phone) {
-                if ($email) {
-                    $query->where('customer_email', $email);
-                }
-                if ($phone) {
-                    $query->orWhere('customer_phone', $phone);
-                }
-            })
-                ->with(['items.product', 'payment'])
-                ->latest()
-                ->get();
-        }
+        $email = $isCustomer ? $user->email : null;
+        $phone = $isCustomer ? $user->phone : null;
 
-        return view('frontend.my_orders', compact('orders', 'email', 'phone'));
+        return view('frontend.my_orders', compact('orders', 'email', 'phone', 'isCustomer'));
     }
 
     /**
@@ -182,7 +168,12 @@ class EmailAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        session()->forget(['customer_email', 'customer_phone']);
+        if (Auth::guard('web')->check() && Auth::guard('web')->user()->role === 'customer') {
+            Auth::guard('web')->logout();
+            $request->session()->regenerate();
+        }
+
+        session()->forget(['customer_email', 'customer_phone', 'guest_order_ids']);
 
         return redirect()->route('home')->with('success', 'You have logged out of your session.');
     }

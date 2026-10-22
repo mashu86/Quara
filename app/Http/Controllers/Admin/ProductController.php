@@ -111,9 +111,11 @@ class ProductController extends Controller
 
         if ($request->ajax() || $request->wantsJson()) {
             $desktopHtml = view('admin.products.partials.desktop_rows', compact('products'))->render();
+            $mobileHtml = view('admin.products.partials.mobile_cards', compact('products'))->render();
 
             return response()->json([
                 'desktop_html' => $desktopHtml,
+                'mobile_html' => $mobileHtml,
                 'next_page_url' => $products->nextPageUrl(),
                 'has_more' => $products->hasMorePages(),
                 'total' => $products->total(),

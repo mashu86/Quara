@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\SocialMediaController as AdminSocialMediaController;
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\CheckoutController;
+use App\Http\Controllers\Frontend\CustomerAccountController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\ProductDetailController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordCo
 use App\Http\Controllers\Admin\ManualSalesController as AdminManualSalesController;
 use App\Http\Controllers\Admin\PaymentCheckController as AdminPaymentCheckController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Admin\CredentialDetailsController as AdminCredentialDetailsController;
 use App\Http\Controllers\Admin\DisplayOrderController as AdminDisplayOrderController;
 use App\Http\Controllers\Admin\OfferSaleController as AdminOfferSaleController;
 use App\Http\Controllers\Admin\BulkComboCategoryController as AdminBulkComboCategoryController;
@@ -107,6 +109,11 @@ Route::post('/visual-search/upload', [\App\Http\Controllers\Frontend\VisualSearc
 // Customer Email Auth & My Orders
 Route::post('/email-auth/send-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'sendOtp'])->name('email.send-otp');
 Route::post('/email-auth/verify-otp', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'verifyOtp'])->name('email.verify-otp');
+Route::post('/customer-auth/send-otp', [CustomerAccountController::class, 'sendOtp'])->middleware('throttle:10,1')->name('customer.auth.send-otp');
+Route::post('/customer-auth/verify-otp', [CustomerAccountController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('customer.auth.verify-otp');
+// SMS phone login is deferred; uncomment this route to restore it later.
+// Route::post('/customer/phone-login', [\App\Http\Controllers\Frontend\CustomerPhoneLoginController::class, 'login'])
+//     ->middleware('throttle:6,1')->name('customer.phone-login');
 Route::get('/my-orders', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'myOrders'])->name('customer.my-orders');
 Route::post('/customer/logout', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'logout'])->name('customer.logout');
 
@@ -319,6 +326,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Master Settings (branding, email and payment configuration)
         Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
+        Route::get('/credential-details', [AdminCredentialDetailsController::class, 'index'])->name('credential-details.index');
+        Route::post('/credential-details/encrypt', [AdminCredentialDetailsController::class, 'encrypt'])->name('credential-details.encrypt');
+        Route::post('/credential-details/decrypt', [AdminCredentialDetailsController::class, 'decrypt'])->name('credential-details.decrypt');
 
         // Google Gemini API Keys Master Management
         Route::get('/gemini-keys', [AdminGeminiApiKeyController::class, 'index'])->name('gemini-keys.index');

@@ -5,6 +5,20 @@
 
 @section('styles')
 <style>
+    .my-orders-page { max-width: 1120px; }
+    .my-orders-heading { border-bottom: 1px solid #eee8d8; }
+    .my-orders-icon { width: 46px; height: 46px; border-radius: 15px; background: rgba(212, 175, 55, .13); }
+    .my-order-card { border: 1.5px solid var(--qw-gold) !important; box-shadow: 0 6px 20px rgba(31, 27, 17, .055) !important; transition: transform .18s ease, box-shadow .18s ease; }
+    .my-order-card::before { content: ""; display: block; height: 3px; background: linear-gradient(90deg, var(--qw-gold-dark), var(--qw-gold-light), var(--qw-gold)); }
+    .my-order-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(31, 27, 17, .09) !important; }
+    .my-order-card-returned { border: 1.5px solid #dc3545 !important; }
+    .my-order-card-returned::before { background: linear-gradient(90deg, #dc3545, #f4a5ad); }
+    .my-order-card-header { background: linear-gradient(110deg, #fffdf7 0%, #faf8f1 100%); border-bottom: 1px solid #f0ecdf !important; }
+    .my-order-number { background: #fff; border: 1px solid var(--qw-gold); color: #4b3c12; }
+    .my-order-status { font-size: .69rem; letter-spacing: .035em; }
+    .my-order-item { padding: 12px; border: 1px solid #f0eee8; border-radius: 14px; background: #fff; }
+    .my-order-summary { height: 100%; padding: 16px; border: 1px solid #eee9dc; border-radius: 16px; background: #fcfbf7; }
+    .my-order-tracking { border-color: #ebe5d6 !important; background: #fff; }
     #myOrderImageModal .modal-dialog { max-width: min(900px, calc(100vw - 2rem)); }
     #myOrderImageModal .modal-content { max-height: calc(100dvh - 2rem); }
     #myOrderImageModal .modal-body { min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; overscroll-behavior: contain; }
@@ -20,57 +34,29 @@
 @endsection
 
 @section('content')
-<div class="container py-5">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start mb-4 pb-2 border-bottom">
-        <div>
-            <h3 class="font-serif fw-bold mb-1 fs-4">My Orders & History</h3>
-            <p class="text-muted small mb-0">
-                Viewing past orders linked to: 
-                <strong class="text-dark">{{ $email ?: ($phone ? ('Phone: ' . $phone) : 'Not Verified') }}</strong>
-            </p>
-        </div>
-
-        <div class="mt-3 mt-md-0 d-flex justify-content-center gap-2">
-            @if(session('customer_email') || session('customer_phone'))
-                <form action="{{ route('customer.logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger rounded-pill btn-sm px-3 fw-bold">
-                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Session
-                    </button>
-                </form>
-            @else
-                <button type="button" onclick="showOtpModal()" class="btn btn-warning rounded-pill btn-sm px-3 fw-bold shadow-sm" style="background-color: var(--qw-gold); border-color: var(--qw-gold); color: #fff;">
-                    <i class="fa-solid fa-envelope me-1"></i> Verify Email to View Orders
-                </button>
-            @endif
+<div class="container py-5 my-orders-page">
+    <div class="my-orders-heading mb-4 pb-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="my-orders-icon d-inline-flex align-items-center justify-content-center flex-shrink-0">
+                <i class="fa-solid fa-bag-shopping text-gold fs-5" aria-hidden="true"></i>
+            </span>
+            <div>
+                <h3 class="font-serif fw-bold mb-1 fs-4">My Orders</h3>
+                <p class="text-muted small mb-0">View your purchases and track each order.</p>
+            </div>
         </div>
     </div>
 
-    @if(!$email && !$phone)
-        <!-- Prompt / Quick Lookup by Mobile or Email -->
-        <div class="card border-0 rounded-4 shadow-sm text-center py-4 py-md-5">
+    @if(!$isCustomer && $orders->isEmpty())
+        <!-- Guest visitors can only see orders stored in their current session. -->
+        <div class="card border rounded-4 shadow-sm text-center py-4 py-md-5" style="border-color: #eee9dc !important;">
             <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center">
                 <i class="fa-solid fa-boxes-packing text-warning display-4 mb-3"></i>
-                <h5 class="font-serif fw-bold mb-2 text-center">Find Your Past Orders</h5>
+                <h5 class="font-serif fw-bold mb-2 text-center">View Your Orders</h5>
                 <p class="text-muted small col-md-7 mx-auto mb-4 text-center">
-                    Enter your 10-digit Mobile Phone Number or Email Address below to view all your past orders and live tracking updates.
+                    Sign in to see orders linked to your account. Orders from your current guest session will also be linked after email verification.
                 </p>
-
-                <form action="{{ route('customer.my-orders') }}" method="GET" class="col-md-6 col-lg-5 mx-auto mb-3">
-                    <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
-                        <input type="text" name="contact" class="form-control border-0 px-4 fs-6" placeholder="Mobile Number or Email..." required>
-                        <button type="submit" class="btn btn-qw-gold px-4 fw-bold">
-                            <i class="fa-solid fa-magnifying-glass me-1"></i> VIEW ORDERS
-                        </button>
-                    </div>
-                </form>
-
-                <div class="d-flex align-items-center justify-content-center gap-2 text-muted small mt-2">
-                    <span>Or prefer OTP email verification?</span>
-                    <button type="button" onclick="showOtpModal()" class="btn btn-link text-gold p-0 text-decoration-none fw-bold">
-                        Verify Email with OTP <i class="fa-solid fa-arrow-right small"></i>
-                    </button>
-                </div>
+                <button type="button" onclick="showCustomerLoginModal()" class="btn btn-qw-gold rounded-pill px-4 fw-bold">SIGN IN TO VIEW ORDERS</button>
             </div>
         </div>
     @else
@@ -78,11 +64,20 @@
         <div class="row g-4">
             @forelse($orders as $order)
                 <div class="col-12">
-                    <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
-                        <div class="card-header bg-light border-0 p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    @php
+                        $hasReturn = $order->items->contains(fn ($item) => $item->item_status === 'returned')
+                            || $order->operations->contains(fn ($operation) => $operation->status === 'active' && in_array($operation->operation_type, ['product_returned', 'customer_return'], true));
+                        $trackingNumber = collect([
+                            $order->shipment?->article_number,
+                            $order->shipment?->tracking_number,
+                            $order->tracking_number,
+                        ])->first(fn ($number) => filled(trim((string) $number)));
+                    @endphp
+                    <div class="card my-order-card rounded-4 overflow-hidden {{ $hasReturn ? 'my-order-card-returned' : '' }}">
+                        <div class="card-header my-order-card-header p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                             <div>
-                                <span class="badge bg-gold text-dark fw-bold me-2 mb-1">Order #{{ $order->order_number }}</span>
-                                <span class="text-muted small d-block d-md-inline-block">Placed on {{ $order->created_at->format('M d, Y h:i A') }}</span>
+                                <span class="badge my-order-number fw-bold rounded-pill px-3 py-2 me-1 mb-1"><i class="fa-solid fa-receipt me-1" aria-hidden="true"></i>Order #{{ $order->order_number }}</span>
+                                <span class="text-muted small d-block d-md-inline-block mt-1 mt-md-0"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>{{ $order->created_at->format('M d, Y') }}</span>
                             </div>
 
                             <div class="d-flex align-items-center gap-2">
@@ -91,27 +86,36 @@
                                         'pending' => 'bg-warning text-dark',
                                         'confirmed' => 'bg-info text-dark',
                                         'processing' => 'bg-primary text-white',
-                                        'packed' => 'bg-secondary text-white',
+                                        'packed' => 'bg-transparent border text-secondary',
                                         'shipped' => 'bg-info text-dark',
                                         'delivered' => 'bg-success text-white',
                                         'cancelled' => 'bg-danger text-white',
                                     ];
+                                    $statusIcons = [
+                                        'pending' => 'fa-clock',
+                                        'confirmed' => 'fa-circle-check',
+                                        'processing' => 'fa-gear',
+                                        'packed' => 'fa-box',
+                                        'shipped' => 'fa-truck-fast',
+                                        'delivered' => 'fa-box-open',
+                                        'cancelled' => 'fa-ban',
+                                    ];
                                 @endphp
-                                <span class="badge {{ $statusColors[$order->order_status] ?? 'bg-dark' }} px-3 py-2 rounded-pill font-bold">
-                                    <i class="fa-solid fa-truck-fast me-1"></i> {{ strtoupper($order->order_status) }}
+                                <span class="badge my-order-status {{ $statusColors[$order->order_status] ?? 'bg-dark' }} px-3 py-2 rounded-pill font-bold">
+                                    <i class="fa-solid {{ $statusIcons[$order->order_status] ?? 'fa-circle-info' }} me-1" aria-hidden="true"></i> {{ strtoupper($order->order_status) }}
                                 </span>
-                                <span class="badge bg-outline-dark border text-dark px-3 py-2 rounded-pill small">
+                                <span class="badge bg-white border text-secondary px-3 py-2 rounded-pill small">
                                     {{ strtoupper($order->payment_method) }} ({{ strtoupper($order->payment_status) }})
                                 </span>
                             </div>
                         </div>
 
                         <div class="card-body p-3 p-md-4">
-                            <div class="row g-3 align-items-center">
+                            <div class="row g-3 align-items-stretch">
                                 <div class="col-md-8">
                                     <div class="d-flex flex-column gap-2">
                                         @foreach($order->items as $item)
-                                            <div class="d-flex align-items-center gap-3">
+                                            <div class="my-order-item d-flex align-items-center gap-3">
                                                 @if($item->product && $item->product->primary_image_url)
                                                     <img src="{{ $item->product->primary_image_url }}" alt="{{ $item->product_name }}" class="rounded-3 border my-order-product-image" style="width: 54px; height: 54px; object-fit: cover;" role="button" tabindex="0" data-order-image="{{ $item->product->primary_image_url }}" data-order-image-alt="{{ $item->product_name }}" aria-label="View image of {{ $item->product_name }}">
                                                 @else
@@ -119,7 +123,7 @@
                                                         <i class="fa-solid fa-shirt text-muted"></i>
                                                     </div>
                                                 @endif
-                                                <div>
+                                                <div class="flex-grow-1" style="min-width: 0;">
                                                     <h6 class="fw-bold mb-0 text-dark">
                                                         {{ $item->product_name }}
                                                         @if($item->is_combo_offer)
@@ -133,13 +137,26 @@
                                     </div>
                                 </div>
 
-                                <div class="col-md-4 text-md-end border-top border-md-0 pt-3 pt-md-0">
-                                    <div class="text-muted small mb-1">Total Paid Amount</div>
-                                    <div class="fs-4 fw-bold text-gold mb-3">₹{{ number_format($order->grand_total, 2) }}</div>
-                            @include('partials.district_offer_summary')
-                                    <a href="{{ route('order.tracking', ['order_number' => $order->order_number, 'phone' => $order->customer_phone]) }}" class="btn btn-dark rounded-pill btn-sm px-4 fw-bold">
-                                        <i class="fa-solid fa-location-dot me-1"></i> Track Live Status
-                                    </a>
+                                <div class="col-md-4">
+                                    <div class="my-order-summary text-md-end">
+                                        <div class="text-muted small mb-1">Order Total</div>
+                                        <div class="fs-4 fw-bold text-dark mb-3">₹{{ number_format($order->grand_total, 2) }}</div>
+                                        @include('partials.district_offer_summary')
+                                        @if(filled($trackingNumber))
+                                            <div class="my-order-tracking d-flex align-items-center gap-3 border rounded-3 shadow-sm py-2 px-3 mb-3 text-start" role="status">
+                                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: rgba(212, 175, 55, .12);">
+                                                    <i class="fa-solid fa-barcode text-gold" aria-hidden="true"></i>
+                                                </span>
+                                                <span class="d-block" style="min-width: 0;">
+                                                    <span class="small fw-semibold d-block text-muted text-uppercase" style="letter-spacing: .04em;">Tracking ID</span>
+                                                    <span class="font-monospace fw-semibold text-dark text-break">{{ trim((string) $trackingNumber) }}</span>
+                                                </span>
+                                            </div>
+                                        @endif
+                                        <a href="{{ route('order.tracking', ['order_number' => $order->order_number, 'phone' => $order->customer_phone]) }}" class="btn btn-qw-gold rounded-pill btn-sm px-4 py-2 fw-bold w-100">
+                                            <i class="fa-solid fa-location-dot me-1"></i> Track Your Order
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -150,7 +167,7 @@
                     <div class="p-5 bg-white rounded-4 shadow-sm border col-md-6 mx-auto">
                         <i class="fa-solid fa-box-open text-muted fs-1 mb-3"></i>
                         <h5 class="fw-bold">No orders found for this Email address.</h5>
-                        <p class="text-muted small">You haven't placed any orders yet with {{ $email }}.</p>
+                        <p class="text-muted small">You haven't placed any orders with this account yet.</p>
                         <a href="{{ route('shop') }}" class="btn btn-gold rounded-pill px-4 fw-bold mt-2">SHOP NEW ARRIVALS</a>
                     </div>
                 </div>
@@ -205,6 +222,4 @@
     })();
 </script>
 
-<!-- Include Reusable Email OTP Modal -->
-@include('frontend.partials.email_otp_modal')
 @endsection

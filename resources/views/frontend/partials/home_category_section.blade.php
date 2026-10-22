@@ -33,6 +33,7 @@
                 <div class="offcanvas-body p-3">
                     <div class="list-group list-group-flush gap-2">
                         @foreach($categories as $category)
+                            @continue(!filled($category->slug))
                             <a href="{{ route('category.products', $category->slug) }}" class="list-group-item list-group-item-action rounded-3 border d-flex justify-content-between align-items-center p-2.5 shadow-sm text-decoration-none">
                                 <div class="d-flex align-items-center gap-3">
                                     @if($category->background_image)
@@ -72,6 +73,7 @@
             </style>
             <div class="d-flex flex-nowrap overflow-x-auto gap-3 py-2 px-1 qw-category-scroll-container" style="scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory;">
                 @foreach($categories as $category)
+                    @continue(!filled($category->slug))
                     <div class="flex-shrink-0" style="width: 135px; scroll-snap-align: start;">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                             <div class="qw-category-card rounded-3 shadow-sm position-relative" style="height: 105px;">
@@ -108,6 +110,7 @@
             <!-- OPTION 1: DEFAULT GRID CARDS VIEW -->
             <div class="row g-1.5 g-sm-2 g-md-3">
                 @foreach($categories as $category)
+                    @continue(!filled($category->slug))
                     <div class="col-4 col-md-4 col-lg-3">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                             <div class="qw-category-card position-relative">

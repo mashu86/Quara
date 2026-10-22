@@ -86,6 +86,8 @@ class Category extends Model
     public function scopePublicActive($query)
     {
         return $query->where('status', 'active')
+            ->whereNotNull('categories.slug')
+            ->whereRaw("TRIM(categories.slug) <> ''")
             ->where(function ($q) {
                 $q->where('is_offer_category', false)
                   ->orWhere('is_active_offer', true);

@@ -349,8 +349,9 @@
         }
         .btn-check:checked + .qw-size-btn-option {
             border-color: #d4af37 !important;
-            background-color: rgba(212, 175, 55, 0.12) !important;
+            background-color: #fff6d8 !important;
             color: #8b6508 !important;
+            font-weight: 800 !important;
             box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
         }
 
@@ -449,6 +450,9 @@
 
         #sizeButtonGroup .btn-check:checked + .product-size-option {
             border-color: #a77b12 !important;
+            background-color: #fff6d8 !important;
+            color: #8b6508 !important;
+            font-weight: 800 !important;
             box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2) !important;
         }
 
@@ -547,6 +551,7 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                     @php
+                        $selectableSizes = $product->selectableSizes;
                         $isDownGarment = ($product->measurement_type ?? 'up') === 'down'
                             || $product->sizes->contains(fn ($sz) => !empty($sz->hip));
                         $hasMeasurements = $product->sizes->contains(fn ($sz) => $isDownGarment
@@ -555,12 +560,15 @@
                         $noSizeAvailableStock = $product->sizes
                             ->filter(fn ($variant) => trim((string) $variant->size) === '')
                             ->sum(fn ($variant) => $variant->available_stock);
-                        $quantityLimit = $product->selectableSizes->isEmpty()
+                        $quantityLimit = $selectableSizes->isEmpty()
                             ? max(1, (int) $noSizeAvailableStock)
                             : 50;
+                        $defaultSelectedSizeId = !$product->is_out_of_stock
+                            ? (int) ($selectableSizes->first(fn ($size) => $size->stock > 0)?->id ?? 0)
+                            : 0;
                     @endphp
 
-                    @if($product->selectableSizes->isNotEmpty())
+                    @if($selectableSizes->isNotEmpty())
                     <div class="mb-3 product-size-section">
                         <label class="form-label font-bold text-uppercase d-flex justify-content-between align-items-center product-size-heading mb-1.5">
                             <span>
@@ -575,19 +583,11 @@
                         </label>
 
                         <div class="d-flex flex-wrap gap-2" id="sizeButtonGroup">
-                            @php
-                                $firstInStockSelected = true;
-                            @endphp
-
-                            @forelse($product->selectableSizes as $pSize)
+                            @forelse($selectableSizes as $pSize)
                                 @php
                                     $effectiveStock = $product->is_out_of_stock ? 0 : $pSize->stock;
                                     $isAvailable = $effectiveStock > 0;
-                                    $shouldCheck = false;
-                                    if ($isAvailable && !$firstInStockSelected) {
-                                        $shouldCheck = true;
-                                        $firstInStockSelected = true;
-                                    }
+                                    $shouldCheck = $defaultSelectedSizeId === (int) $pSize->id;
                                 @endphp
                                 <input type="radio"
                                        class="btn-check"

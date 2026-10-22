@@ -100,6 +100,7 @@
                 @include('frontend.partials.home_carousel_heading', ['eyebrow'=>'Explore Quara', 'title'=>'Shop by Category', 'trackId'=>'qw-track-categories'])
                 <div class="qw-horizontal-track" id="qw-track-categories" data-interval="{{ $carouselSettings->interval_ms ?? 5000 }}">
                     @foreach($carouselCategories as $category)
+                        @continue(!filled($category->slug))
                         <a href="{{ route('category.products', $category->slug) }}" class="qw-category-slide-card">
                             <div class="qw-category-slide-image"><img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" loading="lazy"></div>
                             <span>{{ $category->name }}</span>

@@ -28,12 +28,26 @@ class HomeController extends Controller
         HomePageSection::syncDefaults();
         $homeSections = HomePageSection::orderBy('sort_order')->get()->keyBy('section_key');
 
-        $categories = Category::publicActive()->withCount(['products' => function ($q) {
-            $q->where('status', 'active');
-        }])
-        ->orderBy('sort_order', 'asc')
-        ->orderBy('id', 'desc')
-        ->get();
+        $categories = Category::publicActive()
+            ->select('categories.*')
+            ->selectSub(function ($query) {
+                $query->from('products as counted_products')
+                    ->selectRaw('COUNT(DISTINCT counted_products.id)')
+                    ->where('counted_products.status', 'active')
+                    ->where(function ($assignments) {
+                        $assignments->whereColumn('counted_products.category_id', 'categories.id')
+                            ->orWhereColumn('counted_products.combo_category_id', 'categories.id')
+                            ->orWhereExists(function ($pivot) {
+                                $pivot->selectRaw('1')
+                                    ->from('category_product')
+                                    ->whereColumn('category_product.product_id', 'counted_products.id')
+                                    ->whereColumn('category_product.category_id', 'categories.id');
+                            });
+                        });
+            }, 'products_count')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'desc')
+            ->get();
 
         if (!$request->ajax() && !$request->wantsJson()) {
         $carouselSlides = collect();

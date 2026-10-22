@@ -113,6 +113,14 @@
             body: JSON.stringify({flow, email, phone, username: usernameInput.value.trim()})
             });
             const data = await response.json();
+            if (data.not_registered) {
+                setFlow('register');
+                detailsStep.classList.remove('d-none');
+                otpStep.classList.add('d-none');
+                showMessage(data.message || 'This email is not registered yet. Create an account to continue.', true);
+                usernameInput.focus();
+                return;
+            }
             if (!response.ok || !data.success) {
                 showMessage(data.message || 'Could not send the code. Please try again.', true);
                 return;

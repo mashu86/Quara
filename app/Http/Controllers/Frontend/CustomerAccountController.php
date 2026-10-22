@@ -40,13 +40,20 @@ class CustomerAccountController extends Controller
 
         $user = User::where('email', $email)->where('role', 'customer')->first();
         $validIdentity = $user && $this->normalizePhone((string) $user->phone) === $phone;
-        if ($data['flow'] === 'login' && ! $validIdentity) {
-            // Keep responses indistinguishable until the user proves control of this email.
+        if ($data['flow'] === 'login' && ! $user) {
             return response()->json([
-                'success' => true,
-                'message' => 'If these details are eligible, a verification code will be sent to the email address.',
-                'expires_in' => 300,
-            ]);
+                'success' => false,
+                'not_registered' => true,
+                'message' => 'This email is not registered yet. Create an account to continue.',
+            ], 422);
+        }
+
+        if ($data['flow'] === 'login' && ! $validIdentity) {
+            return response()->json([
+                'success' => false,
+                'identity_mismatch' => true,
+                'message' => 'The email and mobile number do not match. Check your details and try again.',
+            ], 422);
         }
 
         $code = (string) random_int(100000, 999999);

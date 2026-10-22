@@ -113,6 +113,14 @@
             body: JSON.stringify({flow, email, phone, username: usernameInput.value.trim()})
             });
             const data = await response.json();
+            if (data.already_registered) {
+                setFlow('login');
+                detailsStep.classList.remove('d-none');
+                otpStep.classList.add('d-none');
+                showMessage(data.message || 'This email is already registered. Please sign in.', true);
+                phoneInput.focus();
+                return;
+            }
             if (data.not_registered) {
                 setFlow('register');
                 detailsStep.classList.remove('d-none');

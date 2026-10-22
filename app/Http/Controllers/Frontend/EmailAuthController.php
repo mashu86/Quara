@@ -40,7 +40,7 @@ class EmailAuthController extends Controller
         ]);
 
         try {
-            SendCustomerAccountOtp::dispatch($email, $otp, 'Email Verification');
+            (new SendCustomerAccountOtp($email, $otp, 'Email Verification'))->handle();
         } catch (\Throwable $exception) {
             session()->forget(['email_otp_code', 'email_otp_email', 'email_otp_expires_at', 'email_otp_attempts']);
             report($exception);

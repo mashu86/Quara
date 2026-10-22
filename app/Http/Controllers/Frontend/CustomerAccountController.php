@@ -38,7 +38,15 @@ class CustomerAccountController extends Controller
         }
         RateLimiter::hit($throttleKey, 300);
 
-        $user = User::where('email', $email)->where('role', 'customer')->first();
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->where('role', 'customer')->first();
+        if ($data['flow'] === 'register' && User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            return response()->json([
+                'success' => false,
+                'already_registered' => true,
+                'message' => 'This email is already registered. Please sign in.',
+            ], 422);
+        }
+
         $validIdentity = $user && $this->normalizePhone((string) $user->phone) === $phone;
         if ($data['flow'] === 'login' && ! $user) {
             return response()->json([
@@ -67,7 +75,7 @@ class CustomerAccountController extends Controller
         ], now()->addMinutes(5));
 
         try {
-            SendCustomerAccountOtp::dispatch($email, $code);
+            (new SendCustomerAccountOtp($email, $code))->handle();
         } catch (\Throwable $exception) {
             Cache::forget($key);
             report($exception);

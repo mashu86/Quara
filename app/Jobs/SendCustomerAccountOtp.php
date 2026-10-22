@@ -3,25 +3,19 @@
 namespace App\Jobs;
 
 use App\Models\Setting;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class SendCustomerAccountOtp implements ShouldQueue
+class SendCustomerAccountOtp
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
 
     public function __construct(
         public string $email,
         public string $code,
         public string $purpose = 'Sign-in',
-    ) {
-        $this->onConnection('deferred');
-    }
+    ) {}
 
     public function handle(): void
     {
@@ -36,6 +30,8 @@ class SendCustomerAccountOtp implements ShouldQueue
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);
+
+            throw $exception;
         }
     }
 }

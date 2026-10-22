@@ -633,7 +633,13 @@
                             </ul>
                         </div>
                     @else
-                        <button type="button" class="btn btn-link text-dark p-1" data-customer-login aria-label="Sign in" title="Sign in"><i class="fa-regular fa-user"></i></button>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-link text-dark p-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account options" title="Account options"><i class="fa-regular fa-user"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}"><i class="fa-solid fa-box me-2 text-gold"></i>My Orders</a></li>
+                                <li><button type="button" class="dropdown-item" data-customer-login><i class="fa-regular fa-user me-2 text-gold"></i>Login</button></li>
+                            </ul>
+                        </div>
                     @endif
                 </div>
 
@@ -679,7 +685,13 @@
                             @endif
                         </a>
                         @if(!auth()->check() || auth()->user()->role !== 'customer')
-                            <button type="button" class="btn btn-outline-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px" data-customer-login aria-label="Sign in" title="Sign in"><i class="fa-regular fa-user"></i></button>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-outline-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account options" title="Account options"><i class="fa-regular fa-user"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}"><i class="fa-solid fa-box me-2 text-gold"></i>My Orders</a></li>
+                                    <li><button type="button" class="dropdown-item" data-customer-login><i class="fa-regular fa-user me-2 text-gold"></i>Login</button></li>
+                                </ul>
+                            </div>
                         @elseif(auth()->user()->role === 'customer')
                             <div class="dropdown">
                                 <button type="button" class="btn btn-outline-dark rounded-pill px-3 d-inline-flex align-items-center gap-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">

@@ -21,13 +21,13 @@ class CustomerAccountController extends Controller
         $data = $request->validate([
             'flow' => ['required', 'in:login,register'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required_if:flow,register', 'nullable', 'string', 'max:20'],
             'username' => ['required_if:flow,register', 'nullable', 'string', 'min:3', 'max:50', 'regex:/^[A-Za-z0-9._-]+$/'],
         ]);
 
         $email = mb_strtolower(trim($data['email']));
-        $phone = $this->normalizePhone($data['phone']);
-        if (! preg_match('/^[6-9]\d{9}$/', $phone)) {
+        $phone = $data['flow'] === 'register' ? $this->normalizePhone((string) $data['phone']) : '';
+        if ($data['flow'] === 'register' && ! preg_match('/^[6-9]\d{9}$/', $phone)) {
             throw ValidationException::withMessages(['phone' => 'Enter a valid 10-digit Indian mobile number.']);
         }
 
@@ -47,20 +47,11 @@ class CustomerAccountController extends Controller
             ], 422);
         }
 
-        $validIdentity = $user && $this->normalizePhone((string) $user->phone) === $phone;
         if ($data['flow'] === 'login' && ! $user) {
             return response()->json([
                 'success' => false,
                 'not_registered' => true,
                 'message' => 'This email is not registered yet. Create an account to continue.',
-            ], 422);
-        }
-
-        if ($data['flow'] === 'login' && ! $validIdentity) {
-            return response()->json([
-                'success' => false,
-                'identity_mismatch' => true,
-                'message' => 'The email and mobile number do not match. Check your details and try again.',
             ], 422);
         }
 
@@ -95,12 +86,15 @@ class CustomerAccountController extends Controller
         $data = $request->validate([
             'flow' => ['required', 'in:login,register'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required_if:flow,register', 'nullable', 'string', 'max:20'],
             'code' => ['required', 'digits:6'],
         ]);
 
         $email = mb_strtolower(trim($data['email']));
-        $phone = $this->normalizePhone($data['phone']);
+        $phone = $data['flow'] === 'register' ? $this->normalizePhone((string) $data['phone']) : '';
+        if ($data['flow'] === 'register' && ! preg_match('/^[6-9]\d{9}$/', $phone)) {
+            throw ValidationException::withMessages(['phone' => 'Enter a valid 10-digit Indian mobile number.']);
+        }
         $key = 'customer-account-otp:'.$data['flow'].':'.hash('sha256', $email.'|'.$phone);
         $attemptKey = 'customer-account-otp-verify:'.hash('sha256', $email.'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($attemptKey, 10)) {
@@ -128,7 +122,7 @@ class CustomerAccountController extends Controller
         RateLimiter::clear($attemptKey);
 
         if ($data['flow'] === 'register') {
-            $existing = User::where('email', $email)->first();
+            $existing = User::whereRaw('LOWER(email) = ?', [$email])->first();
             if ($existing || ($challenge['existing_email'] ?? false)) {
                 return response()->json([
                     'success' => false,
@@ -151,8 +145,8 @@ class CustomerAccountController extends Controller
                 'password' => Str::random(64),
             ]);
         } else {
-            $user = User::where('email', $email)->where('role', 'customer')->first();
-            if (! $user || $this->normalizePhone((string) $user->phone) !== $phone) {
+            $user = User::whereRaw('LOWER(email) = ?', [$email])->where('role', 'customer')->first();
+            if (! $user) {
                 return response()->json(['success' => false, 'message' => 'The code is invalid or expired. Request a new code.'], 422);
             }
             if (! $user->email_verified_at) {
@@ -160,7 +154,7 @@ class CustomerAccountController extends Controller
             }
         }
 
-        $this->claimOrders($user, $email, $phone, $request);
+        $this->claimOrders($user, $email, $request);
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
         session()->forget(['customer_email', 'customer_phone']);
@@ -173,7 +167,7 @@ class CustomerAccountController extends Controller
         ]);
     }
 
-    private function claimOrders(User $user, string $email, string $phone, Request $request): void
+    private function claimOrders(User $user, string $email, Request $request): void
     {
         $guestIds = collect($request->session()->get('guest_order_ids', []))
             ->filter(fn ($id) => is_numeric($id))
@@ -183,9 +177,6 @@ class CustomerAccountController extends Controller
         if ($guestIds->isNotEmpty()) {
             $guestOrders = Order::whereIn('id', $guestIds)->whereNull('user_id')->get();
             foreach ($guestOrders as $order) {
-                if ($this->normalizePhone((string) $order->customer_phone) !== $phone) {
-                    continue;
-                }
                 $order->user_id = $user->id;
                 if (! filled($order->customer_email)) {
                     $order->customer_email = $email;
@@ -194,13 +185,11 @@ class CustomerAccountController extends Controller
             }
         }
 
-        // Recover older orders only when both the verified email and phone match.
-        $emailOrders = Order::whereNull('user_id')->where('customer_email', $email)->get();
+        // The email was verified by OTP, so it is sufficient to recover matching orders.
+        $emailOrders = Order::whereNull('user_id')->whereRaw('LOWER(customer_email) = ?', [$email])->get();
         foreach ($emailOrders as $order) {
-            if ($this->normalizePhone((string) $order->customer_phone) === $phone) {
-                $order->user_id = $user->id;
-                $order->save();
-            }
+            $order->user_id = $user->id;
+            $order->save();
         }
 
         $request->session()->forget('guest_order_ids');

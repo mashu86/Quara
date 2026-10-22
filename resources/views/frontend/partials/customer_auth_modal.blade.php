@@ -16,7 +16,7 @@
                     <div class="auth-mark rounded-circle d-flex align-items-center justify-content-center"><i class="fa-regular fa-user"></i></div>
                     <div>
                         <h5 class="modal-title fw-bold" id="customerAuthTitle">Sign in</h5>
-                        <div class="small text-white-50">Use your registered email and mobile number.</div>
+                        <div class="small text-white-50">Use your email to receive a sign-in code.</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -31,7 +31,7 @@
                         <label for="customerAuthEmail" class="form-label">Email Address</label>
                         <input id="customerAuthEmail" type="email" class="form-control" maxlength="255" autocomplete="email" required>
                     </div>
-                    <div class="mb-3">
+                    <div id="customerAuthPhoneGroup" class="mb-3">
                         <label for="customerAuthPhone" class="form-label">Mobile Number</label>
                         <input id="customerAuthPhone" type="tel" class="form-control" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" required>
                     </div>
@@ -68,6 +68,7 @@
     const message = document.getElementById('customerAuthMessage');
     const emailInput = document.getElementById('customerAuthEmail');
     const phoneInput = document.getElementById('customerAuthPhone');
+    const phoneGroup = document.getElementById('customerAuthPhoneGroup');
     const usernameInput = document.getElementById('customerAuthName');
     const codeInput = document.getElementById('customerAuthCode');
     let flow = 'login';
@@ -82,13 +83,16 @@
         const registering = flow === 'register';
         title.textContent = registering ? 'Create Account' : 'Sign in';
         nameGroup.classList.toggle('d-none', !registering);
+        phoneGroup.classList.toggle('d-none', !registering);
         usernameInput.required = registering;
+        phoneInput.required = registering;
         switchText.innerHTML = registering ? 'Already registered? ' : 'Not yet registered? ';
         switchText.appendChild(switchButton);
         switchButton.textContent = registering ? 'Sign in' : 'Register';
         message.classList.add('d-none');
     }
 
+    setFlow('login');
     switchButton.addEventListener('click', () => setFlow(flow === 'login' ? 'register' : 'login'));
     document.getElementById('customerAuthBackButton').addEventListener('click', () => {
         otpStep.classList.add('d-none');
@@ -99,7 +103,7 @@
     async function sendOtp(event) {
         const email = emailInput.value.trim();
         const phone = phoneInput.value.trim();
-        if (!emailInput.reportValidity() || !phoneInput.reportValidity() || (flow === 'register' && !usernameInput.reportValidity())) return;
+        if (!emailInput.reportValidity() || (flow === 'register' && (!phoneInput.reportValidity() || !usernameInput.reportValidity()))) return;
 
         const button = event.currentTarget;
         const originalLabel = button.innerHTML;
@@ -110,7 +114,7 @@
             const response = await fetch(@json(route('customer.auth.send-otp')), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token()), 'Accept': 'application/json'},
-            body: JSON.stringify({flow, email, phone, username: usernameInput.value.trim()})
+                body: JSON.stringify({flow, email, phone: flow === 'register' ? phone : '', username: usernameInput.value.trim()})
             });
             const data = await response.json();
             if (data.already_registered) {
@@ -118,7 +122,7 @@
                 detailsStep.classList.remove('d-none');
                 otpStep.classList.add('d-none');
                 showMessage(data.message || 'This email is already registered. Please sign in.', true);
-                phoneInput.focus();
+                emailInput.focus();
                 return;
             }
             if (data.not_registered) {
@@ -156,7 +160,7 @@
             const response = await fetch(@json(route('customer.auth.verify-otp')), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token()), 'Accept': 'application/json'},
-                body: JSON.stringify({flow, email: emailInput.value.trim(), phone: phoneInput.value.trim(), code: codeInput.value.trim()})
+                body: JSON.stringify({flow, email: emailInput.value.trim(), phone: flow === 'register' ? phoneInput.value.trim() : '', code: codeInput.value.trim()})
             });
             const data = await response.json();
             if (data.already_registered) {

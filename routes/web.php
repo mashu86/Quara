@@ -95,6 +95,7 @@ Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy_
 Route::get('/address/pincode', \App\Http\Controllers\PincodeController::class)->middleware('throttle:60,1')->name('address.pincode');
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::get('/checkout/district-offer', [CheckoutController::class, 'districtOffer'])->middleware('throttle:60,1')->name('checkout.district-offer');
+Route::post('/checkout/reverse-location', [CheckoutController::class, 'reverseGeocode'])->middleware('throttle:10,1')->name('checkout.reverse-location');
 Route::post('/checkout/coupon/apply', [CheckoutController::class, 'applyCoupon'])->middleware('throttle:20,1')->name('checkout.coupon.apply');
 Route::post('/checkout/coupon/remove', [CheckoutController::class, 'removeCoupon'])->name('checkout.coupon.remove');
 Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');

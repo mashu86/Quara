@@ -28,6 +28,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'openstreetmap' => [
+        'nominatim_reverse_url' => env('NOMINATIM_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),
+        'nominatim_user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Quara Wardrobe').' checkout address lookup ('.env('APP_URL', 'http://localhost').')'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

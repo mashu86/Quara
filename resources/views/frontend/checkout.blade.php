@@ -7,7 +7,7 @@
 <div class="container py-4">
     <h5 class="font-serif fw-bold fs-5 mb-3"><i class="fa-solid fa-lock text-gold me-2"></i> SECURE CHECKOUT</h5>
 
-    <form action="{{ route('checkout.process') }}" method="POST" data-district-checkout="{{ route('checkout.district-offer') }}" data-base-total="{{ $summary['grand_total'] }}" data-base-rounding="{{ $summary['rounding_adjustment'] ?? 0 }}" data-base-product-total="{{ max(0, $summary['subtotal'] - $summary['discount']) }}" data-base-shipping="{{ $summary['shipping'] }}">
+    <form action="{{ route('checkout.process') }}" method="POST" data-district-checkout="{{ route('checkout.district-offer') }}" data-base-total="{{ $summary['grand_total'] }}" data-base-rounding="{{ $summary['rounding_adjustment'] ?? 0 }}" data-base-product-total="{{ max(0, $summary['subtotal'] - $summary['discount']) }}" data-base-shipping="{{ $summary['shipping'] }}" data-coupon-discount="{{ $summary['coupon_discount'] ?? 0 }}">
         @csrf
         <div class="row g-4">
             <!-- Customer Shipping Address -->
@@ -27,6 +27,19 @@
                                 </div>
                                 <span class="badge bg-white text-success border fw-normal">Editable</span>
                             </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="p-3 rounded-3 border bg-light d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                                <button type="button" id="useCurrentLocation" class="btn btn-outline-dark rounded-pill fw-bold flex-shrink-0" data-url="{{ route('checkout.reverse-location') }}">
+                                    <i class="fa-solid fa-location-crosshairs text-gold me-2" aria-hidden="true"></i>Use my current location
+                                </button>
+                                <div class="small text-muted">
+                                    Allow location access to look up and fill your address using OpenStreetMap. Review the details before placing your order.
+                                    <span class="d-block">Address lookup: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span>
+                                </div>
+                            </div>
+                            <div id="currentLocationMessage" class="small mt-2" role="status" aria-live="polite"></div>
                         </div>
 
                         <div class="col-md-6">
@@ -190,11 +203,11 @@
 
                     @endif
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Shipping Charge</span>
+                        <span class="text-muted" id="checkoutShippingLabel">Shipping Charge</span>
                         @if($summary['shipping'] > 0)
-                            <span class="fw-bold text-dark">₹{{ number_format($summary['shipping'], 2) }}</span>
+                            <span class="fw-bold text-dark" id="checkoutShippingAmount">₹{{ number_format($summary['shipping'], 2) }}</span>
                         @else
-                            <span class="text-success fw-semibold">FREE</span>
+                            <span class="text-success fw-semibold" id="checkoutShippingAmount">FREE</span>
                         @endif
                     </div>
 
@@ -252,7 +265,76 @@
 @section('scripts')
 <script src="{{ asset('js/checkout_district_offer.js') }}?v={{ filemtime(public_path('js/checkout_district_offer.js')) }}"></script>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{const form=document.querySelector('[data-district-checkout]'),input=document.getElementById('couponCode'),button=document.getElementById('couponAction'),msg=document.getElementById('couponMessage'),row=document.getElementById('couponDiscountRow'),amount=document.getElementById('couponDiscountAmount'),total=document.getElementById('checkoutTotal'),rounding=document.getElementById('checkoutRounding'),box=document.getElementById('couponBox');let couponDiscount=Number(@json($summary['coupon_discount']??0));const recalc=()=>{const pin=document.querySelector('[name="pin_code"]')?.value.trim()||'';const data=window.checkoutDistrictOfferData||{};let raw=Number(form.dataset.baseProductTotal)+Number(form.dataset.baseShipping||0)-couponDiscount;if(data.pin===pin&&data.discount)raw-=Number(data.discount);raw=Math.max(0,raw);const rounded=Math.ceil(raw);total.textContent='₹'+rounded.toFixed(2);rounding.textContent='+₹'+(rounded-raw).toFixed(2);};button.addEventListener('click',async()=>{const remove=box.dataset.applied==='1';button.disabled=true;msg.textContent=remove?'Removing coupon…':'Checking coupon…';try{const response=await fetch(remove?@json(route('checkout.coupon.remove')):@json(route('checkout.coupon.apply')),{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'Accept':'application/json'},body:JSON.stringify(remove?{}:{code:input.value,pin_code:document.querySelector(`[name="pin_code"]`)?.value||""})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Unable to apply coupon.');if(remove){couponDiscount=0;box.dataset.applied='0';input.readOnly=false;input.value='';button.textContent='Apply';row.hidden=true;msg.textContent=data.message;}else{couponDiscount=Number(data.discount);box.dataset.applied='1';input.value=data.code;input.readOnly=true;button.textContent='Remove';row.hidden=false;amount.textContent='-₹'+couponDiscount.toFixed(2);msg.textContent=data.message;msg.className='small mt-2 text-success';if(data.pin_code){window.checkoutDistrictOfferData={pin:data.pin_code,discount:Number(data.district_discount||0)};document.getElementById("districtOfferRow").hidden=!(Number(data.district_discount)>0);document.getElementById("districtOfferAmount").textContent="-\u20b9"+Number(data.district_discount||0).toFixed(2);}}recalc();}catch(e){msg.textContent=e.message;msg.className='small mt-2 text-danger';}finally{button.disabled=false;}});form.elements.pin_code?.addEventListener('input',recalc);});
+document.addEventListener('DOMContentLoaded',()=>{const form=document.querySelector('[data-district-checkout]'),input=document.getElementById('couponCode'),button=document.getElementById('couponAction'),msg=document.getElementById('couponMessage'),row=document.getElementById('couponDiscountRow'),amount=document.getElementById('couponDiscountAmount'),total=document.getElementById('checkoutTotal'),rounding=document.getElementById('checkoutRounding'),box=document.getElementById('couponBox');let couponDiscount=Number(@json($summary['coupon_discount']??0));const recalc=()=>{const pin=document.querySelector('[name="pin_code"]')?.value.trim()||'';const data=window.checkoutDistrictOfferData||{};let raw=Number(form.dataset.baseProductTotal)+Number(data.shipping??form.dataset.baseShipping??0)-couponDiscount;if(data.pin===pin&&data.discount)raw-=Number(data.discount);raw=Math.max(0,raw);const rounded=Math.ceil(raw);total.textContent='₹'+rounded.toFixed(2);rounding.textContent='+₹'+(rounded-raw).toFixed(2);};button.addEventListener('click',async()=>{const remove=box.dataset.applied==='1';button.disabled=true;msg.textContent=remove?'Removing coupon…':'Checking coupon…';try{const response=await fetch(remove?@json(route('checkout.coupon.remove')):@json(route('checkout.coupon.apply')),{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'Accept':'application/json'},body:JSON.stringify(remove?{}:{code:input.value,pin_code:document.querySelector(`[name="pin_code"]`)?.value||""})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Unable to apply coupon.');if(remove){couponDiscount=0;box.dataset.applied='0';input.readOnly=false;input.value='';button.textContent='Apply';row.hidden=true;msg.textContent=data.message;}else{couponDiscount=Number(data.discount);box.dataset.applied='1';input.value=data.code;input.readOnly=true;button.textContent='Remove';row.hidden=false;amount.textContent='-₹'+couponDiscount.toFixed(2);msg.textContent=data.message;msg.className='small mt-2 text-success';if(data.pin_code){window.checkoutDistrictOfferData={pin:data.pin_code,discount:Number(data.district_discount||0),shipping:Number(data.shipping||form.dataset.baseShipping||0)};document.getElementById("districtOfferRow").hidden=!(Number(data.district_discount)>0);document.getElementById("districtOfferAmount").textContent="-\u20b9"+Number(data.district_discount||0).toFixed(2);}}recalc();}catch(e){msg.textContent=e.message;msg.className='small mt-2 text-danger';}finally{button.disabled=false;}});form.elements.pin_code?.addEventListener('input',recalc);});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const locationButton = document.getElementById('useCurrentLocation');
+    const locationMessage = document.getElementById('currentLocationMessage');
+    if (!locationButton || !locationMessage) return;
+
+    const setAddressField = (name, value) => {
+        const field = document.querySelector(`[name="${name}"]`);
+        if (field && value) field.value = value;
+    };
+
+    locationButton.addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            locationMessage.textContent = 'Your browser does not support location detection. Please enter your address manually.';
+            locationMessage.className = 'small mt-2 text-danger';
+            return;
+        }
+
+        const originalLabel = locationButton.innerHTML;
+        locationButton.disabled = true;
+        locationButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2" aria-hidden="true"></i>Finding your location...';
+        locationMessage.textContent = 'Waiting for location permission...';
+        locationMessage.className = 'small mt-2 text-muted';
+
+        navigator.geolocation.getCurrentPosition(async position => {
+            try {
+                locationMessage.textContent = 'Looking up your address...';
+                const response = await fetch(locationButton.dataset.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': @json(csrf_token()),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not find your address.');
+
+                Object.entries(data.address || {}).forEach(([key, value]) => setAddressField(key, value));
+                const pinInput = document.querySelector('[name="pin_code"]');
+                if (pinInput) pinInput.dispatchEvent(new Event('input', {bubbles: true}));
+
+                locationMessage.textContent = 'Address filled. Please check it and complete any missing details.';
+                locationMessage.className = 'small mt-2 text-success';
+            } catch (error) {
+                locationMessage.textContent = error.message || 'Location lookup failed. Please enter your address manually.';
+                locationMessage.className = 'small mt-2 text-danger';
+            } finally {
+                locationButton.disabled = false;
+                locationButton.innerHTML = originalLabel;
+            }
+        }, error => {
+            const messages = {
+                1: 'Location permission was denied. Allow it in your browser settings or enter the address manually.',
+                2: 'Your current location could not be determined. Please try again or enter the address manually.',
+                3: 'Location detection timed out. Please try again.'
+            };
+            locationMessage.textContent = messages[error.code] || 'Location detection failed. Please enter your address manually.';
+            locationMessage.className = 'small mt-2 text-danger';
+            locationButton.disabled = false;
+            locationButton.innerHTML = originalLabel;
+        }, {enableHighAccuracy: true, timeout: 15000, maximumAge: 60000});
+    });
+});
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

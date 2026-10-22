@@ -17,7 +17,9 @@ use App\Services\WhatsAppService;
 use App\Mail\OrderConfirmationMail;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 class CheckoutController extends Controller
@@ -87,16 +89,18 @@ class CheckoutController extends Controller
         if (!$result['valid']) return response()->json(['success' => false, 'message' => $result['message']], 422);
         session(['master_coupon' => ['id' => $result['coupon']->id, 'code' => $result['coupon']->code]]);
         $districtDiscount = 0;
+        $shipping = (float) $summary['shipping'];
         $pin = (string) $request->input('pin_code', '');
         if (preg_match('/^[1-9][0-9]{5}$/', $pin)) {
             try {
                 $location = app(PincodeService::class)->lookup($pin);
+                $shipping += strcasecmp(trim($location['state']), config('district_offers.state', 'Kerala')) === 0 ? 0 : 10;
                 $offer = app(DistrictOfferService::class)->eligible($location['district'], $location['state'], now('Asia/Kolkata'));
                 $districtDiscount = app(DistrictOfferService::class)->snapshot($offer, $summary['subtotal'] - $summary['discount'], true)['district_offer_discount'];
             } catch (\Throwable $e) { /* Pricing is revalidated on order creation. */ }
         }
-        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $districtDiscount - $result['discount'] + $summary['shipping'], 2));
-        return response()->json(['success' => true, 'code' => $result['coupon']->code, 'discount' => $result['discount'], 'grand_total' => ceil($raw), 'rounding_adjustment' => round(ceil($raw) - $raw, 2), 'district_discount' => $districtDiscount, 'pin_code' => $pin, 'message' => 'Coupon applied successfully.']);
+        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $districtDiscount - $result['discount'] + $shipping, 2));
+        return response()->json(['success' => true, 'code' => $result['coupon']->code, 'discount' => $result['discount'], 'shipping' => $shipping, 'outside_kerala_surcharge' => max(0, $shipping - (float) $summary['shipping']), 'grand_total' => ceil($raw), 'rounding_adjustment' => round(ceil($raw) - $raw, 2), 'district_discount' => $districtDiscount, 'pin_code' => $pin, 'message' => 'Coupon applied successfully.']);
     }
 
     public function removeCoupon()
@@ -112,12 +116,87 @@ class CheckoutController extends Controller
         $summary = $this->cartService->getSummary();
         $snapshot = $offers->snapshot($offers->eligible($location['district'], $location['state'], now('Asia/Kolkata')),
             $summary['subtotal'] - $summary['discount'], true);
-        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $snapshot['district_offer_discount'] + $summary['shipping'], 2));
+        $outsideKeralaSurcharge = strcasecmp(trim($location['state']), config('district_offers.state', 'Kerala')) === 0 ? 0 : 10;
+        $shipping = (float) $summary['shipping'] + $outsideKeralaSurcharge;
+        $raw = max(0, round($summary['subtotal'] - $summary['discount'] - $snapshot['district_offer_discount'] + $shipping, 2));
 
         return response()->json($location + [
             'offer' => $snapshot['district_offer_snapshot'],
             'discount' => $snapshot['district_offer_discount'],
+            'shipping' => $shipping,
+            'outside_kerala_surcharge' => $outsideKeralaSurcharge,
             'grand_total' => ceil($raw), 'rounding_adjustment' => round(ceil($raw) - $raw, 2),
+        ]);
+    }
+
+    public function reverseGeocode(Request $request)
+    {
+        $coordinates = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $latitude = round((float) $coordinates['latitude'], 4);
+        $longitude = round((float) $coordinates['longitude'], 4);
+        $cacheKey = 'checkout-reverse-location:'.hash('sha256', $latitude.'|'.$longitude);
+        $place = Cache::get($cacheKey);
+
+        if (! is_array($place)) {
+            if (! Cache::add('checkout-nominatim-global-throttle', true, now()->addSecond())) {
+                return response()->json(['success' => false, 'message' => 'Please wait a moment, then try location lookup again.'], 429);
+            }
+
+            try {
+                $response = Http::acceptJson()
+                    ->withHeaders([
+                        'User-Agent' => config('services.openstreetmap.nominatim_user_agent'),
+                    ])
+                    ->timeout(8)
+                    ->get(config('services.openstreetmap.nominatim_reverse_url'), [
+                        'lat' => $latitude,
+                        'lon' => $longitude,
+                        'format' => 'jsonv2',
+                        'addressdetails' => 1,
+                        'zoom' => 18,
+                    ]);
+
+                if (! $response->successful()) {
+                    return response()->json(['success' => false, 'message' => 'Could not look up this location. Please enter your address manually.'], 422);
+                }
+
+                $place = $response->json();
+                if (! is_array($place) || ! is_array($place['address'] ?? null)) {
+                    return response()->json(['success' => false, 'message' => 'No address details were found for this location. Please enter them manually.'], 422);
+                }
+
+                Cache::put($cacheKey, $place, now()->addDays(30));
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return response()->json(['success' => false, 'message' => 'Location lookup is temporarily unavailable. Please enter your address manually.'], 503);
+            }
+        }
+
+        $address = $place['address'];
+        if (strtolower((string) ($address['country_code'] ?? '')) !== 'in') {
+            return response()->json(['success' => false, 'message' => 'Automatic address lookup is available for locations in India. Please enter your address manually.'], 422);
+        }
+
+        $city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? '';
+        $district = $address['state_district'] ?? $address['district'] ?? $address['county'] ?? $city;
+
+        return response()->json([
+            'success' => true,
+            'address' => [
+                'house_building' => $address['house_number'] ?? '',
+                'street' => $address['road'] ?? $address['pedestrian'] ?? $address['footway'] ?? '',
+                'area' => $address['neighbourhood'] ?? $address['suburb'] ?? $address['residential'] ?? $address['hamlet'] ?? '',
+                'city' => $city,
+                'district' => $district,
+                'state' => $address['state'] ?? '',
+                'pin_code' => preg_match('/^[1-9][0-9]{5}$/', (string) ($address['postcode'] ?? '')) ? $address['postcode'] : '',
+            ],
+            'attribution' => '© OpenStreetMap contributors',
         ]);
     }
 
@@ -163,9 +242,14 @@ class CheckoutController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             $location = null; // Manual delivery details remain usable without a postal lookup.
         }
+        $shipping = (float) $summary['shipping'];
+        $deliveryState = $location['state'] ?? $validated['state'];
+        if (strcasecmp(trim($deliveryState), config('district_offers.state', 'Kerala')) !== 0) {
+            $shipping += 10;
+        }
 
             try {
-            $order = DB::transaction(function () use ($validated, $cart, $summary, $location) {
+            $order = DB::transaction(function () use ($validated, $cart, $summary, $location, $shipping) {
                 $this->stockService->lockAndValidateCheckoutStock($cart);
                 $orderNumber = Order::generateOrderNumber();
                 $offers = app(DistrictOfferService::class);
@@ -180,7 +264,7 @@ class CheckoutController extends Controller
                     if (!$couponData['valid']) throw new \RuntimeException($couponData['message']);
                     $summary['discount'] += $couponData['discount'];
                 }
-                $raw = max(0, round($summary['subtotal'] - $summary['discount'] + $summary['shipping'], 2));
+                $raw = max(0, round($summary['subtotal'] - $summary['discount'] + $shipping, 2));
                 $summary['grand_total'] = ceil($raw);
                 $summary['rounding_adjustment'] = round(ceil($raw) - $raw, 2);
 
@@ -204,7 +288,7 @@ class CheckoutController extends Controller
                     'coupon_code' => $couponData['coupon']->code ?? null,
                     'coupon_discount' => $couponData['discount'] ?? 0,
                     'coupon_usage_recorded' => false,
-                    'shipping' => $summary['shipping'],
+                    'shipping' => $shipping,
                     'rounding_adjustment' => $summary['rounding_adjustment'] ?? 0.00,
                     'grand_total' => $summary['grand_total'],
                     'payment_method' => $validated['payment_method'],

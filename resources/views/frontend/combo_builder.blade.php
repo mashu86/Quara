@@ -246,8 +246,8 @@
             <div class="row g-2 g-sm-3 g-md-4">
                 @forelse($products as $product)
                     @php
-                        $availableSizes = $product->sizes->where('stock', '>', 0);
-                        $isOut = $product->is_out_of_stock || $availableSizes->isEmpty() || !empty($product->booked_by);
+                        $availableSizes = $product->sizes->filter(fn ($size) => $size->available_stock > 0);
+                        $isOut = $product->is_out_of_stock || $availableSizes->isEmpty();
                     @endphp
                     <div class="col-6 col-sm-4 col-md-3 col-lg-4 product-item-col animate__animated animate__fadeIn">
                         <div class="qw-product-card product-combo-card h-100 d-flex flex-column shadow-sm rounded-4 overflow-hidden border text-dark {{ $isOut ? 'opacity-75' : '' }}">
@@ -263,7 +263,7 @@
                                     <i class="fa-solid fa-share-nodes" style="font-size:.78rem"></i>
                                 </button>
                                 @if($isOut)
-                                    <div class="qw-out-of-stock-overlay"><span class="qw-out-of-stock-badge">{{ !empty($product->booked_by) ? 'BOOKED' : 'SOLD OUT' }}</span></div>
+                                    <div class="qw-out-of-stock-overlay"><span class="qw-out-of-stock-badge">SOLD OUT</span></div>
                                 @endif
                             </div>
                             <div class="qw-card-body p-2 p-sm-3 d-flex flex-column flex-grow-1">

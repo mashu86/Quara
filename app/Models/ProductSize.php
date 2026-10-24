@@ -54,7 +54,11 @@ class ProductSize extends Model
     {
         $query = OrderItem::query()->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.product_id', $this->product_id)
-            ->where('order_items.size', $this->size)
+            // Match the size by id; older lines without an id fall back to the size name.
+            ->where(function ($sizeMatch) {
+                $sizeMatch->where('order_items.product_size_id', $this->id)
+                    ->orWhere(fn ($legacy) => $legacy->whereNull('order_items.product_size_id')->where('order_items.size', $this->size));
+            })
             ->where('orders.payment_method', 'online')
             ->where('orders.payment_status', 'pending')
             ->where('orders.order_status', 'pending')

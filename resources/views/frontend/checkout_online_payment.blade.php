@@ -16,9 +16,9 @@
                     <div class="d-flex align-items-center gap-3">
                         <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
                         <div>
-                            <div class="fw-bold" id="payment-status-title">പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നു</div>
-                            <div id="payment-status-message" class="small">പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നതുവരെ ദയവായി കാത്തിരിക്കുക. ഈ പേജ് പുതുക്കുകയോ അടയ്ക്കുകയോ പിന്നിലേക്ക് പോകുകയോ ചെയ്യരുത്. പരമാവധി 5 മിനിറ്റ് വരെ എടുത്തേക്കാം.</div>
-                            <div class="fw-bold mt-2" id="payment-countdown" aria-label="ശേഷിക്കുന്ന സമയം">05:00</div>
+                            <div class="fw-bold" id="payment-status-title">Confirming payment</div>
+                            <div id="payment-status-message" class="small">Please wait while we confirm your payment. Do not refresh, close or go back from this page. This can take up to 5 minutes.</div>
+                            <div class="fw-bold mt-2" id="payment-countdown" aria-label="Time remaining">05:00</div>
                         </div>
                     </div>
                 </div>
@@ -40,7 +40,7 @@
                     </div>
                 </div>
 
-                @if(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_'))
+                @if(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_') && \App\Services\PaymentService::localTestPaymentsAllowed())
                     <div class="alert alert-info border-0 rounded-3 p-3 mb-4 text-start">
                         <div class="fw-bold text-dark mb-1"><i class="fa-solid fa-flask text-primary me-2"></i> Local Development Test Mode</div>
                         <div class="small text-muted mb-3">Razorpay Live API is bypassed in local environment so you can test checkout & orders safely.</div>
@@ -70,8 +70,11 @@
 @endsection
 
 @section('scripts')
+@unless(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_'))
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+@endunless
 <script>
+    const isLocalMockPayment = @json(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_'));
     let paymentWaiting = false;
     let countdownInterval = null;
 
@@ -88,8 +91,8 @@
         paymentWaiting = true;
         document.getElementById('rzp-button')?.setAttribute('disabled', 'disabled');
         showPaymentStatus(
-            'പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നു',
-            'പേയ്‌മെന്റ് സ്ഥിരീകരിക്കുന്നതുവരെ ദയവായി കാത്തിരിക്കുക. ഈ പേജ് പുതുക്കുകയോ അടയ്ക്കുകയോ പിന്നിലേക്ക് പോകുകയോ ചെയ്യരുത്. പരമാവധി 5 മിനിറ്റ് വരെ എടുത്തേക്കാം.',
+            'Confirming payment',
+            'Please wait while we confirm your payment. Do not refresh, close or go back from this page. This can take up to 5 minutes.',
             true
         );
 
@@ -101,11 +104,11 @@
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
                 showPaymentStatus(
-                    'സ്ഥിരീകരണം വൈകുന്നു',
-                    'പേയ്‌മെന്റ് നില ഇതുവരെ സ്ഥിരീകരിച്ചിട്ടില്ല. പണം അക്കൗണ്ടിൽ നിന്ന് പോയിട്ടുണ്ടെങ്കിൽ വീണ്ടും പേയ്‌മെന്റ് ചെയ്യരുത്. സ്ഥിരീകരണം ലഭിക്കുമ്പോൾ ഈ പേജ് ഫലം കാണിക്കും.',
+                    'Confirmation is taking longer',
+                    'Your payment is not confirmed yet. If money has left your account, please do not pay again. This page will show the result once it is confirmed.',
                     true
                 );
-                timer.textContent = '05:00 കഴിഞ്ഞു';
+                timer.textContent = '05:00 elapsed';
             }
         }, 1000);
     }
@@ -116,6 +119,8 @@
         event.returnValue = '';
     });
 
+    @if(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_') && \App\Services\PaymentService::localTestPaymentsAllowed())
+    {{-- Local test shortcut: only rendered on localhost in local test mode, never on the live site. --}}
     function submitMockLocalPayment() {
         startConfirmationWait();
         document.getElementById('razorpay_payment_id').value = 'pay_mock_local_' + Date.now();
@@ -124,7 +129,9 @@
         paymentWaiting = false;
         document.getElementById('razorpayForm').submit();
     }
+    @endif
 
+    if (!isLocalMockPayment) {
     const options = {
         "key": "{{ $paymentResult['razorpay_key'] }}",
         "amount": "{{ $paymentResult['amount'] ?? ($order->grand_total * 100) }}",
@@ -137,7 +144,7 @@
         @endif
         "handler": function (response){
             if (!response.razorpay_payment_id || !response.razorpay_signature) {
-                showPaymentStatus('പേയ്‌മെന്റ് സ്ഥിരീകരിക്കാനായില്ല', 'പേയ്‌മെന്റ് നില പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. പണം അക്കൗണ്ടിൽ നിന്ന് പോയിട്ടുണ്ടെങ്കിൽ വീണ്ടും പണമടയ്ക്കരുത്.');
+                showPaymentStatus('Could not confirm payment', 'We could not check your payment status. If money has left your account, please do not pay again.');
                 return;
             }
             startConfirmationWait();
@@ -167,7 +174,7 @@
     rzp.on('payment.failed', function (response){
         paymentWaiting = false;
         document.getElementById('rzp-button')?.removeAttribute('disabled');
-        showPaymentStatus('പേയ്‌മെന്റ് പരാജയപ്പെട്ടു', 'ഈ പേയ്‌മെന്റ് ശ്രമം പരാജയപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുന്നതിന് മുമ്പ് നിങ്ങളുടെ ബാങ്ക് അക്കൗണ്ടിലെ ഇടപാട് നില പരിശോധിക്കുക.');
+        showPaymentStatus('Payment failed', 'This payment attempt failed. Please check the transaction status in your bank account before trying again.');
         document.querySelector('#payment-status .spinner-border').hidden = true;
         document.getElementById('payment-countdown').hidden = true;
         window.setTimeout(() => { window.location.href = "{{ route('checkout.index') }}"; }, 3000);
@@ -182,5 +189,6 @@
     window.onload = function() {
         openPayment();
     };
+    }
 </script>
 @endsection

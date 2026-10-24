@@ -275,6 +275,56 @@ class RazorpayWebhookAndStockLockTest extends TestCase
             ->assertSee('ORDER UNDER REVIEW')->assertDontSee('is being prepared with care');
     }
 
+    public function test_webhook_payment_never_takes_a_size_booked_piece(): void
+    {
+        $this->size->update(['stock' => 2]);
+        \App\Models\ProductBooking::create([
+            'product_id' => $this->product->id, 'product_size_id' => $this->size->id, 'quantity' => 1, 'booked_by' => 'kk',
+            'booking_type' => 'whatsapp_customer', 'booking_date' => now()->toDateString(), 'status' => 'active',
+        ]);
+        $first = $this->pendingOrder('BUYS-FREE-PIECE', ['reserved_until' => now()->subMinute()]);
+        $late = $this->pendingOrder('WANTS-BOOKED-PIECE', ['reserved_until' => now()->subMinute()]);
+
+        $this->webhook($first)->assertJson(['status' => 'success']);
+        $this->webhook($late)->assertJson(['status' => 'stock_review']);
+
+        $this->assertEquals('paid', $late->fresh()->payment_status);
+        $this->assertEquals('pending', $late->fresh()->order_status);
+        $this->assertEquals(1, $this->size->fresh()->stock, 'The booked piece stays on the shelf.');
+        $this->assertEquals('active', \App\Models\ProductBooking::first()->status);
+        $this->assertEquals(0, \App\Models\ProductBooking::first()->sold_quantity);
+    }
+
+    public function test_webhook_payment_never_takes_a_whole_product_booking(): void
+    {
+        $order = $this->pendingOrder('AFTER-LEGACY-BOOKING', ['reserved_until' => now()->subMinute()]);
+        // Admin books the whole product after checkout started but before the payment lands.
+        $this->product->update(['is_out_of_stock' => true, 'booked_by' => 'Shop customer', 'booking_type' => 'whatsapp_customer']);
+
+        $this->webhook($order)->assertJson(['status' => 'stock_review']);
+
+        $this->assertEquals('pending', $order->fresh()->order_status);
+        $this->assertEquals(1, $this->size->fresh()->stock);
+        $this->assertTrue($this->product->fresh()->is_out_of_stock);
+        $this->assertEquals('Shop customer', $this->product->fresh()->booked_by);
+    }
+
+    public function test_booking_on_one_size_does_not_block_payment_for_another_size(): void
+    {
+        $xl = ProductSize::create(['product_id' => $this->product->id, 'size' => 'XL', 'stock' => 2]);
+        \App\Models\ProductBooking::create([
+            'product_id' => $this->product->id, 'product_size_id' => $this->size->id, 'quantity' => 1, 'booked_by' => 'kk',
+            'booking_type' => 'whatsapp_customer', 'booking_date' => now()->toDateString(), 'status' => 'active',
+        ]);
+        $order = $this->pendingOrder('BUYS-XL', ['reserved_until' => now()->subMinute()]);
+        $order->items()->update(['product_size_id' => $xl->id, 'size' => 'XL']);
+
+        $this->webhook($order)->assertJson(['status' => 'success']);
+
+        $this->assertEquals(1, $xl->fresh()->stock);
+        $this->assertEquals(1, $this->size->fresh()->stock, 'The booked M piece is untouched.');
+    }
+
     public function test_stock_is_never_silently_deducted_below_zero(): void
     {
         $first = $this->pendingOrder('FIRST', ['reserved_until' => now()->subMinute()]);
@@ -452,5 +502,44 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         }
         $this->assertNull($order->fresh()->reserved_until);
         $this->assertDatabaseCount('payments', 1);
+    }
+
+    public function test_local_test_payment_needs_local_env_flag_and_localhost(): void
+    {
+        $allowedOn = function (string $env, bool $flag, string $host): bool {
+            config(['app.env' => $env, 'services.razorpay.local_test_mode' => $flag]);
+            $this->app->instance('request', \Illuminate\Http\Request::create("http://{$host}/checkout/process"));
+            return \App\Services\PaymentService::localTestPaymentsAllowed();
+        };
+
+        $this->assertTrue($allowedOn('local', true, '127.0.0.1'));
+        $this->assertTrue($allowedOn('local', true, 'localhost'));
+        $this->assertFalse($allowedOn('production', true, '127.0.0.1'), 'Never on production');
+        $this->assertFalse($allowedOn('local', false, '127.0.0.1'), 'Needs the explicit flag');
+        $this->assertFalse($allowedOn('local', true, 'quarawardrobe.com'), 'Never on a real domain, even with APP_ENV=local');
+        $this->assertFalse($allowedOn('production', false, 'quarawardrobe.com'));
+
+        // A remote visitor forging "Host: localhost" is still refused: the connection IP is not loopback.
+        config(['app.env' => 'local', 'services.razorpay.local_test_mode' => true]);
+        $this->app->instance('request', \Illuminate\Http\Request::create('http://localhost/checkout/process', 'GET', [], [], [], ['REMOTE_ADDR' => '203.0.113.9']));
+        $this->assertFalse(\App\Services\PaymentService::localTestPaymentsAllowed(), 'Forged Host header from outside');
+    }
+
+    public function test_live_site_with_local_env_still_requires_real_razorpay_payment(): void
+    {
+        // A copied .env with APP_ENV=local on the real domain must not open the test shortcut.
+        config(['app.env' => 'local', 'services.razorpay.local_test_mode' => true]);
+        $this->app->instance('request', \Illuminate\Http\Request::create('https://quarawardrobe.com/checkout/process'));
+        $order = $this->pendingOrder('LIVE-DOMAIN');
+        Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_REAL123'], 200)]);
+
+        $result = app(\App\Services\PaymentService::class)->initiatePayment($order, 'online');
+        $this->assertSame('order_REAL123', $result['razorpay_order_id']);
+
+        // A forged "mock" confirmation is rejected and the order stays unpaid.
+        $this->assertFalse(app(\App\Services\PaymentService::class)
+            ->verifyOnlinePayment($order->fresh(), 'pay_mock_local_1', 'order_mock_local_1', 'fake'));
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertEquals(1, $this->size->fresh()->stock);
     }
 }

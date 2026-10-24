@@ -1,5 +1,6 @@
 @forelse($products as $product)
     @php
+        $availableTotalStock = $product->available_total_stock;
         $hasDiscount = ($product->discount_type !== 'none' && $product->price > $product->final_price);
         $discPct = $hasDiscount ? round((($product->price - $product->final_price) / $product->price) * 100) : 0;
         $finalFormatted = $product->final_price == floor($product->final_price) ? number_format($product->final_price, 0) : number_format($product->final_price, 2);
@@ -43,7 +44,7 @@
                     </button>
                 @endif
 
-                @if($product->total_stock <= 0)
+                @if($availableTotalStock <= 0)
                     <div class="qw-out-of-stock-overlay">
                         <span class="qw-out-of-stock-badge">SOLD OUT</span>
                     </div>
@@ -63,6 +64,9 @@
                         <i class="fa-solid fa-circle-info" style="font-size: 0.88rem;"></i>
                     </button>
                 </div>
+                @if($product->product_code)
+                    <div class="text-muted fw-semibold mb-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">Code: {{ $product->product_code }}</div>
+                @endif
 
                 <!-- Price Row (Selling Price + Red Cut Price Side-by-Side with small gap) -->
                 <div class="mt-auto d-flex align-items-baseline justify-content-between gap-1.5 mb-1.5">

@@ -138,6 +138,23 @@
         .mobile-product-card .border-top { padding-top: 0.28rem !important; }
         .mobile-product-card .pt-2 { padding-top: 0.28rem !important; }
         .mobile-product-card .gap-2 { gap: 0.3rem !important; }
+        .mobile-product-card .mb-2 { margin-bottom: 0.28rem !important; }
+        .mobile-product-categories { max-height: 1.1rem; overflow: hidden; }
+        .mobile-booking-block .book-product-btn { font-size: 0.56rem !important; padding: 0.1rem 0.45rem !important; }
+        .mobile-booking-block .view-bookings-btn { font-size: 0.56rem !important; }
+        .mobile-booking-block .mt-1 { margin-top: 0.15rem !important; }
+        .mobile-product-card .form-switch .form-check-input { width: 1.9em !important; height: 1em !important; }
+    }
+
+    /* Phones: keep two cards per row but make each card shorter so more rows fit on screen. */
+    @media (max-width: 575.98px) {
+        #products-mobile-grid { --bs-gutter-y: 0.4rem; }
+        .mobile-product-image-wrap { height: clamp(70px, 22vw, 92px); }
+        .mobile-product-card .card-body { padding: 0.32rem !important; }
+        .mobile-product-name { min-height: 0; -webkit-line-clamp: 1; line-clamp: 1; }
+        .mobile-booking-block { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; }
+        .mobile-booking-block .mt-1 { margin-top: 0 !important; }
+        .mobile-product-action { width: 22px; height: 22px; }
     }
 
     @media (min-width: 992px) {
@@ -477,6 +494,24 @@
     </div>
 </div>
 
+<!-- Booked Customers List Modal -->
+<div class="modal fade" id="bookingListModal" tabindex="-1" aria-labelledby="bookingListModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-dark text-white border-0 py-2.5">
+                <h5 class="modal-title font-serif fw-bold fs-6" id="bookingListModalLabel">
+                    <i class="fa-solid fa-users text-warning me-2"></i> Booked Customers
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="small text-muted mb-3">Bookings for <strong id="bookingListProductName" class="text-dark">Product</strong>. Turn a switch off to remove that booking.</p>
+                <div id="bookingListBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @include('admin.products.partials.preview-modal')
 
 <!-- Instagram Overlay Settings Offcanvas Drawer -->
@@ -650,9 +685,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let hasMorePages = {{ $products->hasMorePages() ? 'true' : 'false' }};
     let isLoading = false;
-    let currentBookedToggle = null;
+    let currentBookBtn = null;
     let bookedModalInstance = null;
-    let editingExistingBooking = false;
     const bookingTypeInput = document.getElementById('modalBookingType');
     const bookingDateInput = document.getElementById('modalBookingDate');
     const bookedByInput = document.getElementById('modalBookedByInput');
@@ -677,47 +711,43 @@ document.addEventListener('DOMContentLoaded', function() {
         bookedByInput.placeholder = type === 'instagram_customer' ? 'Instagram name or customer name' : 'Name or phone number';
     }
 
-    function openBookingModal(toggle, editingExisting = false) {
-        currentBookedToggle = toggle;
-        editingExistingBooking = editingExisting;
-        const typeFromRow = toggle.dataset.bookingType || (toggle.dataset.bookedBy ? 'whatsapp_customer' : '');
-        bookingTypeInput.value = typeFromRow || 'whatsapp_customer';
-        bookedByInput.value = toggle.dataset.bookedBy || '';
-        bookingDateInput.value = toggle.dataset.bookingDate || localToday();
+    function openBookingModal(button) {
+        currentBookBtn = button;
+        bookingTypeInput.value = 'whatsapp_customer';
+        bookedByInput.value = '';
+        bookingDateInput.value = localToday();
         syncBookingTypeFields();
-        document.getElementById('bookedModalProductName').textContent = toggle.dataset.productName || 'Product';
+        document.getElementById('bookedModalProductName').textContent = button.dataset.productName || 'Product';
         const sizeSelect = document.getElementById('modalBookingSize');
-        const sizeRows = JSON.parse(toggle.dataset.sizes || '[]');
+        const sizeRows = JSON.parse(button.dataset.sizes || '[]');
         sizeSelect.innerHTML = '<option value="">Select size</option>' + sizeRows.map(row => `<option value="${row.id}" ${row.available < 1 ? 'disabled' : ''}>${row.size} (${row.available} available)</option>`).join('');
         const quantityInput = document.getElementById('modalBookingQuantity');
         quantityInput.value = '1';
+        document.getElementById('modalBookingStock').textContent = 'Choose a size';
         sizeSelect.onchange = () => {
             const selected = sizeRows.find(row => String(row.id) === sizeSelect.value);
             quantityInput.max = selected?.available || 0;
             document.getElementById('modalBookingStock').textContent = selected ? `${selected.available} unbooked unit(s) available` : 'Choose a size';
         };
-        document.getElementById('toggleBookedModalLabel').innerHTML = editingExisting
-            ? '<i class="fa-solid fa-user-tag text-warning me-2"></i> Edit Booking Details'
-            : '<i class="fa-solid fa-user-tag text-warning me-2"></i> Mark Product as Booked';
-        const modalElem = document.getElementById('toggleBookedModal');
-        bookedModalInstance = bootstrap.Modal.getOrCreateInstance(modalElem);
+        bookedModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('toggleBookedModal'));
         bookedModalInstance.show();
-        if (!editingExisting) setTimeout(() => { if (!bookedByInput.disabled && bookedByInput.required) bookedByInput.focus(); }, 350);
+        setTimeout(() => { if (bookedByInput.required) bookedByInput.focus(); }, 350);
     }
 
     bookingTypeInput?.addEventListener('change', syncBookingTypeFields);
     document.addEventListener('click', function(event) {
-        const editButton = event.target.closest('.edit-booking-details');
-        if (!editButton) return;
-        const toggle = document.getElementById('outOfStockToggle_' + editButton.dataset.productId);
-        if (toggle) openBookingModal(toggle, true);
+        const bookButton = event.target.closest('.book-product-btn');
+        if (bookButton) { openBookingModal(bookButton); return; }
+        const viewButton = event.target.closest('.view-bookings-btn');
+        if (viewButton) openBookingListModal(viewButton);
     });
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const productsTbody = document.getElementById('products-desktop-tbody');
+    // Status switches live in both the desktop table and the mobile cards.
+    const statusToggleRoot = document;
 
-    if (productsTbody) {
-        productsTbody.addEventListener('change', function(event) {
+    if (statusToggleRoot) {
+        statusToggleRoot.addEventListener('change', function(event) {
             const toggle = event.target.closest('.product-status-toggle');
             if (!toggle) return;
 
@@ -733,7 +763,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json().then(data => ({ response, data })))
             .then(({ response, data }) => {
                 if (!response.ok || !data.success) throw new Error(data.message || 'Could not update product status.');
-                toggle.checked = data.status === 'active';
+                document.querySelectorAll(`.product-status-toggle[data-product-id="${toggle.dataset.productId}"]`)
+                    .forEach(t => { t.checked = data.status === 'active'; });
                 if (toggle.closest('.form-check')) {
                     toggle.closest('.form-check').title = data.status.charAt(0).toUpperCase() + data.status.slice(1);
                 }
@@ -798,7 +829,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     mobileGrid.insertAdjacentHTML('beforeend', data.mobile_html);
                 }
 
-                initOutOfStockToggles();
 
                 if (!hasMorePages && noMoreNotice) {
                     noMoreNotice.classList.remove('d-none');
@@ -818,94 +848,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', checkAndLoadMore, { passive: true });
     window.addEventListener('resize', checkAndLoadMore);
 
-    function initOutOfStockToggles() {
-        document.querySelectorAll('.out-of-stock-toggle').forEach(function(toggle) {
-            if (toggle.dataset.bound === 'true') return;
-            toggle.dataset.bound = 'true';
-
-            toggle.addEventListener('change', function() {
-                const productId = this.getAttribute('data-product-id');
-                const productName = this.getAttribute('data-product-name') || 'Product';
-                const currentBookedBy = this.getAttribute('data-booked-by') || '';
-                const url = this.getAttribute('data-url');
-                const isChecked = this.checked;
-
-                if (isChecked) {
-                    // Revert checked state until user submits modal
-                    this.checked = false;
-                    this.dataset.productName = productName;
-                    this.dataset.bookedBy = currentBookedBy;
-                    openBookingModal(this);
-                } else {
-                    // Un-booking product directly via toggle OFF
-                    toggle.disabled = true;
-
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ is_out_of_stock: false, booked_by: '' })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        toggle.disabled = false;
-                        if (data.success) {
-                            toggle.checked = false;
-                            toggle.setAttribute('data-booked-by', '');
-                            toggle.dataset.bookingType = '';
-                            toggle.dataset.bookingDate = '';
-                            const label = document.getElementById('outOfStockLabel_' + productId);
-                            const totalStock = parseInt(toggle.getAttribute('data-total-stock') || '0', 10);
-                            if (totalStock <= 0) {
-                                toggle.disabled = true;
-                                toggle.style.cursor = 'not-allowed';
-                            } else {
-                                toggle.disabled = false;
-                                toggle.style.cursor = 'pointer';
-                            }
-                            if (label) {
-                                if (totalStock <= 0) {
-                                    label.textContent = 'Sold Out';
-                                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
-                                    label.style.cursor = 'not-allowed';
-                                } else {
-                                    label.textContent = 'Available';
-                                    label.className = 'form-check-label small fw-bold ms-1 text-success';
-                                    label.style.cursor = 'pointer';
-                                }
-                            }
-                            const displayDiv = document.getElementById('bookedByDisplay_' + productId);
-                            if (displayDiv) displayDiv.classList.add('d-none');
-                            document.getElementById('bookingDateDisplay_' + productId)?.remove();
-                        } else {
-                            toggle.checked = true;
-                            alert(data.message || 'Error updating stock status.');
-                        }
-                    })
-                    .catch(err => {
-                        toggle.disabled = false;
-                        toggle.checked = true;
-                        alert('Failed to connect to server.');
-                    });
-                }
-            });
-        });
-    }
-
     window.submitBookedModal = function() {
-        if (!currentBookedToggle) return;
-        const toggle = currentBookedToggle;
-        const productId = toggle.getAttribute('data-product-id');
-        const url = editingExistingBooking ? toggle.getAttribute('data-url') : toggle.getAttribute('data-url').replace(/\/toggle-out-of-stock$/, '/bookings');
+        if (!currentBookBtn) return;
         const productSizeId = document.getElementById('modalBookingSize').value;
         const quantity = parseInt(document.getElementById('modalBookingQuantity').value || '0', 10);
         const bookedByVal = bookedByInput ? bookedByInput.value.trim() : '';
         const bookingType = bookingTypeInput.value;
         const bookingDate = bookingDateInput.value;
 
+        if (!productSizeId || quantity < 1) { alert('Select a size and valid quantity.'); return; }
         if (bookingType !== 'business_whatsapp' && !bookedByVal) {
             alert('Enter customer details for this booking type.');
             if (bookedByInput) bookedByInput.focus();
@@ -916,94 +867,103 @@ document.addEventListener('DOMContentLoaded', function() {
             bookingDateInput.focus();
             return;
         }
-        if (!editingExistingBooking && (!productSizeId || quantity < 1)) { alert('Select a size and valid quantity.'); return; }
 
-        toggle.disabled = true;
         const saveBtn = document.getElementById('saveBookedModalBtn');
         if (saveBtn) saveBtn.disabled = true;
 
-        fetch(url, {
+        fetch(currentBookBtn.dataset.url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify(editingExistingBooking
-                ? { is_out_of_stock: true, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate }
-                : { product_size_id: productSizeId, quantity, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate })
+            body: JSON.stringify({ product_size_id: productSizeId, quantity, booked_by: bookedByVal, booking_type: bookingType, booking_date: bookingDate })
         })
         .then(res => res.json())
         .then(data => {
-            toggle.disabled = false;
             if (saveBtn) saveBtn.disabled = false;
-
             if (data.success) {
-                if (!editingExistingBooking) {
-                    if (bookedModalInstance) bookedModalInstance.hide();
-                    window.location.reload();
-                    return;
-                }
-                toggle.checked = true;
-                toggle.setAttribute('data-booked-by', data.booked_by || '');
-                toggle.dataset.bookingType = data.booking_type || '';
-                toggle.dataset.bookingDate = data.booking_date || '';
-
-                const label = document.getElementById('outOfStockLabel_' + productId);
-                if (label) {
-                    label.textContent = '🔒 Booked';
-                    label.className = 'form-check-label small fw-bold ms-1 text-danger';
-                }
-
-                const displayDiv = document.getElementById('bookedByDisplay_' + productId);
-                const textSpan = document.getElementById('bookedByText_' + productId);
-                if (displayDiv && textSpan) {
-                    const bookingTypeLabel = data.booking_type === 'business_whatsapp' ? 'Business WhatsApp'
-                        : data.booking_type === 'instagram_customer' ? 'Instagram: ' + (data.booked_by || '')
-                        : data.booking_type === 'whatsapp_customer' ? 'WhatsApp: ' + (data.booked_by || '')
-                        : (data.booked_by || 'Booked');
-                    textSpan.textContent = bookingTypeLabel;
-                    displayDiv.classList.remove('d-none');
-                }
-
-                if (data.booking_date) {
-                    let bookingDateDisplay = document.getElementById('bookingDateDisplay_' + productId);
-                    if (!bookingDateDisplay && displayDiv) {
-                        bookingDateDisplay = document.createElement('div');
-                        bookingDateDisplay.id = 'bookingDateDisplay_' + productId;
-                        bookingDateDisplay.className = 'small text-muted mt-1';
-                        bookingDateDisplay.style.fontSize = '0.72rem';
-                        displayDiv.insertAdjacentElement('afterend', bookingDateDisplay);
-                    }
-                    if (bookingDateDisplay) {
-                        const [year, month, day] = data.booking_date.split('-');
-                        bookingDateDisplay.innerHTML = `<i class="fa-regular fa-calendar me-1"></i>Booked on: <span>${day}-${month}-${year}</span>`;
-                    }
-                }
-
                 if (bookedModalInstance) bookedModalInstance.hide();
-                currentBookedToggle = null;
-                editingExistingBooking = false;
+                window.location.reload();
             } else {
-                alert(data.message || 'Error updating booked status.');
+                alert(data.message || Object.values(data.errors || {}).flat()[0] || 'Error saving booking.');
             }
         })
-        .catch(err => {
-            toggle.disabled = false;
+        .catch(() => {
             if (saveBtn) saveBtn.disabled = false;
             alert('Failed to connect to server.');
         });
     };
 
     window.cancelBookedModal = function() {
-        if (currentBookedToggle) {
-            if (!editingExistingBooking) currentBookedToggle.checked = false;
-            currentBookedToggle = null;
-            editingExistingBooking = false;
-        }
+        currentBookBtn = null;
     };
 
-    initOutOfStockToggles();
+    // Booked customers list: each row has its own switch; turning it off removes that booking.
+    let bookingListChanged = false;
+    const bookingListModalElem = document.getElementById('bookingListModal');
+    bookingListModalElem?.addEventListener('hidden.bs.modal', () => { if (bookingListChanged) window.location.reload(); });
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+
+    function openBookingListModal(button) {
+        const bookings = JSON.parse(button.dataset.bookings || '[]');
+        document.getElementById('bookingListProductName').textContent = button.dataset.productName || 'Product';
+        document.getElementById('bookingListBody').innerHTML = bookings.map(booking => `
+            <div class="d-flex align-items-center justify-content-between gap-2 border rounded-3 p-2 mb-2 booking-list-row">
+                <div class="small">
+                    <div class="fw-bold text-dark"><i class="fa-solid fa-user-tag text-warning me-1"></i>${escapeHtml(booking.name)}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">
+                        ${escapeHtml(booking.type)}
+                        ${booking.size ? ` · Size <strong>${escapeHtml(booking.size)}</strong> × ${booking.quantity}` : ''}
+                        ${booking.date ? ` · <i class="fa-regular fa-calendar"></i> ${escapeHtml(booking.date)}` : ''}
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-0 flex-shrink-0">
+                    <input class="form-check-input booking-row-toggle" type="checkbox" role="switch" checked
+                           data-url="${escapeHtml(booking.url)}" data-legacy="${booking.legacy ? 'true' : 'false'}"
+                           style="width: 2.3em; height: 1.2em; cursor: pointer;" title="Turn off to remove this booking">
+                    <label class="form-check-label small fw-bold text-danger ms-1" style="font-size: 0.75rem;">Booked</label>
+                </div>
+            </div>`).join('') || '<p class="small text-muted mb-0">No active bookings.</p>';
+        bootstrap.Modal.getOrCreateInstance(bookingListModalElem).show();
+    }
+
+    bookingListModalElem?.addEventListener('change', function(event) {
+        const toggle = event.target.closest('.booking-row-toggle');
+        if (!toggle || toggle.checked) return;
+        toggle.disabled = true;
+        const body = toggle.dataset.legacy === 'true' ? { is_out_of_stock: false, booked_by: '' } : {};
+
+        fetch(toggle.dataset.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) throw new Error(data.message || 'Could not remove booking.');
+            bookingListChanged = true;
+            toggle.closest('.booking-list-row').remove();
+            const listBody = document.getElementById('bookingListBody');
+            if (!listBody.querySelector('.booking-list-row')) listBody.innerHTML = '<p class="small text-muted mb-0">No active bookings.</p>';
+        })
+        .catch(error => {
+            toggle.disabled = false;
+            toggle.checked = true;
+            alert(error.message || 'Failed to connect to server.');
+        });
+    });
+
 });
 </script>
 @endsection

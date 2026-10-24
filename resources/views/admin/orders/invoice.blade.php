@@ -315,7 +315,7 @@
         @if($activeOps->count() > 0)
             <div class="alert alert-warning border-warning p-2.5 rounded-3 mt-3 mb-0" style="font-size: 0.76rem;">
                 <i class="fa-solid fa-circle-info text-warning me-1.5 fs-6"></i>
-                <strong>Audit Note / വിവരം:</strong> Returned/Refunded items are included for invoice accounting records. Actual money refunds (if any) are deducted in the Net Received Total.
+                <strong>Audit Note:</strong> Returned/Refunded items are included for invoice accounting records. Actual money refunds (if any) are deducted in the Net Received Total.
             </div>
         @endif
 

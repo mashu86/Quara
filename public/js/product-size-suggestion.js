@@ -138,7 +138,7 @@ window.suggestProductNoteSize = async function(row) {
     if (!masterId) return null;
     const embeddedChart = select.selectedOptions[0]?.dataset.chart;
     const chart = embeddedChart ? { rows: JSON.parse(embeddedChart) } : await fetchSizeMasterChart(masterId);
-    const read = name => row.querySelector(`input[name="${name}[]"], input[name="new_${name}[]"], input[name^="existing_${name}["]`)?.value || '';
+    const read = name => row.querySelector(`input[name="${name}[]"], input[name="new_${name}[]"], input[name^="existing_${name}["], input[name^="new_size_rows["][name$="[${name.replace(/s$/, '')}]"]`)?.value || '';
     return findBestMatchingMasterRow('', read('chests'), read('waists'), chart?.rows)?.size_label || null;
 };
 
@@ -271,7 +271,7 @@ export function enhanceSizeRows() {
 
     rows.forEach((row, index) => {
         if (!row) return;
-        const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]');
+        const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["], input[name^="new_size_rows["][name$="[size]"]');
         if (!sizeInput) return;
 
         if (!sizeInput.dataset.suggestionBound) {
@@ -287,7 +287,7 @@ export function enhanceSizeRows() {
                 sizeInput.dataset.suggestedSize = label || '';
             };
             ['chests', 'waists'].forEach(field => {
-                row.querySelector(`input[name="${field}[]"], input[name="new_${field}[]"], input[name^="existing_${field}["]`)
+                row.querySelector(`input[name="${field}[]"], input[name="new_${field}[]"], input[name^="existing_${field}["], input[name^="new_size_rows["][name$="[${field.slice(0, -1)}]"]`)
                     ?.addEventListener('input', refreshSuggestion);
             });
             sizeInput.addEventListener('input', () => {
@@ -336,8 +336,8 @@ export function enhanceSizeRows() {
                     return;
                 }
 
-                const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["]');
-                const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["]');
+                const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["], input[name^="new_size_rows["][name$="[chest]"]');
+                const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["], input[name^="new_size_rows["][name$="[waist]"]');
 
                 let matchedRow = findBestMatchingMasterRow(
                     sizeInput ? sizeInput.value : '',
@@ -400,9 +400,9 @@ window.applyMagicSizeMasterToAllRows = async function() {
         }
 
         if (row) {
-            const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["]');
-            const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["]');
-            const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["]');
+            const sizeInput = row.querySelector('input[name="sizes[]"], input[name="new_sizes[]"], input[name^="existing_sizes["], input[name^="new_size_rows["][name$="[size]"]');
+            const chestInput = row.querySelector('input[name="chests[]"], input[name="new_chests[]"], input[name^="existing_chests["], input[name^="new_size_rows["][name$="[chest]"]');
+            const waistInput = row.querySelector('input[name="waists[]"], input[name="new_waists[]"], input[name^="existing_waists["], input[name^="new_size_rows["][name$="[waist]"]');
 
             if (sizeInput && mRow.size_label) sizeInput.value = mRow.size_label;
             if (chestInput && mRow.chest) chestInput.value = mRow.chest;

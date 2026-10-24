@@ -35,6 +35,15 @@ class CategoryComboEligibilityTest extends TestCase
         return $product;
     }
 
+    private function discountCategory(string $slug, float $discountValue = 20): Category
+    {
+        return Category::create([
+            'name' => ucfirst($slug), 'slug' => $slug, 'status' => 'active',
+            'is_offer_category' => true, 'offer_type' => 'discount', 'is_combo_offer' => false,
+            'is_active_offer' => true, 'discount_type' => 'percentage', 'discount_value' => $discountValue,
+        ]);
+    }
+
     public function test_one_eligible_item_gets_no_combo_discount_even_when_pre_minimum_offer_price_is_enabled(): void
     {
         $category = $this->comboCategory('sweaters');
@@ -140,5 +149,97 @@ class CategoryComboEligibilityTest extends TestCase
 
         $this->assertFalse($result['success']);
         $this->assertSame([], Session::get('cart', []));
+    }
+
+    public function test_discount_offer_item_does_not_fill_a_combo_minimum(): void
+    {
+        $combo = $this->comboCategory('three-for-199', 3);
+        $combo->update(['combo_price' => 199]);
+        $discount = $this->discountCategory('twenty-percent-off');
+        $first = $this->product($combo, 'Combo Item One', 300);
+        $second = $this->product($combo, 'Combo Item Two', 300);
+        $discounted = $this->product($discount, 'Discount Item', 100);
+        $cart = app(CartService::class);
+
+        $cart->add($first->id, 'M', 1);
+        $cart->add($second->id, 'M', 1);
+        $cart->add($discounted->id, 'M', 1);
+        $items = collect($cart->getCart())->keyBy('product_id');
+
+        $this->assertSame(300.0, $items[$first->id]['final_price']);
+        $this->assertSame(300.0, $items[$second->id]['final_price']);
+        $this->assertSame(80.0, $items[$discounted->id]['final_price']);
+        $this->assertFalse($items[$first->id]['is_combo_offer']);
+        $this->assertFalse($items[$discounted->id]['is_combo_offer']);
+    }
+
+    public function test_discount_and_normal_items_do_not_change_a_qualified_combo_total(): void
+    {
+        $combo = $this->comboCategory('three-for-199', 3);
+        $combo->update(['combo_price' => 199]);
+        $discount = $this->discountCategory('twenty-percent-off');
+        $normal = Category::create(['name' => 'Basics', 'slug' => 'basics', 'status' => 'active']);
+        $comboItems = [
+            $this->product($combo, 'Combo Item One', 300),
+            $this->product($combo, 'Combo Item Two', 300),
+            $this->product($combo, 'Combo Item Three', 300),
+        ];
+        $discounted = $this->product($discount, 'Discount Item', 100);
+        $regular = $this->product($normal, 'Regular Item', 50);
+        $cart = app(CartService::class);
+
+        foreach ($comboItems as $product) $cart->add($product->id, 'M', 1);
+        $cart->add($discounted->id, 'M', 1);
+        $cart->add($regular->id, 'M', 1);
+        $items = collect($cart->getCart())->keyBy('product_id');
+
+        $this->assertSame(199.0, round(collect($comboItems)->sum(fn ($product) => $items[$product->id]['subtotal']), 2));
+        $this->assertSame(80.0, $items[$discounted->id]['final_price']);
+        $this->assertSame(50.0, $items[$regular->id]['final_price']);
+        $this->assertTrue($items[$comboItems[0]->id]['is_combo_offer']);
+        $this->assertFalse($items[$discounted->id]['is_combo_offer']);
+        $this->assertFalse($items[$regular->id]['is_combo_offer']);
+    }
+
+    public function test_selected_checkout_items_are_repriced_against_only_the_selected_combo_quantity(): void
+    {
+        $category = $this->comboCategory('three-for-199', 3);
+        $category->update(['combo_price' => 199]);
+        $products = [
+            $this->product($category, 'Combo Item One', 300),
+            $this->product($category, 'Combo Item Two', 300),
+            $this->product($category, 'Combo Item Three', 300),
+        ];
+        $cart = app(CartService::class);
+        foreach ($products as $product) $cart->add($product->id, 'M', 1);
+
+        $allCartItems = Session::get('cart');
+        $selectedItems = array_slice($allCartItems, 0, 2, true);
+        Session::put('cart', $selectedItems);
+        $selectedCart = collect($cart->getCart())->keyBy('product_id');
+
+        $this->assertCount(2, $selectedCart);
+        foreach (array_slice($products, 0, 2) as $product) {
+            $this->assertSame(300.0, $selectedCart[$product->id]['final_price']);
+            $this->assertFalse($selectedCart[$product->id]['is_combo_offer']);
+        }
+    }
+
+    public function test_quantities_from_separate_combo_categories_are_not_pooled(): void
+    {
+        $firstCombo = $this->comboCategory('combo-one', 2);
+        $secondCombo = $this->comboCategory('combo-two', 2);
+        $first = $this->product($firstCombo, 'First Combo Product', 300);
+        $second = $this->product($secondCombo, 'Second Combo Product', 300);
+        $cart = app(CartService::class);
+
+        $cart->add($first->id, 'M', 1);
+        $cart->add($second->id, 'M', 1);
+        $items = collect($cart->getCart())->keyBy('product_id');
+
+        $this->assertSame(300.0, $items[$first->id]['final_price']);
+        $this->assertSame(300.0, $items[$second->id]['final_price']);
+        $this->assertFalse($items[$first->id]['is_combo_offer']);
+        $this->assertFalse($items[$second->id]['is_combo_offer']);
     }
 }

@@ -52,6 +52,21 @@
     </a>
 </div>
 
+@if ($errors->any())
+    <div class="alert alert-danger rounded-3" role="alert">
+        <div class="fw-bold mb-1">Product was not updated. Please fix these fields:</div>
+        <ul class="mb-0 ps-3">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+@if (session('success'))
+    <div class="alert alert-success rounded-3" role="status">{{ session('success') }}</div>
+@endif
+
 <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
     @csrf
     @method('PUT')
@@ -117,6 +132,7 @@
                             <label class="form-label fw-bold">Product Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control rounded-3" value="{{ old('name', $product->name) }}" required>
                         </div>
+                        @include('admin.products.partials.product_code_field', ['codeValue' => old('product_code', $product->product_code)])
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Categories (Optional, Select Multiple)</label>
@@ -327,7 +343,7 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold mb-0">Add Additional Sizes</h6>
-                        <button type="button" class="btn btn-outline-dark btn-sm rounded-pill" onclick="addNewSizeRow()"><i class="fa-solid fa-plus me-1"></i> Add Size</button>
+                        <button type="button" class="btn btn-outline-dark btn-sm rounded-pill" onclick="window.addNewSizeRow()"><i class="fa-solid fa-plus me-1"></i> Add Size</button>
                     </div>
 
                     <div id="newSizesContainer"></div>
@@ -386,48 +402,6 @@
                             <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Active (Visible)</option>
                             <option value="inactive" {{ old('status', $product->status) === 'inactive' ? 'selected' : '' }}>Inactive (Hidden)</option>
                         </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">🔒 Booked Product Status</label>
-                        @php
-                            $totalEditStock = $product->sizes->sum('stock');
-                        @endphp
-                        @if($totalEditStock <= 0 && !$product->is_out_of_stock)
-                            <div class="alert alert-secondary py-2 px-3 small rounded-3 mb-2 border">
-                                <i class="fa-solid fa-circle-info me-1 text-danger"></i> <strong>Sold Out Product (Stock: 0)</strong><br>
-                                This product is already sold out and cannot be booked.
-                            </div>
-                        @else
-                            <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
-                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockEditSwitch" value="1" {{ old('is_out_of_stock', $product->is_out_of_stock) ? 'checked' : '' }} onchange="toggleBookedByEditContainer(this)">
-                                <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockEditSwitch">
-                                    🔒 Mark as Booked Product
-                                </label>
-                            </div>
-
-                            <div id="bookedByEditContainer" class="{{ old('is_out_of_stock', $product->is_out_of_stock) ? '' : 'd-none' }} mb-2">
-                                <div class="mb-2">
-                                    <label for="productBookingTypeEdit" class="form-label fw-bold small">Booked type <span class="text-danger">*</span></label>
-                                    <select name="booking_type" id="productBookingTypeEdit" class="form-select rounded-3" data-legacy-booking="{{ $product->is_out_of_stock && empty($product->booking_type) && !empty($product->booked_by) ? 'true' : 'false' }}">
-                                        <option value="" {{ old('booking_type', $product->booking_type) ? '' : 'selected' }}>Select booking type</option>
-                                        <option value="business_whatsapp" {{ old('booking_type', $product->booking_type) === 'business_whatsapp' || old('ai_whatsapp_booked') ? 'selected' : '' }}>Booked for business WhatsApp</option>
-                                        <option value="whatsapp_customer" {{ old('booking_type', $product->booking_type) === 'whatsapp_customer' ? 'selected' : '' }}>Booked by WhatsApp customer</option>
-                                        <option value="instagram_customer" {{ old('booking_type', $product->booking_type) === 'instagram_customer' ? 'selected' : '' }}>Booked by Instagram customer</option>
-                                    </select>
-                                </div>
-                                <div id="bookedByEditCustomerField" class="mb-2">
-                                    <label class="form-label fw-bold small" id="bookedByEditLabel">Customer name or phone <span class="text-danger">*</span></label>
-                                    <input type="text" name="booked_by" id="bookedByEditInput" class="form-control rounded-3" placeholder="Name or phone number" value="{{ old('booked_by', $product->booked_by) }}">
-                                </div>
-                                <div>
-                                    <label for="productBookingDateEdit" class="form-label fw-bold small">Booked date <span class="text-danger">*</span></label>
-                                    <input type="date" name="booking_date" id="productBookingDateEdit" class="form-control rounded-3" value="{{ old('booking_date', $product->booking_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="form-text small">When marked as Booked, it shows as <strong>"Sold Out"</strong> to website clients so no online customer can buy it.</div>
                     </div>
 
                     <button type="submit" class="btn btn-warning rounded-3 fw-bold w-100 py-2.5 shadow-sm border-0 mb-4" style="font-size: 0.85rem; background-color: var(--qw-gold); border-color: var(--qw-gold);">
@@ -723,8 +697,11 @@
         calcDiscount();
     });
 
-    function addNewSizeRow() {
+    window.addNewSizeRow = function() {
         const container = document.getElementById('newSizesContainer');
+        if (!container) return;
+        const rowIndex = Number(container.dataset.nextRowIndex || 0);
+        container.dataset.nextRowIndex = String(rowIndex + 1);
         const div = document.createElement('div');
         div.className = 'p-3 border rounded-3 bg-white mb-2 shadow-sm position-relative';
         div.innerHTML = `
@@ -737,32 +714,32 @@
             <div class="row g-2 align-items-end">
                 <div class="col-4 col-md-2 measurement-field measurement-up">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
-                    <input type="text" name="new_chests[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
+                    <input type="text" name="new_size_rows[${rowIndex}][chest]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&quot;">
                 </div>
                 <div class="col-4 col-md-2 measurement-field measurement-waist measurement-up">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Waist (inch)</label>
-                    <input type="text" name="new_waists[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
+                    <input type="text" name="new_size_rows[${rowIndex}][waist]" class="form-control form-control-sm rounded-3" placeholder="e.g. 36&quot;">
                 </div>
                 <div class="col-4 col-md-2 measurement-field measurement-down">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Hip (inch)</label>
-                    <input type="text" name="new_hips[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&amp;quot;">
+                    <input type="text" name="new_size_rows[${rowIndex}][hip]" class="form-control form-control-sm rounded-3" placeholder="e.g. 40&amp;quot;">
                 </div>
                 <div class="col-4 col-md-2 measurement-field measurement-length">
                     <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Length (inch)</label>
-                    <input type="text" name="new_lengths[]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
+                    <input type="text" name="new_size_rows[${rowIndex}][length]" class="form-control form-control-sm rounded-3" placeholder="e.g. 42&quot;">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
-                    <input type="text" name="new_sizes[]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Free Size">
+                    <input type="text" name="new_size_rows[${rowIndex}][size]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Free Size">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="new_stocks[]" class="form-control form-control-sm rounded-3" value="5" required>
+                    <input type="number" inputmode="numeric" min="0" name="new_size_rows[${rowIndex}][stock]" class="form-control form-control-sm rounded-3" value="5" required>
                 </div>
             </div>
         `;
         container.appendChild(div);
-    }
+    };
 
     // Edit Product Dynamic Image Slot Management
     function addEditImageSlot() {
@@ -882,23 +859,6 @@
         const checkboxes = document.querySelectorAll('.category-checkbox');
         checkboxes.forEach(cb => cb.checked = false);
         updateCategorySelectionDisplay();
-    }
-
-    function toggleBookedByEditContainer(switchElem) {
-        const container = document.getElementById('bookedByEditContainer');
-        const input = document.getElementById('bookedByEditInput');
-        if (container) {
-            if (switchElem.checked) {
-                container.classList.remove('d-none');
-                if (input) input.required = true;
-            } else {
-                container.classList.add('d-none');
-                if (input) {
-                    input.required = false;
-                    input.value = '';
-                }
-            }
-        }
     }
 
     function previewAiDressImage(input) {

@@ -37,7 +37,7 @@
                 return [
                     'id' => $item->id,
                     'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
-                    'size' => $item->size ?: 'N/A',
+                    'size' => $item->size ?: ($item->productSize?->size ?? 'N/A'),
                     'quantity' => $item->quantity ?: 1,
                     'unit_price' => $item->unit_price,
                     'final_unit_price' => $item->final_unit_price,
@@ -82,6 +82,13 @@
                         +{{ $modalItems->count() - 3 }}
                     </span>
                 @endif
+            </div>
+            <div class="d-flex flex-wrap justify-content-center gap-1 mt-1" style="max-width: 150px; margin: 0 auto;">
+                @foreach($modalItems as $itemData)
+                    <span class="badge bg-dark fw-semibold" style="font-size: 0.62rem;" title="{{ $itemData['product_name'] }}">
+                        {{ $itemData['size'] }}@if($itemData['quantity'] > 1) ×{{ $itemData['quantity'] }}@endif
+                    </span>
+                @endforeach
             </div>
         </td>
         <td class="small">{{ $order->effective_date->format('M d, Y') }}<br><span class="text-muted">{{ $order->effective_date->format('h:i A') }}</span></td>

@@ -78,7 +78,7 @@
                         return [
                             'id' => $item->id,
                             'product_name' => $item->product_name ?: ($item->product ? $item->product->name : 'Product Item'),
-                            'size' => $item->size ?: 'N/A',
+                            'size' => $item->size ?: ($item->productSize?->size ?? 'N/A'),
                             'quantity' => $item->quantity ?: 1,
                             'unit_price' => $item->unit_price,
                             'final_unit_price' => $item->final_unit_price,
@@ -119,6 +119,13 @@
                             +{{ $mobileModalItems->count() - 3 }}
                         </span>
                     @endif
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center gap-1 mt-1" style="max-width: 110px;">
+                        @foreach($mobileModalItems as $mItemData)
+                            <span class="badge bg-dark fw-semibold" style="font-size: 0.56rem;" title="{{ $mItemData['product_name'] }}">
+                                {{ $mItemData['size'] }}@if($mItemData['quantity'] > 1) ×{{ $mItemData['quantity'] }}@endif
+                            </span>
+                        @endforeach
                     </div>
                 </div>
                 <div class="text-end">

@@ -22,6 +22,8 @@ class ShopController extends Controller
             $search = trim($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
+                  // Product code is matched exactly ("pr 12" finds PR12, not PR120).
+                  ->orWhere('product_code', strtoupper(preg_replace('/\s+/', '', $search)))
                   ->orWhere('description', 'LIKE', "%{$search}%")
                   ->orWhereHas('category', function ($cq) use ($search) {
                       $cq->where('name', 'LIKE', "%{$search}%");

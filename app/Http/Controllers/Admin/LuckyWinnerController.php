@@ -75,7 +75,7 @@ class LuckyWinnerController extends Controller
             \App\Models\Setting::set('show_last_lucky_draw', '0');
             return response()->json([
                 'success' => false,
-                'message' => 'ഇതുവരെ Lucky Draw ഒന്നും എടുത്തിട്ടില്ല (No Lucky Draw Conducted Yet).'
+                'message' => 'No Lucky Draw conducted yet.'
             ], 422);
         }
 

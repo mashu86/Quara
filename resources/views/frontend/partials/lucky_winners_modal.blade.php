@@ -356,7 +356,7 @@
                             <span>You Could Be The Next Lucky Winner!</span>
                         </div>
                         <div class="fw-semibold promo-malayalam" style="font-size: 0.85rem; color: #5C4400;">
-                            ✨ അടുത്ത തവണ ഭാഗ്യശാലി നിങ്ങളായിരിക്കാം! അതുകൊണ്ട് വേഗം ഓർഡർ ചെയ്യൂ!
+                            ✨ The next lucky winner could be you! Order now!
                         </div>
                     </div>
 

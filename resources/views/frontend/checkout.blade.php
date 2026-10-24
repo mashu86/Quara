@@ -257,6 +257,7 @@
         .checkout-order-image-wrap { width: 56px; height: 72px; }
         .checkout-image-details-btn { opacity: 1; background: rgba(0, 0, 0, 0.2); }
         .checkout-order-item > .fw-bold.text-gold { font-size: 0.95rem; }
+        #useCurrentLocation { font-size: 0.78rem; padding: 0.35rem 0.85rem; align-self: flex-start; }
     }
 </style>
 

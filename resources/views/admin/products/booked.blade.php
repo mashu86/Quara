@@ -64,6 +64,7 @@
                                 @php
                                     $preview = [
                                         'image' => $product->primary_image_url,
+                                        'code' => $product->product_code,
                                         'name' => $product->name,
                                         'price' => '₹' . number_format($product->final_price, 0),
                                         'sizes' => $product->sizes->map->only(['size', 'stock', 'chest', 'waist', 'length'])->values(),
@@ -175,7 +176,7 @@ document.addEventListener('click', function(event) {
     const product = JSON.parse(button.dataset.preview);
     const details = document.getElementById(button.dataset.detailsId);
     document.getElementById('productPreviewDetails').replaceChildren(details.content.cloneNode(true));
-    window.openProductPreview(product.image, product.name, product.price, product.sizes);
+    window.openProductPreview(product.image, product.name, product.price, product.sizes, product.code);
 });
 
 const bookedCheckboxes = Array.from(document.querySelectorAll('.booked-product-checkbox'));

@@ -54,6 +54,8 @@ return [
         'key' => env('RAZORPAY_KEY'),
         'secret' => env('RAZORPAY_SECRET'),
         'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+        // Local-only shortcut that skips Razorpay. Never set this on the live server.
+        'local_test_mode' => (bool) env('RAZORPAY_LOCAL_TEST_MODE', false),
     ],
 
     'firebase' => [

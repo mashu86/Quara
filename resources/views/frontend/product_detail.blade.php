@@ -32,7 +32,7 @@
         "price": "{{ number_format($product->final_price, 2, '.', '') }}",
         "priceValidUntil": "{{ date('Y-12-31') }}",
         "itemCondition": "https://schema.org/NewCondition",
-        "availability": "{{ $product->total_stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}",
+        "availability": "{{ $product->available_total_stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}",
         "seller": {
           "@type": "Organization",
           "name": "Quara Wardrobe"
@@ -464,6 +464,9 @@
 @endsection
 
 @section('content')
+@php
+    $availableTotalStock = $product->available_total_stock;
+@endphp
 <div class="container py-4 product-detail-page">
 
     <nav class="product-detail-nav mb-3" aria-label="Breadcrumb">
@@ -485,7 +488,7 @@
                     @if($discountPercentage > 0)
                         <span class="qw-discount-badge fs-6">{{ $discountPercentage }}% OFF</span>
                     @endif
-                    @if($product->total_stock <= 0)
+                    @if($availableTotalStock <= 0)
                         <div class="qw-out-of-stock-overlay">
                             <span class="qw-out-of-stock-badge fs-6 px-4 py-2">SOLD OUT</span>
                         </div>
@@ -521,7 +524,7 @@
             <div class="bg-white p-3 p-md-4 rounded-4 shadow-sm border h-100 d-flex flex-column product-info-card">
                 <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                     <span class="product-eyebrow">{{ $product->category?->name ?? $siteName }}</span>
-                    @if($product->total_stock > 0)
+                    @if($availableTotalStock > 0)
                         <span class="small text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i> In stock</span>
                     @endif
                 </div>
@@ -731,7 +734,7 @@
                     @endif
 
                     <!-- Actions -->
-                    @if($minimumPurchaseCategory && $product->total_stock > 0)
+                    @if($minimumPurchaseCategory && $availableTotalStock > 0)
                         <div class="alert alert-info small rounded-3">
                             Select at least {{ $minimumPurchaseCategory->minimum_purchase_count }} products from this category. Add this product, then choose the next one.
                         </div>
@@ -747,7 +750,7 @@
                                 window.location.href = target.toString();
                             });
                         </script>
-                    @elseif($product->total_stock > 0)
+                    @elseif($availableTotalStock > 0)
                         <div class="d-grid gap-2 gap-sm-3 d-sm-flex mb-3 product-purchase-actions">
                             <button type="submit" name="purchase_action" value="add" class="btn btn-qw-gold flex-grow-1 shadow-sm purchase-action py-2 rounded-pill fw-bold" style="font-size: 0.82rem;">
                                 <i class="fa-solid fa-bag-shopping me-2"></i> ADD TO CART
@@ -851,7 +854,7 @@
             <h3 class="font-serif fw-bold mb-4">YOU MAY ALSO LIKE</h3>
             <div class="row g-2 g-sm-3 g-md-4 product-related-grid">
                 @foreach($relatedProducts as $relProduct)
-                    @if($relProduct->total_stock > 0 && !$relProduct->is_out_of_stock)
+                    @if($relProduct->available_total_stock > 0 && !$relProduct->is_out_of_stock)
                         <div class="col-6 col-md-3">
                             <div class="qw-product-card h-100">
                                 <a href="{{ route('product.detail', $relProduct->slug) }}">
@@ -1025,7 +1028,7 @@
         if (checkedSize) {
             updateStockNotice(checkedSize);
         } else {
-            const stock = {{ (int) $product->total_stock }};
+            const stock = {{ (int) $availableTotalStock }};
             const notice = document.getElementById('stockStatusNotice');
             const input = document.getElementById('quantityInput');
             if (input) input.max = Math.max(1, stock);

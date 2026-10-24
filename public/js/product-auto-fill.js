@@ -80,7 +80,10 @@ export function matchPriceCategories(price, categories) {
         .some(n => Number(n.replaceAll(',', '')) === price));
 }
 
-const field = (row, name) => row.querySelector(`input[name="${name}[]"], input[name="new_${name}[]"], input[name^="existing_${name}["]`);
+const field = (row, name) => {
+    const newRowField = { sizes: 'size', chests: 'chest', waists: 'waist', hips: 'hip', lengths: 'length' }[name];
+    return row.querySelector(`input[name="${name}[]"], input[name="new_${name}[]"], input[name^="existing_${name}["], input[name^="new_size_rows["][name$="[${newRowField || name}]"]`);
+};
 const sizeRows = () => [...document.querySelectorAll('.size-row, #newSizesContainer > div')].filter(row => field(row, 'sizes'));
 
 export async function requestImageAutoFill(url, data) {
@@ -204,7 +207,7 @@ function initialize() {
     refreshRows();
     const form = notes.closest('form');
     new MutationObserver(records => {
-        if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n => n.nodeType === 1 && (n.matches('.size-row') || n.querySelector('input[name="new_sizes[]"]'))))) refreshRows();
+        if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n => n.nodeType === 1 && (n.matches('.size-row') || n.querySelector('input[name="new_sizes[]"], input[name^="new_size_rows["][name$="[size]"]'))))) refreshRows();
     }).observe(form, { childList: true, subtree: true });
     window.triggerAiAutoFill = async () => {
         const feedback = document.getElementById('aiProductFeedback');
@@ -220,7 +223,7 @@ function initialize() {
         }
         const file = document.getElementById('aiDressImageInput')?.files[0] || document.getElementById('mainImageInput')?.files[0];
         const whatsappBooked = document.getElementById('aiWhatsAppBooked')?.checked;
-        if (!file && !notes.value.trim() && !whatsappBooked) { feedback.textContent = 'Select a dress image, paste price and measurements, or check WhatsApp Booked.'; return; }
+        if (!file && !notes.value.trim() && !whatsappBooked) { feedback.textContent = 'Select a dress image or paste price and measurements.'; return; }
         const button = document.getElementById('btnRunAiAssist');
         const original = button.innerHTML;
         button.disabled = true;

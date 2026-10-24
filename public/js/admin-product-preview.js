@@ -122,6 +122,9 @@ window.buildInstaTextLines = function(price, sizes, settings) {
         lines.push(lengthLabel + (lStr || '-'));
     }
 
+    // Product code sits with the size details (only when the product has one).
+    if (window.currentPreviewCode) lines.push('Code: ' + window.currentPreviewCode);
+
     return lines;
 };
 
@@ -168,12 +171,13 @@ window.updateInstaPreviewBox = function(price, sizes) {
     boxElem.classList.remove('d-none');
 };
 
-window.openProductPreview = function(imgSrc, title, price, sizes) {
+window.openProductPreview = function(imgSrc, title, price, sizes, code) {
     if (!imgSrc) return;
     window.currentPreviewImgSrc = imgSrc;
     window.currentPreviewTitle = title || 'product';
     window.currentPreviewPrice = price || '';
     window.currentPreviewSizes = sizes || [];
+    window.currentPreviewCode = code || '';
 
     const modalElem = document.getElementById('productPreviewModal');
     const imgElem = document.getElementById('productPreviewModalImg');

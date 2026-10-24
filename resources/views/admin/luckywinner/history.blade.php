@@ -30,7 +30,7 @@
             <div class="d-flex align-items-center gap-3">
                 @if(($totalDrawsCount ?? 0) === 0)
                     <div class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2 small fw-semibold">
-                        <i class="fa-solid fa-triangle-exclamation me-1"></i> ഇതുവരെ Lucky Draw ഒന്നും എടുത്തിട്ടില്ല
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> No Lucky Draw conducted yet
                     </div>
                 @else
                     <div class="form-check form-switch fs-5 mb-0 d-flex align-items-center gap-2">

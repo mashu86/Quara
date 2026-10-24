@@ -3,21 +3,11 @@
         $totalStock = $product->sizes->sum('stock');
         $imgSrc = $product->primary_image_url;
         $displayName = Str::limit($product->name, 22);
-        $sizeAvailabilityData = $product->sizes->map(function ($size) use ($product) {
-            $reserved = $product->bookings->where('product_size_id', $size->id)
-                ->sum(function ($booking) { return $booking->remaining_quantity; });
-
-            return [
-                'id' => $size->id,
-                'size' => $size->size,
-                'available' => max(0, (int) $size->stock - (int) $reserved),
-            ];
-        });
     @endphp
     <tr>
         <td class="prod-sticky-col text-center py-2 px-2">
             <div class="d-flex flex-column align-items-center justify-content-center">
-                <div class="prod-img-wrapper border shadow-xs mb-1 position-relative" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }})" title="Click to preview product image">
+                <div class="prod-img-wrapper border shadow-xs mb-1 position-relative" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}')" title="Click to preview product image">
                     <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-100 h-100" style="object-fit: cover;">
                     @if(!empty($product->combo_category_id))
                         <span class="position-absolute top-0 start-0 bg-dark text-warning px-1 py-0.5 rounded-end shadow-sm" style="font-size: 0.65rem; z-index: 4;" title="Offer Combo Category Product">
@@ -72,41 +62,7 @@
             </div>
         </td>
         <td>
-            <div class="form-check form-switch mb-0" title="{{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'Cannot book a sold-out item (Stock: 0)' : 'Toggle Booked Status' }}">
-                <input class="form-check-input out-of-stock-toggle" type="checkbox" role="switch"
-                       id="outOfStockToggle_{{ $product->id }}"
-                       data-product-id="{{ $product->id }}"
-                       data-product-name="{{ $product->name }}"
-                       data-booked-by="{{ $product->booked_by }}"
-                       data-booking-type="{{ $product->booking_type }}"
-                       data-booking-date="{{ $product->booking_date?->format('Y-m-d') }}"
-                       data-total-stock="{{ $totalStock }}"
-                       data-sizes='@json($sizeAvailabilityData)'
-                       data-url="{{ route('admin.products.toggle-out-of-stock', $product->id) }}"
-                       {{ $product->is_out_of_stock ? 'checked' : '' }}
-                       {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'disabled' : '' }}
-                       style="cursor: {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'not-allowed' : 'pointer' }}; width: 2.3em; height: 1.2em;">
-                <label class="form-check-label small fw-bold ms-1 {{ ($product->is_out_of_stock || $totalStock <= 0) ? 'text-danger' : 'text-success' }}"
-                       id="outOfStockLabel_{{ $product->id }}"
-                       for="outOfStockToggle_{{ $product->id }}" style="cursor: {{ ($totalStock <= 0 && !$product->is_out_of_stock) ? 'not-allowed' : 'pointer' }}; font-size: 0.78rem;">
-                    @if($product->is_out_of_stock && (!empty($product->booked_by) || $product->booking_type))
-                        🔒 Booked
-                    @elseif($product->is_out_of_stock || $totalStock <= 0)
-                        Sold Out
-                    @else
-                        Available
-                    @endif
-                </label>
-            </div>
-            <div class="small text-muted fw-semibold mt-1 {{ ($product->is_out_of_stock && (!empty($product->booked_by) || $product->booking_type)) ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="bookedByDisplay_{{ $product->id }}">
-                <i class="fa-solid fa-user-tag text-warning me-1"></i><span class="text-dark" id="bookedByText_{{ $product->id }}">{{ $product->booked_by ?: ($product->booking_type === 'business_whatsapp' ? 'Business WhatsApp' : 'Booked') }}</span>
-                <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary edit-booking-details" data-product-id="{{ $product->id }}" aria-label="Edit booking details" title="Edit booking details"><i class="fa-solid fa-pen-to-square"></i></button>
-            </div>
-            @if($product->is_out_of_stock && $product->booking_date)
-                <div class="small text-muted mt-1" style="font-size: 0.72rem;" id="bookingDateDisplay_{{ $product->id }}">
-                    <i class="fa-regular fa-calendar me-1"></i>Booked on: <span>{{ $product->booking_date->format('d-m-Y') }}</span>
-                </div>
-            @endif
+            @include('admin.products.partials.booking_actions')
         </td>
         <td>
             <div class="form-check form-switch mb-0 d-inline-flex align-items-center" title="{{ ucfirst($product->status) }}">

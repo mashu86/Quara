@@ -81,9 +81,10 @@ class ProductCategoryAssignmentService
     public function isSoldOut(Product $product): bool
     {
         $totalStock = (int) $product->sizes->sum('stock');
+        $hasBooking = filled($product->booked_by) || filled($product->booking_type);
         // Booked products are reserved inventory and remain editable by the offer manager.
         // Only actual sold-out items (with no reservation owner) retain historical assignment.
-        return empty($product->booked_by)
+        return ! $hasBooking
             && ($product->is_out_of_stock || $totalStock <= 0);
     }
 }

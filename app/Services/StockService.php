@@ -72,7 +72,12 @@ class StockService
     {
         DB::transaction(function () use ($order) {
             foreach ($order->items()->orderBy('product_id')->orderBy('size')->get() as $item) {
-                $product = Product::with('sizes')->find($item->product_id);
+                // Lock the product so a booking made at the same moment cannot slip past this check.
+                $product = Product::with('sizes')->lockForUpdate()->find($item->product_id);
+                // A whole-product booking (or manual sold-out) reserves every piece: never sell it to a late payment.
+                if ($product && $product->is_out_of_stock) {
+                    throw new \App\Exceptions\InsufficientOrderStock('Stock validation failed: '.$item->product_name.' is booked or sold out.');
+                }
                 $selectableSizes = $product?->sizes->filter(fn ($variant) => trim((string) $variant->size) !== '') ?? collect();
                 if ($product && $selectableSizes->isNotEmpty() && trim((string) $item->size) === '') {
                     $sizes = ProductSize::where('product_id', $item->product_id)->whereNotNull('size')->whereRaw("TRIM(size) != ''")->orderBy('id')->lockForUpdate()->get();

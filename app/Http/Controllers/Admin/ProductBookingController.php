@@ -61,7 +61,12 @@ class ProductBookingController extends Controller
         if (!in_array($booking->status, ['active', 'partially_sold'], true)) {
             return response()->json(['success' => false, 'message' => 'This booking is already closed.'], 422);
         }
-        $booking->update(['status' => 'released']);
+        // Nothing sold yet: drop the row. Partly sold bookings are linked to order items, so keep them as released.
+        if ((int) $booking->sold_quantity === 0) {
+            $booking->delete();
+        } else {
+            $booking->update(['status' => 'released']);
+        }
         return response()->json(['success' => true, 'message' => 'Remaining booked units are available again.']);
     }
 }

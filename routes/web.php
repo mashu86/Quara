@@ -171,6 +171,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('products/ai-auto-fill', [AdminProductController::class, 'aiAutoFill'])->name('products.ai-auto-fill');
         Route::post('products/{product}/images', [AdminProductController::class, 'storeImages'])->name('products.images.store');
+        Route::get('products/next-code', [AdminProductController::class, 'nextCode'])->name('products.next-code');
         Route::resource('products', AdminProductController::class);
         Route::post('products/{product}/sizes/{size}/clear-label', [AdminProductController::class, 'clearSizeLabel'])->name('products.sizes.clear-label');
         Route::get('booked-products', [AdminProductController::class, 'bookedProducts'])->name('products.booked');

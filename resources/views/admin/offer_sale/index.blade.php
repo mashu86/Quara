@@ -810,7 +810,7 @@
                 </div>
                 <div class="modal-footer bg-light border-0 p-3 justify-content-center gap-2">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <form action="{{ route('admin.offer-sale.remove-offers') }}" method="POST">
+                    <form action="{{ route('admin.offer-sale.remove-offers') }}" method="POST" id="removeOffersForm">
                         @csrf
                         <button type="submit" class="btn btn-danger rounded-pill px-4 btn-sm fw-bold">
                             <i class="fa-solid fa-trash-can me-1.5"></i> Yes, Remove Offers Now
@@ -866,6 +866,8 @@
 <script>
     const SELECTED_CATEGORY_ID = {{ $selectedCategoryId ?? 'null' }};
     const ASSIGN_URL = "{{ route('admin.offer-sale.assign') }}";
+    const ACTIVATE_URL = "{{ route('admin.offer-sale.activate') }}";
+    const REMOVE_OFFERS_URL = "{{ route('admin.offer-sale.remove-offers') }}";
     const CSRF_TOKEN = "{{ csrf_token() }}";
 
     function toggleProductBoxSearch(side) {
@@ -906,15 +908,48 @@
 
     function submitOfferToggle(categoryId) {
         const form = document.getElementById('activateOfferForm');
-        let field = form.querySelector('input[name="offer_category_id"][type="hidden"]');
-        if (!field) {
-            field = document.createElement('input');
-            field.type = 'hidden';
-            field.name = 'offer_category_id';
-            form.appendChild(field);
-        }
-        field.value = categoryId;
-        form.submit();
+        const checkbox = categoryId === 0
+            ? document.getElementById('activeOfferModeEnabled')
+            : form.querySelector(`input[type="checkbox"][value="${categoryId}"]`);
+        if (checkbox) checkbox.disabled = true;
+
+        fetch(ACTIVATE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ offer_category_id: categoryId })
+        }).then(async response => {
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Could not update offer status.');
+            if (categoryId === 0) {
+                form.querySelectorAll('input[type="checkbox"][value]').forEach(input => { input.checked = false; });
+                document.querySelectorAll('.offer-option-card').forEach(card => card.classList.remove('active-combo', 'active-discount'));
+                document.querySelectorAll('.offer-option-card .badge').forEach(badge => badge.remove());
+            } else {
+                const card = checkbox?.closest('.offer-option-card');
+                const isActive = data.is_active;
+                if (checkbox) checkbox.checked = isActive;
+                if (card) {
+                    card.classList.toggle('active-combo', isActive && card.querySelector('.fa-crown') !== null);
+                    card.classList.toggle('active-discount', isActive && card.querySelector('.fa-tags, .fa-tag') !== null);
+                    const badge = card.querySelector('.badge');
+                    if (isActive && !badge) {
+                        const live = document.createElement('span');
+                        live.className = `badge ${card.querySelector('.fa-crown') ? 'bg-warning text-dark' : 'bg-danger text-white'} rounded-pill fw-bold flex-shrink-0 px-1.5 py-0.5`;
+                        live.style.fontSize = '0.55rem';
+                        live.innerHTML = '<i class="fa-solid fa-bolt me-0.5"></i> LIVE';
+                        card.querySelector('.d-flex.align-items-center.justify-content-between')?.appendChild(live);
+                    } else if (!isActive) badge?.remove();
+                }
+            }
+            document.dispatchEvent(new CustomEvent('offer-sale:updated', { detail: data }));
+        }).catch(error => {
+            if (checkbox) checkbox.checked = !checkbox.checked;
+            alert(error.message || 'Could not update offer status. Please try again.');
+        }).finally(() => { if (checkbox) checkbox.disabled = false; });
     }
 
     function toggleOfferStoreMode(show) {
@@ -930,6 +965,32 @@
         });
         ['available', 'assigned'].forEach(side => {
             document.getElementById(`${side}ProductSearch`)?.addEventListener('input', () => filterProductBox(side));
+        });
+
+        document.getElementById('removeOffersForm')?.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const button = this.querySelector('button[type="submit"]');
+            if (button) button.disabled = true;
+            try {
+                const response = await fetch(REMOVE_OFFERS_URL, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not remove offers.');
+                const assignedList = document.getElementById('assignedProductsList');
+                const availableList = document.getElementById('availableProductsList');
+                if (assignedList && availableList) {
+                    Array.from(assignedList.querySelectorAll('.bulk-product-card')).forEach(card => availableList.appendChild(card));
+                }
+                updateCounters();
+                bootstrap.Modal.getInstance(document.getElementById('confirmRemoveAllOffersModal'))?.hide();
+                alert(data.message);
+            } catch (error) {
+                alert(error.message || 'Could not remove offers. Please try again.');
+            } finally {
+                if (button) button.disabled = false;
+            }
         });
 
         document.querySelectorAll('[data-category-filter]').forEach(function(filter) {
@@ -1055,14 +1116,35 @@
 
         const availableContainer = document.getElementById('availableProductsList');
         const assignedContainer = document.getElementById('assignedProductsList');
+        const sourceContainer = action === 'add' ? availableContainer : assignedContainer;
+        const targetContainer = action === 'add' ? assignedContainer : availableContainer;
+        if (!sourceContainer || !targetContainer || card.dataset.updating === 'true') return;
 
-        if (action === 'add' && assignedContainer) {
-            assignedContainer.appendChild(card);
-            updateProductServer(productId, 'add');
-        } else if (action === 'remove' && availableContainer) {
-            availableContainer.appendChild(card);
-            updateProductServer(productId, 'remove');
-        }
+        const originalNextSibling = card.nextElementSibling;
+        const rollback = () => {
+            if (originalNextSibling && originalNextSibling.parentElement === sourceContainer) {
+                sourceContainer.insertBefore(card, originalNextSibling);
+            } else {
+                sourceContainer.appendChild(card);
+            }
+            delete card.dataset.updating;
+            updateCounters();
+        };
+
+        card.dataset.updating = 'true';
+        const actionButton = card.querySelector('.add-prod-btn, .remove-prod-btn');
+        if (actionButton) actionButton.disabled = true;
+        targetContainer.appendChild(card);
+        updateCounters();
+        updateProductServer(productId, action).then(() => {
+            delete card.dataset.updating;
+            if (actionButton) actionButton.disabled = false;
+        }).catch(error => {
+            console.error('Offer assignment failed:', error);
+            rollback();
+            if (actionButton) actionButton.disabled = false;
+            alert(error.message || 'Could not update the offer assignment. Please try again.');
+        });
     }
 
     function updateProductServer(productId, action) {
@@ -1070,7 +1152,7 @@
 
         const card = document.getElementById(`product_card_${productId}`);
 
-        fetch(ASSIGN_URL, {
+        return fetch(ASSIGN_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1083,9 +1165,14 @@
                 action: action
             })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || `Request failed (${res.status}).`);
+            }
+            return data;
+        })
         .then(data => {
-            if (data.success) {
                 if (action === 'add' && card) {
                     card.classList.add('border-warning');
                     let offerBadge = card.querySelector('.current-offer-badge');
@@ -1126,14 +1213,9 @@
                     }
                 }
                 updateCounters();
-            } else {
-                alert(data.message || 'Error updating product category assignment.');
-                location.reload();
-            }
         })
         .catch(err => {
-            console.error('AJAX Error:', err);
-            alert('Failed to update product category.');
+            throw err;
         });
     }
 

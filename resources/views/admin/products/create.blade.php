@@ -115,6 +115,7 @@
                             <label class="form-label fw-bold">Product Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control rounded-3" placeholder="e.g. Floral Chiffon Korean Top" value="{{ old('name') }}" required>
                         </div>
+                        @include('admin.products.partials.product_code_field', ['codeValue' => old('product_code', $nextProductCode ?? '')])
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Categories (Optional, Select Multiple)</label>
@@ -289,38 +290,6 @@
                             <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active (Visible on website)</option>
                             <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive (Hidden)</option>
                         </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">🔒 Booked Product (Client Out of Stock)</label>
-                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
-                            <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" name="is_out_of_stock" id="isOutOfStockCreateSwitch" value="1" {{ old('is_out_of_stock') ? 'checked' : '' }} onchange="toggleBookedByContainer(this)">
-                            <label class="form-check-label fw-semibold text-dark small" for="isOutOfStockCreateSwitch">
-                                🔒 Mark as Booked Product
-                            </label>
-                        </div>
-                        
-                        <div id="bookedByCreateContainer" class="{{ old('is_out_of_stock') ? '' : 'd-none' }} mb-2">
-                            <div class="mb-2">
-                                <label for="productBookingTypeCreate" class="form-label fw-bold small">Booked type <span class="text-danger">*</span></label>
-                                <select name="booking_type" id="productBookingTypeCreate" class="form-select rounded-3">
-                                    <option value="" {{ old('booking_type') ? '' : 'selected' }}>Select booking type</option>
-                                    <option value="business_whatsapp" {{ old('booking_type') === 'business_whatsapp' || old('ai_whatsapp_booked') ? 'selected' : '' }}>Booked for business WhatsApp</option>
-                                    <option value="whatsapp_customer" {{ old('booking_type') === 'whatsapp_customer' ? 'selected' : '' }}>Booked by WhatsApp customer</option>
-                                    <option value="instagram_customer" {{ old('booking_type') === 'instagram_customer' ? 'selected' : '' }}>Booked by Instagram customer</option>
-                                </select>
-                            </div>
-                            <div id="bookedByCreateCustomerField" class="mb-2">
-                                <label class="form-label fw-bold small" id="bookedByCreateLabel">Customer name or phone <span class="text-danger">*</span></label>
-                                <input type="text" name="booked_by" id="bookedByCreateInput" class="form-control rounded-3" placeholder="Name or phone number" value="{{ old('booked_by') }}">
-                            </div>
-                            <div>
-                                <label for="productBookingDateCreate" class="form-label fw-bold small">Booked date <span class="text-danger">*</span></label>
-                                <input type="date" name="booking_date" id="productBookingDateCreate" class="form-control rounded-3" value="{{ old('booking_date', date('Y-m-d')) }}">
-                            </div>
-                        </div>
-
-                        <div class="form-text small">When checked, this product is marked as <strong>Booked</strong> on Admin side and shows as <strong>"Out of Stock"</strong> to website clients so no online customer can buy it.</div>
                     </div>
 
                     <hr>
@@ -715,23 +684,6 @@
         const checkboxes = document.querySelectorAll('.category-checkbox');
         checkboxes.forEach(cb => cb.checked = false);
         updateCategorySelectionDisplay();
-    }
-
-    function toggleBookedByContainer(switchElem) {
-        const container = document.getElementById('bookedByCreateContainer');
-        const input = document.getElementById('bookedByCreateInput');
-        if (container) {
-            if (switchElem.checked) {
-                container.classList.remove('d-none');
-                if (input) input.required = true;
-            } else {
-                container.classList.add('d-none');
-                if (input) {
-                    input.required = false;
-                    input.value = '';
-                }
-            }
-        }
     }
 
     function previewAiDressImage(input) {

@@ -17,7 +17,9 @@ class DuplicatePaidProductsReportController extends Controller
             'search' => ['nullable', 'string', 'max:120'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'tab' => ['nullable', 'in:oversold,legacy'],
         ]);
+        $tab = $validated['tab'] ?? 'oversold';
 
         $applyFilters = function ($query) use ($validated) {
             $query->where('o.payment_status', 'paid')
@@ -57,6 +59,10 @@ class DuplicatePaidProductsReportController extends Controller
             }
         };
 
+        if ($tab === 'oversold') {
+            return $this->oversoldReport($request, $validated, $applyFilters);
+        }
+
         $groupsQuery = DB::table('order_items as oi')
             ->join('orders as o', 'o.id', '=', 'oi.order_id')
             ->leftJoin('products as p', 'p.id', '=', 'oi.product_id');
@@ -78,10 +84,11 @@ class DuplicatePaidProductsReportController extends Controller
         $detailsQuery = DB::table('order_items as oi')
             ->join('orders as o', 'o.id', '=', 'oi.order_id')
             ->leftJoin('products as p', 'p.id', '=', 'oi.product_id')
+            ->leftJoin('product_sizes as ps', 'ps.id', '=', 'oi.product_size_id')
             ->whereIn('oi.product_id', $productIds);
         $applyFilters($detailsQuery);
         $orderItems = $detailsQuery
-            ->select('oi.id', 'oi.product_id', 'oi.product_name', 'oi.size', 'oi.quantity', 'oi.subtotal', 'oi.item_status',
+            ->select('oi.id', 'oi.product_id', 'oi.product_name', 'oi.size', 'oi.quantity', 'oi.subtotal', 'oi.item_status', 'ps.size as variant_size',
                 'o.id as order_id', 'o.order_number', 'o.customer_name', 'o.customer_phone', 'o.payment_method',
                 'o.order_status', 'o.sale_date', 'o.created_at as order_created_at')
             ->orderBy('oi.product_id')
@@ -94,6 +101,100 @@ class DuplicatePaidProductsReportController extends Controller
             'groups' => $groups,
             'orderItemsByProduct' => $orderItems,
             'productsById' => $productsById,
+            'search' => $validated['search'] ?? '',
+            'startDate' => $validated['start_date'] ?? '',
+            'endDate' => $validated['end_date'] ?? '',
+            'tab' => $tab,
+        ]);
+    }
+
+    /**
+     * Sizes that have more customers promised than units ever existed:
+     *   total stock = current stock + units already deducted by paid orders
+     *   promised    = paid (not returned/cancelled) units + still-unsold booked units
+     *   extra       = promised - total stock  (shown when > 0)
+     * A paid order whose stock could not be deducted is marked "stock_review" on its payment;
+     * those are the customers who did not get a piece.
+     */
+    private function oversoldReport(Request $request, array $validated, \Closure $applyFilters)
+    {
+        // Stock math needs every live sale, so the date filter is not applied here; search only.
+        $itemsQuery = DB::table('order_items as oi')
+            ->join('orders as o', 'o.id', '=', 'oi.order_id')
+            ->leftJoin('products as p', 'p.id', '=', 'oi.product_id');
+        $applyFilters($itemsQuery);
+        $items = $itemsQuery
+            ->select('oi.id', 'oi.product_id', 'oi.product_size_id', 'oi.product_name', 'oi.size', 'oi.quantity', 'oi.subtotal',
+                'o.id as order_id', 'o.order_number', 'o.customer_name', 'o.customer_phone', 'o.payment_method',
+                'o.order_status', 'o.sale_date', 'o.created_at as order_created_at')
+            ->orderByDesc(DB::raw('COALESCE(o.sale_date, o.created_at)'))
+            ->get();
+
+        $reviewOrderIds = \App\Models\Payment::whereIn('order_id', $items->pluck('order_id')->unique())
+            ->get(['order_id', 'response_payload'])
+            ->filter(fn ($payment) => !empty($payment->response_payload['stock_review']))
+            ->pluck('order_id')->flip();
+
+        // Products with live bookings are checked too, even without a paid sale.
+        $bookedProductIds = \App\Models\ProductBooking::whereIn('status', ['active', 'partially_sold'])
+            ->when(!empty($validated['search']), fn ($q) => $q->whereHas('product', fn ($p) => $p->where('name', 'like', '%' . $validated['search'] . '%')))
+            ->pluck('product_id');
+        $productIds = $items->pluck('product_id')->merge($bookedProductIds)->unique();
+        $products = Product::with(['images', 'sizes', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])])
+            ->whereIn('id', $productIds)->get()->keyBy('id');
+
+        // Each order line belongs to a size: by id, else by size name, else "size not recorded".
+        $sizeKey = function ($item) use ($products) {
+            $product = $products->get($item->product_id);
+            $size = $product?->sizes->firstWhere('id', $item->product_size_id)
+                ?? $product?->sizes->first(fn ($s) => strcasecmp(trim((string) $s->size), trim((string) $item->size)) === 0 && trim((string) $item->size) !== '');
+            return $item->product_id . ':' . ($size?->id ?? 'none');
+        };
+        $itemsBySize = $items->groupBy($sizeKey);
+
+        $groups = collect();
+        foreach ($products as $product) {
+            $sizeRows = $product->sizes->map(fn ($size) => ['key' => $product->id . ':' . $size->id, 'size' => $size, 'stock' => (int) $size->stock,
+                'bookings' => $product->bookings->where('product_size_id', $size->id)]);
+            if ($itemsBySize->has($product->id . ':none')) {
+                // Old lines without a size were taken from any size, so compare them with the whole product.
+                $sizeRows->push(['key' => $product->id . ':none', 'size' => null, 'stock' => (int) $product->sizes->sum('stock'), 'bookings' => collect()]);
+            }
+
+            foreach ($sizeRows as $row) {
+                $lines = $itemsBySize->get($row['key'], collect());
+                $paid = (int) $lines->sum('quantity');
+                $notDeducted = (int) $lines->filter(fn ($line) => $reviewOrderIds->has($line->order_id))->sum('quantity');
+                $booked = (int) $row['bookings']->sum(fn ($booking) => $booking->remaining_quantity);
+                $totalStock = $row['stock'] + ($paid - $notDeducted);
+                $extra = ($paid + $booked) - $totalStock;
+                if ($extra <= 0) {
+                    continue;
+                }
+                $groups->push((object) [
+                    'product' => $product,
+                    'size_label' => $row['size']?->size ?? 'Size not recorded',
+                    'total_stock' => $totalStock,
+                    'paid' => $paid,
+                    'booked' => $booked,
+                    'extra' => $extra,
+                    'lines' => $lines->map(fn ($line) => tap($line, function ($l) use ($reviewOrderIds, $row) {
+                        $l->stock_review = $reviewOrderIds->has($l->order_id);
+                        $l->variant_size = $row['size']?->size;
+                    })),
+                    'bookings' => $row['bookings']->values(),
+                ]);
+            }
+        }
+        $groups = $groups->sortByDesc('extra')->values();
+
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator($groups->forPage($page, 20)->values(), $groups->count(), 20, $page,
+            ['path' => $request->url(), 'query' => $request->query()]);
+
+        return view('admin.reports.duplicate-paid-products', [
+            'tab' => 'oversold',
+            'oversoldGroups' => $paginated,
             'search' => $validated['search'] ?? '',
             'startDate' => $validated['start_date'] ?? '',
             'endDate' => $validated['end_date'] ?? '',

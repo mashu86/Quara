@@ -245,11 +245,26 @@ class ProductController extends Controller
         $sizeMasters = \App\Models\SizeMaster::with('rows')->orderBy('sort_order', 'asc')->get();
         $retainedCategoryIds = (array) $request->input('category_ids', []);
         $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
-        return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds', 'geminiApiKeys'));
+        $nextProductCode = Product::nextProductCode();
+        return view('admin.products.create', compact('categories', 'comboCategories', 'sizeMasters', 'retainedCategoryIds', 'geminiApiKeys', 'nextProductCode'));
+    }
+
+    /** Trim + uppercase the code ("pr 12" -> "PR12"); blank becomes null. */
+    private function normalizeProductCode(Request $request): void
+    {
+        $code = strtoupper(preg_replace('/\s+/', '', (string) $request->input('product_code', '')));
+        $request->merge(['product_code' => $code !== '' ? $code : null]);
+    }
+
+    /** Next PR code for the regenerate (magic) button. */
+    public function nextCode()
+    {
+        return response()->json(['code' => Product::nextProductCode()]);
     }
 
     public function store(Request $request, ProductCategoryAssignmentService $categoryAssignments)
     {
+        $this->normalizeProductCode($request);
         $validated = $request->validate([
             'action' => 'nullable|string|in:save_and_add_another,save_and_close',
             'category_ids' => 'nullable|array',
@@ -257,17 +272,13 @@ class ProductController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'measurement_type' => 'nullable|in:up,down',
             'combo_category_id' => 'nullable|exists:categories,id',
+            'product_code' => 'nullable|string|max:50|unique:products,product_code',
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0.01',
-            'discount_type' => 'required|in:none,fixed,percentage,flat',
+            'discount_type' => 'nullable|in:none,fixed,percentage,flat',
             'discount_value' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
-            'is_out_of_stock' => 'nullable|boolean',
-            'booked_by' => 'nullable|string|max:255',
-            'ai_whatsapp_booked' => 'nullable|boolean',
-            'booking_type' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
-            'booking_date' => 'nullable|date_format:Y-m-d',
             'display_size_chart' => 'nullable|boolean',
             'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
@@ -302,24 +313,9 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0] ?? null;
         $validated['measurement_type'] = $validated['measurement_type'] ?? 'up';
-        $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
-        $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
-        $validated['booking_type'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? 'business_whatsapp' : ($validated['booking_type'] ?? null)) : null;
-        $validated['booking_date'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? ($validated['booking_date'] ?? now()->toDateString()) : ($validated['booking_date'] ?? null)) : null;
-        unset($validated['ai_whatsapp_booked']);
         $validated['display_size_chart'] = $request->boolean('display_size_chart');
         $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
-
-        if ($validated['is_out_of_stock'] && $validated['booking_type'] !== 'business_whatsapp' && empty($validated['booked_by'])) {
-            return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
-        }
-        if ($validated['is_out_of_stock'] && empty($validated['booking_type'])) {
-            return back()->withErrors(['booking_type' => 'Select a booking type.'])->withInput();
-        }
-        if ($validated['is_out_of_stock'] && empty($validated['booking_date'])) {
-            return back()->withErrors(['booking_date' => 'Select the booked date.'])->withInput();
-        }
+        $validated['discount_type'] = $validated['discount_type'] ?? 'none';
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -439,6 +435,7 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product, ProductCategoryAssignmentService $categoryAssignments)
     {
+        $this->normalizeProductCode($request);
         $validated = $request->validate([
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
@@ -446,16 +443,13 @@ class ProductController extends Controller
             'measurement_type' => 'nullable|in:up,down',
             'combo_category_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255',
+            // Keeping its own code is fine; another product's code is rejected.
+            'product_code' => 'nullable|string|max:50|unique:products,product_code,' . $product->id,
             'price' => 'required|numeric|min:0.01',
-            'discount_type' => 'required|in:none,fixed,percentage,flat',
+            'discount_type' => 'nullable|in:none,fixed,percentage,flat',
             'discount_value' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
-            'is_out_of_stock' => 'nullable|boolean',
-            'booked_by' => 'nullable|string|max:255',
-            'ai_whatsapp_booked' => 'nullable|boolean',
-            'booking_type' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
-            'booking_date' => 'nullable|date_format:Y-m-d',
             'display_size_chart' => 'nullable|boolean',
             'size_master_id' => 'nullable|exists:size_masters,id',
             'delivery_charge_type' => 'nullable|in:include,exclude',
@@ -471,6 +465,13 @@ class ProductController extends Controller
             'new_sizes.*' => 'nullable|string|max:50',
             'new_stocks' => 'nullable|array',
             'new_stocks.*' => 'nullable|integer|min:0',
+            'new_size_rows' => 'nullable|array',
+            'new_size_rows.*.size' => 'nullable|string|max:50',
+            'new_size_rows.*.stock' => 'required|integer|min:0',
+            'new_size_rows.*.chest' => 'nullable|string|max:50',
+            'new_size_rows.*.waist' => 'nullable|string|max:50',
+            'new_size_rows.*.hip' => 'nullable|string|max:50',
+            'new_size_rows.*.length' => 'nullable|string|max:50',
             'stock_adjustment_reason' => 'nullable|string|max:255',
         ]);
 
@@ -497,12 +498,6 @@ class ProductController extends Controller
 
         $validated['category_id'] = $categoryIds[0] ?? null;
         $validated['measurement_type'] = $validated['measurement_type'] ?? $product->measurement_type ?? 'up';
-        $validated['is_out_of_stock'] = $request->boolean('is_out_of_stock');
-        $isAiBusinessBooking = $validated['is_out_of_stock'] && $request->boolean('ai_whatsapp_booked');
-        $validated['booked_by'] = ($validated['is_out_of_stock'] && ! $isAiBusinessBooking) ? (trim($request->input('booked_by', '')) ?: null) : null;
-        $validated['booking_type'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? 'business_whatsapp' : ($validated['booking_type'] ?? $product->booking_type)) : null;
-        $validated['booking_date'] = $validated['is_out_of_stock'] ? ($isAiBusinessBooking ? ($validated['booking_date'] ?? now()->toDateString()) : ($validated['booking_date'] ?? $product->booking_date?->format('Y-m-d'))) : null;
-        unset($validated['ai_whatsapp_booked']);
         $validated['display_size_chart'] = $request->boolean('display_size_chart');
         $validated['size_master_id'] = $request->filled('size_master_id') ? (int) $request->input('size_master_id') : null;
 
@@ -511,20 +506,7 @@ class ProductController extends Controller
         if ($wasSoldOutOrBooked) {
             $validated['combo_category_id'] = $product->combo_category_id;
         }
-
-        if ($validated['is_out_of_stock'] && $validated['booking_type'] !== 'business_whatsapp' && empty($validated['booked_by'])) {
-            return back()->withErrors(['booked_by' => 'Booked By is mandatory when marking a product as Booked.'])->withInput();
-        }
-        $isLegacyBookingWithoutDetails = $product->is_out_of_stock
-            && empty($product->booking_type)
-            && ! empty($product->booked_by)
-            && empty($request->input('booking_type'));
-        if ($validated['is_out_of_stock'] && empty($validated['booking_type']) && ! $isLegacyBookingWithoutDetails) {
-            return back()->withErrors(['booking_type' => 'Select a booking type.'])->withInput();
-        }
-        if ($validated['is_out_of_stock'] && empty($validated['booking_date']) && ! $isLegacyBookingWithoutDetails) {
-            return back()->withErrors(['booking_date' => 'Select the booked date.'])->withInput();
-        }
+        $validated['discount_type'] = $validated['discount_type'] ?? ($product->discount_type ?: 'none');
         $validated['discount_value'] = $validated['discount_value'] ?? 0.00;
         $validated['delivery_charge_type'] = $validated['delivery_charge_type'] ?? 'exclude';
         $validated['weight_kg'] = $validated['weight_kg'] ?? 0.30;
@@ -561,8 +543,23 @@ class ProductController extends Controller
             ->where('show_in_collection', false)
             ->exists();
 
-        DB::transaction(function () use ($validated, $request, $product, $categoryIds, $selectedOfferId, $categoryAssignments) {
-            $product->update($validated);
+        // Keep variant arrays out of Product::update; those belong to product_sizes,
+        // and strict mass-assignment mode must not abort the whole transaction.
+        $productAttributes = $validated;
+        unset(
+            $productAttributes['category_ids'],
+            $productAttributes['existing_sizes'],
+            $productAttributes['existing_stocks'],
+            $productAttributes['clear_size_labels'],
+            $productAttributes['new_sizes'],
+            $productAttributes['new_stocks'],
+            $productAttributes['new_size_rows'],
+            $productAttributes['new_images'],
+            $productAttributes['stock_adjustment_reason']
+        );
+
+        DB::transaction(function () use ($validated, $productAttributes, $request, $product, $categoryIds, $selectedOfferId, $categoryAssignments) {
+            $product->update($productAttributes);
             $categoryAssignments->assign($product, $categoryIds, $selectedOfferId);
 
             $reason = $request->get('stock_adjustment_reason') ?? 'Admin Product Edit Adjustment';
@@ -641,35 +638,40 @@ class ProductController extends Controller
                     $diff = $newStock - $oldStock;
 
                     if ($diff !== 0) {
-                        $this->stockService->adjustStock(
-                            $pSize->id,
-                            $diff,
-                            $reason,
-                            auth()->user()->name
-                        );
+                        // adjustStock expects the desired final stock, not a delta.
+                        $this->stockService->adjustStock($pSize->id, $newStock, $reason, auth()->user()->name);
                     }
                 }
             }
 
             // Create new sizes
-            $newSizes = $validated['new_sizes'] ?? [];
-            $newStocks = $validated['new_stocks'] ?? [];
-            $newChests = $request->input('new_chests', []);
-            $newWaists = $request->input('new_waists', []);
-            $newHips = $request->input('new_hips', []);
-            $newLengths = $request->input('new_lengths', []);
+            $newSizeRows = $validated['new_size_rows'] ?? [];
+            // Accept legacy parallel arrays as well, so saved forms/bookmarks remain compatible.
+            if ($newSizeRows === [] && $request->has('new_sizes')) {
+                foreach ($request->input('new_sizes', []) as $i => $label) {
+                    $newSizeRows[$i] = [
+                        'size' => $label,
+                        'stock' => $request->input("new_stocks.{$i}", 0),
+                        'chest' => $request->input("new_chests.{$i}"),
+                        'waist' => $request->input("new_waists.{$i}"),
+                        'hip' => $request->input("new_hips.{$i}"),
+                        'length' => $request->input("new_lengths.{$i}"),
+                    ];
+                }
+            }
 
-            foreach ($newSizes as $i => $nSize) {
-                $nStock = max(0, (int) ($newStocks[$i] ?? 0));
+            foreach ($newSizeRows as $newSizeRow) {
+                $nSize = $newSizeRow['size'] ?? null;
+                $nStock = max(0, (int) ($newSizeRow['stock'] ?? 0));
                 $newSizeLabel = trim((string) ($nSize ?? ''));
                 $pSize = ProductSize::create([
                     'product_id' => $product->id,
                     'size' => $newSizeLabel !== '' ? $newSizeLabel : 'Free Size',
-                    'stock' => $nStock,
-                    'chest' => !empty($newChests[$i]) ? trim($newChests[$i]) : null,
-                    'waist' => !empty($newWaists[$i]) ? trim($newWaists[$i]) : null,
-                    'hip' => !empty($newHips[$i]) ? trim($newHips[$i]) : null,
-                    'length' => !empty($newLengths[$i]) ? trim($newLengths[$i]) : null,
+                    'stock' => 0,
+                    'chest' => !empty($newSizeRow['chest']) ? trim($newSizeRow['chest']) : null,
+                    'waist' => !empty($newSizeRow['waist']) ? trim($newSizeRow['waist']) : null,
+                    'hip' => !empty($newSizeRow['hip']) ? trim($newSizeRow['hip']) : null,
+                    'length' => !empty($newSizeRow['length']) ? trim($newSizeRow['length']) : null,
                 ]);
                 if ($nStock > 0) {
                     $this->stockService->adjustStock($pSize->id, $nStock, 'New Size Stock', auth()->user()->name);

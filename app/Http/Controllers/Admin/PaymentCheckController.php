@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\PaymentService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,7 +64,7 @@ class PaymentCheckController extends Controller
         $razorpayOrderId = $response->json('id');
 
         if (! $response->successful() || ! is_string($razorpayOrderId) || ! str_starts_with($razorpayOrderId, 'order_')) {
-            if (config('app.env') === 'local') {
+            if (PaymentService::localTestPaymentsAllowed()) {
                 $razorpayOrderId = 'order_mock_local_admin_' . time();
             } else {
                 return response()->json([
@@ -104,7 +105,7 @@ class PaymentCheckController extends Controller
             ], 422);
         }
 
-        if (config('app.env') === 'local' && str_starts_with($validated['razorpay_order_id'], 'order_mock_local_')) {
+        if (PaymentService::localTestPaymentsAllowed() && str_starts_with($validated['razorpay_order_id'], 'order_mock_local_')) {
             $request->session()->forget('razorpay_payment_check');
             return response()->json([
                 'message' => 'Local Mode: Razorpay test connection simulated successfully.',

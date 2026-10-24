@@ -430,6 +430,17 @@
                 ))));
                 $physicalStock = (int) $prod->sizes->sum('stock');
                 $isOut = (bool) $prod->is_out_of_stock;
+                $sizeRows = $prod->sizes->map(function ($size) use ($prod) {
+                    $booked = $prod->bookings->where('product_size_id', $size->id)->sum(fn ($booking) => $booking->remaining_quantity);
+                    return array_merge($size->toArray(), ['available_stock' => max(0, (int) $size->stock - (int) $booked)]);
+                })->values();
+                $bookingRows = $prod->bookings->map(fn ($booking) => [
+                    'id' => $booking->id,
+                    'size_id' => $booking->product_size_id,
+                    'remaining' => $booking->remaining_quantity,
+                    'booked_by' => $booking->booked_by,
+                    'booking_type' => $booking->booking_type,
+                ])->values();
             @endphp
             {
                 id: {{ $prod->id }},
@@ -438,8 +449,8 @@
                 originalPrice: {{ (float) $prod->price }},
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
-                sizes: @json($prod->sizes->map(fn($size) => [...$size->toArray(), 'available_stock' => max(0, (int) $size->stock - (int) $prod->bookings->where('product_size_id', $size->id)->sum(fn($booking) => $booking->remaining_quantity))])),
-                bookings: @json($prod->bookings->map(fn($booking) => ['id' => $booking->id, 'size_id' => $booking->product_size_id, 'remaining' => $booking->remaining_quantity, 'booked_by' => $booking->booked_by, 'booking_type' => $booking->booking_type])),
+                sizes: @json($sizeRows),
+                bookings: @json($bookingRows),
                 isOut: {{ $isOut ? 'true' : 'false' }},
                 bookedBy: @json($prod->booked_by),
                 physicalStock: {{ $physicalStock }}
@@ -448,6 +459,63 @@
     ];
 
     let rowIndexCounter = 0;
+
+    // Available tab = unbooked stock; Booked tab = size bookings (or legacy whole-product booking).
+    // A product with both shows in both tabs, and each row remembers which side it was picked from.
+    const bookingTypeLabels = { business_whatsapp: 'Business WhatsApp', whatsapp_customer: 'WhatsApp', instagram_customer: 'Instagram' };
+
+    function unbookedStockOf(prod) {
+        if (prod.isOut) return 0;
+        return prod.sizes.reduce((sum, s) => sum + Math.max(0, parseInt(s.available_stock ?? s.stock) || 0), 0);
+    }
+
+    function activeBookingsOf(prod) {
+        return prod.bookings.filter(b => b.remaining > 0);
+    }
+
+    function isLegacyBooked(prod) {
+        return prod.isOut && prod.physicalStock > 0;
+    }
+
+    function showsInTab(prod, mode) {
+        return mode === 'booked'
+            ? (isLegacyBooked(prod) || activeBookingsOf(prod).length > 0)
+            : unbookedStockOf(prod) > 0;
+    }
+
+    function currentTabMode() {
+        return document.getElementById('filterBooked')?.checked ? 'booked' : 'available';
+    }
+
+    function rowMode(card) {
+        return card.dataset.mode || 'available';
+    }
+
+    function bookingLabel(prod, booking) {
+        const size = prod.sizes.find(s => s.id === booking.size_id);
+        const who = booking.booked_by
+            ? `Booked by ${booking.booked_by} (${bookingTypeLabels[booking.booking_type] || 'Customer'})`
+            : 'Business WhatsApp booking';
+        return `${size?.size || 'Size'} — ${booking.remaining} pcs · ${who}`;
+    }
+
+    function bookingIdsInOtherRows(currentCard) {
+        return Array.from(document.querySelectorAll('.product-item-card'))
+            .filter(c => c !== currentCard)
+            .map(c => c.querySelector('.booking-select')?.value)
+            .filter(Boolean);
+    }
+
+    // A product is "taken" for this row when another row already uses it on the same side.
+    // On the Booked side it stays pickable while it still has an unused booking.
+    function isProductTakenForRow(prod, mode, currentCard) {
+        const others = Array.from(document.querySelectorAll('.product-item-card')).filter(c => c !== currentCard);
+        const sameSide = others.filter(c => parseInt(c.querySelector('.product-select')?.value || 0) === prod.id && rowMode(c) === mode);
+        if (!sameSide.length) return false;
+        if (mode !== 'booked' || isLegacyBooked(prod)) return true;
+        const usedIds = bookingIdsInOtherRows(currentCard);
+        return !activeBookingsOf(prod).some(b => !usedIds.includes(String(b.id)));
+    }
 
     function buildProductOptionsHtml() {
         let html = '';
@@ -505,12 +573,12 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold small mb-1">Booked stock (optional)</label>
+                    <div class="col-md-6 booking-col d-none">
+                        <label class="form-label fw-bold small mb-1">Booked item <span class="text-danger">*</span></label>
                         <select name="items[${index}][product_booking_id]" class="form-select rounded-3 booking-select" onchange="onRowBookingChange(this)">
-                            <option value="">Regular unbooked stock</option>
+                            <option value="">-- Choose booking --</option>
                         </select>
-                        <div class="form-text small text-muted">Choose a booking to sell its reserved size/quantity.</div>
+                        <div class="form-text small text-muted">Shows who booked it. The booked size is selected automatically.</div>
                     </div>
 
                     <div class="col-md-6">
@@ -579,25 +647,12 @@
         });
     }
 
-    function getSelectedProductIdsInOtherRows(currentCard) {
-        const selectedIds = [];
-        const cards = document.querySelectorAll('.product-item-card');
-        cards.forEach(c => {
-            if (c !== currentCard) {
-                const prodSelect = c.querySelector('.product-select');
-                if (prodSelect && prodSelect.value) {
-                    selectedIds.push(parseInt(prodSelect.value));
-                }
-            }
-        });
-        return selectedIds;
-    }
-
     function getAllocatedQtyForSizeInOtherRows(currentCard, sizeId) {
         let allocated = 0;
         const cards = document.querySelectorAll('.product-item-card');
         cards.forEach(c => {
-            if (c !== currentCard) {
+            // Rows selling a booking use reserved stock, not the unbooked pool.
+            if (c !== currentCard && !c.querySelector('.booking-select')?.value) {
                 const sizeSelect = c.querySelector('.size-select');
                 const qtyInput = c.querySelector('.qty-input');
                 if (sizeSelect && sizeSelect.value && parseInt(sizeSelect.value) === parseInt(sizeId)) {
@@ -638,7 +693,12 @@
                     opt.disabled = !isBookedSize;
                     opt.innerText = isBookedSize
                         ? `Size: ${szObj.size} (Booked stock: ${selectedBooking.remaining} pcs)`
-                        : `Size: ${szObj.size} (select a booking for its reserved size)`;
+                        : `Size: ${szObj.size} (not in this booking)`;
+                    return;
+                }
+                if (rowMode(card) === 'booked' && !isLegacyBooked(prod)) {
+                    opt.disabled = true;
+                    opt.innerText = `Size: ${szObj.size} (choose a booked item first)`;
                     return;
                 }
 
@@ -715,8 +775,12 @@
         card.querySelector('.stock-notice').innerText = '';
 
         const prod = productsData.find(p => p.id === prodId);
+        const bookingCol = card.querySelector('.booking-col');
+        bookingSelect.innerHTML = '<option value="">-- Choose booking --</option>';
+        bookingSelect.required = false;
+        bookingCol.classList.add('d-none');
         if (!prod) {
-            bookingSelect.innerHTML = '<option value="">Regular unbooked stock</option>';
+            delete card.dataset.mode;
             card.querySelector('.qty-input').removeAttribute('max');
             if (displayInput) displayInput.value = '';
             if (priceInput) priceInput.value = '';
@@ -727,18 +791,19 @@
             return;
         }
 
-        if (displayInput) displayInput.value = `${prod.name} (Price: ₹${prod.price.toFixed(2)})`;
+        // Mode comes from the tab the product was picked in; fall back to the tab it can appear in.
+        let mode = card.dataset.mode || currentTabMode();
+        if (!showsInTab(prod, mode)) mode = mode === 'booked' ? 'available' : 'booked';
+        card.dataset.mode = mode;
+        const sizeBookingMode = mode === 'booked' && !isLegacyBooked(prod);
+
+        if (displayInput) displayInput.value = `${mode === 'booked' ? '🔒 BOOKED · ' : '🟢 '}${prod.name} (Price: ₹${prod.price.toFixed(2)})`;
         if (priceInput) priceInput.value = prod.price.toFixed(2);
         if (thumbContainer && thumbImg) {
             thumbImg.src = prod.image;
             thumbContainer.classList.remove('d-none');
         }
         if (displayContainer) displayContainer.classList.remove('d-none-mobile-empty');
-
-        bookingSelect.innerHTML = '<option value="">Regular unbooked stock</option>' + prod.bookings.filter(b => b.remaining > 0).map(b => {
-            const size = prod.sizes.find(s => s.id === b.size_id);
-            return `<option value="${b.id}">${size?.size || 'Size'} — ${b.remaining} pcs${b.booked_by ? ` (${b.booked_by})` : ' (Business booking)'}</option>`;
-        }).join('');
 
         prod.sizes.forEach(sz => {
             const opt = document.createElement('option');
@@ -753,6 +818,20 @@
             }
             sizeSelect.appendChild(opt);
         });
+
+        if (sizeBookingMode) {
+            // Booked side: only this product's bookings that no other row is already selling.
+            const usedIds = bookingIdsInOtherRows(card);
+            const freeBookings = activeBookingsOf(prod).filter(b => !usedIds.includes(String(b.id)));
+            bookingSelect.innerHTML = '<option value="">-- Choose booking --</option>'
+                + freeBookings.map(b => `<option value="${b.id}">${bookingLabel(prod, b)}</option>`).join('');
+            bookingSelect.required = true;
+            bookingCol.classList.remove('d-none');
+            if (freeBookings.length === 1) bookingSelect.value = String(freeBookings[0].id);
+            onRowBookingChange(bookingSelect);
+            filterProductsByCategory();
+            return;
+        }
 
         // Auto-select size if there is only 1 valid/available size option (or single size total)
         const validSizeOpts = Array.from(sizeSelect.options).filter(opt => opt.value && !opt.disabled);
@@ -778,6 +857,17 @@
         const prod = productsData.find(p => p.id === parseInt(card.querySelector('.product-select').value));
         const booking = prod?.bookings.find(b => String(b.id) === String(selectElem.value));
         const sizeSelect = card.querySelector('.size-select');
+        if (booking && bookingIdsInOtherRows(card).includes(String(booking.id))) {
+            alert('This booked item is already selected in another row.');
+            selectElem.value = '';
+            return onRowBookingChange(selectElem);
+        }
+        if (!booking && prod && rowMode(card) === 'booked' && !isLegacyBooked(prod)) {
+            sizeSelect.value = '';
+            card.querySelector('.qty-input').removeAttribute('max');
+            updateAllRowsStockNotices();
+            return;
+        }
         if (booking) {
             sizeSelect.value = String(booking.size_id);
             Array.from(sizeSelect.options).forEach(option => {
@@ -805,81 +895,26 @@
     function filterProductsByCategory() {
         const checkboxes = document.querySelectorAll('.category-checkbox:checked');
         const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        const filterBookedRadio = document.getElementById('filterBooked');
-        const isBookedFilter = filterBookedRadio ? filterBookedRadio.checked : false;
+        const tabMode = currentTabMode();
 
-        const productSelects = document.querySelectorAll('.product-select');
-        productSelects.forEach(selectElem => {
+        document.querySelectorAll('.product-select').forEach(selectElem => {
             const currentCard = selectElem.closest('.product-item-card');
-            const otherSelectedProdIds = getSelectedProductIdsInOtherRows(currentCard);
             const currentProdId = parseInt(selectElem.value || 0);
 
-            const options = selectElem.options;
-            let selectedStillValid = false;
-
-            for (let i = 0; i < options.length; i++) {
-                const opt = options[i];
-                if (!opt.value) continue;
-
-                const prodId = parseInt(opt.value);
-                const catIds = JSON.parse(opt.getAttribute('data-categories') || '[]');
-                const isMatchedCategory = (selectedCatIds.length === 0) || catIds.some(id => selectedCatIds.includes(parseInt(id)));
-                const isOut = opt.getAttribute('data-out-of-stock') === '1';
-                const physicalStock = parseInt(opt.getAttribute('data-physical-stock') || '0');
-                const isSelectedInOtherRow = otherSelectedProdIds.includes(prodId);
-
-                const prodObj = productsData.find(p => p.id === prodId);
-                const baseName = prodObj ? prodObj.name : '';
-                const priceText = prodObj ? `(Price: ₹${prodObj.price.toFixed(2)})` : '';
-                let labelSuffix = '';
-                if (isOut && physicalStock > 0) {
-                    let bookedInfo = (prodObj && prodObj.bookedBy) ? `: ${prodObj.bookedBy}` : '';
-                    labelSuffix = ` - 🔒 [BOOKED${bookedInfo}] (Stock: ${physicalStock} pcs)`;
-                } else if (physicalStock <= 0) {
-                    labelSuffix = ' - ⚠️ [0 STOCK AVAILABLE]';
-                }
-
-                if (isSelectedInOtherRow && prodId !== currentProdId) {
-                    // Hide & disable products already selected in another row
-                    opt.disabled = true;
-                    opt.hidden = true;
-                    opt.style.display = 'none';
-                    opt.innerText = `${baseName} ${priceText} - ⚠️ [Already Selected in Another Row]`;
-                } else if (physicalStock <= 0 && prodId !== currentProdId) {
-                    // Always hide 0 physical stock products unless currently selected
-                    opt.disabled = true;
-                    opt.hidden = true;
-                    opt.style.display = 'none';
-                    opt.innerText = `${baseName} ${priceText} - ⚠️ [0 STOCK AVAILABLE]`;
-                } else if (isBookedFilter && (!isOut || physicalStock <= 0)) {
-                    // Show only Booked products with stock > 0 when Booked filter is active
-                    opt.disabled = (prodId !== currentProdId);
-                    opt.hidden = true;
-                    opt.style.display = 'none';
-                } else if (!isBookedFilter && isOut) {
-                    // Hide Booked products when Available filter is active
-                    opt.disabled = (prodId !== currentProdId);
-                    opt.hidden = true;
-                    opt.style.display = 'none';
-                } else if (!isMatchedCategory) {
-                    // Filtered out by category
-                    opt.disabled = (prodId !== currentProdId);
-                    opt.hidden = true;
-                    opt.style.display = 'none';
-                } else {
-                    // Available matching product
+            Array.from(selectElem.options).forEach(opt => {
+                if (!opt.value) return;
+                const prodObj = productsData.find(p => p.id === parseInt(opt.value));
+                if (!prodObj) return;
+                if (prodObj.id === currentProdId) {
                     opt.disabled = false;
-                    opt.hidden = false;
-                    opt.style.display = '';
-                    opt.innerText = `${baseName} ${priceText}${labelSuffix}`;
-                    if (opt.selected) selectedStillValid = true;
+                    return;
                 }
-            }
-
-            if (!selectedStillValid && selectElem.value && otherSelectedProdIds.includes(parseInt(selectElem.value))) {
-                selectElem.value = '';
-                onRowProductChange(selectElem);
-            }
+                const isMatchedCategory = (selectedCatIds.length === 0) || prodObj.categories.some(id => selectedCatIds.includes(parseInt(id)));
+                const visible = isMatchedCategory && showsInTab(prodObj, tabMode) && !isProductTakenForRow(prodObj, tabMode, currentCard);
+                opt.disabled = !visible;
+                opt.hidden = !visible;
+                opt.style.display = visible ? '' : 'none';
+            });
         });
 
         updateCategoryDropdownLabel();
@@ -1094,12 +1129,9 @@
         if (!grid) return;
 
         const searchVal = (document.getElementById('visualPickerSearchInput')?.value || '').toLowerCase().trim();
-        const otherSelectedProdIds = activePickerCard ? getSelectedProductIdsInOtherRows(activePickerCard) : [];
-
         const checkboxes = document.querySelectorAll('.category-checkbox:checked');
         const selectedCatIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        const filterBookedRadio = document.getElementById('filterBooked');
-        const isBookedFilter = filterBookedRadio ? filterBookedRadio.checked : false;
+        const tabMode = currentTabMode();
 
         let html = '';
         let matchCount = 0;
@@ -1109,31 +1141,24 @@
             const isNameMatched = !searchVal || prod.name.toLowerCase().includes(searchVal);
 
             if (!isMatchedCategory || !isNameMatched) return;
-
-            const isSelectedInOther = otherSelectedProdIds.includes(prod.id);
-            const isOut = prod.isOut;
-            const physicalStock = prod.physicalStock;
+            if (!showsInTab(prod, tabMode)) return;
+            if (isProductTakenForRow(prod, tabMode, activePickerCard)) return;
 
             let badgeHtml = '';
             let isSelectable = true;
 
-            if (isSelectedInOther) {
-                // Completely hide products already selected in another row to prevent conflicts
-                return;
-            }
-
-            if (physicalStock <= 0) {
-                // Completely hide 0 stock products to keep picker clean
-                return;
-            }
-
-            if (isOut) {
-                if (!isBookedFilter) return; // Hide booked when available filter active
-                let bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
-                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${physicalStock} pcs)">🔒${bookedInfo} (${physicalStock} pcs)</span>`;
+            if (tabMode === 'booked') {
+                let bookedInfo;
+                if (isLegacyBooked(prod)) {
+                    bookedInfo = `${prod.bookedBy || 'Booked'} (${prod.physicalStock} pcs)`;
+                } else {
+                    const bookings = activeBookingsOf(prod);
+                    const names = bookings.map(b => b.booked_by || 'Business WhatsApp').join(', ');
+                    bookedInfo = `${names} (${bookings.length} booked)`;
+                }
+                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒 ${bookedInfo}">🔒 ${bookedInfo}</span>`;
             } else {
-                if (isBookedFilter) return; // Hide available when booked filter active
-                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${physicalStock} pcs in stock</span>`;
+                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${unbookedStockOf(prod)} pcs available</span>`;
             }
 
             matchCount++;
@@ -1173,6 +1198,7 @@
         if (!activePickerCard) return;
         const selectElem = activePickerCard.querySelector('.product-select');
         if (selectElem) {
+            activePickerCard.dataset.mode = currentTabMode();
             selectElem.value = prodId;
             onRowProductChange(selectElem);
         }
@@ -1334,6 +1360,7 @@
                 const totalRequestedPerSize = {};
 
                 cards.forEach(card => {
+                    if (hasError) return;
                     const qtyInput = card.querySelector('.qty-input');
                     const prodSelect = card.querySelector('.product-select');
                     const sizeSelect = card.querySelector('.size-select');
@@ -1352,6 +1379,23 @@
 
                     const szId = parseInt(sizeSelect.value);
                     const qty = parseInt(qtyInput ? qtyInput.value : 0) || 0;
+                    const prod = productsData.find(p => p.id === parseInt(prodSelect.value));
+                    const bookingId = card.querySelector('.booking-select')?.value;
+
+                    if (rowMode(card) === 'booked' && prod && !isLegacyBooked(prod)) {
+                        const booking = prod.bookings.find(b => String(b.id) === String(bookingId));
+                        if (!booking) {
+                            hasError = true;
+                            alert(`Please choose the booked item for ${prod.name}.`);
+                            return;
+                        }
+                        if (qty > booking.remaining) {
+                            hasError = true;
+                            alert(`Only ${booking.remaining} pcs are booked for ${prod.name} (${booking.booked_by || 'Business WhatsApp'}).`);
+                        }
+                        return;
+                    }
+
                     totalRequestedPerSize[szId] = (totalRequestedPerSize[szId] ?? 0) + qty;
                 });
 
@@ -1368,7 +1412,7 @@
                     for (const prod of productsData) {
                         const szObj = prod.sizes.find(s => s.id === parseInt(szId));
                         if (szObj) {
-                            actualStock = szObj.stock;
+                            actualStock = prod.isOut ? szObj.stock : (szObj.available_stock ?? szObj.stock);
                             prodName = prod.name;
                             sizeName = szObj.size;
                             break;

@@ -84,7 +84,10 @@ class OfferSaleController extends Controller
                                 $sizeQuery->where('stock', '>', 0);
                             });
                     })->orWhere(function ($bookedQuery) {
-                        $bookedQuery->whereNotNull('booked_by')->where('booked_by', '');
+                    $bookedQuery->where(function ($booking) {
+                        $booking->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''")
+                            ->orWhereNotNull('booking_type');
+                    });
                     });
                 });
             }
@@ -141,7 +144,10 @@ class OfferSaleController extends Controller
                                 $sizeQuery->where('stock', '>', 0);
                             });
                     })->orWhere(function ($bookedQuery) {
-                        $bookedQuery->whereNotNull('booked_by')->where('booked_by', '');
+                        $bookedQuery->where(function ($booking) {
+                            $booking->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''")
+                                ->orWhereNotNull('booking_type');
+                        });
                     });
                 });
 
@@ -210,15 +216,31 @@ class OfferSaleController extends Controller
 
         $products = Product::with('sizes')->whereIn('id', $productIds)->get();
 
+        $updatedProductIds = [];
+        $skippedProducts = [];
         foreach ($products as $product) {
             if ($action === 'add') {
-                $categoryAssignments->assign($product, [], (int) $offerCategoryId);
+                $updated = $categoryAssignments->assign($product, [], (int) $offerCategoryId);
             } else {
-                $categoryAssignments->assign($product, []);
+                $updated = $categoryAssignments->assign($product, []);
+            }
+
+            if ($updated) {
+                $updatedProductIds[] = $product->id;
+            } else {
+                $skippedProducts[] = $product->name;
             }
         }
 
-        $message = count($productIds) . ' product(s) ' . ($action === 'add' ? 'added to' : 'removed from') . ' this offer category.';
+        if ($skippedProducts !== []) {
+            $message = implode(', ', $skippedProducts) . ' could not be changed because sold-out products keep their historical offer assignment.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 409);
+            }
+            return back()->withErrors(['product_ids' => $message]);
+        }
+
+        $message = count($updatedProductIds) . ' product(s) ' . ($action === 'add' ? 'added to' : 'removed from') . ' this offer category.';
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([

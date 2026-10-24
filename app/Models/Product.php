@@ -19,6 +19,7 @@ class Product extends Model
         'measurement_type',
         'collection_visible',
         'name',
+        'product_code',
         'slug',
         'price',
         'discount_type',
@@ -101,6 +102,17 @@ class Product extends Model
     {
         return $this->hasMany(ProductSize::class);
     }
+    /**
+     * Next free code in the PR1, PR2, ... series (highest PR number + 1). Manual codes outside the series are ignored.
+     */
+    public static function nextProductCode(): string
+    {
+        $max = static::query()->where('product_code', 'REGEXP', '^PR[0-9]+$')
+            ->selectRaw('MAX(CAST(SUBSTRING(product_code, 3) AS UNSIGNED)) as max_code')->value('max_code');
+
+        return 'PR' . ((int) $max + 1);
+    }
+
 
     public function bookings(): HasMany
     {
@@ -136,6 +148,16 @@ class Product extends Model
             return 0;
         }
         return (int) $this->sizes->sum('stock');
+    }
+
+    /** Units that can actually be purchased after bookings and pending reservations. */
+    public function getAvailableTotalStockAttribute(): int
+    {
+        if ($this->is_out_of_stock) {
+            return 0;
+        }
+
+        return (int) $this->sizes->sum(fn (ProductSize $size) => $size->available_stock);
     }
 
     public function getEffectiveFinalPriceAttribute(): float

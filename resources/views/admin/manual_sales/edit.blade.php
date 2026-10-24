@@ -430,6 +430,10 @@
                 ))));
                 $physicalStock = (int) $prod->sizes->sum('stock');
                 $isOut = (bool) $prod->is_out_of_stock;
+                $sizeRows = $prod->sizes->map(function ($size) use ($prod) {
+                    $booked = $prod->bookings->where('product_size_id', $size->id)->sum(fn ($booking) => $booking->remaining_quantity);
+                    return array_merge($size->toArray(), ['available_stock' => max(0, (int) $size->stock - (int) $booked)]);
+                })->values();
             @endphp
             {
                 id: {{ $prod->id }},
@@ -438,7 +442,7 @@
                 originalPrice: {{ (float) $prod->price }},
                 image: @json($prod->primary_image_url),
                 categories: @json($catIds),
-                sizes: @json($prod->sizes->map(fn($size) => [...$size->toArray(), 'available_stock' => max(0, (int) $size->stock - (int) $prod->bookings->where('product_size_id', $size->id)->sum(fn($booking) => $booking->remaining_quantity))])),
+                sizes: @json($sizeRows),
                 isOut: {{ $isOut ? 'true' : 'false' }},
                 bookedBy: @json($prod->booked_by),
                 physicalStock: {{ $physicalStock }}
@@ -885,7 +889,10 @@
                 badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${physicalStock} pcs)">🔒${bookedInfo} (${physicalStock} pcs)</span>`;
             } else {
                 if (isBookedFilter) return; // Hide available when booked filter active
-                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${physicalStock} pcs in stock</span>`;
+                // Size-booked units are reserved, so only unbooked stock counts here.
+                const unbookedStock = prod.sizes.reduce((sum, s) => sum + Math.max(0, parseInt(s.available_stock ?? s.stock) || 0), 0);
+                if (unbookedStock <= 0) return;
+                badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${unbookedStock} pcs available</span>`;
             }
 
             matchCount++;

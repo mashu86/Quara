@@ -3,19 +3,28 @@
         $totalStock = $product->sizes->sum('stock');
         $categoriesForCard = $product->categories->isNotEmpty() ? $product->categories : collect([$product->category])->filter();
         $isBooked = $product->is_out_of_stock && (!empty($product->booked_by) || $product->booking_type === 'business_whatsapp');
+        $bookedQty = (int) $product->bookings->sum(fn ($booking) => $booking->remaining_quantity);
+        $imgSrc = $product->primary_image_url;
     @endphp
     <div class="col">
         <article class="card mobile-product-card h-100 overflow-hidden">
-            <div class="mobile-product-image-wrap">
-                <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="mobile-product-image" loading="lazy">
+            <div class="mobile-product-image-wrap position-relative" role="button"
+                 onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}')"
+                 title="Click to preview product image">
+                <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="mobile-product-image" loading="lazy">
                 @if($isBooked)
                     <span class="badge bg-dark text-warning mobile-product-ribbon"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Booked</span>
+                @elseif($totalStock > 0 && $bookedQty >= $totalStock)
+                    <span class="badge bg-dark text-warning mobile-product-ribbon"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>All Booked</span>
                 @elseif($product->is_out_of_stock || $totalStock <= 0)
                     <span class="badge bg-danger mobile-product-ribbon">Sold Out</span>
                 @endif
                 @if(!empty($product->combo_category_id))
                     <span class="badge bg-warning text-dark mobile-product-offer"><i class="fa-solid fa-star" aria-label="Offer"></i></span>
                 @endif
+                <span class="position-absolute bottom-0 end-0 m-1 badge rounded-circle bg-dark bg-opacity-75 p-1.5" aria-hidden="true">
+                    <i class="fa-solid fa-eye text-white" style="font-size: 0.7rem;"></i>
+                </span>
             </div>
 
             <div class="card-body p-2 p-sm-3 d-flex flex-column">
@@ -34,8 +43,8 @@
                 </div>
 
                 @if($categoriesForCard->isNotEmpty())
-                    <div class="d-flex flex-wrap gap-1 mb-2">
-                        @foreach($categoriesForCard->take(2) as $category)
+                    <div class="d-flex flex-wrap gap-1 mb-2 mobile-product-categories">
+                        @foreach($categoriesForCard as $category)
                             <span class="badge bg-light text-secondary border mobile-product-category">{{ $category->name }}</span>
                         @endforeach
                     </div>
@@ -47,21 +56,32 @@
                         <span class="small fw-bold {{ $totalStock > 0 ? 'text-success' : 'text-danger' }}">{{ $totalStock }} pcs</span>
                     </div>
                     <div class="d-flex flex-wrap gap-1">
-                        @forelse($product->sizes->take(4) as $productSize)
-                            <span class="badge {{ $productSize->stock > 0 ? 'bg-light text-dark border' : 'bg-danger-subtle text-danger' }}">{{ $productSize->size }}: {{ $productSize->stock }}</span>
+                        @forelse($product->sizes as $productSize)
+                            @php $reservedQty = (int) $product->bookings->where('product_size_id', $productSize->id)->sum(fn ($booking) => $booking->remaining_quantity); @endphp
+                            <span class="badge {{ $productSize->stock > $reservedQty ? 'bg-light text-dark border' : ($reservedQty > 0 ? 'bg-warning text-dark' : 'bg-danger-subtle text-danger') }}" title="Size {{ $productSize->size }}; {{ $reservedQty }} reserved">
+                                {{ $productSize->size }}: {{ $productSize->stock }}
+                                @if($reservedQty > 0)<span class="opacity-75">({{ $reservedQty }} booked)</span>@endif
+                            </span>
                         @empty
                             <span class="small text-muted">No size stock</span>
                         @endforelse
-                        @if($product->sizes->count() > 4)
-                            <span class="badge bg-light text-secondary border">+{{ $product->sizes->count() - 4 }}</span>
-                        @endif
                     </div>
                 </div>
 
+                <div class="mb-2 mobile-booking-block">
+                    @include('admin.products.partials.booking_actions')
+                </div>
+
                 <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-                    <span class="badge rounded-pill {{ $product->status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }}">
-                        <i class="fa-solid {{ $product->status === 'active' ? 'fa-circle-check' : 'fa-circle-pause' }} me-1" aria-hidden="true"></i>{{ ucfirst($product->status) }}
-                    </span>
+                    <div class="form-check form-switch mb-0 d-inline-flex align-items-center gap-1" title="{{ ucfirst($product->status) }}">
+                        <input class="form-check-input product-status-toggle" type="checkbox" role="switch"
+                               id="mobileProductStatusToggle_{{ $product->id }}"
+                               data-product-id="{{ $product->id }}"
+                               data-url="{{ route('admin.products.toggle-status', $product->id) }}"
+                               {{ $product->status === 'active' ? 'checked' : '' }}
+                               style="cursor: pointer; width: 2.3em; height: 1.2em;">
+                        <label class="form-check-label small fw-semibold" for="mobileProductStatusToggle_{{ $product->id }}">Active</label>
+                    </div>
                     <div class="d-flex gap-2">
                         <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-dark mobile-product-action" aria-label="Edit {{ $product->name }}" title="Edit product">
                             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>

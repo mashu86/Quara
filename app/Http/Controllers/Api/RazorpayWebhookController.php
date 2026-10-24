@@ -53,9 +53,6 @@ class RazorpayWebhookController extends Controller
                             'failed_at' => now()->toIso8601String(),
                         ]),
                     ]);
-                    // Payment failure is retryable. Give the buyer a fresh five-minute window
-                    // after every attempt, including repeated incorrect UPI PIN attempts.
-                    $order->update(['reserved_until' => now()->addMinutes(5)]);
                 }
             });
             return response()->json(['status' => 'success']);
@@ -75,10 +72,6 @@ class RazorpayWebhookController extends Controller
                             'razorpay_details' => $data,
                         ]),
                     ]);
-                    // Repeated authorization webhooks do not extend an active hold.
-                    if (!$order->reserved_until || $order->reserved_until->isPast()) {
-                        $order->update(['reserved_until' => now()->addMinutes(2)]);
-                    }
                 }
             });
             return response()->json(['status' => 'authorized_pending_capture']);

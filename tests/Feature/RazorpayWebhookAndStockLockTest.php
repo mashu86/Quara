@@ -108,37 +108,15 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         $legacyResponse->assertDontSee('ORD-NEW-002');
     }
 
-    public function test_5_minute_stock_lock_prevents_double_booking(): void
+    public function test_unpaid_online_order_does_not_hold_stock(): void
     {
-        // Initial available stock is 1
-        $this->assertEquals(1, $this->size->fresh()->available_stock);
+        $this->pendingOrder('ORD-USER1');
 
-        // User 1 starts checkout for size M
-        $pendingOrder = Order::create($this->orderData([
-            'order_number' => 'ORD-USER1',
-            'customer_name' => 'User One',
-            'reserved_until' => now()->addMinutes(5),
+        // Opening the payment step reserves nothing: the piece stays buyable by everyone.
+        $this->assertEquals(1, $this->size->fresh()->available_stock);
+        DB::transaction(fn () => app(StockService::class)->lockAndValidateCheckoutStock([
+            ['product_id' => $this->product->id, 'size' => 'M', 'quantity' => 1],
         ]));
-
-        OrderItem::create([
-            'order_id' => $pendingOrder->id,
-            'product_id' => $this->product->id,
-            'product_size_id' => $this->size->id,
-            'product_name' => $this->product->name,
-            'size' => 'M',
-            'unit_price' => 1000,
-            'discount_amount' => 0,
-            'final_unit_price' => 1000,
-            'quantity' => 1,
-            'subtotal' => 1000,
-        ]);
-
-        // Stock available should now be 0 during the 5 minute reservation
-        $this->assertEquals(0, $this->size->fresh()->available_stock);
-
-        // If reservation expires (simulated in future time), stock becomes 1 again
-        $pendingOrder->update(['reserved_until' => now()->subMinute()]);
-        $this->assertEquals(1, $this->size->fresh()->available_stock);
     }
 
     public function test_razorpay_webhook_captured_confirms_order_and_deducts_stock(): void
@@ -146,7 +124,6 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         $order = Order::create($this->orderData([
             'order_number' => 'ORD-WEBHOOK-1',
             'customer_name' => 'Webhook Buyer',
-            'reserved_until' => now()->addMinutes(5),
         ]));
 
         OrderItem::create([
@@ -204,7 +181,7 @@ class RazorpayWebhookAndStockLockTest extends TestCase
     private function pendingOrder(string $number, array $overrides = []): Order
     {
         $order = Order::create($this->orderData(array_merge([
-            'order_number' => $number, 'reserved_until' => now()->addMinutes(5),
+            'order_number' => $number,
         ], $overrides)));
         OrderItem::create([
             'order_id' => $order->id, 'product_id' => $this->product->id,
@@ -259,17 +236,15 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         $this->assertDatabaseCount('notifications', 1);
     }
 
-    public function test_late_payment_cannot_take_another_customers_reserved_stock(): void
+    public function test_first_payment_gets_the_last_piece_and_a_later_payment_goes_to_review(): void
     {
-        $late = $this->pendingOrder('LATE', ['reserved_until' => now()->subMinute()]);
-        $current = $this->pendingOrder('CURRENT');
+        $first = $this->pendingOrder('FIRST-TO-PAY');
+        $late = $this->pendingOrder('LATE');
+        $this->webhook($first)->assertJson(['status' => 'success']);
         $this->webhook($late)->assertJson(['status' => 'stock_review']);
         $this->assertEquals('paid', $late->fresh()->payment_status);
         $this->assertEquals('pending', $late->fresh()->order_status);
-        $this->assertEquals(1, $this->size->fresh()->stock);
-        $this->webhook($current)->assertJson(['status' => 'success']);
         $this->assertEquals(0, $this->size->fresh()->stock);
-        $this->webhook($late)->assertJson(['status' => 'stock_review']);
         $this->assertDatabaseCount('stock_movements', 1);
         $this->get(route('checkout.success', ['order_number' => $late->order_number]))
             ->assertSee('ORDER UNDER REVIEW')->assertDontSee('is being prepared with care');
@@ -282,8 +257,8 @@ class RazorpayWebhookAndStockLockTest extends TestCase
             'product_id' => $this->product->id, 'product_size_id' => $this->size->id, 'quantity' => 1, 'booked_by' => 'kk',
             'booking_type' => 'whatsapp_customer', 'booking_date' => now()->toDateString(), 'status' => 'active',
         ]);
-        $first = $this->pendingOrder('BUYS-FREE-PIECE', ['reserved_until' => now()->subMinute()]);
-        $late = $this->pendingOrder('WANTS-BOOKED-PIECE', ['reserved_until' => now()->subMinute()]);
+        $first = $this->pendingOrder('BUYS-FREE-PIECE');
+        $late = $this->pendingOrder('WANTS-BOOKED-PIECE');
 
         $this->webhook($first)->assertJson(['status' => 'success']);
         $this->webhook($late)->assertJson(['status' => 'stock_review']);
@@ -297,7 +272,7 @@ class RazorpayWebhookAndStockLockTest extends TestCase
 
     public function test_webhook_payment_never_takes_a_whole_product_booking(): void
     {
-        $order = $this->pendingOrder('AFTER-LEGACY-BOOKING', ['reserved_until' => now()->subMinute()]);
+        $order = $this->pendingOrder('AFTER-LEGACY-BOOKING');
         // Admin books the whole product after checkout started but before the payment lands.
         $this->product->update(['is_out_of_stock' => true, 'booked_by' => 'Shop customer', 'booking_type' => 'whatsapp_customer']);
 
@@ -316,7 +291,7 @@ class RazorpayWebhookAndStockLockTest extends TestCase
             'product_id' => $this->product->id, 'product_size_id' => $this->size->id, 'quantity' => 1, 'booked_by' => 'kk',
             'booking_type' => 'whatsapp_customer', 'booking_date' => now()->toDateString(), 'status' => 'active',
         ]);
-        $order = $this->pendingOrder('BUYS-XL', ['reserved_until' => now()->subMinute()]);
+        $order = $this->pendingOrder('BUYS-XL');
         $order->items()->update(['product_size_id' => $xl->id, 'size' => 'XL']);
 
         $this->webhook($order)->assertJson(['status' => 'success']);
@@ -327,36 +302,139 @@ class RazorpayWebhookAndStockLockTest extends TestCase
 
     public function test_stock_is_never_silently_deducted_below_zero(): void
     {
-        $first = $this->pendingOrder('FIRST', ['reserved_until' => now()->subMinute()]);
-        $second = $this->pendingOrder('SECOND', ['reserved_until' => now()->subMinute()]);
+        $first = $this->pendingOrder('FIRST');
+        $second = $this->pendingOrder('SECOND');
         $this->webhook($first)->assertJson(['status' => 'success']);
         $this->webhook($second)->assertJson(['status' => 'stock_review']);
         $this->assertEquals(1, Order::where('order_status', 'confirmed')->count());
         $this->assertEquals(0, $this->size->fresh()->stock);
     }
 
-    public function test_checkout_rechecks_reserved_stock_even_after_initial_validation(): void
+    public function test_two_checkouts_can_both_open_payment_for_the_last_item(): void
     {
-        $this->pendingOrder('RESERVED');
-        $this->expectExceptionMessage('Stock validation failed');
-        DB::transaction(fn () => app(StockService::class)->lockAndValidateCheckoutStock([
-            ['product_id' => $this->product->id, 'size' => 'M', 'quantity' => 1],
-        ]));
+        Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_checkout'])]);
+        $this->withSession(['cart' => ['item' => $this->cartItem()]])->post(route('checkout.process'), $this->orderData())->assertOk();
+        $this->withSession(['cart' => ['item' => $this->cartItem()]])->post(route('checkout.process'), $this->orderData())->assertOk();
+        $this->assertDatabaseCount('orders', 2);
+        $this->assertEquals(1, $this->size->fresh()->available_stock);
     }
 
-    public function test_two_checkouts_cannot_open_payment_for_the_last_item(): void
+    private function cartItem(?Product $product = null, string $size = 'M'): array
     {
-        $cart = [
-            'product_id' => $this->product->id, 'name' => $this->product->name,
-            'size' => 'M', 'price' => 1000, 'discount_amount' => 0,
+        $product ??= $this->product;
+        return [
+            'product_id' => $product->id, 'name' => $product->name,
+            'size' => $size, 'price' => 1000, 'discount_amount' => 0,
             'final_price' => 1000, 'quantity' => 1, 'subtotal' => 1000,
         ];
+    }
+
+    /** A second product so an order can keep one item while the other sells out. */
+    private function secondProduct(): Product
+    {
+        $product = Product::create([
+            'category_id' => $this->product->category_id, 'name' => 'Second Dress',
+            'slug' => 'second-dress', 'price' => 1000, 'final_price' => 1000, 'status' => 'active',
+        ]);
+        ProductSize::create(['product_id' => $product->id, 'size' => 'L', 'stock' => 1]);
+        return $product;
+    }
+
+    /** Opens the payment step for this cart as a guest; returns the new unpaid order. */
+    private function openPayment(array $cart): Order
+    {
+        $this->withSession(['cart' => $cart])->post(route('checkout.process'), $this->orderData())->assertOk();
+        return Order::latest('id')->first();
+    }
+
+    public function test_stock_check_lets_payment_open_while_every_item_is_available(): void
+    {
         Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_checkout'])]);
-        $this->withSession(['cart' => ['item' => $cart]])->post(route('checkout.process'), $this->orderData())->assertOk();
-        $this->withSession(['cart' => ['item' => $cart]])->post(route('checkout.process'), $this->orderData())->assertRedirect(route('cart.index'));
-        Http::assertSentCount(1);
-        $this->assertDatabaseCount('orders', 1);
-        $this->assertEquals(0, $this->size->fresh()->available_stock);
+        $order = $this->openPayment(['item' => $this->cartItem()]);
+        $this->postJson(route('checkout.order.stock-check', $order->order_number))
+            ->assertOk()->assertJson(['available' => true, 'sold_items' => []]);
+    }
+
+    public function test_stock_check_reports_item_sold_to_another_customer_first(): void
+    {
+        Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_checkout'])]);
+        $second = $this->secondProduct();
+        $order = $this->openPayment(['m' => $this->cartItem(), 'l' => $this->cartItem($second, 'L')]);
+        // Someone else buys the M piece while this shopper is on the payment page.
+        $this->webhook($this->pendingOrder('OTHER-BUYER'))->assertJson(['status' => 'success']);
+
+        $this->postJson(route('checkout.order.stock-check', $order->order_number))->assertOk()->assertJson([
+            'available' => false,
+            'sold_items' => ['Unique Boutique Dress – Size M'],
+            'remaining_count' => 1,
+        ]);
+        $this->assertSame(['l'], array_keys(session('cart')), 'The sold item leaves the cart; the rest stays.');
+    }
+
+    public function test_continue_payment_replaces_the_order_with_the_items_still_in_stock(): void
+    {
+        Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_checkout'])]);
+        $second = $this->secondProduct();
+        $order = $this->openPayment(['m' => $this->cartItem(), 'l' => $this->cartItem($second, 'L')]);
+        $this->webhook($this->pendingOrder('OTHER-BUYER'))->assertJson(['status' => 'success']);
+        $this->postJson(route('checkout.order.stock-check', $order->order_number));
+
+        $this->post(route('checkout.order.continue', $order->order_number))
+            ->assertOk()->assertViewIs('frontend.checkout_online_payment');
+
+        $this->assertEquals('cancelled', $order->fresh()->order_status);
+        $replacement = Order::latest('id')->first();
+        $this->assertNotEquals($order->id, $replacement->id);
+        $this->assertEquals(['Second Dress'], $replacement->items->pluck('product_name')->all());
+        $this->assertEquals('House 1', $replacement->house_building, 'The delivery address carries over.');
+        $this->assertEquals(1000, (float) $replacement->subtotal);
+    }
+
+    public function test_shop_other_products_cancels_the_order_and_keeps_the_rest_of_the_cart(): void
+    {
+        Http::fake(['api.razorpay.com/v1/orders' => Http::response(['id' => 'order_checkout'])]);
+        $second = $this->secondProduct();
+        $order = $this->openPayment(['m' => $this->cartItem(), 'l' => $this->cartItem($second, 'L')]);
+        $this->webhook($this->pendingOrder('OTHER-BUYER'))->assertJson(['status' => 'success']);
+
+        $this->post(route('checkout.order.abandon', $order->order_number))->assertRedirect(route('shop'));
+
+        $this->assertEquals('cancelled', $order->fresh()->order_status);
+        $this->assertSame(['l'], array_keys(session('cart')));
+    }
+
+    public function test_another_shopper_cannot_check_or_cancel_someone_elses_order(): void
+    {
+        $order = $this->pendingOrder('NOT-YOURS');
+        $this->postJson(route('checkout.order.stock-check', $order->order_number))->assertNotFound();
+        $this->post(route('checkout.order.abandon', $order->order_number))->assertNotFound();
+        $this->post(route('checkout.order.continue', $order->order_number))->assertNotFound();
+        $this->assertEquals('pending', $order->fresh()->order_status);
+    }
+
+    public function test_place_order_shows_the_sold_out_modal_when_an_item_sold_while_on_checkout(): void
+    {
+        $second = $this->secondProduct();
+        $this->size->update(['stock' => 0]);
+
+        $this->withSession(['cart' => ['m' => $this->cartItem(), 'l' => $this->cartItem($second, 'L')]])
+            ->post(route('checkout.process'), $this->orderData())
+            ->assertRedirect(route('checkout.index'))
+            ->assertSessionHas('sold_out_items', ['Unique Boutique Dress – Size M']);
+        $this->assertDatabaseCount('orders', 0);
+
+        $this->get(route('checkout.index'))->assertOk()
+            ->assertSee('Sorry, this item was just sold')->assertSee('Unique Boutique Dress – Size M', false);
+    }
+
+    public function test_place_order_sends_shopper_to_shop_when_every_item_sold(): void
+    {
+        $this->size->update(['stock' => 0]);
+        $this->withSession(['cart' => ['m' => $this->cartItem()]])
+            ->post(route('checkout.process'), $this->orderData())
+            ->assertRedirect(route('shop'))
+            ->assertSessionHas('sold_out_items');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_authorized_or_wrong_amount_payments_are_not_confirmed(): void
@@ -378,19 +456,17 @@ class RazorpayWebhookAndStockLockTest extends TestCase
         $this->assertEquals('pending', $order->fresh()->payment_status);
     }
 
-    public function test_failed_attempt_preserves_hold_for_a_payment_retry(): void
+    public function test_failed_attempt_keeps_the_order_payable_without_holding_stock(): void
     {
         $order = $this->pendingOrder('RETRY');
         $this->webhook($order, 'payment.failed')->assertOk();
-        $this->assertEquals(0, $this->size->fresh()->available_stock);
-        $this->travel(4)->minutes();
-        $this->webhook($order, 'payment.failed')->assertOk();
-        $this->assertTrue($order->fresh()->reserved_until->gt(now()->addMinutes(4)));
+        $this->assertEquals(1, $this->size->fresh()->available_stock);
+        $this->assertNull($order->fresh()->reserved_until);
         $this->webhook($order)->assertJson(['status' => 'success']);
         $this->assertEquals(0, $this->size->fresh()->stock);
     }
 
-    public function test_cancelling_an_unpaid_order_releases_hold_without_adding_stock(): void
+    public function test_cancelling_an_unpaid_order_does_not_add_stock(): void
     {
         $order = $this->pendingOrder('CANCEL-UNPAID');
         $this->actingAs($this->admin)->post(route('admin.orders.update-status', $order), [

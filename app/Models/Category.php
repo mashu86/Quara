@@ -55,6 +55,45 @@ class Category extends Model
     {
         // Merged categories stay in storage for audit/history but are never selectable or visible.
         static::addGlobalScope('unmerged', fn (Builder $query) => $query->whereNull('categories.merged_into_category_id'));
+
+        // Turning a discount offer on/off or changing its discount reprices its products.
+        static::saved(function (Category $category) {
+            if ($category->wasChanged(['is_active_offer', 'status', 'discount_value', 'discount_type', 'offer_type', 'is_offer_category'])) {
+                $category->syncOfferProductPrices();
+            }
+        });
+    }
+
+    /** A discount offer gives its price only while it is switched on and the category is active. */
+    public function isLiveDiscountOffer(): bool
+    {
+        return $this->is_discount_offer && $this->is_active_offer
+            && $this->status === 'active' && (float) $this->discount_value > 0;
+    }
+
+    /** The selling price for a product of this offer category: discounted only while the offer is live. */
+    public function offerPriceFor($price): float
+    {
+        return $this->isLiveDiscountOffer()
+            ? Product::calculateFinalPrice($price, $this->discount_type ?? 'percentage', $this->discount_value)
+            : (float) $price;
+    }
+
+    /** Store the current offer price on each product assigned to this discount offer. */
+    public function syncOfferProductPrices(): void
+    {
+        $wasDiscountOffer = $this->getOriginal('is_offer_category') && $this->getOriginal('offer_type') === 'discount';
+        if (! $this->is_discount_offer && ! $wasDiscountOffer) {
+            return; // Combo offers price at cart level and never touch stored product prices.
+        }
+        Product::where('combo_category_id', $this->id)
+            ->orWhere(fn ($q) => $q->whereNull('combo_category_id')->where('category_id', $this->id))
+            ->each(function (Product $product) {
+                $finalPrice = $this->offerPriceFor($product->price);
+                if ((float) $product->final_price !== $finalPrice) {
+                    $product->update(['final_price' => $finalPrice]);
+                }
+            });
     }
 
     public function products()

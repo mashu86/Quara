@@ -162,29 +162,30 @@ class Product extends Model
 
     public function getEffectiveFinalPriceAttribute(): float
     {
-        // Resolve the discount from this product's exclusive offer assignment.
-        // Other active combo categories must not shadow its discount category.
+        return $this->discountOfferCategory()?->offerPriceFor($this->price) ?? (float) $this->final_price;
+    }
+
+    /** Price to store: a discount offer's price while it is on, else the product's own discount. */
+    public function resolveFinalPrice(): float
+    {
+        return $this->discountOfferCategory()?->offerPriceFor($this->price)
+            ?? self::calculateFinalPrice($this->price, $this->discount_type, $this->discount_value);
+    }
+
+    /**
+     * The discount offer category this product is assigned to, switched on or not.
+     * Other active combo categories must not shadow its discount category.
+     */
+    private function discountOfferCategory(): ?Category
+    {
         $assignedOfferId = $this->combo_category_id ?: $this->category_id;
-        $activeOffer = $assignedOfferId
+
+        return $assignedOfferId
             ? Category::whereKey($assignedOfferId)
                 ->where('is_offer_category', true)
                 ->where('offer_type', 'discount')
-                ->where('is_active_offer', true)
-                ->where('status', 'active')
                 ->first()
             : null;
-        if ($activeOffer) {
-            $basePrice = (float) $this->price;
-            $discVal = (float) $activeOffer->discount_value;
-            if ($activeOffer->discount_type === 'percentage') {
-                $final = $basePrice - ($basePrice * ($discVal / 100));
-            } else {
-                $final = $basePrice - $discVal;
-            }
-            return max(0, round($final, 2));
-        }
-
-        return (float) $this->final_price;
     }
 
     public function scopeActive($query)
@@ -245,11 +246,11 @@ class Product extends Model
                 $baseSlug = Str::slug($product->name);
                 $product->slug = $baseSlug . '-' . Str::random(4);
             }
-            $product->final_price = self::calculateFinalPrice($product->price, $product->discount_type, $product->discount_value);
+            $product->final_price = $product->resolveFinalPrice();
         });
 
         static::updating(function ($product) {
-            $product->final_price = self::calculateFinalPrice($product->price, $product->discount_type, $product->discount_value);
+            $product->final_price = $product->resolveFinalPrice();
         });
     }
 }

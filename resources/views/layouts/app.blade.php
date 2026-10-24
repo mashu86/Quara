@@ -870,6 +870,9 @@
             }
         });
     </script>
+    @if(session('sold_out_items'))
+        @include('frontend.partials.sold_out_modal')
+    @endif
     <script src="{{ asset('js/pincode_autofill.js') }}?v={{ filemtime(public_path('js/pincode_autofill.js')) }}" data-directory-url="{{ asset('data/pincodes.json') }}" data-lookup-url="{{ route('address.pincode') }}"></script>
     @yield('scripts')
 </body>

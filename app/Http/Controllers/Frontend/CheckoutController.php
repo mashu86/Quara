@@ -221,7 +221,22 @@ class CheckoutController extends Controller
             return back()->withInput()->with('error', 'Cash on Delivery is disabled. Please select Online Payment.');
         }
 
+        return $this->placeOrder($validated);
+    }
+
+    /** Create the order from the current cart and open its payment step. */
+    private function placeOrder(array $validated)
+    {
+        // getCart() drops items sold since they were added; tell the shopper which ones went.
+        $cartBefore = session('cart', []);
         $cart = $this->cartService->getCart();
+        $soldItems = collect($cartBefore)->diffKeys($cart)
+            ->map(fn ($item) => trim(($item['name'] ?? 'Item').(!empty($item['size']) ? ' – Size '.$item['size'] : '')))
+            ->values()->all();
+        if ($soldItems) {
+            return redirect()->route(empty($cart) ? 'shop' : 'checkout.index')
+                ->withInput($validated)->with('sold_out_items', $soldItems);
+        }
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
         }
@@ -294,8 +309,6 @@ class CheckoutController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $summary['grand_total'] <= 0 ? 'paid' : 'pending',
                     'order_status' => ($validated['payment_method'] === 'cod' || $summary['grand_total'] <= 0) ? 'confirmed' : 'pending',
-                    // Hold the last item as soon as checkout opens the online payment step.
-                    'reserved_until' => $summary['grand_total'] > 0 ? now()->addMinutes(5) : null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
@@ -384,11 +397,63 @@ class CheckoutController extends Controller
             return view('frontend.checkout_online_payment', compact('order', 'paymentResult'));
 
         } catch (Exception $e) {
-            if ($order instanceof Order && $order->exists && $order->payment_status === 'pending') {
-                $order->update(['reserved_until' => null]);
-            }
-            return back()->with('error', 'Order creation failed: '.$e->getMessage())->withInput();
+            return redirect()->route('checkout.index')->withInput($validated)
+                ->with('error', 'Order creation failed: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Called just before the Razorpay window opens. Unpaid orders hold no stock, so another
+     * shopper may have bought an item since this order was created.
+     */
+    public function stockCheck(string $order_number)
+    {
+        $order = $this->unpaidOrderOfShopper($order_number);
+        $soldItems = $order->items->filter(fn (OrderItem $item) => ! $this->stockService
+            ->checkStock($item->product_id, $item->size, $item->quantity)['available'])
+            ->map(fn (OrderItem $item) => $item->product_name.($item->size !== '' ? ' – Size '.$item->size : ''))
+            ->values();
+
+        return response()->json([
+            'available' => $soldItems->isEmpty(),
+            'sold_items' => $soldItems,
+            // Sold items fall out of the cart here; what is left can still be paid for.
+            'remaining_count' => $soldItems->isEmpty() ? $order->items->count() : count($this->cartService->getCart()),
+        ]);
+    }
+
+    /** Drop the unpaid order and send the shopper back to browse; the rest of the cart stays. */
+    public function abandonOrder(string $order_number)
+    {
+        $order = $this->unpaidOrderOfShopper($order_number);
+        $order->update(['order_status' => 'cancelled']);
+        $this->cartService->getCart();
+
+        return redirect()->route('shop');
+    }
+
+    /** Replace the unpaid order with a new one for the items still in stock, then pay. */
+    public function continueOrder(string $order_number)
+    {
+        $order = $this->unpaidOrderOfShopper($order_number);
+        $order->update(['order_status' => 'cancelled']);
+
+        return $this->placeOrder($order->only([
+            'customer_name', 'customer_phone', 'customer_email', 'house_building', 'street',
+            'area', 'city', 'district', 'state', 'pin_code', 'payment_method', 'notes',
+        ]));
+    }
+
+    private function unpaidOrderOfShopper(string $orderNumber): Order
+    {
+        $order = Order::with('items')->where('order_number', $orderNumber)
+            ->where('payment_method', 'online')->where('payment_status', 'pending')
+            ->where('order_status', 'pending')->firstOrFail();
+        $ownsOrder = in_array($order->id, session('guest_order_ids', []))
+            || (auth()->check() && $order->user_id === auth()->id());
+        abort_unless($ownsOrder, 404);
+
+        return $order;
     }
 
     /**

@@ -326,11 +326,7 @@ class ProductController extends Controller
             if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
                 $validated['discount_type'] = $offerCategory->discount_type ?? 'percentage';
                 $validated['discount_value'] = $offerCategory->discount_value;
-                $validated['final_price'] = Product::calculateFinalPrice(
-                    $validated['price'],
-                    $validated['discount_type'],
-                    $validated['discount_value']
-                );
+                $validated['final_price'] = $offerCategory->offerPriceFor($validated['price']);
             }
             if ($offerCategory && ! in_array((int) $offerCategory->id, array_map('intval', $categoryIds), true)) {
                 $categoryIds[] = (int) $offerCategory->id;
@@ -342,7 +338,6 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($validated, $request, $categoryIds, $selectedOfferId, $categoryAssignments) {
             $product = Product::create($validated);
-            $categoryAssignments->assign($product, $categoryIds, $selectedOfferId);
 
             // Handle Sizes, Stock and Measurements (Chest, Waist, Length)
             $chests = $request->input('chests', []);
@@ -372,6 +367,10 @@ class ProductController extends Controller
                     );
                 }
             }
+
+            // Assign after the stock exists: the assigner skips sold-out products, and a
+            // product without sizes yet looks sold out, so its offer would never apply.
+            $categoryAssignments->assign($product, $categoryIds, $selectedOfferId);
 
             // Handle Images
             $mainPath = ImageOptimizerService::optimizeAndStore($request->file('main_image'), 'products', 'public');
@@ -517,11 +516,7 @@ class ProductController extends Controller
             if ($offerCategory && $offerCategory->offer_type === 'discount' && $offerCategory->discount_value > 0) {
                 $validated['discount_type'] = $offerCategory->discount_type ?? 'percentage';
                 $validated['discount_value'] = $offerCategory->discount_value;
-                $validated['final_price'] = Product::calculateFinalPrice(
-                    $validated['price'],
-                    $validated['discount_type'],
-                    $validated['discount_value']
-                );
+                $validated['final_price'] = $offerCategory->offerPriceFor($validated['price']);
             }
             if ($offerCategory && ! in_array((int) $offerCategory->id, array_map('intval', $categoryIds), true)) {
                 $categoryIds[] = (int) $offerCategory->id;

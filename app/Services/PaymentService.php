@@ -97,7 +97,6 @@ class PaymentService
             if (self::localTestPaymentsAllowed()) {
                 $realRazorpayOrderId = 'order_mock_local_' . $order->id . '_' . time();
             } else {
-                $order->update(['reserved_until' => null]);
                 throw new \RuntimeException('Unable to start payment. Please try checkout again.');
             }
         }

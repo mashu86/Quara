@@ -167,7 +167,7 @@ class OfferSaleController extends Controller
                     if ($selectedCategory->offer_type === 'discount' && $selectedCategory->discount_value > 0) {
                         $discType = $selectedCategory->discount_type ?? 'percentage';
                         $discVal = $selectedCategory->discount_value;
-                        $expectedFinal = Product::calculateFinalPrice($prod->price, $discType, $discVal);
+                        $expectedFinal = $selectedCategory->offerPriceFor($prod->price);
                         
                         if ($prod->discount_type !== $discType || (float)$prod->discount_value !== (float)$discVal || (float)$prod->final_price !== $expectedFinal) {
                             $prod->update([
@@ -285,6 +285,9 @@ class OfferSaleController extends Controller
             }
             $requestedCategory->update(['is_active_offer' => $enable, 'status' => $enable ? 'active' : 'inactive']);
         });
+        // The bulk updates above switch other offers off without model events; reprice them all.
+        Category::where('is_offer_category', true)->where('offer_type', 'discount')->get()
+            ->each->syncOfferProductPrices();
 
         $msg = $categoryId === 0
             ? 'Offer Store is OFF. Offer Categories are inactive.'

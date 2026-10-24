@@ -63,10 +63,13 @@
                     <input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
                     <input type="hidden" name="razorpay_signature" id="razorpay_signature">
                 </form>
+                <form action="{{ route('checkout.order.abandon', $order->order_number) }}" method="POST" id="abandonOrderForm">@csrf</form>
+                <form action="{{ route('checkout.order.continue', $order->order_number) }}" method="POST" id="continueOrderForm">@csrf</form>
             </div>
         </div>
     </div>
 </div>
+@include('frontend.partials.sold_out_modal')
 @endsection
 
 @section('scripts')
@@ -113,6 +116,31 @@
         }, 1000);
     }
 
+    // Unpaid orders hold no stock: confirm every item is still available before taking payment.
+    async function whenItemsStillAvailable(pay) {
+        let result;
+        try {
+            const response = await fetch(@json(route('checkout.order.stock-check', $order->order_number)), {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token()) },
+            });
+            if (!response.ok) throw new Error('Stock check failed');
+            result = await response.json();
+        } catch (e) {
+            showPaymentStatus('Could not start payment', 'Please check your connection and try again.');
+            return;
+        }
+        if (result.available) {
+            pay();
+            return;
+        }
+        window.showSoldOutModal(
+            result.sold_items,
+            () => document.getElementById('abandonOrderForm').submit(),
+            result.remaining_count > 0 ? () => document.getElementById('continueOrderForm').submit() : null
+        );
+    }
+
     window.addEventListener('beforeunload', function (event) {
         if (!paymentWaiting) return;
         event.preventDefault();
@@ -122,6 +150,10 @@
     @if(str_starts_with($paymentResult['razorpay_order_id'] ?? '', 'order_mock_local_') && \App\Services\PaymentService::localTestPaymentsAllowed())
     {{-- Local test shortcut: only rendered on localhost in local test mode, never on the live site. --}}
     function submitMockLocalPayment() {
+        whenItemsStillAvailable(completeMockLocalPayment);
+    }
+
+    function completeMockLocalPayment() {
         startConfirmationWait();
         document.getElementById('razorpay_payment_id').value = 'pay_mock_local_' + Date.now();
         document.getElementById('razorpay_order_id').value = '{{ $paymentResult["razorpay_order_id"] ?? "" }}';
@@ -168,7 +200,7 @@
     const rzp = new Razorpay(options);
 
     function openPayment() {
-        rzp.open();
+        whenItemsStillAvailable(() => rzp.open());
     }
 
     rzp.on('payment.failed', function (response){

@@ -705,13 +705,8 @@ class OrderController extends Controller
                         ]),
                     ]);
                 }
-                if ($payment['status'] === 'failed' || $payment['status'] === 'created') {
-                    $lockedOrder->update(['reserved_until' => null]);
-                } elseif ($payment['status'] === 'authorized' && (!$lockedOrder->reserved_until || $lockedOrder->reserved_until->isPast())) {
-                    $lockedOrder->update(['reserved_until' => now()->addMinutes(2)]);
-                }
             });
-            $msg = 'Razorpay payment status: '.str_replace('_', ' ', $payment['status']).'. Stock hold updated accordingly.';
+            $msg = 'Razorpay payment status: '.str_replace('_', ' ', $payment['status']).'.';
             return $isAjax ? response()->json([
                 'success' => true,
                 'payment_status' => $order->fresh()->payment_status,

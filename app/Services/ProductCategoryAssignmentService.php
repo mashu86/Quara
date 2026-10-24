@@ -56,7 +56,7 @@ class ProductCategoryAssignmentService
             $product->category_id = $allIds->first();
             $product->combo_category_id = $offerCategory?->id;
             $product->final_price = $offerCategory?->offer_type === 'discount' && (float) $offerCategory->discount_value > 0
-                ? Product::calculateFinalPrice($product->price, $offerCategory->discount_type ?? 'percentage', $offerCategory->discount_value)
+                ? $offerCategory->offerPriceFor($product->price)
                 : Product::calculateFinalPrice($product->price, $product->discount_type, $product->discount_value);
 
             if ($offerCategory?->offer_type === 'discount' && (float) $offerCategory->discount_value > 0) {

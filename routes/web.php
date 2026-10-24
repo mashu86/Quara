@@ -100,6 +100,9 @@ Route::post('/checkout/coupon/apply', [CheckoutController::class, 'applyCoupon']
 Route::post('/checkout/coupon/remove', [CheckoutController::class, 'removeCoupon'])->name('checkout.coupon.remove');
 Route::post('/checkout/fetch-address', [CheckoutController::class, 'fetchAddressByEmail'])->name('checkout.fetch_address');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+Route::post('/checkout/order/{order_number}/stock-check', [CheckoutController::class, 'stockCheck'])->middleware('throttle:30,1')->name('checkout.order.stock-check');
+Route::post('/checkout/order/{order_number}/abandon', [CheckoutController::class, 'abandonOrder'])->name('checkout.order.abandon');
+Route::post('/checkout/order/{order_number}/continue', [CheckoutController::class, 'continueOrder'])->name('checkout.order.continue');
 Route::post('/checkout/verify-online-payment', [CheckoutController::class, 'verifyOnlinePayment'])->name('checkout.verify_online_payment');
 Route::post('/api/webhooks/razorpay', [\App\Http\Controllers\Api\RazorpayWebhookController::class, 'handle'])->name('api.webhooks.razorpay');
 Route::get('/checkout/success/{order_number}', [CheckoutController::class, 'success'])->name('checkout.success');

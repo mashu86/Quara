@@ -63,13 +63,15 @@ class HomeController extends Controller
                 ->limit($homeSections->get('lookbook')->items_to_show)->get();
         }
 
-        $carouselProducts = function ($query, $limit) {
-            return $query->visibleInCollection()->with(['images', 'sizes'])->inStockFirst()->limit($limit)->get();
+        // Sold-out products always come after available ones; $orderWithin then orders each group.
+        $carouselProducts = function ($query, $limit, callable $orderWithin) {
+            return $orderWithin($query->visibleInCollection()->with(['images', 'sizes'])->inStockFirst())->limit($limit)->get();
         };
         $sectionProducts = [];
         $newSection = $homeSections->get('new_arrivals');
         if ($newSection?->enabled) {
-            $sectionProducts['new_arrivals'] = $carouselProducts(Product::active()->orderByDesc('created_at')->orderByDesc('id'), $newSection->items_to_show);
+            $sectionProducts['new_arrivals'] = $carouselProducts(Product::active(), $newSection->items_to_show,
+                fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id'));
         }
         $bestSection = $homeSections->get('best_sellers');
         if ($bestSection?->enabled) {
@@ -79,7 +81,10 @@ class HomeController extends Controller
                 ->select('order_items.product_id')->selectRaw('SUM(order_items.quantity) as sold_units')
                 ->groupBy('order_items.product_id')->orderByDesc('sold_units')->limit($bestSection->items_to_show)->pluck('product_id')->map(fn($id) => (int)$id)->all();
             $popular = $popularIds ? Product::active()->visibleInCollection()->whereIn('id', $popularIds)->with(['images','sizes'])->get()->keyBy('id') : collect();
-            $sectionProducts['best_sellers'] = collect($popularIds)->map(fn($id) => $popular->get($id))->filter()->values();
+            // Best selling first, but any that are sold out move after the available ones.
+            [$inStock, $soldOut] = collect($popularIds)->map(fn($id) => $popular->get($id))->filter()
+                ->partition(fn ($product) => $product->available_total_stock > 0);
+            $sectionProducts['best_sellers'] = $inStock->concat($soldOut)->values();
         }
         $offerSection = $homeSections->get('offers');
         if ($offerSection?->enabled) {
@@ -87,7 +92,7 @@ class HomeController extends Controller
                 $query->whereColumn('final_price', '<', 'price')
                     ->orWhereHas('comboCategory', fn($category) => $category->where('is_active_offer', true))
                     ->orWhereHas('categories', fn($category) => $category->where('is_active_offer', true));
-            })->orderByRaw('(price - final_price) DESC')->orderByDesc('id'), $offerSection->items_to_show);
+            }), $offerSection->items_to_show, fn ($query) => $query->orderByRaw('(price - final_price) DESC')->orderByDesc('id'));
         }
         $reviewSection = $homeSections->get('reviews');
         $homeTestimonials = $reviewSection?->enabled

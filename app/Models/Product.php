@@ -195,11 +195,14 @@ class Product extends Model
 
     public function scopeInStockFirst($query)
     {
+        // Same rule as the shop's SOLD OUT badge: nothing left once reserved and booked pieces are set aside.
         return $query->orderByRaw("
-            CASE 
-                WHEN is_out_of_stock = 1 THEN 1 
-                WHEN (SELECT COALESCE(SUM(stock), 0) FROM product_sizes WHERE product_sizes.product_id = products.id) <= 0 THEN 1 
-                ELSE 0 
+            CASE
+                WHEN is_out_of_stock = 1 THEN 1
+                WHEN (SELECT COALESCE(SUM(stock - COALESCE(reserved_stock, 0)), 0) FROM product_sizes WHERE product_sizes.product_id = products.id)
+                   - (SELECT COALESCE(SUM(quantity - sold_quantity), 0) FROM product_bookings
+                      WHERE product_bookings.product_id = products.id AND product_bookings.status IN ('active', 'partially_sold')) <= 0 THEN 1
+                ELSE 0
             END ASC
         ");
     }

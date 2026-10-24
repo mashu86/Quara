@@ -42,6 +42,15 @@
             @endif
             <div class="{{ ($showDetails ?? false) ? '' : 'modal-body' }} p-0 text-center bg-black d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 280px; max-height: 75vh;">
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
+
+                {{-- Photo arrows: shown when the product has several images; downloads use the photo on screen. --}}
+                <button type="button" id="productPreviewImagePrev" class="btn btn-dark bg-opacity-75 rounded-circle shadow position-absolute top-50 start-0 translate-middle-y ms-2 p-0 d-none" style="z-index: 11; width: 36px; height: 36px;" onclick="stepPreviewImage(-1)" aria-label="Previous photo" title="Previous photo">
+                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button type="button" id="productPreviewImageNext" class="btn btn-dark bg-opacity-75 rounded-circle shadow position-absolute top-50 end-0 translate-middle-y me-2 p-0 d-none" style="z-index: 11; width: 36px; height: 36px;" onclick="stepPreviewImage(1)" aria-label="Next photo" title="Next photo">
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <span id="productPreviewImageCounter" class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-50 translate-middle-x mb-2 d-none" style="z-index: 11;"></span>
                 
                 <!-- Live Instagram Overlay Box Preview; the arrows step through sizes when there are several -->
                 <div id="productPreviewInstaWrap" class="position-absolute d-flex align-items-center gap-1" style="z-index: 10;">

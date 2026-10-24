@@ -3,7 +3,6 @@
 @section('content')
 <div class="container-fluid py-3">
     <h3>Article / Tracking History</h3>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     <form class="card card-body mb-3 row g-2 flex-row">
         @foreach(['start_date'=>'Start Date','end_date'=>'End Date','client_name'=>'Client Name','order_id'=>'Order ID','article_number'=>'Article Number','tracking_number'=>'Tracking Number','courier_name'=>'Courier'] as $key=>$label)
             <div class="col-md"><label class="form-label">{{ $label }}</label><input class="form-control" name="{{ $key }}" value="{{ request($key) }}" @if(str_ends_with($key,'date')) type="date" @endif></div>

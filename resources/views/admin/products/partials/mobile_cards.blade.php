@@ -9,7 +9,7 @@
     <div class="col">
         <article class="card mobile-product-card h-100 overflow-hidden">
             <div class="mobile-product-image-wrap position-relative" role="button"
-                 onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}')"
+                 onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}', 0, {{ json_encode($product->image_urls) }})"
                  title="Click to preview product image">
                 <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="mobile-product-image" loading="lazy">
                 @if($isBooked)

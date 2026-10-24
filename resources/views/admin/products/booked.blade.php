@@ -69,6 +69,7 @@
                             'sizes' => $product->sizes->map->only(['size', 'stock', 'chest', 'waist', 'hip', 'length'])->values(),
                             // Open the label on the booked size.
                             'size_index' => $booking->size ? max(0, $product->sizes->search(fn ($size) => $size->id === $booking->size->id)) : 0,
+                            'images' => $product->image_urls,
                         ];
                         $bookingTypeLabel = match($booking->booking_type) {
                             'business_whatsapp' => 'Business WhatsApp',
@@ -194,7 +195,7 @@ document.addEventListener('click', function(event) {
     const product = JSON.parse(button.dataset.preview);
     const details = document.getElementById(button.dataset.detailsId);
     document.getElementById('productPreviewDetails').replaceChildren(details.content.cloneNode(true));
-    window.openProductPreview(product.image, product.name, product.price, product.sizes, product.code, product.size_index);
+    window.openProductPreview(product.image, product.name, product.price, product.sizes, product.code, product.size_index, product.images);
 });
 
 // Switching a booking off unbooks only that booking; other bookings of the same size stay.

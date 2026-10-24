@@ -12,7 +12,6 @@
         <span class="badge rounded-pill text-bg-dark px-3 py-2"><i class="fa-solid fa-receipt me-1"></i> 25 mm label</span>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
     <div class="card border-0 shadow-sm mb-3">

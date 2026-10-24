@@ -63,9 +63,6 @@
     </div>
 @endif
 
-@if (session('success'))
-    <div class="alert alert-success rounded-3" role="status">{{ session('success') }}</div>
-@endif
 
 <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" onsubmit="handleAdminFormSubmit(this)">
     @csrf

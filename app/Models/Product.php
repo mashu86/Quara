@@ -204,6 +204,15 @@ class Product extends Model
         ");
     }
 
+    /** Every image URL, primary first (the images relation is ordered that way). */
+    public function getImageUrlsAttribute(): array
+    {
+        $urls = $this->images->filter(fn ($image) => filled($image->image_path))
+            ->map(fn ($image) => $image->image_url)->values()->all();
+
+        return $urls ?: [$this->primary_image_url];
+    }
+
     public function getPrimaryImageUrlAttribute(): string
     {
         $primary = $this->images->first();

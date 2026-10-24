@@ -21,7 +21,6 @@
         }
     </style>
     <h3 class="mb-3">Master Coupon</h3>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
     <div class="d-flex justify-content-end mb-3"><button class="btn btn-warning" type="button" id="addCouponButton"><i class="fa-solid fa-plus me-1"></i> Add Coupon</button></div>
     <div class="offcanvas offcanvas-end coupon-drawer" tabindex="-1" id="couponDrawer" aria-labelledby="couponFormTitle" style="--bs-offcanvas-width: min(680px, 100vw);">

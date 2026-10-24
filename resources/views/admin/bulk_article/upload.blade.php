@@ -5,9 +5,6 @@
 @section('content')
 <div class="container-fluid py-3">
     <h3>Selected Orders &amp; Courier File</h3>
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
 
     <div class="row g-3">
         <div class="col-lg-7">

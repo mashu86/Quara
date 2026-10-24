@@ -7,7 +7,7 @@
     <tr>
         <td class="prod-sticky-col text-center py-2 px-2">
             <div class="d-flex flex-column align-items-center justify-content-center">
-                <div class="prod-img-wrapper border shadow-xs mb-1 position-relative" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}')" title="Click to preview product image">
+                <div class="prod-img-wrapper border shadow-xs mb-1 position-relative" onclick="openProductPreview('{{ addslashes($imgSrc) }}', '{{ addslashes($product->name) }}', '₹{{ number_format($product->final_price, 0) }}', {{ json_encode($product->sizes) }}, '{{ addslashes($product->product_code) }}', 0, {{ json_encode($product->image_urls) }})" title="Click to preview product image">
                     <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-100 h-100" style="object-fit: cover;">
                     @if(!empty($product->combo_category_id))
                         <span class="position-absolute top-0 start-0 bg-dark text-warning px-1 py-0.5 rounded-end shadow-sm" style="font-size: 0.65rem; z-index: 4;" title="Offer Combo Category Product">

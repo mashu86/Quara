@@ -216,29 +216,55 @@ window.updateInstaPreviewBox = function(price, sizes) {
     boxElem.classList.remove('d-none');
 };
 
-window.openProductPreview = function(imgSrc, title, price, sizes, code, startSizeIndex) {
-    if (!imgSrc) return;
+/** "-photo-2" for the second photo onward, so each photo downloads as its own file. */
+const previewPhotoSuffix = () => (window.currentPreviewImageIndex || 0) > 0 ? '-photo-' + (window.currentPreviewImageIndex + 1) : '';
+
+/** Show one of the product's photos; both download buttons use the photo on screen. */
+window.showPreviewImage = function(index) {
+    const images = window.currentPreviewImages || [];
+    if (!images.length) return;
+    window.currentPreviewImageIndex = (index % images.length + images.length) % images.length;
+    const imgSrc = images[window.currentPreviewImageIndex];
     window.currentPreviewImgSrc = imgSrc;
+
+    const imgElem = document.getElementById('productPreviewModalImg');
+    if (imgElem) {
+        imgElem.src = imgSrc;
+        imgElem.alt = window.currentPreviewTitle || 'Product Image';
+    }
+    const downloadBtn = document.getElementById('productPreviewModalDownloadBtn');
+    if (downloadBtn) {
+        downloadBtn.href = imgSrc;
+        const title = window.currentPreviewTitle;
+        const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-main-image') + previewPhotoSuffix() + '.jpg';
+        downloadBtn.setAttribute('download', cleanFileName);
+    }
+
+    const hasManyImages = images.length > 1;
+    ['productPreviewImagePrev', 'productPreviewImageNext', 'productPreviewImageCounter'].forEach(id => {
+        document.getElementById(id)?.classList.toggle('d-none', !hasManyImages);
+    });
+    const counter = document.getElementById('productPreviewImageCounter');
+    if (counter) counter.textContent = `${window.currentPreviewImageIndex + 1} / ${images.length}`;
+};
+
+window.stepPreviewImage = function(delta) {
+    window.showPreviewImage((window.currentPreviewImageIndex || 0) + delta);
+};
+
+window.openProductPreview = function(imgSrc, title, price, sizes, code, startSizeIndex, images) {
+    if (!imgSrc) return;
     window.currentPreviewTitle = title || 'product';
     window.currentPreviewPrice = price || '';
     window.currentPreviewSizes = sizes || [];
     window.currentPreviewCode = code || '';
     window.currentPreviewSizeIndex = startSizeIndex || 0;
+    window.currentPreviewImages = Array.isArray(images) && images.length ? images : [imgSrc];
 
     const modalElem = document.getElementById('productPreviewModal');
-    const imgElem = document.getElementById('productPreviewModalImg');
     const titleElem = document.getElementById('productPreviewModalLabel');
-    const downloadBtn = document.getElementById('productPreviewModalDownloadBtn');
-    if (imgElem) {
-        imgElem.src = imgSrc;
-        imgElem.alt = title || 'Product Image';
-    }
     if (titleElem) titleElem.textContent = title || 'Product Image';
-    if (downloadBtn) {
-        downloadBtn.href = imgSrc;
-        const cleanFileName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product-main-image') + '.jpg';
-        downloadBtn.setAttribute('download', cleanFileName);
-    }
+    window.showPreviewImage(Math.max(0, window.currentPreviewImages.indexOf(imgSrc)));
 
     window.updateInstaPreviewBox(price, sizes);
 
@@ -340,7 +366,7 @@ window.downloadInstagramImage = function() {
             const a = document.createElement('a');
             a.href = dataUrl;
             const sizePart = (window.currentPreviewSizes || []).length > 1 && sizes[0] ? statedSizeLabel(sizes[0]) : '';
-            const cleanName = [title || 'product', sizePart, 'instagram'].filter(Boolean).join(' ')
+            const cleanName = [title || 'product', sizePart, previewPhotoSuffix(), 'instagram'].filter(Boolean).join(' ')
                 .toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.jpg';
             a.download = cleanName;
             document.body.appendChild(a);

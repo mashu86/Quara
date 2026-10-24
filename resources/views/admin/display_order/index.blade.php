@@ -4,6 +4,11 @@
 
 @section('styles')
 <style>
+    /* Phones: the product order buttons stack, each full width. */
+    @media (max-width: 575.98px) {
+        .prod-order-actions { width: 100%; flex-direction: column; }
+        .prod-order-actions .btn { width: 100%; }
+    }
     .drag-handle {
         cursor: grab;
         color: #444;
@@ -346,7 +351,10 @@
                         <div class="small text-muted" style="font-size: 0.78rem;">
                             <i class="fa-solid fa-hand-pointer text-warning me-1"></i> Drag cards <i class="fa-solid fa-up-down-left-right"></i> or click <i class="fa-solid fa-pen-to-square text-primary"></i> to set position.
                         </div>
-                        <div class="d-flex flex-wrap gap-2">
+                        <div class="d-flex flex-wrap gap-2 prod-order-actions">
+                            <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold shadow-sm text-dark" id="quickOrderBtn" style="font-size: 0.78rem; background-color: var(--qw-gold); border-color: var(--qw-gold);" title="Tap products in the order they should appear first">
+                                <i class="fa-solid fa-bolt me-1"></i> Fastest Display Order
+                            </button>
                             <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-bold shadow-sm" id="sortAvailableFirstBtn" style="font-size: 0.78rem;" title="Move available products to the top">
                                 <i class="fa-solid fa-rotate text-warning me-1"></i> Available Products First
                             </button>
@@ -520,6 +528,44 @@
         </div>
     </div>
 </div>
+
+<!-- Fastest Display Order: tap available products in the order they should lead the shop -->
+<div class="modal fade" id="quickOrderModal" tabindex="-1" aria-labelledby="quickOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold" id="quickOrderModalLabel"><i class="fa-solid fa-bolt text-warning me-2"></i>Fastest Display Order</h5>
+                    <p class="small text-muted mb-0">Tap the circles in the order you want. Tap a numbered circle again to remove it. The rest of the products follow after these.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2 p-md-3">
+                <div class="row g-2" id="quickOrderGrid"></div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <span class="small fw-semibold" id="quickOrderCount">0 selected</span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="quickOrderClear">Clear</button>
+                    <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" id="quickOrderApply" disabled>
+                        <i class="fa-solid fa-check me-1"></i> Apply &amp; Save Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .quick-order-card { cursor: pointer; user-select: none; }
+    .quick-order-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+    .quick-order-circle {
+        position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%;
+        background: #fff; border: 2px solid #0d6efd; color: #fff; font-weight: 700; font-size: 0.85rem;
+        display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    }
+    .quick-order-card.selected .quick-order-circle { background: #0d6efd; }
+    .quick-order-card.selected { outline: 2px solid #0d6efd; outline-offset: -2px; }
+</style>
 @endsection
 
 @section('scripts')
@@ -870,6 +916,81 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             targetItem.querySelector('.card')?.classList.remove('sortable-chosen');
         }, 1500);
+    });
+
+    // Fastest Display Order: tapped products lead in tap order; everything else keeps its order after them.
+    const quickOrderModalEl = document.getElementById('quickOrderModal');
+    const quickOrderGrid = document.getElementById('quickOrderGrid');
+    let quickOrderPicked = [];
+
+    function renderQuickOrderMarks() {
+        quickOrderGrid.querySelectorAll('.quick-order-card').forEach(card => {
+            const position = quickOrderPicked.indexOf(card.dataset.id);
+            card.classList.toggle('selected', position !== -1);
+            card.querySelector('.quick-order-circle').textContent = position === -1 ? '' : position + 1;
+        });
+        document.getElementById('quickOrderCount').textContent = `${quickOrderPicked.length} selected`;
+        document.getElementById('quickOrderApply').disabled = quickOrderPicked.length === 0;
+    }
+
+    document.getElementById('quickOrderBtn')?.addEventListener('click', function() {
+        quickOrderPicked = [];
+        quickOrderGrid.replaceChildren();
+        document.querySelectorAll('#sortableProducts .product-order-item[data-available="1"]').forEach(item => {
+            const col = document.createElement('div');
+            col.className = 'col-4 col-md-3 col-lg-2';
+            const card = document.createElement('div');
+            card.className = 'quick-order-card position-relative border rounded-3 overflow-hidden bg-white';
+            card.dataset.id = item.dataset.id;
+            const img = document.createElement('img');
+            img.src = item.querySelector('.grid-thumb-img')?.src || '';
+            img.alt = '';
+            img.loading = 'lazy';
+            const circle = document.createElement('span');
+            circle.className = 'quick-order-circle';
+            const name = document.createElement('div');
+            name.className = 'small text-truncate px-1 py-1 text-center';
+            name.style.fontSize = '0.68rem';
+            name.textContent = item.querySelector('.order-card-title')?.textContent || '';
+            card.append(img, circle, name);
+            col.append(card);
+            quickOrderGrid.append(col);
+        });
+        if (!quickOrderGrid.children.length) {
+            quickOrderGrid.innerHTML = '<div class="col-12 text-center text-muted py-4">No available products to arrange.</div>';
+        }
+        renderQuickOrderMarks();
+        bootstrap.Modal.getOrCreateInstance(quickOrderModalEl).show();
+    });
+
+    // Tap to number it next; tap again to remove it, and the numbers after it move up by one.
+    quickOrderGrid?.addEventListener('click', function(event) {
+        const card = event.target.closest('.quick-order-card');
+        if (!card) return;
+        const position = quickOrderPicked.indexOf(card.dataset.id);
+        if (position === -1) {
+            quickOrderPicked.push(card.dataset.id);
+        } else {
+            quickOrderPicked.splice(position, 1);
+        }
+        renderQuickOrderMarks();
+    });
+
+    document.getElementById('quickOrderClear')?.addEventListener('click', function() {
+        quickOrderPicked = [];
+        renderQuickOrderMarks();
+    });
+
+    document.getElementById('quickOrderApply')?.addEventListener('click', function() {
+        const container = document.getElementById('sortableProducts');
+        const items = Array.from(container.querySelectorAll('.product-order-item'));
+        const byId = new Map(items.map(item => [item.dataset.id, item]));
+        const picked = quickOrderPicked.map(id => byId.get(id)).filter(Boolean);
+        const rest = items.filter(item => !quickOrderPicked.includes(item.dataset.id));
+        [...picked, ...rest].forEach(item => container.appendChild(item));
+        updateBadges('#sortableProducts', 'prod-order-badge');
+        saveProductOrder(true);
+        bootstrap.Modal.getInstance(quickOrderModalEl)?.hide();
     });
 });
 </script>

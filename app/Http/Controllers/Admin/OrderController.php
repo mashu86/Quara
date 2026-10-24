@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\OrderCancelledMail;
+use App\Models\GeminiApiKey;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\SocialMedia;
@@ -327,7 +328,10 @@ class OrderController extends Controller
         // Mark unread notifications for this order as read
         Notification::where('order_id', $order->id)->where('is_read', false)->update(['is_read' => true]);
 
-        return view('admin.orders.edit', compact('order'));
+        // For the API key picker beside "Fill from Address Image".
+        $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
+
+        return view('admin.orders.edit', compact('order', 'geminiApiKeys'));
     }
 
     public function update(Request $request, Order $order)

@@ -33,6 +33,26 @@
     <div class="row g-3 g-md-4">
         <!-- Left Column: Customer & Delivery Info -->
         <div class="col-12 col-lg-8">
+            <!-- Name & address tools: unlock the fields, or fill them from a screenshot / photo -->
+            <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
+                <div class="card-body p-3 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+                    <button type="button" id="editCustomerDetailsBtn" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-semibold" onclick="unlockCustomerDetails(true)">
+                        <i class="fa-solid fa-pen-to-square me-1" aria-hidden="true"></i> Edit Name &amp; Address
+                    </button>
+                    <input type="file" id="orderAddressImageInput" accept="image/*" class="d-none" onchange="scanOrderAddressImage(this)">
+                    <button type="button" id="scanOrderAddressBtn" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark" style="background-color: var(--qw-gold); border-color: var(--qw-gold);" onclick="document.getElementById('orderAddressImageInput').click()">
+                        <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i> Fill from Address Image
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#geminiApiKeyPickerModal" title="View or change active Google API key" aria-label="View or change active Google API key">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
+                    <span id="scanOrderAddressStatus" class="small text-muted d-none align-items-center gap-2">
+                        <span class="spinner-border spinner-border-sm text-warning" aria-hidden="true"></span> Reading the image with AI...
+                    </span>
+                    <span class="small text-muted ms-sm-auto" style="font-size: 0.72rem;">Screenshot of WhatsApp / Instagram chat, label or receipt. Check the filled details, then Save Changes.</span>
+                </div>
+            </div>
+
             <!-- Customer Information Card -->
             <div class="card border-0 rounded-4 shadow-sm mb-3 mb-md-4">
                 <div class="card-header bg-white py-2.5 py-sm-3 border-bottom">
@@ -44,15 +64,15 @@
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">Customer Name *</label>
-                            <input type="text" name="customer_name" class="form-control rounded-3" value="{{ old('customer_name', $order->customer_name) }}" required>
+                            <input type="text" name="customer_name" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('customer_name', $order->customer_name) }}" required>
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">Phone Number *</label>
-                            <input type="text" name="customer_phone" class="form-control rounded-3" value="{{ old('customer_phone', $order->customer_phone) }}" required>
+                            <input type="text" name="customer_phone" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('customer_phone', $order->customer_phone) }}" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold small text-dark">Email Address (Optional)</label>
-                            <input type="email" name="customer_email" class="form-control rounded-3" value="{{ old('customer_email', $order->customer_email) }}">
+                            <input type="email" name="customer_email" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('customer_email', $order->customer_email) }}">
                         </div>
                     </div>
                 </div>
@@ -69,31 +89,31 @@
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">House / Building Name / No *</label>
-                            <input type="text" name="house_building" class="form-control rounded-3" value="{{ old('house_building', $order->house_building) }}" required>
+                            <input type="text" name="house_building" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('house_building', $order->house_building) }}" required>
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">Street / Road *</label>
-                            <input type="text" name="street" class="form-control rounded-3" value="{{ old('street', $order->street) }}" required>
+                            <input type="text" name="street" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('street', $order->street) }}" required>
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">Area / Landmark *</label>
-                            <input type="text" name="area" class="form-control rounded-3" value="{{ old('area', $order->area) }}" required>
+                            <input type="text" name="area" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('area', $order->area) }}" required>
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold small text-dark">City / Town *</label>
-                            <input type="text" name="city" class="form-control rounded-3" value="{{ old('city', $order->city) }}" required>
+                            <input type="text" name="city" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('city', $order->city) }}" required>
                         </div>
                         <div class="col-12 col-sm-4">
                             <label class="form-label fw-bold small text-dark">District *</label>
-                            <input type="text" name="district" class="form-control rounded-3" value="{{ old('district', $order->district) }}" required>
+                            <input type="text" name="district" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('district', $order->district) }}" required>
                         </div>
                         <div class="col-12 col-sm-4">
                             <label class="form-label fw-bold small text-dark">State *</label>
-                            <input type="text" name="state" class="form-control rounded-3" value="{{ old('state', $order->state) }}" required>
+                            <input type="text" name="state" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('state', $order->state) }}" required>
                         </div>
                         <div class="col-12 col-sm-4">
                             <label class="form-label fw-bold small text-dark">Pin Code *</label>
-                            <input type="text" name="pin_code" class="form-control rounded-3" value="{{ old('pin_code', $order->pin_code) }}" required>
+                            <input type="text" name="pin_code" class="form-control rounded-3 customer-detail-field" {{ $errors->any() ? '' : 'readonly' }} value="{{ old('pin_code', $order->pin_code) }}" required>
                         </div>
                     </div>
                 </div>
@@ -290,4 +310,65 @@
         </div>
     </div>
 </form>
+{{-- Outside the order form: its "Use this key" buttons are forms of their own. --}}
+@include('admin.partials.gemini_api_key_picker_modal')
+<style>
+    .customer-detail-field[readonly] { background-color: #f8f9fa; cursor: default; }
+</style>
+<script>
+    // Name and address are read-only until the admin chooses to change them.
+    function unlockCustomerDetails(focusFirst) {
+        const fields = document.querySelectorAll('.customer-detail-field');
+        fields.forEach(field => field.removeAttribute('readonly'));
+        const button = document.getElementById('editCustomerDetailsBtn');
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-lock-open me-1" aria-hidden="true"></i> Editing name & address';
+        }
+        if (focusFirst && fields[0]) fields[0].focus();
+    }
+
+    // Reuses the Manual Sales AI reader; only fields it finds are replaced.
+    function scanOrderAddressImage(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const button = document.getElementById('scanOrderAddressBtn');
+        const status = document.getElementById('scanOrderAddressStatus');
+        button.disabled = true;
+        status.classList.replace('d-none', 'd-inline-flex');
+
+        const formData = new FormData();
+        formData.append('image', file);
+        fetch(@json(route('admin.manual-sales.parse-address')), {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token()) },
+            body: formData,
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success || !data.data) {
+                throw new Error(data.message || 'Could not find clear address details in this image. Please try a clearer screenshot.');
+            }
+            unlockCustomerDetails(false);
+            const filled = [];
+            ['customer_name', 'customer_phone', 'customer_email', 'house_building', 'street', 'city', 'district', 'state', 'pin_code'].forEach(name => {
+                const value = (data.data[name] || '').toString().trim();
+                const field = document.querySelector(`.customer-detail-field[name="${name}"]`);
+                if (!value || !field) return;
+                field.value = value;
+                field.style.backgroundColor = '#fff9e6';
+                field.style.borderColor = '#ffc107';
+                setTimeout(() => { field.style.backgroundColor = ''; field.style.borderColor = ''; }, 2500);
+                filled.push(name);
+            });
+            alert(`${filled.length} field(s) filled from the image. Please check them, then click Save Changes.`);
+        })
+        .catch(error => alert(error.message || 'Could not read the address image.'))
+        .finally(() => {
+            button.disabled = false;
+            status.classList.replace('d-inline-flex', 'd-none');
+            input.value = '';
+        });
+    }
+</script>
 @endsection

@@ -557,6 +557,13 @@
                         <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows C, W, L if values exist, else automatically falls back to Size & Price only.</span>
                     </label>
                 </div>
+                <div class="form-check custom-radio-card p-2.5 rounded-3 border bg-light cursor-pointer">
+                    <input class="form-check-input mt-1 cursor-pointer" type="radio" name="insta_drawer_format" id="instaFormatPriceAllSizes" value="price_all_sizes" onchange="updateInstaSettingFromDrawer('format', 'price_all_sizes')">
+                    <label class="form-check-label cursor-pointer w-100" for="instaFormatPriceAllSizes">
+                        <strong class="d-block text-dark small">5) Price and all sizes</strong>
+                        <span class="text-muted extra-small d-block" style="font-size: 0.70rem;">Shows Price, then for each size its label and, one below another, every measurement that is filled in.</span>
+                    </label>
+                </div>
             </div>
         </div>
 

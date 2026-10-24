@@ -29,6 +29,11 @@
 
             <div class="card-body p-2 p-sm-3 d-flex flex-column">
                 <h6 class="mobile-product-name fw-bold text-dark mb-2" title="{{ $product->name }}">{{ $product->name }}</h6>
+                @if(filled($product->product_code))
+                    <div class="mb-2">
+                        <span class="badge bg-light text-dark border font-monospace" title="Product code">{{ $product->product_code }}</span>
+                    </div>
+                @endif
 
                 <div class="d-flex align-items-baseline gap-1 flex-wrap mb-2">
                     <span class="fw-bold text-gold">₹{{ number_format($product->final_price, 2) }}</span>

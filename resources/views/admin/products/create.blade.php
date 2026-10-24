@@ -265,7 +265,7 @@
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
-                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Free Size" value="">
+                                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Custom Size" value="">
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>
@@ -518,7 +518,7 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
-                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Free Size">
+                    <input type="text" name="sizes[]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Custom Size">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\GeminiApiKey;
 use App\Models\Product;
+use App\Models\ProductBooking;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
 use App\Models\Setting;
@@ -14,6 +15,7 @@ use App\Services\ImageOptimizerService;
 use App\Services\ProductCategoryAssignmentService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -125,38 +127,67 @@ class ProductController extends Controller
         return view('admin.products.index', compact('products', 'categories'));
     }
 
+    /**
+     * One row per booking: a whole-product booking, or each size booking on its own
+     * (two customers booking size L of the same product are two rows).
+     */
     public function bookedProducts(Request $request)
     {
-        $query = Product::with(['category', 'sizes', 'images'])
+        $search = trim((string) $request->input('search', ''));
+        $like = '%'.$search.'%';
+
+        $productBookings = Product::with(['category', 'sizes', 'images'])
             ->where('is_out_of_stock', true)
             ->where(function ($booked) {
                 $booked->where(function ($legacyOrCustomer) {
                     $legacyOrCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
                 })->orWhere('booking_type', 'business_whatsapp');
-            });
+            })
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', $like)->orWhere('product_code', 'like', $like)
+                ->orWhere('booked_by', 'like', $like)->orWhere('booking_type', 'like', $like)))
+            ->get()
+            ->map(fn (Product $product) => (object) [
+                'type' => 'product', 'id' => $product->id, 'product' => $product, 'size' => null,
+                'quantity' => null, 'booked_by' => $product->booked_by, 'booking_type' => $product->booking_type,
+                'booking_date' => $product->booking_date, 'sort_at' => $product->updated_at,
+            ]);
 
-        $search = trim((string) $request->input('search', ''));
-        if ($search !== '') {
-            $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('booked_by', 'like', '%'.$search.'%')
-                    ->orWhere('booking_type', 'like', '%'.$search.'%');
-            });
-        }
+        $sizeBookings = ProductBooking::with(['product.category', 'product.sizes', 'product.images', 'productSize'])
+            ->whereIn('status', ['active', 'partially_sold'])
+            ->whereHas('product')
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('booked_by', 'like', $like)->orWhere('booking_type', 'like', $like)
+                ->orWhereHas('product', fn ($product) => $product->where('name', 'like', $like)->orWhere('product_code', 'like', $like))))
+            ->get()
+            ->map(fn (ProductBooking $booking) => (object) [
+                'type' => 'size', 'id' => $booking->id, 'product' => $booking->product, 'size' => $booking->productSize,
+                'quantity' => $booking->remaining_quantity, 'booked_by' => $booking->booked_by, 'booking_type' => $booking->booking_type,
+                'booking_date' => $booking->booking_date, 'sort_at' => $booking->created_at,
+            ]);
 
-        $products = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(20)->withQueryString();
+        $rows = $productBookings->concat($sizeBookings)->sortBy([['sort_at', 'desc'], ['id', 'desc']])->values();
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $bookings = new LengthAwarePaginator($rows->forPage($page, 20)->values(), $rows->count(), 20, $page, [
+            'path' => $request->url(), 'query' => $request->query(),
+        ]);
 
-        return view('admin.products.booked', compact('products', 'search'));
+        return view('admin.products.booked', compact('bookings', 'search'));
     }
 
     public function bulkUnbook(Request $request)
     {
         $validated = $request->validate([
-            'product_ids' => 'required|array|min:1',
-            'product_ids.*' => 'required|integer|distinct|exists:products,id',
+            'product_ids' => 'nullable|array',
+            'product_ids.*' => 'integer|distinct|exists:products,id',
+            'booking_ids' => 'nullable|array',
+            'booking_ids.*' => 'integer|distinct',
         ]);
+        if (empty($validated['product_ids']) && empty($validated['booking_ids'])) {
+            return back()->withErrors(['product_ids' => 'Select at least one booking to unbook.']);
+        }
 
-        $count = Product::whereIn('id', $validated['product_ids'])
+        $count = Product::whereIn('id', $validated['product_ids'] ?? [])
             ->where('is_out_of_stock', true)
             ->where(function ($booked) {
                 $booked->where(function ($legacyOrCustomer) {
@@ -171,8 +202,15 @@ class ProductController extends Controller
                 'updated_at' => now(),
             ]);
 
+        // Same rule as releasing one size booking: drop it, or keep partly sold ones as released for order history.
+        ProductBooking::whereIn('id', $validated['booking_ids'] ?? [])->whereIn('status', ['active', 'partially_sold'])->get()
+            ->each(function (ProductBooking $booking) use (&$count) {
+                (int) $booking->sold_quantity === 0 ? $booking->delete() : $booking->update(['status' => 'released']);
+                $count++;
+            });
+
         return redirect()->route('admin.products.booked', $request->only('search', 'page'))
-            ->with('success', "{$count} booked product(s) unbooked successfully.");
+            ->with('success', "{$count} booking(s) unbooked successfully.");
     }
 
     public function toggleOutOfStock(Request $request, Product $product)
@@ -350,7 +388,7 @@ class ProductController extends Controller
                 $sizeLabel = trim((string) ($sizeName ?? ''));
                 $pSize = ProductSize::create([
                     'product_id' => $product->id,
-                    'size' => $sizeLabel !== '' ? $sizeLabel : 'Free Size',
+                    'size' => $sizeLabel !== '' ? $sizeLabel : ProductSize::BLANK_LABEL,
                     'stock' => $stockQty,
                     'chest' => !empty($chests[$index]) ? trim($chests[$index]) : null,
                     'waist' => !empty($waists[$index]) ? trim($waists[$index]) : null,
@@ -568,7 +606,7 @@ class ProductController extends Controller
             if ($clearSizeLabelIds !== []) {
                 ProductSize::where('product_id', $product->id)
                     ->whereIn('id', $clearSizeLabelIds)
-                    ->update(['size' => 'Free Size']);
+                    ->update(['size' => ProductSize::BLANK_LABEL]);
             }
             $existingStocks = $validated['existing_stocks'] ?? [];
             $existingChests = $request->input('existing_chests', []);
@@ -592,11 +630,11 @@ class ProductController extends Controller
                 $updateData = [];
 
                 if (in_array((int) $sizeId, $clearSizeLabelIds, true)) {
-                    $updateData['size'] = 'Free Size';
+                    $updateData['size'] = ProductSize::BLANK_LABEL;
                 } elseif (array_key_exists($sizeId, $existingSizes)) {
                     $newSizeName = trim((string) ($existingSizes[$sizeId] ?? ''));
                     if ($newSizeName === '') {
-                        $newSizeName = 'Free Size';
+                        $newSizeName = ProductSize::BLANK_LABEL;
                     }
                     if ($pSize->size !== $newSizeName) {
                         $updateData['size'] = $newSizeName;
@@ -661,7 +699,7 @@ class ProductController extends Controller
                 $newSizeLabel = trim((string) ($nSize ?? ''));
                 $pSize = ProductSize::create([
                     'product_id' => $product->id,
-                    'size' => $newSizeLabel !== '' ? $newSizeLabel : 'Free Size',
+                    'size' => $newSizeLabel !== '' ? $newSizeLabel : ProductSize::BLANK_LABEL,
                     'stock' => 0,
                     'chest' => !empty($newSizeRow['chest']) ? trim($newSizeRow['chest']) : null,
                     'waist' => !empty($newSizeRow['waist']) ? trim($newSizeRow['waist']) : null,
@@ -746,11 +784,11 @@ class ProductController extends Controller
 
         ProductSize::where('product_id', $product->id)
             ->whereKey($size->id)
-            ->update(['size' => 'Free Size']);
+            ->update(['size' => ProductSize::BLANK_LABEL]);
         session()->forget('_old_input.existing_sizes.' . $size->id);
         session()->forget('_old_input.clear_size_labels.' . $size->id);
 
-        return response()->json(['success' => true, 'size_id' => $size->id, 'label' => 'Free Size']);
+        return response()->json(['success' => true, 'size_id' => $size->id, 'label' => ProductSize::BLANK_LABEL]);
     }
 
     public function setPrimaryImage(ProductImage $image)

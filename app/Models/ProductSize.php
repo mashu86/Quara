@@ -11,11 +11,14 @@ class ProductSize extends Model
 {
     use HasFactory;
 
+    /** Label stored when the admin leaves a size label blank; it means "size not stated". */
+    public const BLANK_LABEL = 'Custom Size';
+
     protected static function booted(): void
     {
         static::saving(function (self $productSize) {
             $size = trim((string) $productSize->size);
-            $productSize->size = $size !== '' ? $size : 'Free Size';
+            $productSize->size = $size !== '' ? $size : self::BLANK_LABEL;
         });
     }
 

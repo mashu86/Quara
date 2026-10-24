@@ -43,8 +43,16 @@
             <div class="{{ ($showDetails ?? false) ? '' : 'modal-body' }} p-0 text-center bg-black d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 280px; max-height: 75vh;">
                 <img id="productPreviewModalImg" src="" alt="Product Image" class="img-fluid" style="max-height: 72vh; object-fit: contain;">
                 
-                <!-- Live Instagram Overlay Box Preview -->
-                <div id="productPreviewInstaBox" class="position-absolute p-2.5 rounded-3 shadow text-start d-none" style="z-index: 10; font-size: 0.75rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.94; border: 1px solid rgba(255,255,255,0.25);">
+                <!-- Live Instagram Overlay Box Preview; the arrows step through sizes when there are several -->
+                <div id="productPreviewInstaWrap" class="position-absolute d-flex align-items-center gap-1" style="z-index: 10;">
+                <button type="button" id="productPreviewSizePrev" class="btn btn-light btn-sm rounded-circle shadow p-0 d-none" style="width: 24px; height: 24px; line-height: 1;" onclick="stepPreviewSize(-1)" aria-label="Previous size" title="Previous size">
+                    <i class="fa-solid fa-chevron-left" style="font-size: 0.65rem;" aria-hidden="true"></i>
+                </button>
+                <div id="productPreviewInstaBox" class="rounded-3 shadow text-start d-none" style="padding: 8px 11px; font-size: 0.58rem; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; opacity: 0.94; border: 1px solid rgba(255,255,255,0.25);">
+                </div>
+                <button type="button" id="productPreviewSizeNext" class="btn btn-light btn-sm rounded-circle shadow p-0 d-none" style="width: 24px; height: 24px; line-height: 1;" onclick="stepPreviewSize(1)" aria-label="Next size" title="Next size">
+                    <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;" aria-hidden="true"></i>
+                </button>
                 </div>
             </div>
             @if($showDetails ?? false)

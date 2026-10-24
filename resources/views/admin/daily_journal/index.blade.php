@@ -417,7 +417,7 @@
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td><span class="badge bg-dark extra-small">{{ $bps->size ?: 'Free Size' }}</span></td>
+                                                <td><span class="badge bg-dark extra-small">{{ $bps->size ?: \App\Models\ProductSize::BLANK_LABEL }}</span></td>
                                                 <td>
                                                     <span class="badge bg-warning text-dark extra-small px-2 py-1 border border-warning rounded-pill">
                                                         <i class="fa-solid fa-lock me-1"></i> {{ $bps->reserved_stock }}

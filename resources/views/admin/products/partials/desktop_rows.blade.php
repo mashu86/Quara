@@ -24,6 +24,9 @@
                     @endif
                     {{ $displayName }}
                 </div>
+                @if(filled($product->product_code))
+                    <span class="badge bg-light text-dark border font-monospace mt-1" style="font-size: 0.65rem;" title="Product code">{{ $product->product_code }}</span>
+                @endif
             </div>
         </td>
         <td>

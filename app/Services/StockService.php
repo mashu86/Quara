@@ -364,6 +364,13 @@ class StockService
                 'admin_name' => $adminName,
             ]);
 
+            // The sold-out flag follows the stock, so a restocked product can be sold and booked
+            // again. A whole-product booking also uses this flag; leave those booked.
+            Product::whereKey($productSize->product_id)
+                ->where(fn ($q) => $q->whereNull('booked_by')->orWhereRaw("TRIM(booked_by) = ''"))
+                ->whereNull('booking_type')
+                ->update(['is_out_of_stock' => ProductSize::where('product_id', $productSize->product_id)->sum('stock') <= 0]);
+
             return $productSize;
         });
     }

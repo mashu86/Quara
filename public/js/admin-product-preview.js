@@ -1,5 +1,5 @@
 const DEFAULT_INSTA_SETTINGS = {
-    format: 'price_cwl', // 'price_cwl', 'price_cwl_size', 'size_price_only', 'auto_fallback'
+    format: 'price_cwl', // 'price_cwl', 'price_cwl_size', 'size_price_only', 'auto_fallback', 'price_all_sizes'
     form: 'short', // 'short', 'full'
     bgColor: '#000000',
     textColor: '#ffffff',
@@ -77,6 +77,13 @@ window.syncInstaSettingsUI = function(settings) {
     if (textHex) textHex.textContent = s.textColor;
 };
 
+// "Custom Size" is stored for a blank size label: it means no size was stated, so it is never printed.
+const UNSTATED_SIZE_LABEL = 'custom size';
+const statedSizeLabel = (sz) => {
+    const label = String(sz.size || '').trim();
+    return label.toLowerCase() === UNSTATED_SIZE_LABEL ? '' : label;
+};
+
 window.buildInstaTextLines = function(price, sizes, settings) {
     let bVals = [], lVals = [], wVals = [], sizeNames = [];
     if (Array.isArray(sizes)) {
@@ -84,7 +91,7 @@ window.buildInstaTextLines = function(price, sizes, settings) {
             if (sz.chest) bVals.push(sz.chest);
             if (sz.length) lVals.push(sz.length);
             if (sz.waist) wVals.push(sz.waist);
-            if (sz.size) sizeNames.push(sz.size);
+            if (statedSizeLabel(sz)) sizeNames.push(statedSizeLabel(sz));
         });
     }
 
@@ -113,13 +120,28 @@ window.buildInstaTextLines = function(price, sizes, settings) {
     // Line 1: Price
     lines.push('Price: ' + (price || '--'));
 
-    if (activeFormat === 'size_price_only') {
-        lines.push('Size: ' + (sizeStr || '-'));
+    if (activeFormat === 'price_all_sizes') {
+        // One line per size: its label plus only the measurements that are filled in.
+        const hipLabel = isFull ? 'Hip: ' : 'H: ';
+        (Array.isArray(sizes) ? sizes : []).forEach(sz => {
+            const parts = [
+                sz.chest ? chestLabel + sz.chest : '',
+                sz.waist ? waistLabel + sz.waist : '',
+                sz.hip ? hipLabel + sz.hip : '',
+                sz.length ? lengthLabel + sz.length : '',
+            ].filter(Boolean);
+            // Size label on its own line, each filled-in measurement on a line below it.
+            const label = statedSizeLabel(sz);
+            if (label) lines.push('Size: ' + label);
+            lines.push(...parts);
+        });
+    } else if (activeFormat === 'size_price_only') {
+        if (sizeStr) lines.push('Size: ' + sizeStr);
     } else if (activeFormat === 'price_cwl_size') {
         lines.push(chestLabel + (bStr || '-'));
         lines.push(waistLabel + (wStr || '-'));
         lines.push(lengthLabel + (lStr || '-'));
-        lines.push('Size: ' + (sizeStr || '-'));
+        if (sizeStr) lines.push('Size: ' + sizeStr);
     } else { // price_cwl
         lines.push(chestLabel + (bStr || '-'));
         lines.push(waistLabel + (wStr || '-'));
@@ -132,31 +154,50 @@ window.buildInstaTextLines = function(price, sizes, settings) {
     return lines;
 };
 
+/** With several sizes the label shows one size at a time; the modal arrows pick which. */
+window.labelSizes = function(sizes) {
+    const all = Array.isArray(sizes) ? sizes : [];
+    if (all.length <= 1) return all;
+    const index = ((window.currentPreviewSizeIndex || 0) % all.length + all.length) % all.length;
+    return [all[index]];
+};
+
+window.stepPreviewSize = function(delta) {
+    window.currentPreviewSizeIndex = (window.currentPreviewSizeIndex || 0) + delta;
+    window.updateInstaPreviewBox(window.currentPreviewPrice, window.currentPreviewSizes);
+};
+
 window.updateInstaPreviewBox = function(price, sizes) {
     const settings = window.getInstaSettings();
-    const lines = window.buildInstaTextLines(price, sizes, settings);
-    
+    const lines = window.buildInstaTextLines(price, window.labelSizes(sizes), settings);
+
     const boxElem = document.getElementById('productPreviewInstaBox');
     if (!boxElem) return;
+    // The wrapper carries the size arrows beside the label; position it as one unit.
+    const posElem = document.getElementById('productPreviewInstaWrap') || boxElem;
+    const hasManySizes = Array.isArray(sizes) && sizes.length > 1;
+    ['productPreviewSizePrev', 'productPreviewSizeNext'].forEach(id => {
+        document.getElementById(id)?.classList.toggle('d-none', !hasManySizes);
+    });
 
-    boxElem.style.top = 'auto';
-    boxElem.style.bottom = 'auto';
-    boxElem.style.left = 'auto';
-    boxElem.style.right = 'auto';
-    boxElem.style.margin = '14px';
+    posElem.style.top = 'auto';
+    posElem.style.bottom = 'auto';
+    posElem.style.left = 'auto';
+    posElem.style.right = 'auto';
+    posElem.style.margin = '14px';
 
     if (settings.position === 'top-right') {
-        boxElem.style.top = '0';
-        boxElem.style.right = '0';
+        posElem.style.top = '0';
+        posElem.style.right = '0';
     } else if (settings.position === 'bottom-left') {
-        boxElem.style.bottom = '0';
-        boxElem.style.left = '0';
+        posElem.style.bottom = '0';
+        posElem.style.left = '0';
     } else if (settings.position === 'bottom-right') {
-        boxElem.style.bottom = '0';
-        boxElem.style.right = '0';
+        posElem.style.bottom = '0';
+        posElem.style.right = '0';
     } else { // top-left
-        boxElem.style.top = '0';
-        boxElem.style.left = '0';
+        posElem.style.top = '0';
+        posElem.style.left = '0';
     }
 
     boxElem.style.backgroundColor = settings.bgColor || '#000000';
@@ -165,7 +206,7 @@ window.updateInstaPreviewBox = function(price, sizes) {
     boxElem.replaceChildren();
     lines.forEach((line) => {
         const isPriceLine = line.toLowerCase().startsWith('price');
-        const lineStyle = isPriceLine ? 'font-weight: 800; font-size: 0.82rem; margin-bottom: 2px;' : 'font-weight: 600; opacity: 0.95;';
+        const lineStyle = isPriceLine ? 'font-weight: 800; font-size: 0.64rem; margin-bottom: 1px;' : 'font-weight: 600; opacity: 0.95;';
         const lineElem = document.createElement('div');
         lineElem.style.cssText = lineStyle;
         lineElem.textContent = line;
@@ -175,13 +216,14 @@ window.updateInstaPreviewBox = function(price, sizes) {
     boxElem.classList.remove('d-none');
 };
 
-window.openProductPreview = function(imgSrc, title, price, sizes, code) {
+window.openProductPreview = function(imgSrc, title, price, sizes, code, startSizeIndex) {
     if (!imgSrc) return;
     window.currentPreviewImgSrc = imgSrc;
     window.currentPreviewTitle = title || 'product';
     window.currentPreviewPrice = price || '';
     window.currentPreviewSizes = sizes || [];
     window.currentPreviewCode = code || '';
+    window.currentPreviewSizeIndex = startSizeIndex || 0;
 
     const modalElem = document.getElementById('productPreviewModal');
     const imgElem = document.getElementById('productPreviewModalImg');
@@ -213,7 +255,8 @@ window.openProductPreview = function(imgSrc, title, price, sizes, code) {
 window.downloadInstagramImage = function() {
     const imgSrc = window.currentPreviewImgSrc;
     const price = window.currentPreviewPrice || '';
-    const sizes = window.currentPreviewSizes || [];
+    // Download exactly the label on screen: the size currently picked with the arrows.
+    const sizes = window.labelSizes(window.currentPreviewSizes || []);
     const title = window.currentPreviewTitle || 'product';
     const settings = window.getInstaSettings();
 
@@ -242,10 +285,10 @@ window.downloadInstagramImage = function() {
             ctx.drawImage(img, 0, 0, w, h);
 
             const scale = Math.max(w, h) / 800;
-            const fontSize = Math.max(15, Math.round(20 * scale));
+            const fontSize = Math.max(10, Math.round(14 * scale));
             const lineHeight = Math.round(fontSize * 1.35);
-            const paddingX = Math.max(12, Math.round(18 * scale));
-            const paddingY = Math.max(10, Math.round(14 * scale));
+            const paddingX = Math.max(14, Math.round(22 * scale));
+            const paddingY = Math.max(12, Math.round(18 * scale));
             const margin = Math.max(18, Math.round(26 * scale));
             const borderRadius = Math.max(6, Math.round(10 * scale));
 
@@ -258,7 +301,7 @@ window.downloadInstagramImage = function() {
             });
 
             const boxWidth = maxLineWidth + (paddingX * 2);
-            const boxHeight = (lines.length * lineHeight) + (paddingY * 1.5);
+            const boxHeight = (lines.length * lineHeight) - (lineHeight - fontSize) + (paddingY * 2);
             
             let x = margin;
             let y = margin;
@@ -296,7 +339,9 @@ window.downloadInstagramImage = function() {
             const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
             const a = document.createElement('a');
             a.href = dataUrl;
-            const cleanName = (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product') + '-instagram.jpg';
+            const sizePart = (window.currentPreviewSizes || []).length > 1 && sizes[0] ? statedSizeLabel(sizes[0]) : '';
+            const cleanName = [title || 'product', sizePart, 'instagram'].filter(Boolean).join(' ')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.jpg';
             a.download = cleanName;
             document.body.appendChild(a);
             a.click();

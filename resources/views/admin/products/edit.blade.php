@@ -285,8 +285,16 @@
 
                         @include('admin.products.partials.size_suggestion_controls')
 
+                        @php
+                            $openSizeBookings = $product->bookings()->whereIn('status', ['active', 'partially_sold'])->get();
+                            $wholeProductBooked = $product->is_out_of_stock && (filled(trim((string) $product->booked_by)) || $product->booking_type);
+                        @endphp
                         @foreach($product->sizes as $pSize)
-                            <div class="p-3 border rounded-3 bg-light mb-2 size-row">
+                            @php
+                                $sizeBookings = $openSizeBookings->where('product_size_id', $pSize->id);
+                                $bookedQty = (int) $sizeBookings->sum(fn ($booking) => $booking->remaining_quantity);
+                            @endphp
+                            <div class="p-3 border rounded-3 bg-light mb-2 size-row {{ $bookedQty > 0 || $wholeProductBooked ? 'border-danger' : '' }}">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-4 col-md-2 measurement-field measurement-up">
                                         <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Chest (inch)</label>
@@ -307,14 +315,14 @@
                                     <div class="col-6 col-md-3">
                                         <div class="d-flex align-items-center justify-content-between mb-1">
                                             <label class="form-label small fw-bold mb-0">Size Label (optional)</label>
-                                            <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center size-label-clear {{ trim((string) old('existing_sizes.' . $pSize->id, $pSize->size)) !== '' ? '' : 'd-none' }}" style="width: 22px; height: 22px;" title="Set label to Free Size" aria-label="Set label to Free Size" data-clear-url="{{ route('admin.products.sizes.clear-label', [$product->id, $pSize->id]) }}" onclick="clearProductSizeLabel(this)"><i class="fa-solid fa-rotate-left" style="font-size: 0.65rem;"></i></button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center size-label-clear {{ trim((string) old('existing_sizes.' . $pSize->id, $pSize->size)) !== '' ? '' : 'd-none' }}" style="width: 22px; height: 22px;" title="Set label to Custom Size" aria-label="Set label to Custom Size" data-clear-url="{{ route('admin.products.sizes.clear-label', [$product->id, $pSize->id]) }}" onclick="clearProductSizeLabel(this)"><i class="fa-solid fa-rotate-left" style="font-size: 0.65rem;"></i></button>
                                         </div>
                                         <button type="button" class="btn btn-link btn-sm p-0 mb-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Size guide</button>
                                         <input type="text"
                                                name="existing_sizes[{{ $pSize->id }}]"
                                                class="form-control form-control-sm rounded-3 existing-size-label-input"
                                                value="{{ old('existing_sizes.' . $pSize->id, $pSize->size) }}"
-                                               placeholder="Optional; defaults to Free Size"
+                                               placeholder="Optional; defaults to Custom Size"
                                                maxlength="50"
                                                oninput="const box = this.closest('.col-6'); box.querySelector('.size-label-clear').classList.toggle('d-none', this.value.trim() === ''); if (this.value.trim() !== '') box.querySelector('.clear-size-label-marker').value = '0'">
                                         <input type="hidden" class="clear-size-label-marker" name="clear_size_labels[{{ $pSize->id }}]" value="0">
@@ -330,6 +338,20 @@
                                         @enderror
                                     </div>
                                 </div>
+                                {{-- Stock above includes booked pieces; show how many are held and by whom. --}}
+                                @if($wholeProductBooked)
+                                    <div class="text-danger small fw-semibold mt-2">
+                                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>
+                                        Whole product booked by {{ $product->booked_by ?: 'Business WhatsApp' }} &mdash; all {{ (int) $pSize->stock }} item(s) of this size are held.
+                                    </div>
+                                @elseif($bookedQty > 0)
+                                    <div class="text-danger small fw-semibold mt-2">
+                                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>
+                                        {{ $bookedQty }} item(s) booked
+                                        ({{ $sizeBookings->map(fn ($booking) => ($booking->booked_by ?: 'Business WhatsApp') . ' × ' . $booking->remaining_quantity)->implode(', ') }})
+                                        &middot; {{ max(0, (int) $pSize->stock - $bookedQty) }} available
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -557,7 +579,7 @@
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.message || 'Could not delete the size label.');
 
-            box.querySelector('.existing-size-label-input').value = result.label || 'Free Size';
+            box.querySelector('.existing-size-label-input').value = result.label || 'Custom Size';
             box.querySelector('.clear-size-label-marker').value = '1';
             button.classList.add('d-none');
         } catch (error) {
@@ -730,7 +752,7 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Size Label (optional)</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-primary align-baseline" data-size-chart-hint aria-label="View size chart in inches"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
-                    <input type="text" name="new_size_rows[${rowIndex}][size]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Free Size">
+                    <input type="text" name="new_size_rows[${rowIndex}][size]" class="form-control form-control-sm rounded-3" placeholder="Optional; defaults to Custom Size">
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1">Stock (pcs) *</label>

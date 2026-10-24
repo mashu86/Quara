@@ -3,7 +3,8 @@ const DEFAULT_INSTA_SETTINGS = {
     form: 'short', // 'short', 'full'
     bgColor: '#000000',
     textColor: '#ffffff',
-    position: 'top-left' // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+    position: 'top-left', // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+    includeCode: true
 };
 
 window.getInstaSettings = function() {
@@ -29,7 +30,7 @@ window.saveInstaSettings = function(settings) {
 };
 
 window.updateInstaSettingFromDrawer = function(key, val) {
-    if (!val) return;
+    if (!val && typeof val !== 'boolean') return;
     const settings = window.getInstaSettings();
     settings[key] = val;
     window.saveInstaSettings(settings);
@@ -57,6 +58,9 @@ window.syncInstaSettingsUI = function(settings) {
 
     const posRadio = document.querySelector(`input[name="insta_drawer_position"][value="${s.position}"]`);
     if (posRadio) posRadio.checked = true;
+
+    const codeCheck = document.getElementById('instaIncludeCode');
+    if (codeCheck) codeCheck.checked = s.includeCode !== false;
 
     const bgPicker = document.getElementById('instaBgColorPicker');
     const bgText = document.getElementById('instaBgColorText');
@@ -123,7 +127,7 @@ window.buildInstaTextLines = function(price, sizes, settings) {
     }
 
     // Product code sits with the size details (only when the product has one).
-    if (window.currentPreviewCode) lines.push('Code: ' + window.currentPreviewCode);
+    if (settings.includeCode !== false && window.currentPreviewCode) lines.push('Code: ' + window.currentPreviewCode);
 
     return lines;
 };

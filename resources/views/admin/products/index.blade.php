@@ -661,6 +661,16 @@
                 </div>
             </div>
         </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- 6. Product Code -->
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="instaIncludeCode" checked onchange="updateInstaSettingFromDrawer('includeCode', this.checked)">
+            <label class="form-check-label fw-bold text-dark small" for="instaIncludeCode">
+                <i class="fa-solid fa-barcode text-warning me-1"></i> Include product code if available
+            </label>
+        </div>
     </div>
 
     <div class="offcanvas-footer p-3 bg-light border-top d-flex align-items-center justify-content-between">
@@ -673,7 +683,7 @@
 @endsection
 
 @section('scripts')
-<script src="{{ asset('js/admin-product-preview.js') }}"></script>
+<script src="{{ asset('js/admin-product-preview.js') }}?v={{ filemtime(public_path('js/admin-product-preview.js')) }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.syncInstaSettingsUI();

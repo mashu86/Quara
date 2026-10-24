@@ -167,7 +167,7 @@
 @endsection
 
 @section('scripts')
-<script src="{{ asset('js/admin-product-preview.js') }}"></script>
+<script src="{{ asset('js/admin-product-preview.js') }}?v={{ filemtime(public_path('js/admin-product-preview.js')) }}"></script>
 <script>
 document.addEventListener('click', function(event) {
     const button = event.target.closest('.booked-product-preview');

@@ -70,6 +70,12 @@
                             <i class="fa-solid fa-phone text-success me-1"></i>{{ $order->customer_phone }}
                         </a>
                     @endif
+                    @php
+                        $trackingNo = $order->shipment?->tracking_number ?: ($order->shipment?->article_number ?: $order->tracking_number);
+                    @endphp
+                    @if($trackingNo)
+                        <div class="text-primary fw-semibold" style="font-size: 0.72rem;" title="Tracking number"><i class="fa-solid fa-truck-fast me-1"></i>{{ $trackingNo }}</div>
+                    @endif
                 </div>
                 @php
                     $mobileModalItems = $order->items->map(function ($item) use ($returnedOrderItems) {

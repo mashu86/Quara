@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderShipment;
+use App\Models\UnmappedCourierArticle;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -58,46 +60,169 @@ class BulkArticleNumberController extends Controller
         return redirect()->route('admin.bulk-article.upload')->with('success','File loaded. Map its columns to continue.');
     }
 
+    /** Reads the mapped Excel rows, auto-connects same-name receivers to bucket orders and shows the connect screen. */
     public function match(Request $request)
     {
-        $request->validate(['map'=>['required','array'],'map.receiver_name'=>'required|integer|min:0','map.receiver_address'=>'required|integer|min:0','map.article_number'=>'required|integer|min:0','map.weight'=>'required|integer|min:0','map.courier_charge'=>'required|integer|min:0','map.pin_code'=>'nullable|integer|min:0','map.tracking_number'=>'nullable|integer|min:0','map.courier_name'=>'nullable|integer|min:0']);
+        $request->validate(['map'=>['required','array'],'map.receiver_name'=>'required|integer|min:0','map.receiver_address'=>'required|integer|min:0','map.article_number'=>'required|integer|min:0','map.courier_charge'=>'required|integer|min:0','map.pin_code'=>'nullable|integer|min:0','map.tracking_number'=>'nullable|integer|min:0']);
         $import=$request->session()->get('article_import'); abort_unless($import,422,'Upload a courier file first.');
-        $map=$request->input('map'); $orders=Order::whereIn('id',$this->bucket($request))->with('shipment')->get(); $used=[];$results=[];
-        foreach($map as $column) if($column!=='' && (int)$column>=count($import['headers'])) abort(422,'A mapped column is outside the uploaded file.');
-        foreach($import['rows'] as $index=>$row){$get=fn($key)=>isset($map[$key])&&$map[$key]!==''?trim((string)($row[$map[$key]]??'')):'';$name=$get('receiver_name');$addr=$get('receiver_address');$pin=$get('pin_code');$article=$get('article_number');$track=isset($map['tracking_number'])&&$map['tracking_number']!==null&&$map['tracking_number']!==''?$get('tracking_number'):$article;$weight=$get('weight');$charge=$get('courier_charge');$courier=$get('courier_name');
-            $status='Not Matched';$order=null;
-            if(!$name||!$addr||!$article||!is_numeric($weight)||(float)$weight<0||!is_numeric($charge)||(float)$charge<0)$status='Invalid';
-            elseif(in_array(Str::lower($article),$used,true)||($track&&in_array(Str::lower($track),$used,true)))$status='Duplicate';
-            elseif(OrderShipment::where('article_number',$article)->orWhere('tracking_number',$article)->when($track,fn($q)=>$q->orWhere('article_number',$track)->orWhere('tracking_number',$track))->exists())$status='Duplicate';
-            else {
-                $nn=$this->normalize($name);
-                $candidates=$orders->filter(fn($o)=>$this->normalize($o->customer_name)===$nn)->map(function($o)use($addr,$pin){
-                    $orderPin=$this->normalize((string)$o->pin_code);$givenPin=$this->normalize($pin);
-                    $a=preg_split('/[^a-z0-9]+/i',Str::lower($addr),-1,PREG_SPLIT_NO_EMPTY);$b=preg_split('/[^a-z0-9]+/i',Str::lower($this->address($o)),-1,PREG_SPLIT_NO_EMPTY);
-                    $a=array_unique(array_filter($a,fn($v)=>strlen($v)>2));$b=array_unique(array_filter($b,fn($v)=>strlen($v)>2));$overlap=count(array_intersect($a,$b));$score=$givenPin&&$orderPin===$givenPin?2:($overlap/max(1,min(count($a),count($b))));
-                    return ['order'=>$o,'score'=>$score];
-                })->filter(fn($c)=>$c['score']>=0.45)->sortByDesc('score')->values();
-                if($candidates->count()===1||($candidates->count()>1&&$candidates[0]['score']>$candidates[1]['score'])){$order=$candidates[0]['order'];$status=$order->shipment||$order->tracking_number?'Already Generated':'Matched';}
-            }
+        $map=$request->input('map'); $used=[];$rows=[];
+        foreach($map as $column) if($column!==null && $column!=='' && (int)$column>=count($import['headers'])) abort(422,'A mapped column is outside the uploaded file.');
+        foreach($import['rows'] as $index=>$row){$get=fn($key)=>isset($map[$key])&&$map[$key]!==null&&$map[$key]!==''?trim((string)($row[$map[$key]]??'')):'';$name=$get('receiver_name');$addr=$get('receiver_address');$pin=$get('pin_code');$article=$get('article_number');$track=$get('tracking_number')?:$article;$charge=$get('courier_charge');
+            if(!$name&&!$addr&&!$article)continue;
+            $issue=null;
+            if(!$name||!$addr||!$article||!is_numeric($charge)||(float)$charge<0)$issue='Invalid';
+            elseif(in_array(Str::lower($article),$used,true)||in_array(Str::lower($track),$used,true))$issue='Duplicate in file';
+            elseif(OrderShipment::where('article_number',$article)->orWhere('tracking_number',$article)->orWhere('article_number',$track)->orWhere('tracking_number',$track)->exists())$issue='Already saved';
             if($article)$used[]=Str::lower($article);if($track)$used[]=Str::lower($track);
-            $results[]=['row'=>$index,'order_id'=>$order?->id,'order_number'=>$order?->order_number,'name'=>$name,'address'=>$addr,'status'=>$status,'article'=>$article,'tracking'=>$track,'weight'=>$weight,'charge'=>$charge,'courier'=>$courier];
+            $rows[$index]=['row'=>$index,'name'=>$name,'address'=>$addr,'pin'=>$pin,'article'=>$article,'tracking'=>$track,'charge'=>$charge,'issue'=>$issue];
         }
-        $request->session()->put('article_results',$results);$request->session()->put('article_map',$map);
-        return view('admin.bulk_article.results',['orders'=>$orders,'results'=>$results,'counts'=>collect($results)->countBy('status')]);
+        // Every row repeating one value (e.g. "BUSINESS_PARCEL") means the article type column was mapped, not the article number.
+        $articles=array_filter(array_column($rows,'article'));
+        if(count($articles)>1&&count(array_unique(array_map('strtolower',$articles)))===1)
+            return redirect()->route('admin.bulk-article.upload')->withErrors(['map'=>'Every row has the same Article Number ("'.reset($articles).'"). Select the column that holds the real article / barcode number.']);
+        $orders=Order::whereIn('id',$this->bucket($request))->with(['shipment','items.product'])->get();
+        $orders->each(fn($o)=>$o->setAttribute('website_weight',$this->weightForOrder($o)));
+        $request->session()->put('article_rows',$rows);
+        return view('admin.bulk_article.connect',['rows'=>$rows,'orders'=>$orders,'pairs'=>$this->autoPairs($rows,$orders)]);
+    }
+
+    /** Same normalized name connects automatically; ties are broken by PIN / address overlap, and each order is used once. */
+    private function autoPairs(array $rows, $orders): array
+    {
+        $open=$orders->filter(fn($o)=>!$o->shipment&&!$o->tracking_number);$pairs=[];$taken=[];
+        foreach($rows as $index=>$r){
+            if($r['issue'])continue;
+            $candidates=$open->filter(fn($o)=>!isset($taken[$o->id])&&$this->normalize($o->customer_name)===$this->normalize($r['name']))
+                ->map(fn($o)=>['order'=>$o,'score'=>$this->addressScore($r,$o)])->sortByDesc('score')->values();
+            if($candidates->isEmpty())continue;
+            if($candidates->count()>1&&$candidates[0]['score']<=$candidates[1]['score'])continue;
+            $pairs[$index]=$candidates[0]['order']->id;$taken[$candidates[0]['order']->id]=true;
+        }
+        return $pairs;
+    }
+
+    private function addressScore(array $r, Order $o): float
+    {
+        $givenPin=$this->normalize($r['pin']);if($givenPin&&$this->normalize((string)$o->pin_code)===$givenPin)return 2;
+        $a=array_unique(array_filter(preg_split('/[^a-z0-9]+/i',Str::lower($r['address']),-1,PREG_SPLIT_NO_EMPTY),fn($v)=>strlen($v)>2));
+        $b=array_unique(array_filter(preg_split('/[^a-z0-9]+/i',Str::lower($this->address($o)),-1,PREG_SPLIT_NO_EMPTY),fn($v)=>strlen($v)>2));
+        return count(array_intersect($a,$b))/max(1,min(count($a),count($b)));
+    }
+
+    /** Website weight in grams: each product's weight_kg times the ordered quantity. */
+    private function weightForOrder(Order $order): float
+    {
+        return round($order->items->sum(fn($item)=>(float)($item->product?->weight_kg ?? 0)*(int)$item->quantity)*1000,2);
     }
 
     private function normalize(string $value): string { return preg_replace('/[^a-z0-9]+/','',Str::lower(trim($value))); }
 
+    /** Inserts shipments for the connected Excel rows; every other valid row is kept as "Not mapped from order". */
     public function save(Request $request)
     {
-        $results=$request->session()->get('article_results',[]);abort_unless($results,422,'No import results to save.');$saved=[];
-        DB::transaction(function()use($results,$request,&$saved){foreach($results as $r){if($r['status']!=='Matched'||!$r['order_id'])continue;
-            $order=Order::whereKey($r['order_id'])->lockForUpdate()->first();if(!$order||$order->payment_status!=='paid'||!in_array($order->order_status,['confirmed','processing','packed','shipped','delivered'])||$order->shipment||$order->tracking_number)continue;
-            $shipment=OrderShipment::create(['order_id'=>$order->id,'article_number'=>$r['article'],'tracking_number'=>$r['tracking'],'courier_name'=>$r['courier']?:null,'receiver_name'=>$r['name'],'receiver_address'=>$r['address'],'weight'=>$r['weight'],'weight_unit'=>'gram','courier_charge'=>$r['charge'],'shipment_date'=>now('Asia/Kolkata')->toDateString(),'shipment_status'=>'Generated','created_by'=>$request->user()->id]);
-            DB::table('order_shipment_histories')->insert(['order_shipment_id'=>$shipment->id,'user_id'=>$request->user()->id,'old_values'=>null,'new_values'=>json_encode($shipment->getAttributes()),'created_at'=>now(),'updated_at'=>now()]);$saved[]=$order->id;
-        }});
-        $request->session()->put('article_bucket',array_values(array_diff($this->bucket($request),$saved)));$request->session()->forget(['article_import','article_results','article_map']);
-        return redirect()->route('admin.bulk-article.index')->with('success',count($saved).' shipment records saved.');
+        $data=$request->validate(['pairs'=>'nullable|array','pairs.*'=>'required|integer']);$pairs=$data['pairs']??[];
+        $rows=$request->session()->get('article_rows',[]);abort_unless($rows,422,'Upload and map a courier file first.');
+        $bucket=$this->bucket($request);$saved=[];$savedRows=[];$skipped=0;$reserved=0;
+        abort_if(count(array_unique($pairs))!==count($pairs),422,'An order can be connected to only one Excel row.');
+        DB::transaction(function()use($pairs,$rows,$bucket,$request,&$saved,&$savedRows,&$skipped,&$reserved){
+            foreach($pairs as $rowIndex=>$orderId){
+                $r=$rows[$rowIndex]??null;
+                if(!$r||$r['issue']||!in_array((int)$orderId,$bucket,true)){$skipped++;continue;}
+                $order=Order::whereKey($orderId)->with('items.product')->lockForUpdate()->first();
+                if(!$this->canReceiveShipment($order)||$this->articleTaken($r['article'],$r['tracking'])){$skipped++;continue;}
+                $this->createShipment($order,$r,$request->user()->id);$saved[]=$order->id;$savedRows[]=(string)$rowIndex;
+            }
+            foreach($rows as $rowIndex=>$r){
+                if($r['issue']||in_array((string)$rowIndex,$savedRows,true)||$this->articleTaken($r['article'],$r['tracking']))continue;
+                $record=UnmappedCourierArticle::firstOrNew(['article_number'=>$r['article']]);
+                if($record->exists&&$record->status===UnmappedCourierArticle::CONNECTED)continue;
+                $record->fill(['tracking_number'=>$r['tracking'],'receiver_name'=>$r['name'],'receiver_address'=>$r['address'],'pin_code'=>$r['pin']?:null,'courier_charge'=>$r['charge'],'status'=>UnmappedCourierArticle::NOT_MAPPED,'created_by'=>$record->created_by??$request->user()->id])->save();$reserved++;
+            }
+        });
+        $request->session()->put('article_bucket',array_values(array_diff($bucket,$saved)));$request->session()->forget(['article_import','article_rows']);
+        return redirect()->route('admin.bulk-article.index')->with('success',count($saved).' shipment records saved.'.($skipped?" {$skipped} connection(s) skipped.":'').($reserved?" {$reserved} row(s) kept as Not mapped from order.":''));
+    }
+
+    private function canReceiveShipment(?Order $order): bool
+    {
+        return $order&&$order->payment_status==='paid'&&in_array($order->order_status,['confirmed','processing','packed','shipped','delivered'],true)&&!$order->shipment()->exists()&&!$order->tracking_number;
+    }
+
+    private function articleTaken(string $article, ?string $tracking): bool
+    {
+        $numbers=array_values(array_unique(array_filter([$article,$tracking])));
+        return OrderShipment::whereIn('article_number',$numbers)->orWhereIn('tracking_number',$numbers)->exists();
+    }
+
+    /** $r holds article, tracking, name, address and charge; weight always comes from the website. */
+    private function createShipment(Order $order, array $r, int $userId): OrderShipment
+    {
+        $shipment=OrderShipment::create(['order_id'=>$order->id,'article_number'=>$r['article'],'tracking_number'=>$r['tracking'],'courier_name'=>null,'receiver_name'=>$r['name'],'receiver_address'=>$r['address'],'weight'=>$this->weightForOrder($order->loadMissing('items.product')),'weight_unit'=>'gram','courier_charge'=>$r['charge'],'shipment_date'=>now('Asia/Kolkata')->toDateString(),'shipment_status'=>'Generated','created_by'=>$userId]);
+        DB::table('order_shipment_histories')->insert(['order_shipment_id'=>$shipment->id,'user_id'=>$userId,'old_values'=>null,'new_values'=>json_encode($shipment->getAttributes()),'created_at'=>now(),'updated_at'=>now()]);
+        UnmappedCourierArticle::where('article_number',$r['article'])->update(['status'=>UnmappedCourierArticle::CONNECTED,'order_shipment_id'=>$shipment->id,'connected_by'=>$userId,'connected_at'=>now()]);
+        return $shipment;
+    }
+
+    public function unmapped(Request $request)
+    {
+        // Only pending rows: once an article / tracking number is generated on any shipment it leaves this list.
+        $q=UnmappedCourierArticle::where('status',UnmappedCourierArticle::NOT_MAPPED)
+            ->whereNotExists(fn($s)=>$s->from('order_shipments')->where(fn($w)=>$w
+                ->whereColumn('order_shipments.article_number','unmapped_courier_articles.article_number')
+                ->orWhereColumn('order_shipments.tracking_number','unmapped_courier_articles.article_number')
+                ->orWhereColumn('order_shipments.article_number','unmapped_courier_articles.tracking_number')
+                ->orWhereColumn('order_shipments.tracking_number','unmapped_courier_articles.tracking_number')))
+            ->orderByDesc('created_at');
+        if($request->filled('search')){$like='%'.$request->search.'%';$q->where(fn($x)=>$x->where('receiver_name','like',$like)->orWhere('article_number','like',$like)->orWhere('tracking_number','like',$like)->orWhere('pin_code','like',$like));}
+        $articles=$q->paginate(50)->withQueryString();
+        return view('admin.bulk_article.unmapped',compact('articles'));
+    }
+
+    public function editUnmapped(UnmappedCourierArticle $article)
+    {
+        abort_if($article->status===UnmappedCourierArticle::CONNECTED,409,'This article is already connected to an order.');
+        return view('admin.bulk_article.unmapped_edit',compact('article'));
+    }
+
+    /** Orders that can still receive tracking, searched by customer name, order ID or phone, for the map screen. */
+    public function searchOrders(Request $request)
+    {
+        $term=trim((string)$request->input('q',''));
+        if(mb_strlen($term)<2)return response()->json(['orders'=>[]]);
+        $like='%'.$term.'%';
+        $orders=Order::with('items.product')->where('payment_status','paid')->whereIn('order_status',['confirmed','processing','packed','shipped','delivered'])
+            ->whereDoesntHave('shipment')->where(fn($x)=>$x->whereNull('tracking_number')->orWhere('tracking_number',''))
+            ->where(fn($x)=>$x->where('customer_name','like',$like)->orWhere('order_number','like',$like)->orWhere('customer_phone','like',$like))
+            ->orderByDesc(DB::raw('COALESCE(sale_date, created_at)'))->limit(30)->get();
+        return response()->json(['orders'=>$orders->map(fn($o)=>[
+            'order_number'=>$o->order_number,'name'=>$o->customer_name,'phone'=>$o->customer_phone,'address'=>$this->address($o),
+            'date'=>optional($o->sale_date??$o->created_at)->format('d-m-Y'),'amount'=>number_format((float)$o->grand_total,2),'weight'=>$this->weightForOrder($o),
+        ])]);
+    }
+
+    /** Connects a reserved Excel row to an order by its order ID (order number). */
+    public function connectUnmapped(Request $request, UnmappedCourierArticle $article)
+    {
+        $data=$request->validate(['order_number'=>'required|string|max:255']);
+        $order=DB::transaction(function()use($data,$article,$request){
+            $article=UnmappedCourierArticle::whereKey($article->id)->lockForUpdate()->firstOrFail();
+            if($article->status===UnmappedCourierArticle::CONNECTED)throw ValidationException::withMessages(['order_number'=>'This article is already connected to an order.']);
+            $order=Order::where('order_number',trim($data['order_number']))->lockForUpdate()->first();
+            if(!$order)throw ValidationException::withMessages(['order_number'=>'No order found with this order ID.']);
+            if(!$this->canReceiveShipment($order))throw ValidationException::withMessages(['order_number'=>'This order is not paid / confirmed, or it already has tracking.']);
+            if($this->articleTaken($article->article_number,$article->tracking_number))throw ValidationException::withMessages(['order_number'=>'This article number is already saved on another shipment.']);
+            $this->createShipment($order,['article'=>$article->article_number,'tracking'=>$article->tracking_number,'name'=>$article->receiver_name,'address'=>$article->receiver_address,'charge'=>$article->courier_charge],$request->user()->id);
+            return $order;
+        });
+        $request->session()->put('article_bucket',array_values(array_diff($this->bucket($request),[$order->id])));
+        return redirect()->route('admin.bulk-article.unmapped')->with('success',"Article {$article->article_number} connected to order {$order->order_number}.");
+    }
+
+    public function destroyUnmapped(UnmappedCourierArticle $article)
+    {
+        abort_if($article->status===UnmappedCourierArticle::CONNECTED,409,'A connected article cannot be deleted here.');
+        $article->delete();
+        return redirect()->route('admin.bulk-article.unmapped')->with('success','Not mapped article deleted.');
     }
 
     public function history(Request $request)

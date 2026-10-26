@@ -471,6 +471,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.bulk-article.unmapped') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.unmapped*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-excel me-2"></i> Not Mapped Excel Sheet
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.bulk-article.history') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.history', 'admin.bulk-article.edit', 'admin.bulk-article.update') ? 'active' : '' }}">
                         <i class="fa-solid fa-clock-rotate-left me-2"></i> Article / Tracking History
                     </a>

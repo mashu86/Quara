@@ -23,7 +23,7 @@
         @foreach($shipments as $s)
             <tr>
                 <td><input type="checkbox" class="form-check-input shipment-select" form="bulkShipmentDeleteForm" name="shipment_ids[]" value="{{ $s->id }}" aria-label="Select shipment for order {{ $s->order?->order_number }}"></td>
-                <td>{{ $s->order?->order_number }}</td><td>{{ $s->receiver_name }}</td>
+                <td>{{ $s->order?->order_number }}</td><td>{{ $s->receiver_name }}@if($s->order?->customer_phone)<div class="small text-muted text-nowrap"><i class="fa-solid fa-phone me-1"></i>{{ $s->order->customer_phone }}</div>@endif</td>
                 <td>
                     @php
                         $orderItems = $s->order?->items ?? collect();

@@ -160,7 +160,7 @@ class OrderController extends Controller
             ->sum('quantity');
 
         // 2. Listing Orders Query
-        $query = Order::with(['items.product.primaryImage', 'items.product.category', 'items.product.sizes', 'items.productSize', 'payment', 'operations', 'notifications'])
+        $query = Order::with(['items.product.primaryImage', 'items.product.category', 'items.product.sizes', 'items.productSize', 'payment', 'operations', 'notifications', 'shipment'])
             ->whereNotIn('id', $inactiveOrderIds);
 
         if (!$request->boolean('include_test_orders')) {

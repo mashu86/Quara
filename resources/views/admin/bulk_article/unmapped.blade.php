@@ -1,0 +1,48 @@
+@extends('layouts.admin')
+@section('title','Not Mapped Excel Sheet')
+@section('content')
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h3 class="mb-0">Not Mapped Excel Sheet</h3>
+        <a href="{{ route('admin.bulk-article.index') }}" class="btn btn-outline-secondary">Back to Bulk Article Number</a>
+    </div>
+
+    <div class="card mb-3"><div class="card-body">
+        <form class="row g-2 align-items-end" method="get">
+            <div class="col-md-4"><label class="form-label">Search</label><input class="form-control" name="search" value="{{ request('search') }}" placeholder="Receiver, article, tracking or PIN"></div>
+            <div class="col-md-2"><button class="btn btn-primary">Search</button></div>
+        </form>
+    </div></div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0 align-middle">
+                <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                @forelse($articles as $a)
+                    <tr>
+                        <td class="fw-semibold">{{ $a->receiver_name }}</td>
+                        <td class="small">{{ $a->receiver_address }}{{ $a->pin_code ? ' - '.$a->pin_code : '' }}</td>
+                        <td>{{ $a->article_number }}</td>
+                        <td>{{ $a->tracking_number ?: '—' }}</td>
+                        <td>₹{{ number_format((float) $a->courier_charge, 2) }}</td>
+                        <td>{{ $a->created_at?->format('d-m-Y') }}</td>
+                        <td><span class="badge bg-warning text-dark">Pending</span></td>
+                        <td class="text-nowrap">
+                            <a href="{{ route('admin.bulk-article.unmapped.edit', $a) }}" class="btn btn-sm btn-primary">Edit / Map with Order ID</a>
+                            <form method="post" action="{{ route('admin.bulk-article.unmapped.destroy', $a) }}" class="d-inline" onsubmit="return confirm('Delete this not mapped article?')">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="8" class="text-center p-4">No pending Excel rows.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">{{ $articles->links() }}</div>
+    </div>
+</div>
+@endsection

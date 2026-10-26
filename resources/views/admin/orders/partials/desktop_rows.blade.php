@@ -29,6 +29,12 @@
         <td>
             <div class="fw-bold text-dark">{{ $order->customer_name }}</div>
             <div class="small text-muted"><i class="fa-solid fa-phone me-1"></i> {{ $order->customer_phone }}</div>
+            @php
+                $trackingNo = $order->shipment?->tracking_number ?: ($order->shipment?->article_number ?: $order->tracking_number);
+            @endphp
+            @if($trackingNo)
+                <div class="small text-primary fw-semibold text-nowrap" title="Tracking number"><i class="fa-solid fa-truck-fast me-1"></i>{{ $trackingNo }}</div>
+            @endif
         </td>
         @php
             $modalItems = $order->items->map(function ($item) use ($returnedOrderItems) {

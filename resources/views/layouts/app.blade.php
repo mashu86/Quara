@@ -628,6 +628,7 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                 <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}">My Account</a></li>
+                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#trackingIdModal">Tracking ID</button></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><form action="{{ route('customer.logout') }}" method="POST">@csrf<button type="submit" class="dropdown-item text-danger">Logout</button></form></li>
                             </ul>
@@ -637,6 +638,7 @@
                             <button type="button" class="btn btn-link text-dark p-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account options" title="Account options"><i class="fa-regular fa-user"></i></button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                 <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}"><i class="fa-solid fa-box me-2 text-gold"></i>My Orders</a></li>
+                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#trackingIdModal"><i class="fa-solid fa-truck-fast me-2 text-gold"></i>Tracking ID</button></li>
                                 <li><button type="button" class="dropdown-item" data-customer-login><i class="fa-regular fa-user me-2 text-gold"></i>Login</button></li>
                             </ul>
                         </div>
@@ -689,6 +691,7 @@
                                 <button type="button" class="btn btn-outline-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account options" title="Account options"><i class="fa-regular fa-user"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                     <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}"><i class="fa-solid fa-box me-2 text-gold"></i>My Orders</a></li>
+                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#trackingIdModal"><i class="fa-solid fa-truck-fast me-2 text-gold"></i>Tracking ID</button></li>
                                     <li><button type="button" class="dropdown-item" data-customer-login><i class="fa-regular fa-user me-2 text-gold"></i>Login</button></li>
                                 </ul>
                             </div>
@@ -699,6 +702,7 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                     <li><a class="dropdown-item" href="{{ route('customer.my-orders') }}">My Account</a></li>
+                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#trackingIdModal">Tracking ID</button></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><form action="{{ route('customer.logout') }}" method="POST">@csrf<button type="submit" class="dropdown-item text-danger">Logout</button></form></li>
                                 </ul>
@@ -847,6 +851,7 @@
     @include('frontend.partials.lucky_winners_modal')
     @include('frontend.partials.image_search_modal')
     @include('frontend.partials.customer_auth_modal')
+@include('frontend.partials.tracking_id_modal')
     {{-- SMS phone login is deferred; uncomment this include to restore it later.
     @include('frontend.partials.phone_otp_modal')
     --}}

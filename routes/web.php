@@ -118,7 +118,8 @@ Route::post('/customer-auth/verify-otp', [CustomerAccountController::class, 'ver
 // SMS phone login is deferred; uncomment this route to restore it later.
 // Route::post('/customer/phone-login', [\App\Http\Controllers\Frontend\CustomerPhoneLoginController::class, 'login'])
 //     ->middleware('throttle:6,1')->name('customer.phone-login');
-Route::get('/my-orders', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'myOrders'])->name('customer.my-orders');
+Route::post('/tracking-id', \App\Http\Controllers\Frontend\TrackingLookupController::class)->middleware('throttle:10,1')->name('tracking.lookup');
+Route::get('/my-orders',[\App\Http\Controllers\Frontend\EmailAuthController::class, 'myOrders'])->name('customer.my-orders');
 Route::post('/customer/logout', [\App\Http\Controllers\Frontend\EmailAuthController::class, 'logout'])->name('customer.logout');
 
 // Order Tracking
@@ -244,7 +245,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/bulk-article-number/upload', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'parse'])->name('bulk-article.parse');
         Route::post('/bulk-article-number/match', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'match'])->name('bulk-article.match');
         Route::post('/bulk-article-number/save', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'save'])->name('bulk-article.save');
-        Route::get('/article-tracking-history', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'history'])->name('bulk-article.history');
+        Route::get('/bulk-article-number/not-mapped', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'unmapped'])->name('bulk-article.unmapped');
+        Route::get('/bulk-article-number/not-mapped/search-orders', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'searchOrders'])->name('bulk-article.unmapped.search-orders');
+        Route::get('/bulk-article-number/not-mapped/{article}/edit', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'editUnmapped'])->name('bulk-article.unmapped.edit');
+        Route::put('/bulk-article-number/not-mapped/{article}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'connectUnmapped'])->name('bulk-article.unmapped.connect');
+        Route::delete('/bulk-article-number/not-mapped/{article}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'destroyUnmapped'])->name('bulk-article.unmapped.destroy');
+        Route::get('/article-tracking-history',[\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'history'])->name('bulk-article.history');
         Route::delete('/article-tracking-history', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'bulkDestroy'])->name('bulk-article.bulk-destroy');
         Route::get('/article-tracking-history/{shipment}/edit', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'edit'])->name('bulk-article.edit');
         Route::put('/article-tracking-history/{shipment}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'update'])->name('bulk-article.update');

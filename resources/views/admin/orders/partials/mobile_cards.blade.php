@@ -74,7 +74,11 @@
                         $trackingNo = $order->shipment?->tracking_number ?: ($order->shipment?->article_number ?: $order->tracking_number);
                     @endphp
                     @if($trackingNo)
-                        <div class="text-primary fw-semibold" style="font-size: 0.72rem;" title="Tracking number"><i class="fa-solid fa-truck-fast me-1"></i>{{ $trackingNo }}</div>
+                        <div class="text-primary fw-semibold d-flex align-items-center gap-2" style="font-size: 0.72rem;" title="Tracking number">
+                            <span><i class="fa-solid fa-truck-fast me-1"></i>{{ $trackingNo }}</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-secondary" style="font-size: 0.8rem;" title="Copy tracking number" aria-label="Copy tracking number" onclick="copyTrackingNumber(this, @js($trackingNo))"><i class="fa-regular fa-copy"></i></button>
+                            <a href="https://www.indiapost.gov.in/" target="_blank" rel="noopener" class="text-danger" style="font-size: 0.8rem;" title="Copy and open India Post" aria-label="Open India Post" onclick="copyTrackingNumber(null, @js($trackingNo))"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
                     @endif
                 </div>
                 @php

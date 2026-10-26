@@ -26,7 +26,7 @@
     if (!modal) return;
     const form = document.getElementById('trackingIdForm'), phone = document.getElementById('trackingIdPhone');
     const error = document.getElementById('trackingIdError'), results = document.getElementById('trackingIdResults'), submit = document.getElementById('trackingIdSubmit');
-    const indiaPostUrl = 'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx';
+    const indiaPostUrl = 'https://www.indiapost.gov.in/';
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     modal.addEventListener('shown.bs.modal', () => phone.focus());

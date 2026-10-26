@@ -15,7 +15,44 @@
     </div></div>
 
     <div class="card">
-        <div class="table-responsive">
+        {{-- Mobile cards --}}
+        <div class="d-md-none p-2">
+            @forelse($articles as $a)
+                <div class="border rounded-3 shadow-sm p-2 mb-2 bg-white">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="fw-bold" style="font-size:.9rem">{{ $a->receiver_name }}</div>
+                            @if($a->receiver_phone)<a href="tel:{{ $a->receiver_phone }}" class="text-muted text-decoration-none small"><i class="fa-solid fa-phone text-success me-1"></i>{{ $a->receiver_phone }}</a>@endif
+                        </div>
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    </div>
+                    <div class="small text-muted mt-1">{{ $a->receiver_address }}{{ $a->pin_code ? ' - '.$a->pin_code : '' }}</div>
+                    <div class="border rounded-3 bg-light p-2 mt-2 small">
+                        <div class="d-flex justify-content-between"><span class="text-muted">Article</span><span class="fw-semibold font-monospace">{{ $a->article_number }}</span></div>
+                        @if($a->tracking_number && $a->tracking_number !== $a->article_number)
+                            <div class="d-flex justify-content-between"><span class="text-muted">Tracking</span><span class="fw-semibold font-monospace">{{ $a->tracking_number }}</span></div>
+                        @endif
+                    </div>
+                    <div class="row g-1 small mt-1">
+                        <div class="col-4"><div class="text-muted" style="font-size:.68rem">TARIFF</div>₹{{ number_format((float) $a->courier_charge, 2) }}</div>
+                        <div class="col-4"><div class="text-muted" style="font-size:.68rem">BOOKED</div>{{ $a->booking_date ?: '—' }}</div>
+                        <div class="col-4"><div class="text-muted" style="font-size:.68rem">SAVED ON</div>{{ $a->created_at?->format('d-m-Y') }}</div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <a href="{{ route('admin.bulk-article.unmapped.edit', $a) }}" class="btn btn-sm btn-primary flex-grow-1">Edit / Map with Order ID</a>
+                        <form method="post" action="{{ route('admin.bulk-article.unmapped.destroy', $a) }}" onsubmit="return confirm('Delete this not mapped article?')">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center p-4">No pending Excel rows.</div>
+            @endforelse
+        </div>
+
+        {{-- Desktop table --}}
+        <div class="table-responsive d-none d-md-block">
             <table class="table table-striped mb-0 align-middle">
                 <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
                 <tbody>

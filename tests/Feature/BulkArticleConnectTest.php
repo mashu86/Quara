@@ -90,6 +90,18 @@ class BulkArticleConnectTest extends TestCase
         $this->assertSame(UnmappedCourierArticle::NOT_MAPPED, $kept->status);
     }
 
+    public function test_history_links_the_order_and_offers_tracking_actions(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $order = $this->order('QW-77', 'Anu K', '682030', 0.25, 2);
+        OrderShipment::create(['order_id' => $order->id, 'article_number' => 'CL516683385IN', 'tracking_number' => 'CL516683385IN', 'receiver_name' => 'Anu K', 'receiver_address' => 'Kochi']);
+
+        $this->get(route('admin.bulk-article.history'))->assertOk()
+            ->assertSee(route('admin.orders.show', $order), false)
+            ->assertSee('CL516683385IN')->assertSee('Copy tracking number')->assertSee('indiapost.gov.in')
+            ->assertSee('openOrderImageModal', false)->assertSee('historyFilterModal', false);
+    }
+
     public function test_order_search_lists_only_orders_without_tracking(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']));

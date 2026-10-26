@@ -21,12 +21,12 @@
                 <tbody>
                 @forelse($articles as $a)
                     <tr>
-                        <td class="fw-semibold">{{ $a->receiver_name }}</td>
+                        <td class="fw-semibold">{{ $a->receiver_name }}@if($a->receiver_phone)<div class="small text-muted fw-normal">{{ $a->receiver_phone }}</div>@endif</td>
                         <td class="small">{{ $a->receiver_address }}{{ $a->pin_code ? ' - '.$a->pin_code : '' }}</td>
                         <td>{{ $a->article_number }}</td>
                         <td>{{ $a->tracking_number ?: '—' }}</td>
                         <td>₹{{ number_format((float) $a->courier_charge, 2) }}</td>
-                        <td>{{ $a->created_at?->format('d-m-Y') }}</td>
+                        <td>{{ $a->created_at?->format('d-m-Y') }}@if($a->booking_date)<div class="small text-muted">Booked: {{ $a->booking_date }}</div>@endif</td>
                         <td><span class="badge bg-warning text-dark">Pending</span></td>
                         <td class="text-nowrap">
                             <a href="{{ route('admin.bulk-article.unmapped.edit', $a) }}" class="btn btn-sm btn-primary">Edit / Map with Order ID</a>

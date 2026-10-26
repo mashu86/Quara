@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\UnmappedCourierArticle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BulkArticleConnectTest extends TestCase
@@ -34,16 +35,16 @@ class BulkArticleConnectTest extends TestCase
 
     private function importSession(array $bucket): array
     {
+        Storage::fake();
+        Storage::put('article-imports/test.json', json_encode([
+            ['Anu K', 'Kakkanad Kochi', '682030', 'EA111IN', '45'],
+            ['Someone Else', 'Thrissur', '680001', 'EA222IN', '50'],
+            ['Rahul M', 'Thrissur', '680001', 'EA333IN', '40'],
+        ]));
+
         return [
             'article_bucket' => $bucket,
-            'article_import' => [
-                'headers' => ['Receiver-Name', 'Receiver-Address', 'Destination-Pin', 'Article', 'Tariff'],
-                'rows' => [
-                    ['Anu K', 'Kakkanad Kochi', '682030', 'EA111IN', '45'],
-                    ['Someone Else', 'Thrissur', '680001', 'EA222IN', '50'],
-                    ['Rahul M', 'Thrissur', '680001', 'EA333IN', '40'],
-                ],
-            ],
+            'article_import' => ['headers' => ['Receiver-Name', 'Receiver-Address', 'Destination-Pin', 'Article', 'Tariff'], 'key' => 'test'],
         ];
     }
 
@@ -100,13 +101,15 @@ class BulkArticleConnectTest extends TestCase
         $this->assertSame(['QW-1'], array_column($orders, 'order_number'));
         $this->assertEquals(900, $orders[0]['weight']);
         $this->assertSame(['QW-1'], array_column($this->getJson(route('admin.bulk-article.unmapped.search-orders', ['q' => 'QW-1']))->json('orders'), 'order_number'));
+        $this->assertSame(['QW-1'], array_column($this->getJson(route('admin.bulk-article.unmapped.search-orders', ['q' => '689104']))->json('orders'), 'order_number'));
+        $this->assertSame(['QW-1'], array_column($this->getJson(route('admin.bulk-article.unmapped.search-orders', ['q' => '98765 43210']))->json('orders'), 'order_number'));
     }
 
     public function test_not_mapped_row_can_be_connected_later_by_order_id(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']));
         $order = $this->order('QW-20261021-00009', 'Someone', '680001', 0.3, 1);
-        $article = UnmappedCourierArticle::create(['article_number' => 'EA222IN', 'tracking_number' => 'EA222IN', 'receiver_name' => 'Someone Else', 'receiver_address' => 'Thrissur', 'courier_charge' => 50]);
+        $article = UnmappedCourierArticle::create(['article_number' => 'EA222IN', 'tracking_number' => 'EA222IN', 'receiver_name' => 'Someone Else', 'receiver_address' => 'Thrissur', 'courier_charge' => 50, 'booking_date' => '2026/10/26T13:45:09']);
 
         // A row whose article number was already generated elsewhere is not pending.
         $other = $this->order('QW-OTHER', 'Other', '600001', 0.1, 1);
@@ -122,6 +125,7 @@ class BulkArticleConnectTest extends TestCase
         $this->assertSame('EA222IN', $shipment->article_number);
         $this->assertEquals(300, $shipment->weight);
         $this->assertEquals(50, $shipment->courier_charge);
+        $this->assertSame('2026-10-26', $shipment->shipment_date->toDateString(), 'Booking date (dispatch) is the shipment date.');
         $this->assertSame(UnmappedCourierArticle::CONNECTED, $article->fresh()->status);
         $this->assertSame($shipment->id, $article->fresh()->order_shipment_id);
     }

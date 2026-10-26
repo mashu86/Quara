@@ -19,6 +19,9 @@
                         <div class="col-sm-6"><span class="text-muted">Receiver</span><div class="fw-semibold">{{ $article->receiver_name }}</div></div>
                         <div class="col-sm-6"><span class="text-muted">Article / Tracking</span><div class="fw-semibold">{{ $article->article_number }} / {{ $article->tracking_number ?: '—' }}</div></div>
                         <div class="col-12"><span class="text-muted">Address</span><div>{{ $article->receiver_address }}{{ $article->pin_code ? ' - '.$article->pin_code : '' }}</div></div>
+                        <div class="col-sm-6"><span class="text-muted">Phone</span><div class="fw-semibold">{{ $article->receiver_phone ?: '—' }}</div></div>
+                        <div class="col-sm-6"><span class="text-muted">Booking Date</span><div class="fw-semibold">{{ $article->booking_date ?: '—' }}</div></div>
+                        <div class="col-sm-6"><span class="text-muted">PIN</span><div>{{ $article->pin_code ?: '—' }}</div></div>
                         <div class="col-sm-6"><span class="text-muted">Tariff</span><div>₹{{ number_format((float) $article->courier_charge, 2) }}</div></div>
                     </div>
                 </div>
@@ -41,7 +44,13 @@
             <div class="card">
                 <div class="card-header fw-semibold">Find Order</div>
                 <div class="card-body">
-                    <input type="search" id="umSearch" class="form-control mb-2" value="{{ $article->receiver_name }}" placeholder="Search by name, order ID or phone" autocomplete="off">
+                    <input type="search" id="umSearch" class="form-control mb-2" value="{{ $article->receiver_name }}" placeholder="Search by name, order ID, phone or PIN code" autocomplete="off">
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="small text-muted me-1 align-self-center">Quick search:</span>
+                        @foreach(array_filter(['Name' => $article->receiver_name, 'Phone' => $article->receiver_phone ? substr(preg_replace('/\D+/', '', $article->receiver_phone), -10) : null, 'PIN' => $article->pin_code]) as $label => $value)
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-quick-search="{{ $value }}">{{ $label }}: {{ $value }}</button>
+                        @endforeach
+                    </div>
                     <div class="small text-muted mb-2" id="umStatus"></div>
                     <div class="um-results" id="umResults"></div>
                 </div>
@@ -78,6 +87,7 @@
     }
 
     search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 250); });
+    document.querySelectorAll('[data-quick-search]').forEach(b => b.addEventListener('click', () => { search.value = b.dataset.quickSearch; run(); }));
     results.addEventListener('click', e => {
         const card = e.target.closest('.um-card');
         if (!card) return;

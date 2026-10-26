@@ -62,32 +62,41 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Same rule as ProductSize::availableStockForOrder(): stock minus reserved units and open size bookings.
+        $sizeHasAvailableStock = function ($q) {
+            $q->whereRaw("product_sizes.stock - COALESCE(product_sizes.reserved_stock, 0) - (
+                SELECT COALESCE(SUM(pb.quantity - pb.sold_quantity), 0) FROM product_bookings pb
+                WHERE pb.product_size_id = product_sizes.id AND pb.status IN ('active', 'partially_sold')
+            ) > 0");
+        };
+        $hasOpenSizeBooking = function ($q) {
+            $q->whereIn('status', ['active', 'partially_sold'])->whereColumn('quantity', '>', 'sold_quantity');
+        };
+
         if ($request->filled('stock_status')) {
             if ($request->stock_status === 'in_stock') {
                 $query->where('is_out_of_stock', false)
-                    ->whereHas('sizes', function ($q) {
-                        $q->where('stock', '>', 0);
-                    });
+                    ->whereHas('sizes', $sizeHasAvailableStock);
             } elseif ($request->stock_status === 'out_of_stock') {
-                $query->where(function ($q) {
-                    $q->where(function ($soldOut) {
+                $query->where(function ($q) use ($sizeHasAvailableStock) {
+                    $q->where(function ($soldOut) use ($sizeHasAvailableStock) {
                         $soldOut->where('is_out_of_stock', true)
-                            ->orWhereDoesntHave('sizes', function ($sq) {
-                                $sq->where('stock', '>', 0);
-                            });
+                            ->orWhereDoesntHave('sizes', $sizeHasAvailableStock);
                     })->where(function ($notBooked) {
                         $notBooked->whereNull('booked_by')
                             ->orWhereRaw("TRIM(booked_by) = ''");
                     })->where(function ($notBusinessBooking) {
                         $notBusinessBooking->whereNull('booking_type')
                             ->orWhere('booking_type', '<>', 'business_whatsapp');
-                    });
+                    })->whereDoesntHave('bookings', $hasOpenSizeBooking);
                 });
             } elseif ($request->stock_status === 'reserved') {
-                $query->where('is_out_of_stock', true)->where(function ($booked) {
-                    $booked->where(function ($byCustomer) {
-                        $byCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
-                    })->orWhere('booking_type', 'business_whatsapp');
+                $query->where(function ($reserved) use ($hasOpenSizeBooking) {
+                    $reserved->where('is_out_of_stock', true)->where(function ($booked) {
+                        $booked->where(function ($byCustomer) {
+                            $byCustomer->whereNotNull('booked_by')->whereRaw("TRIM(booked_by) <> ''");
+                        })->orWhere('booking_type', 'business_whatsapp');
+                    })->orWhereHas('bookings', $hasOpenSizeBooking);
                 });
             } elseif (in_array($request->stock_status, ['return_to_stock', 'do_not_restock'], true)) {
                 $query->whereHas('orderItems', function ($itemQuery) use ($request) {

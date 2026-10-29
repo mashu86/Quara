@@ -35,7 +35,7 @@
                     </div>
                     <div class="row g-1 small mt-1">
                         <div class="col-4"><div class="text-muted" style="font-size:.68rem">TARIFF</div>₹{{ number_format((float) $a->courier_charge, 2) }}</div>
-                        <div class="col-4"><div class="text-muted" style="font-size:.68rem">COURIER SENT</div>@php $sent = $a->booking_date ? rescue(fn () => \Illuminate\Support\Carbon::parse($a->booking_date), null, false) : null; @endphp @if($sent)<span class="fw-semibold">{{ $sent->format('d-m-Y') }}</span> <span class="badge bg-success-subtle text-dark border">{{ (int) $sent->copy()->startOfDay()->diffInDays(now()->startOfDay()) }} days</span>@elseif($a->booking_date){{ $a->booking_date }}@else<span class="text-muted">—</span>@endif</div>
+                        <div class="col-4"><div class="text-muted" style="font-size:.68rem">BOOKING DATE</div>@php $sent = $a->booking_date ? rescue(fn () => \Illuminate\Support\Carbon::parse($a->booking_date), null, false) : null; @endphp @if($sent)<span class="fw-semibold">{{ $sent->format('d-m-Y') }}</span> <span class="badge bg-success-subtle text-dark border">{{ (int) $sent->copy()->startOfDay()->diffInDays(now()->startOfDay()) }} days</span>@elseif($a->booking_date){{ $a->booking_date }}@else<span class="text-muted">—</span>@endif</div>
                         <div class="col-4"><div class="text-muted" style="font-size:.68rem">SAVED ON</div>{{ $a->created_at?->format('d-m-Y') }}</div>
                     </div>
                     <div class="small mt-1"><span class="text-muted" style="font-size:.68rem">ORDER DATE</span> @if($a->likely_order_date)<span class="fw-semibold">{{ $a->likely_order_date->format('d-m-Y') }}</span> <span class="badge bg-info-subtle text-dark border">{{ (int) $a->likely_order_date->copy()->startOfDay()->diffInDays(now()->startOfDay()) }} days</span><div class="small text-muted">#{{ $a->likely_order_number }}</div>@else<span class="text-muted">—</span>@endif</div>
@@ -55,7 +55,7 @@
         {{-- Desktop table --}}
         <div class="table-responsive d-none d-md-block">
             <table class="table table-striped mb-0 align-middle">
-                <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Order Date</th><th>Courier Sent</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Order Date</th><th>Booking Date</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @forelse($articles as $a)
                     <tr>

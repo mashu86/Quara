@@ -38,6 +38,7 @@
                         <div class="col-4"><div class="text-muted" style="font-size:.68rem">BOOKED</div>{{ $a->booking_date ?: '—' }}</div>
                         <div class="col-4"><div class="text-muted" style="font-size:.68rem">SAVED ON</div>{{ $a->created_at?->format('d-m-Y') }}</div>
                     </div>
+                    <div class="small mt-1"><span class="text-muted" style="font-size:.68rem">ORDER DATE</span> @if($a->likely_order_date)<span class="fw-semibold">{{ $a->likely_order_date->format('d-m-Y') }}</span> <span class="badge bg-info-subtle text-dark border">{{ (int) $a->likely_order_date->copy()->startOfDay()->diffInDays(now()->startOfDay()) }} days</span><div class="small text-muted">#{{ $a->likely_order_number }}</div>@else<span class="text-muted">—</span>@endif</div>
                     <div class="d-flex gap-2 mt-2">
                         <a href="{{ route('admin.bulk-article.unmapped.edit', $a) }}" class="btn btn-sm btn-primary flex-grow-1">Edit / Map with Order ID</a>
                         <form method="post" action="{{ route('admin.bulk-article.unmapped.destroy', $a) }}" onsubmit="return confirm('Delete this not mapped article?')">
@@ -54,7 +55,7 @@
         {{-- Desktop table --}}
         <div class="table-responsive d-none d-md-block">
             <table class="table table-striped mb-0 align-middle">
-                <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Receiver</th><th>Address</th><th>Article</th><th>Tracking</th><th>Tariff</th><th>Order Date</th><th>Saved On</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @forelse($articles as $a)
                     <tr>
@@ -63,6 +64,7 @@
                         <td>{{ $a->article_number }}</td>
                         <td>{{ $a->tracking_number ?: '—' }}</td>
                         <td>₹{{ number_format((float) $a->courier_charge, 2) }}</td>
+                        <td class="text-nowrap">@if($a->likely_order_date)<span class="fw-semibold">{{ $a->likely_order_date->format('d-m-Y') }}</span> <span class="badge bg-info-subtle text-dark border">{{ (int) $a->likely_order_date->copy()->startOfDay()->diffInDays(now()->startOfDay()) }} days</span><div class="small text-muted">#{{ $a->likely_order_number }}</div>@else<span class="text-muted">—</span>@endif</td>
                         <td>{{ $a->created_at?->format('d-m-Y') }}@if($a->booking_date)<div class="small text-muted">Booked: {{ $a->booking_date }}</div>@endif</td>
                         <td><span class="badge bg-warning text-dark">Pending</span></td>
                         <td class="text-nowrap">
@@ -74,7 +76,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-center p-4">No pending Excel rows.</td></tr>
+                    <tr><td colspan="9" class="text-center p-4">No pending Excel rows.</td></tr>
                 @endforelse
                 </tbody>
             </table>

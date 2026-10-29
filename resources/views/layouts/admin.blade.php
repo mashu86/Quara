@@ -564,6 +564,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.reports.available-stock') }}" class="nav-link {{ request()->routeIs('admin.reports.available-stock') ? 'active' : '' }}">
+                        <i class="fa-solid fa-boxes-stacked me-2 text-success"></i> Available Stock
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.reports.duplicate-paid-products') }}" class="nav-link {{ request()->routeIs('admin.reports.duplicate-paid-products') ? 'active' : '' }}">
                         <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i> Duplicate Paid Products
                     </a>

@@ -206,7 +206,29 @@ class BulkArticleNumberController extends Controller
             ->orderByDesc('created_at');
         if($request->filled('search')){$like='%'.$request->search.'%';$q->where(fn($x)=>$x->where('receiver_name','like',$like)->orWhere('article_number','like',$like)->orWhere('tracking_number','like',$like)->orWhere('pin_code','like',$like)->orWhere('receiver_phone','like',$like));}
         $articles=$q->paginate(50)->withQueryString();
+        $this->attachLikelyOrderDates($articles->getCollection());
         return view('admin.bulk_article.unmapped',compact('articles'));
+    }
+
+    /** Excel rows carry no order link, so the order date comes from the open order with the same phone, else same name and PIN. */
+    private function attachLikelyOrderDates($articles): void
+    {
+        $digits=fn($v)=>substr(preg_replace('/\D+/','',(string)$v),-10);
+        $phones=$articles->map(fn($a)=>$digits($a->receiver_phone))->filter(fn($p)=>strlen($p)===10)->unique()->values();
+        $pins=$articles->pluck('pin_code')->filter()->unique()->values();
+        if($phones->isEmpty()&&$pins->isEmpty())return;
+        $orders=Order::where('payment_status','paid')->whereIn('order_status',['confirmed','processing','packed','shipped','delivered'])
+            ->whereDoesntHave('shipment')->where(fn($x)=>$x->whereNull('tracking_number')->orWhere('tracking_number',''))
+            ->where(fn($x)=>$x->when($phones->isNotEmpty(),fn($p)=>$p->orWhereIn(DB::raw("RIGHT(REPLACE(REPLACE(REPLACE(customer_phone, ' ', ''), '-', ''), '+', ''), 10)"),$phones))
+                ->when($pins->isNotEmpty(),fn($p)=>$p->orWhereIn('pin_code',$pins)))
+            ->orderByDesc(DB::raw('COALESCE(sale_date, created_at)'))->get(['order_number','customer_name','customer_phone','pin_code','sale_date','created_at']);
+        foreach($articles as $a){
+            $phone=$digits($a->receiver_phone);
+            $order=(strlen($phone)===10?$orders->first(fn($o)=>$digits($o->customer_phone)===$phone):null)
+                ??($a->pin_code?$orders->first(fn($o)=>$o->pin_code==$a->pin_code&&strcasecmp(trim($o->customer_name),trim($a->receiver_name))===0):null);
+            $a->likely_order_number=$order?->order_number;
+            $a->likely_order_date=$order?($order->sale_date??$order->created_at):null;
+        }
     }
 
     public function editUnmapped(UnmappedCourierArticle $article)

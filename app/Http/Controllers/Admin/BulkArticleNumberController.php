@@ -139,7 +139,7 @@ class BulkArticleNumberController extends Controller
         if(preg_match('/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/',$value,$m))[$y,$mo,$d]=[$m[1],$m[2],$m[3]];
         elseif(preg_match('/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/',$value,$m))[$y,$mo,$d]=[$m[3],$m[2],$m[1]];
         elseif(is_numeric($value)&&(float)$value>20000&&(float)$value<80000)return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$value)->format('Y-m-d');
-        else return null;
+        else return rescue(fn()=>\Illuminate\Support\Carbon::parse($value)->format('Y-m-d'),null,false);
         return checkdate((int)$mo,(int)$d,(int)$y)?sprintf('%04d-%02d-%02d',$y,$mo,$d):null;
     }
 

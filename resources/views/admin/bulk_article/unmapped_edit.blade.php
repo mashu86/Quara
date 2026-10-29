@@ -20,7 +20,7 @@
                         <div class="col-sm-6"><span class="text-muted">Article / Tracking</span><div class="fw-semibold">{{ $article->article_number }} / {{ $article->tracking_number ?: '—' }}</div></div>
                         <div class="col-12"><span class="text-muted">Address</span><div>{{ $article->receiver_address }}{{ $article->pin_code ? ' - '.$article->pin_code : '' }}</div></div>
                         <div class="col-sm-6"><span class="text-muted">Phone</span><div class="fw-semibold">{{ $article->receiver_phone ?: '—' }}</div></div>
-                        <div class="col-sm-6"><span class="text-muted">Booking Date</span><div class="fw-semibold">{{ $article->booking_date ?: '—' }}</div></div>
+                        <div class="col-sm-6"><span class="text-muted">Booking Date</span><div class="fw-semibold">{{ $article->booking_date ? rescue(fn () => \Illuminate\Support\Carbon::parse($article->booking_date)->format('d-m-Y'), $article->booking_date, false) : '—' }}</div></div>
                         <div class="col-sm-6"><span class="text-muted">PIN</span><div>{{ $article->pin_code ?: '—' }}</div></div>
                         <div class="col-sm-6"><span class="text-muted">Tariff</span><div>₹{{ number_format((float) $article->courier_charge, 2) }}</div></div>
                     </div>

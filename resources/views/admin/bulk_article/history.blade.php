@@ -94,7 +94,7 @@
                         <a href="{{ route('admin.orders.show', $s->order) }}" class="fw-semibold text-decoration-none" title="Open this order in My Sales">{{ $s->order->order_number }} <i class="fa-solid fa-arrow-up-right-from-square small"></i></a>
                     @else — @endif
                 </td>
-                <td>{{ $s->receiver_name }}@if($s->order?->customer_phone)<div class="small text-muted text-nowrap"><i class="fa-solid fa-phone me-1"></i>{{ $s->order->customer_phone }}</div>@endif</td>
+                <td>{{ $s->receiver_name }}@if($s->order?->customer_phone)<div class="small text-muted text-nowrap"><i class="fa-solid fa-phone me-1"></i>{{ $s->order->customer_phone }}</div>@endif@if($s->order)<div class="small text-muted text-nowrap">Order Date: {{ optional($s->order->sale_date ?? $s->order->created_at)->format('d-m-Y') }}</div>@endif</td>
                 <td>@include('admin.bulk_article.partials.history_thumbs', ['modalItems' => $modalItems])</td>
                 <td>{{ $s->article_number }}</td>
                 <td>@include('admin.bulk_article.partials.history_tracking', ['trackingNo' => $trackingNo, 'indiaPostUrl' => $indiaPostUrl])</td>
@@ -124,6 +124,7 @@
                             @endif
                             <div class="fw-semibold" style="font-size:.85rem">{{ $s->receiver_name }}</div>
                             @if($s->order?->customer_phone)<a href="tel:{{ $s->order->customer_phone }}" class="text-muted text-decoration-none" style="font-size:.75rem"><i class="fa-solid fa-phone text-success me-1"></i>{{ $s->order->customer_phone }}</a>@endif
+                            @if($s->order)<div class="text-muted" style="font-size:.75rem">Order Date: {{ optional($s->order->sale_date ?? $s->order->created_at)->format('d-m-Y') }}</div>@endif
                         </div>
                     </div>
                     @include('admin.bulk_article.partials.history_thumbs', ['modalItems' => $modalItems])

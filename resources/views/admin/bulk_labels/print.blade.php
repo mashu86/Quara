@@ -66,12 +66,14 @@
         <button type="button" onclick="window.print()"><i>Print</i></button>
         <button type="submit" form="bulkPdfDownloadForm" class="secondary">Download PDF</button>
     </div>
-    <form id="bulkPdfDownloadForm" method="POST" action="{{ route('admin.bulk-labels.download-pdf') }}">
+    <form id="bulkPdfDownloadForm" method="POST" action="{{ $downloadRoute ?? route('admin.bulk-labels.download-pdf') }}">
         @csrf
-        <input type="hidden" name="start_date" value="{{ $startDate }}">
-        <input type="hidden" name="end_date" value="{{ $endDate }}">
+        @isset($startDate)
+            <input type="hidden" name="start_date" value="{{ $startDate }}">
+            <input type="hidden" name="end_date" value="{{ $endDate }}">
+        @endisset
         <input type="hidden" name="layout" id="downloadPdfLayout" value="{{ $layout }}">
-        @foreach($orders as $order)<input type="hidden" name="order_ids[]" value="{{ $order->id }}">@endforeach
+        @foreach($orders as $order)<input type="hidden" name="{{ $idField ?? 'order_ids' }}[]" value="{{ $order->id }}">@endforeach
     </form>
     <main id="labels">
         @foreach($orders as $order)

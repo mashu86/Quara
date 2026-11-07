@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Order;
+use Illuminate\Database\Eloquent\Model;
 
 class BulkLabelPdf
 {
@@ -12,7 +12,7 @@ class BulkLabelPdf
     private const FONT_SIZE = 18.0; // 24 CSS px at 96 dpi.
     private const SENDER_FONT_SIZE = 15.75; // 21 CSS px at 96 dpi.
 
-    /** @param \Illuminate\Support\Collection<int, Order> $orders */
+    /** @param \Illuminate\Support\Collection<int, Model> $orders Orders or courier addresses. */
     public function make($orders, string $layout, array $fromAddress, string $customerId): string
     {
         $pageStreams = [];
@@ -25,7 +25,7 @@ class BulkLabelPdf
         return $this->assemble($pageStreams);
     }
 
-    private function verticalPage(Order $order, array $fromAddress, string $customerId): string
+    private function verticalPage(Model $order, array $fromAddress, string $customerId): string
     {
         $to = $this->toLines($order);
         $font = self::FONT_SIZE;
@@ -67,7 +67,7 @@ class BulkLabelPdf
         return $stream;
     }
 
-    private function splitPage(Order $order, array $fromAddress, string $customerId): string
+    private function splitPage(Model $order, array $fromAddress, string $customerId): string
     {
         $font = self::FONT_SIZE;
         $gap = 8 / 25.4 * 72;
@@ -106,7 +106,7 @@ class BulkLabelPdf
         return $stream;
     }
 
-    private function toLines(Order $order): array
+    private function toLines(Model $order): array
     {
         $lines = ['TO ,', mb_strtoupper((string) ($order->customer_name ?? ''), 'UTF-8')];
         $houseStreet = collect([$order->house_building, $order->street])->filter()->implode(' - ');

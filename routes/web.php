@@ -239,6 +239,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/bulk-labels', [\App\Http\Controllers\Admin\BulkLabelController::class, 'index'])->name('bulk-labels.index');
         Route::post('/bulk-labels/print', [\App\Http\Controllers\Admin\BulkLabelController::class, 'print'])->name('bulk-labels.print');
         Route::post('/bulk-labels/download-pdf', [\App\Http\Controllers\Admin\BulkLabelController::class, 'downloadPdf'])->name('bulk-labels.download-pdf');
+        Route::post('/courier-addresses/print', [\App\Http\Controllers\Admin\CourierAddressController::class, 'print'])->name('courier-addresses.print');
+        Route::post('/courier-addresses/download-pdf', [\App\Http\Controllers\Admin\CourierAddressController::class, 'downloadPdf'])->name('courier-addresses.download-pdf');
+        Route::resource('courier-addresses', \App\Http\Controllers\Admin\CourierAddressController::class)->except('show');
         Route::get('/bulk-article-number', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'index'])->name('bulk-article.index');
         Route::post('/bulk-article-number/proceed', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'proceed'])->name('bulk-article.proceed');
         Route::delete('/bulk-article-number/bucket/{order}', [\App\Http\Controllers\Admin\BulkArticleNumberController::class, 'remove'])->name('bulk-article.remove');

@@ -466,6 +466,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.courier-addresses.index') }}" class="nav-link {{ request()->routeIs('admin.courier-addresses.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-address-book me-2"></i> Courier Addresses
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.bulk-article.index') }}" class="nav-link {{ request()->routeIs('admin.bulk-article.index', 'admin.bulk-article.upload', 'admin.bulk-article.parse', 'admin.bulk-article.match', 'admin.bulk-article.save') ? 'active' : '' }}">
                         <i class="fa-solid fa-barcode me-2"></i> Bulk Article Number
                     </a>

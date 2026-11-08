@@ -181,6 +181,7 @@ class CategoryController extends Controller
             'minimum_purchase_required' => 'nullable|boolean',
             'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -372,6 +373,7 @@ class CategoryController extends Controller
             'minimum_purchase_required' => 'nullable|boolean',
             'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);

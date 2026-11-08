@@ -46,6 +46,7 @@
 
 @section('content')
 <div class="container py-4 minimum-builder-page">
+    @include('frontend.partials.category_notes', ['noteCategory' => $category])
     <div class="card border-0 rounded-4 shadow-sm mb-4 minimum-builder-hero text-white">
         <div class="card-body p-4 p-md-5">
             <span class="badge rounded-pill bg-warning text-dark mb-2">{{ $category->name }}</span>

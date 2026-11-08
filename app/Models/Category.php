@@ -34,6 +34,7 @@ class Category extends Model
         'minimum_purchase_required',
         'minimum_purchase_count',
         'show_in_collection',
+        'notes',
     ];
 
     protected $casts = [

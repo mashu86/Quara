@@ -183,6 +183,7 @@
 
 @section('content')
 <div class="container py-3 py-md-4 combo-builder-page">
+    @include('frontend.partials.category_notes', ['noteCategory' => $category ?? null])
 
     <!-- Combo Offer Header Banner -->
     <div class="card border-0 combo-header-banner overflow-hidden shadow-sm mb-3 mb-md-4 position-relative text-white">

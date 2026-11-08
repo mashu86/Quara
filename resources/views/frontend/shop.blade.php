@@ -37,6 +37,7 @@
         + (request()->filled('stock') ? 1 : 0);
 @endphp
 <div class="container py-4">
+@include('frontend.partials.category_notes', ['noteCategory' => $currentCategory])
 @if($currentCategory)
     <!-- Luxury Category Banner Header -->
     <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden position-relative qw-category-hero text-white">

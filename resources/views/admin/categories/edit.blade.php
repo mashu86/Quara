@@ -46,6 +46,12 @@
                     <div class="form-text small">Category-only products stay out of general shop, home, and search listings.</div>
                 </div>
 
+                <div class="col-12">
+                    <label class="form-label fw-bold small">Notes (Optional)</label>
+                    <textarea name="notes" rows="3" maxlength="1000" class="form-control rounded-3" placeholder="e.g. Free shipping on this category this week">{{ old('notes', $category->notes) }}</textarea>
+                    <div class="form-text small">If filled, this note shows as a green label at the top of the category page for customers.</div>
+                </div>
+
                 <div class="col-md-6" id="statusSelectWrapper">
                     <label class="form-label fw-bold small">Status <span class="text-danger">*</span></label>
                     <select name="status" class="form-select rounded-3">

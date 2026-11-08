@@ -217,6 +217,7 @@
 @endsection
 
 @section('scripts')
+@include('admin.categories.partials.image_cropper')
 <script>
     @if(!empty($mergeMode))
     document.addEventListener('DOMContentLoaded', () => {

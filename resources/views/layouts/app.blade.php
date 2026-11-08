@@ -574,7 +574,7 @@
             .qw-card-body { padding: 9px 10px !important; }
             .qw-category-card { height: 85px !important; border-radius: 8px !important; }
             .qw-category-overlay { padding: 6px 4px !important; }
-            .qw-category-overlay h6 { font-size: 0.72rem !important; margin-bottom: 2px !important; }
+            .qw-category-overlay h6 { font-size: 0.6rem !important; margin-bottom: 2px !important; }
             .qw-category-overlay .badge { font-size: 0.52rem !important; padding: 1px 4px !important; }
             .qw-floating-whatsapp { width: 38px; height: 38px; font-size: 20px; bottom: 14px; right: 14px; box-shadow: 0 3px 10px rgba(37, 211, 102, 0.4); }
             .qw-btn-card { font-size: 0.66rem !important; padding: 3px 6px !important; letter-spacing: 0.2px !important; }

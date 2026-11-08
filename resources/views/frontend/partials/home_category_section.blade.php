@@ -83,7 +83,7 @@
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
                                 <div class="qw-category-overlay p-2 text-center">
-                                    <h6 class="font-serif fw-bold mb-1 text-truncate w-100" style="font-size: 0.72rem; color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
+                                    <h6 class="font-serif fw-bold mb-1 text-truncate w-100" style="font-size: 0.64rem; color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
                                         @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h6>
                                     <span class="badge bg-gold rounded-pill px-2.5 py-1" style="font-size: 0.65rem;">
@@ -117,7 +117,7 @@
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
                                 <div class="qw-category-overlay p-2 p-sm-2.5 text-center">
-                                    <h6 class="fw-bold mb-1 text-white w-100 text-truncate px-1" style="color: {{ $category->text_color ?? '#FFFFFF' }}; text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 0.72rem; letter-spacing: 0.2px;">
+                                    <h6 class="fw-bold mb-1 text-white w-100 text-truncate px-1" style="color: {{ $category->text_color ?? '#FFFFFF' }}; text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 0.64rem; letter-spacing: 0.2px;">
                                         @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h6>
                                     <span class="badge rounded-pill px-2.5 py-1 shadow-sm text-truncate" style="background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%); color: #111111; font-weight: 700; font-size: 0.60rem; letter-spacing: 0.2px;">

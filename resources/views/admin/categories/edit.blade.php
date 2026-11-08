@@ -204,6 +204,7 @@
 @endsection
 
 @section('scripts')
+@include('admin.categories.partials.image_cropper')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const switchEl = document.getElementById('isOfferCategorySwitch');

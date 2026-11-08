@@ -103,7 +103,7 @@
                         @continue(!filled($category->slug))
                         <a href="{{ route('category.products', $category->slug) }}" class="qw-category-slide-card">
                             <div class="qw-category-slide-image"><img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" loading="lazy"></div>
-                            <span style="font-size: 0.75rem;">{{ $category->name }}</span>
+                            <span style="font-size: 0.66rem;">{{ $category->name }}</span>
                         </a>
                     @endforeach
                 </div>

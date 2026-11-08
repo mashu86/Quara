@@ -8,6 +8,9 @@
     <title>@yield('title', config('seo.default_title'))</title>
     <meta name="description" content="@yield('meta_description', config('seo.default_description'))">
     <meta name="keywords" content="@yield('meta_keywords', config('seo.default_keywords'))">
+    @if(config('seo.google_site_verification'))
+    <meta name="google-site-verification" content="{{ config('seo.google_site_verification') }}">
+    @endif
     <meta name="author" content="Quara Wardrobe">
     <meta name="robots" content="@yield('meta_robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1')">
     <meta name="csrf-token" content="{{ csrf_token() }}">

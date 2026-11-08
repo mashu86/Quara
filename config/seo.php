@@ -37,6 +37,9 @@ return [
 
     'site_type' => 'OnlineStore',
 
+    // Google Search Console HTML-tag verification token (content value only)
+    'google_site_verification' => env('GOOGLE_SITE_VERIFICATION', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Default OpenGraph & Social Image Fallback

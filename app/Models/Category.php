@@ -35,6 +35,8 @@ class Category extends Model
         'minimum_purchase_count',
         'show_in_collection',
         'notes',
+        'show_combo_banner',
+        'video_path',
     ];
 
     protected $casts = [
@@ -160,6 +162,37 @@ class Category extends Model
 
         $cleanPath = ltrim(str_replace(['storage/', 'media/'], '', $this->background_image), '/');
         return asset('media/' . $cleanPath);
+    }
+
+    /**
+     * Short-lived signed URL for the protected category video stream.
+     */
+    public function getVideoStreamUrlAttribute(): ?string
+    {
+        if (empty($this->video_path)) {
+            return null;
+        }
+
+        if (str_starts_with($this->video_path, 'storage/')) {
+            return asset($this->video_path); // legacy public upload
+        }
+
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'category.video', now()->addMinutes(60), $this
+        );
+    }
+
+    public function deleteVideoFile(): void
+    {
+        if (empty($this->video_path)) {
+            return;
+        }
+
+        if (str_starts_with($this->video_path, 'storage/')) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(substr($this->video_path, 8));
+        } else {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($this->video_path);
+        }
     }
 
     protected static function boot()

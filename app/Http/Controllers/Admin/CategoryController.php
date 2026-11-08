@@ -182,6 +182,9 @@ class CategoryController extends Controller
             'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
+            'show_combo_banner' => 'nullable|boolean',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/webm,video/quicktime|max:40960',
+            'remove_video' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -192,6 +195,7 @@ class CategoryController extends Controller
         }
         $validated['is_offer_category'] = $request->has('is_offer_category') ? (bool) $request->is_offer_category : false;
         $validated['show_in_collection'] = $request->boolean('show_in_collection', true);
+        $validated['show_combo_banner'] = $request->boolean('show_combo_banner', true);
         
         if ($validated['is_offer_category']) {
             $validated['offer_type'] = $request->get('offer_type', 'combo');
@@ -223,6 +227,11 @@ class CategoryController extends Controller
         if ($request->hasFile('background_image')) {
             $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
             $validated['background_image'] = 'storage/' . $path;
+        }
+
+        unset($validated['video'], $validated['remove_video']);
+        if ($request->hasFile('video')) {
+            $validated['video_path'] = $request->file('video')->store('category-videos', 'local');
         }
 
         Category::create($validated);
@@ -374,6 +383,9 @@ class CategoryController extends Controller
             'minimum_purchase_count' => [$request->boolean('minimum_purchase_required') && !$isOfferCategory ? 'required' : 'nullable', 'integer', 'min:1'],
             'show_in_collection' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
+            'show_combo_banner' => 'nullable|boolean',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/webm,video/quicktime|max:40960',
+            'remove_video' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -386,6 +398,9 @@ class CategoryController extends Controller
         $validated['show_in_collection'] = $request->has('show_in_collection')
             ? $request->boolean('show_in_collection')
             : (bool) $category->show_in_collection;
+        $validated['show_combo_banner'] = $request->has('show_combo_banner')
+            ? $request->boolean('show_combo_banner')
+            : (bool) ($category->show_combo_banner ?? true);
 
         if ($validated['is_offer_category']) {
             $validated['offer_type'] = $request->get('offer_type', 'combo');
@@ -422,6 +437,14 @@ class CategoryController extends Controller
             }
             $path = ImageOptimizerService::optimizeAndStore($request->file('background_image'), 'categories', 'public');
             $validated['background_image'] = 'storage/' . $path;
+        }
+
+        unset($validated['video'], $validated['remove_video']);
+        if ($request->hasFile('video') || $request->boolean('remove_video')) {
+            $category->deleteVideoFile();
+            $validated['video_path'] = $request->hasFile('video')
+                ? $request->file('video')->store('category-videos', 'local')
+                : null;
         }
 
         $deactivatingCategory = $category->status === 'active'
@@ -473,6 +496,8 @@ class CategoryController extends Controller
             $oldPath = str_replace('storage/', '', $category->background_image);
             Storage::disk('public')->delete($oldPath);
         }
+
+        $category->deleteVideoFile();
 
         $category->delete();
 

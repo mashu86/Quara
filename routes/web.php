@@ -66,6 +66,8 @@ Route::post('api/webhooks/razorpay', [\App\Http\Controllers\Api\RazorpayWebhookC
 |--------------------------------------------------------------------------
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/category-video/{category}', [\App\Http\Controllers\Frontend\CategoryVideoController::class, 'show'])
+    ->middleware('signed')->name('category.video');
 // Google Search Console HTML-file ownership verification.
 Route::get('/google6a0d835a7273af1d.html', fn () => response(
     'google-site-verification: google6a0d835a7273af1d.html',

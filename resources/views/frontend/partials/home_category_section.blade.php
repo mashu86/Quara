@@ -77,16 +77,13 @@
                     <div class="flex-shrink-0" style="width: 135px; scroll-snap-align: start;">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                             <div class="qw-category-card rounded-3 shadow-sm position-relative" style="height: 105px;">
-                                @if($category->is_combo_offer)
-                                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm fw-bold" style="font-size: 0.65rem; z-index: 2;">👑 COMBO OFFER</span>
-                                @endif
                                 @if($category->background_image)
                                     <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">
                                 @else
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
                                 <div class="qw-category-overlay p-2 text-center">
-                                    <h6 class="font-serif fw-bold mb-1 small text-truncate w-100" style="color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
+                                    <h6 class="font-serif fw-bold mb-1 text-truncate w-100" style="font-size: 0.72rem; color: {{ $category->text_color }}; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
                                         @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h6>
                                     <span class="badge bg-gold rounded-pill px-2.5 py-1" style="font-size: 0.65rem;">
@@ -114,18 +111,13 @@
                     <div class="col-4 col-md-4 col-lg-3">
                         <a href="{{ route('category.products', $category->slug) }}" class="text-decoration-none">
                             <div class="qw-category-card position-relative">
-                                @if($category->is_combo_offer)
-                                    <span class="badge bg-dark text-warning border border-warning position-absolute top-0 start-0 m-1.5 shadow-sm fw-bold text-truncate rounded-pill px-2 py-0.5" style="font-size: 0.55rem; max-width: calc(100% - 12px); z-index: 2; letter-spacing: 0.2px;">
-                                        👑 COMBO OFFER
-                                    </span>
-                                @endif
                                 @if($category->background_image)
                                     <img src="{{ $category->background_image_url }}" alt="{{ $category->name }}" class="qw-category-bg" loading="lazy">
                                 @else
                                     <div class="qw-category-bg bg-black" role="img" aria-label="{{ $category->name }}"></div>
                                 @endif
                                 <div class="qw-category-overlay p-2 p-sm-2.5 text-center">
-                                    <h6 class="fw-bold mb-1 text-white w-100 text-truncate px-1" style="color: {{ $category->text_color ?? '#FFFFFF' }}; text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 0.85rem; letter-spacing: 0.2px;">
+                                    <h6 class="fw-bold mb-1 text-white w-100 text-truncate px-1" style="color: {{ $category->text_color ?? '#FFFFFF' }}; text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 0.72rem; letter-spacing: 0.2px;">
                                         @if($category->is_combo_offer) 👑 @endif{{ $category->name }}
                                     </h6>
                                     <span class="badge rounded-pill px-2.5 py-1 shadow-sm text-truncate" style="background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%); color: #111111; font-weight: 700; font-size: 0.60rem; letter-spacing: 0.2px;">

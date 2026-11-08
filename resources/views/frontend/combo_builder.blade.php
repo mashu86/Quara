@@ -184,8 +184,10 @@
 @section('content')
 <div class="container py-3 py-md-4 combo-builder-page">
     @include('frontend.partials.category_notes', ['noteCategory' => $category ?? null])
+    @include('frontend.partials.category_video', ['videoCategory' => $category ?? null])
 
     <!-- Combo Offer Header Banner -->
+    @if($category->show_combo_banner ?? true)
     <div class="card border-0 combo-header-banner overflow-hidden shadow-sm mb-3 mb-md-4 position-relative text-white">
         <div class="card-body p-2.5 p-sm-3 p-md-4">
             <div class="row align-items-center g-2 g-md-3">
@@ -231,6 +233,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Main Builder Grid -->
     <div class="row g-3 g-md-4 position-relative">

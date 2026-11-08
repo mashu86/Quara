@@ -46,6 +46,19 @@
                     <div class="form-text small">Category-only products stay out of general shop, home, and search listings.</div>
                 </div>
 
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Category Video (Optional)</label>
+                    @if($category->video_path)
+                        <video src="{{ $category->video_stream_url }}" class="w-100 rounded-3 mb-2 bg-black" style="max-height: 180px;" controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false;" preload="metadata"></video>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="remove_video" value="1" id="removeVideoCheck">
+                            <label class="form-check-label small" for="removeVideoCheck">Remove current video</label>
+                        </div>
+                    @endif
+                    <input type="file" name="video" class="form-control rounded-3" accept="video/mp4,video/webm,video/quicktime">
+                    <div class="form-text small">MP4, WebM or MOV, max 40MB. Uploading a new video replaces the current one.</div>
+                </div>
+
                 <div class="col-12">
                     <label class="form-label fw-bold small">Notes (Optional)</label>
                     <textarea name="notes" rows="3" maxlength="1000" class="form-control rounded-3" placeholder="e.g. Free shipping on this category this week">{{ old('notes', $category->notes) }}</textarea>
@@ -109,6 +122,13 @@
 
                             <!-- Combo Offer Specific Fields -->
                             <div id="comboFieldsSection" class="row g-3 border-top pt-3 {{ old('offer_type', $category->offer_type ?? 'combo') === 'combo' ? '' : 'd-none' }}">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">Show "Offer Combo Package" banner on category page?</label>
+                                    <select name="show_combo_banner" class="form-select rounded-3">
+                                        <option value="1" {{ (string) old('show_combo_banner', (int) ($category->show_combo_banner ?? 1)) === '1' ? 'selected' : '' }}>Yes</option>
+                                        <option value="0" {{ (string) old('show_combo_banner', (int) ($category->show_combo_banner ?? 1)) === '0' ? 'selected' : '' }}>No</option>
+                                    </select>
+                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small">Allow purchase below minimum at regular prices?</label>
                                     <select name="allow_pre_min_purchase" id="allow_pre_min_purchase" class="form-select rounded-3">

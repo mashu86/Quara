@@ -21,11 +21,11 @@ return [
         'Quara Fashion Store'
     ],
 
-    'default_title' => 'Quara Wardrobe | Online Fashion Store & Ladies Wear',
+    'default_title' => 'Quara Wardrobe | Affordable Dresses & Ladies Wear',
 
-    'default_description' => 'Discover trendy & affordable ladies western wear, Korean tops, stylish dresses, and daily fashion at Quara Wardrobe online store. Fast pan-India delivery.',
+    'default_description' => 'Shop affordable ladies dresses, western wear, Korean tops and surplus fashion online at Quara Wardrobe. Kerala-based fashion store with delivery across India.',
 
-    'default_keywords' => 'Quara, Quara Wardrobe, Quara Waldrop, Quara online shop, Quara clothing, Quara fashion, Quara dress, Quara ladies wear, Quara shop, Quara store, women fashion store, trendy tops, western dresses',
+    'default_keywords' => 'Quara, Quara Wardrobe, affordable dresses, affordable ladies wear, dress surplus, surplus dresses, Kerala dress shop, ladies fashion Kerala, western wear, Korean tops',
 
     'twitter_handle' => '@quarawardrobe',
 

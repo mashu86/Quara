@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
-@section('title', $seoTitle ?? 'Quara Wardrobe | Online Fashion Store & Ladies Wear')
-@section('meta_description', $seoDescription ?? 'Shop elegant, trendy & affordable ladies fashion, western wear, Korean tops, and stylish dresses at Quara Wardrobe online store. Fast pan-India delivery.')
+@section('title', $seoTitle ?? 'Affordable Dresses & Surplus Fashion | Quara Kerala')
+@section('meta_description', $seoDescription ?? 'Shop affordable dresses, ladies wear and surplus fashion at Quara Wardrobe, Kerala. Explore western wear, Korean tops and new styles with delivery across India.')
+@section('meta_keywords', 'Quara, affordable dresses, affordable price dress, dress surplus, surplus fashion, Kerala dress shop, ladies wear Kerala, Quara Wardrobe')
 @section('canonical_url', $canonicalUrl ?? route('home'))
 
 @section('styles')
@@ -20,7 +21,7 @@
 
 @section('content')
 <!-- Accessible H1 for SEO -->
-<h1 class="visually-hidden">Quara Wardrobe — Online Fashion Store & Ladies Wear</h1>
+<h1 class="visually-hidden">Affordable Dresses and Surplus Fashion at Quara Wardrobe, Kerala</h1>
 
 <!-- Dynamic Home Main Content Master Area -->
 @if($homeContent)

@@ -85,6 +85,27 @@ class Product extends Model
             $query->whereDoesntHave('comboCategory', fn (Builder $category) => $category->where('show_in_collection', false));
         }
 
+        // "Display one product in collection" categories: only their representative product is listed.
+        $representatives = Category::singleProductRepresentatives();
+        if (! empty($representatives)) {
+            $singleIds = array_keys($representatives);
+            $keepIds = array_values(array_filter($representatives));
+            $inSingle = fn (Builder $category) => $category->whereIn('categories.id', $singleIds);
+
+            $query->where(function (Builder $q) use ($keepIds, $inSingle, $hasComboCategoryId) {
+                $q->where(function (Builder $notSingle) use ($inSingle, $hasComboCategoryId) {
+                    $notSingle->whereDoesntHave('category', $inSingle)
+                        ->whereDoesntHave('categories', $inSingle);
+                    if ($hasComboCategoryId) {
+                        $notSingle->whereDoesntHave('comboCategory', $inSingle);
+                    }
+                });
+                if ($keepIds) {
+                    $q->orWhereIn('products.id', $keepIds);
+                }
+            });
+        }
+
         return $query;
     }
 

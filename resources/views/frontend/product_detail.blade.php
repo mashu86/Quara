@@ -503,6 +503,48 @@
                         @endforeach
                     </div>
                 @endif
+
+                @if(isset($variantProducts) && $variantProducts->count() > 1)
+                    <div class="qw-variants mt-3 pt-3 border-top">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h3 class="fw-bold mb-0" style="font-size: 0.9rem;"><i class="fa-solid fa-swatchbook text-warning me-1"></i> Variants</h3>
+                            <span class="text-muted small">{{ $variantProducts->count() }} options</span>
+                        </div>
+                        <div class="d-flex gap-2 overflow-x-auto pb-2 qw-variant-strip">
+                            @foreach($variantProducts as $variant)
+                                @php
+                                    $isCurrentVariant = $variant->id === $product->id;
+                                    $variantSoldOut = $variant->available_total_stock <= 0;
+                                @endphp
+                                <a href="{{ route('product.detail', $variant->slug) }}"
+                                   class="qw-variant-card text-decoration-none flex-shrink-0 rounded-3 border bg-white position-relative {{ $isCurrentVariant ? 'is-current' : '' }} {{ $variantSoldOut ? 'is-soldout' : '' }}"
+                                   @if($isCurrentVariant) aria-current="page" @endif
+                                   title="{{ $variant->name }}{{ $variantSoldOut ? ' (Sold Out)' : '' }}">
+                                    <div class="qw-variant-img position-relative">
+                                        <img src="{{ $variant->primary_image_url }}" alt="{{ $variant->name }}" loading="lazy">
+                                        @if($variantSoldOut)
+                                            <span class="qw-variant-soldout">SOLD OUT</span>
+                                        @endif
+                                    </div>
+                                    <div class="px-1 py-1 text-center">
+                                        <div class="text-dark text-truncate fw-semibold" style="font-size: 0.68rem;">{{ $variant->name }}</div>
+                                        <div class="fw-bold {{ $variantSoldOut ? 'text-muted' : 'text-success' }}" style="font-size: 0.7rem;">₹{{ number_format($variant->effective_final_price, 0) }}</div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                    <style>
+                        .qw-variant-strip { scrollbar-width: thin; }
+                        .qw-variant-card { width: 92px; overflow: hidden; transition: border-color .15s ease, box-shadow .15s ease; }
+                        .qw-variant-card:hover { border-color: #D4AF37 !important; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+                        .qw-variant-card.is-current { border: 2px solid #D4AF37 !important; box-shadow: 0 0 0 2px rgba(212,175,55,.25); }
+                        .qw-variant-img { height: 92px; background: #f6f6f6; }
+                        .qw-variant-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+                        .qw-variant-card.is-soldout .qw-variant-img img { filter: grayscale(.85); opacity: .55; }
+                        .qw-variant-soldout { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(220,53,69,.92); color: #fff; font-size: .55rem; font-weight: 700; letter-spacing: .4px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+                    </style>
+                @endif
             </div>
             <div class="modal fade" id="imageZoomModal" tabindex="-1" aria-labelledby="imageZoomLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-xl">

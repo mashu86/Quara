@@ -37,6 +37,7 @@ class Category extends Model
         'notes',
         'show_combo_banner',
         'video_path',
+        'collection_single_product',
     ];
 
     protected $casts = [
@@ -52,7 +53,58 @@ class Category extends Model
         'pre_min_purchase_offer_price' => 'boolean',
         'minimum_purchase_required' => 'boolean',
         'minimum_purchase_count' => 'integer',
+        'collection_single_product' => 'boolean',
     ];
+
+    /** Request-level cache: [category_id => representative product_id]. */
+    protected static ?array $singleProductRepresentatives = null;
+
+    /**
+     * Every product that belongs to this category (main, extra or combo assignment).
+     */
+    public function memberProductsQuery(): Builder
+    {
+        $id = $this->id;
+
+        return Product::query()->where(function (Builder $q) use ($id) {
+            $q->where('products.category_id', $id)
+                ->orWhereHas('categories', fn (Builder $c) => $c->where('categories.id', $id));
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'combo_category_id')) {
+                $q->orWhere('products.combo_category_id', $id);
+            }
+        });
+    }
+
+    /**
+     * For "display one product in collection" categories: the single product that
+     * represents each category in collections (first available, by display order).
+     */
+    public static function singleProductRepresentatives(): array
+    {
+        if (static::$singleProductRepresentatives !== null) {
+            return static::$singleProductRepresentatives;
+        }
+
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('categories', 'collection_single_product')) {
+            return static::$singleProductRepresentatives = [];
+        }
+
+        $map = [];
+        foreach (static::where('collection_single_product', true)->where('show_in_collection', true)->get() as $category) {
+            $productId = $category->memberProductsQuery()
+                ->active()
+                ->where('collection_visible', true)
+                ->inStockFirst()
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->value('id');
+
+            $map[$category->id] = $productId;
+        }
+
+        return static::$singleProductRepresentatives = $map;
+    }
 
     protected static function booted(): void
     {

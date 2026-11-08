@@ -40,10 +40,12 @@
                 <div class="col-md-6">
                     <label class="form-label fw-bold small">Product Display Location</label>
                     <select name="show_in_collection" class="form-select rounded-3">
-                        <option value="1" {{ (string) old('show_in_collection', (int) $category->show_in_collection) === '1' ? 'selected' : '' }}>Category and Product Collection</option>
-                        <option value="0" {{ (string) old('show_in_collection', (int) $category->show_in_collection) === '0' ? 'selected' : '' }}>Only inside this category</option>
+                        @php $collectionMode = (string) old('show_in_collection', $category->collection_single_product ? 'single' : (int) $category->show_in_collection); @endphp
+                        <option value="1" {{ $collectionMode === '1' ? 'selected' : '' }}>Category and Product Collection</option>
+                        <option value="0" {{ $collectionMode === '0' ? 'selected' : '' }}>Only inside this category</option>
+                        <option value="single" {{ $collectionMode === 'single' ? 'selected' : '' }}>Display one product in product collection</option>
                     </select>
-                    <div class="form-text small">Category-only products stay out of general shop, home, and search listings.</div>
+                    <div class="form-text small">Category-only products stay out of general shop, home, and search listings. "Display one product" shows only the first available product in collections; the others appear as Variants on its page.</div>
                 </div>
 
                 <div class="col-md-6">

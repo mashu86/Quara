@@ -159,6 +159,7 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeCollectionMode($request);
         $isOfferCategory = $request->boolean('is_offer_category');
         $offerType = $request->input('offer_type');
 
@@ -183,6 +184,7 @@ class CategoryController extends Controller
             'show_in_collection' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
             'show_combo_banner' => 'nullable|boolean',
+            'collection_single_product' => 'nullable|boolean',
             'video' => 'nullable|file|mimetypes:video/mp4,video/webm,video/quicktime|max:40960',
             'remove_video' => 'nullable|boolean',
         ]);
@@ -196,6 +198,7 @@ class CategoryController extends Controller
         $validated['is_offer_category'] = $request->has('is_offer_category') ? (bool) $request->is_offer_category : false;
         $validated['show_in_collection'] = $request->boolean('show_in_collection', true);
         $validated['show_combo_banner'] = $request->boolean('show_combo_banner', true);
+        $validated['collection_single_product'] = $request->boolean('collection_single_product');
         
         if ($validated['is_offer_category']) {
             $validated['offer_type'] = $request->get('offer_type', 'combo');
@@ -360,6 +363,7 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        $this->normalizeCollectionMode($request);
         $isOfferCategory = $request->boolean('is_offer_category');
         $offerType = $request->input('offer_type');
 
@@ -384,6 +388,7 @@ class CategoryController extends Controller
             'show_in_collection' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
             'show_combo_banner' => 'nullable|boolean',
+            'collection_single_product' => 'nullable|boolean',
             'video' => 'nullable|file|mimetypes:video/mp4,video/webm,video/quicktime|max:40960',
             'remove_video' => 'nullable|boolean',
         ]);
@@ -545,5 +550,22 @@ class CategoryController extends Controller
 
             Product::whereKey($productId)->update(['collection_visible' => $isCollectionVisible]);
         }
+    }
+
+    /**
+     * "Display location" select sends 1 (all products), 0 (only inside category)
+     * or "single" (one product in collection, rest shown as variants).
+     */
+    private function normalizeCollectionMode(Request $request): void
+    {
+        if (! $request->has('show_in_collection')) {
+            return;
+        }
+
+        $single = $request->input('show_in_collection') === 'single';
+        $request->merge([
+            'show_in_collection' => $single ? '1' : $request->input('show_in_collection'),
+            'collection_single_product' => $single ? '1' : '0',
+        ]);
     }
 }

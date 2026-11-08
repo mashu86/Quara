@@ -73,6 +73,19 @@ class ProductDetailController extends Controller
             $relatedProducts = $relatedProducts->merge($moreProducts);
         }
 
+        // "Display one product in collection" category: list its other products as variants.
+        $variantCategory = collect([$product->category])->merge($product->categories)
+            ->filter(fn ($category) => $category && $category->collection_single_product && $category->status === 'active')
+            ->first();
+        $variantProducts = $variantCategory
+            ? $variantCategory->memberProductsQuery()
+                ->active()
+                ->with(['images', 'sizes'])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+            : collect();
+
         $whatsapp = SocialMedia::where('type', 'whatsapp')->where('status', 'active')->first();
 
         $minimumPurchaseCategory = collect([$product->category])->merge($product->categories)
@@ -101,7 +114,9 @@ class ProductDetailController extends Controller
             'canonicalUrl',
             'ogImage',
             'displaySizeMaster',
-            'minimumPurchaseCategory'
+            'minimumPurchaseCategory',
+            'variantCategory',
+            'variantProducts'
         ));
     }
 

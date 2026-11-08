@@ -60,8 +60,9 @@
                     <select name="show_in_collection" class="form-select rounded-3">
                         <option value="1" {{ old('show_in_collection', '1') === '1' ? 'selected' : '' }}>Category and Product Collection</option>
                         <option value="0" {{ old('show_in_collection') === '0' ? 'selected' : '' }}>Only inside this category</option>
+                        <option value="single" {{ old('show_in_collection') === 'single' ? 'selected' : '' }}>Display one product in product collection</option>
                     </select>
-                    <div class="form-text small">Category-only products stay out of general shop, home, and search listings.</div>
+                    <div class="form-text small">Category-only products stay out of general shop, home, and search listings. "Display one product" shows only the first available product in collections; the others appear as Variants on its page.</div>
                 </div>
 
                 @if(empty($mergeMode))

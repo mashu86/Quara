@@ -66,6 +66,12 @@ Route::post('api/webhooks/razorpay', [\App\Http\Controllers\Api\RazorpayWebhookC
 |--------------------------------------------------------------------------
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
+// Google Search Console HTML-file ownership verification.
+Route::get('/google6a0d835a7273af1d.html', fn () => response(
+    'google-site-verification: google6a0d835a7273af1d.html',
+    200,
+    ['Content-Type' => 'text/html; charset=UTF-8']
+))->name('google.site-verification');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/shop', [ShopController::class, 'index'])->name('shop');

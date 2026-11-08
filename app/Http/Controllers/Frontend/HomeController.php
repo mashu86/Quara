@@ -214,8 +214,8 @@ class HomeController extends Controller
         $displayOrderBy = Setting::get('default_display_order_by', 'category');
         $categoryDisplayStyle = Setting::get('category_display_style', 'carousel');
 
-        $seoTitle = 'Quara Wardrobe | Online Fashion Store & Ladies Wear';
-        $seoDescription = 'Shop elegant, trendy & affordable ladies fashion, western wear, Korean tops, and stylish dresses at Quara Wardrobe online store. Fast pan-India delivery.';
+        $seoTitle = 'Quara Wardrobe | Affordable Dresses & Surplus Fashion Kerala';
+        $seoDescription = 'Quara Wardrobe (Quara) is a Kerala online dress shop for quality affordable dresses, surplus dresses and ladies western wear. Shop Korean tops and new styles with delivery across India.';
         $canonicalUrl = route('home');
 
         return view('frontend.home', compact(

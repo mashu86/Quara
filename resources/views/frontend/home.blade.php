@@ -82,6 +82,21 @@
         </div>
     </div>
 </section>
+
+<!-- About Quara Wardrobe (visible SEO text) -->
+<section class="py-4 bg-white border-top">
+    <div class="container" style="max-width: 900px;">
+        <h2 class="font-serif fw-bold h5 mb-2">About Quara Wardrobe</h2>
+        <p class="small text-muted mb-2">
+            Quara Wardrobe is a Kerala online dress shop offering quality affordable dresses for women.
+            Shop surplus dresses, export surplus fashion, ladies western wear and Korean tops at prices that fit every budget.
+        </p>
+        <p class="small text-muted mb-0">
+            Whether you are looking for an affordable dress in Kerala or a trusted surplus shop online,
+            Quara delivers stylish, quality fashion to your doorstep across India.
+        </p>
+    </div>
+</section>
 @endsection
 
 @section('scripts')

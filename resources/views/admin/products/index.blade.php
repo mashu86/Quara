@@ -297,6 +297,8 @@
                     <option value="oldest" {{ request()->sort === 'oldest' ? 'selected' : '' }}>Oldest</option>
                     <option value="price_low" {{ request()->sort === 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
                     <option value="price_high" {{ request()->sort === 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                    <option value="code_asc" {{ request()->sort === 'code_asc' ? 'selected' : '' }}>Product Code: A to Z</option>
+                    <option value="code_desc" {{ request()->sort === 'code_desc' ? 'selected' : '' }}>Product Code: Z to A</option>
                 </select>
             </div>
             <div class="col-lg-3 d-flex gap-2">
@@ -366,6 +368,8 @@
                             <option value="oldest" {{ request()->sort === 'oldest' ? 'selected' : '' }}>Oldest</option>
                             <option value="price_low" {{ request()->sort === 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
                             <option value="price_high" {{ request()->sort === 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
+                            <option value="code_asc" {{ request()->sort === 'code_asc' ? 'selected' : '' }}>Product Code: A to Z</option>
+                            <option value="code_desc" {{ request()->sort === 'code_desc' ? 'selected' : '' }}>Product Code: Z to A</option>
                         </select>
                     </div>
                 </div>

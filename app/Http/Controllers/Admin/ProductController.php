@@ -113,6 +113,12 @@ class ProductController extends Controller
             $query->orderBy('final_price', 'asc');
         } elseif ($sort === 'price_high') {
             $query->orderBy('final_price', 'desc');
+        } elseif ($sort === 'code_asc') {
+            $query->orderByRaw("CASE WHEN product_code IS NULL OR TRIM(product_code) = '' THEN 1 ELSE 0 END")
+                ->orderBy('product_code', 'asc')->orderBy('id', 'desc');
+        } elseif ($sort === 'code_desc') {
+            $query->orderByRaw("CASE WHEN product_code IS NULL OR TRIM(product_code) = '' THEN 1 ELSE 0 END")
+                ->orderBy('product_code', 'desc')->orderBy('id', 'desc');
         } else {
             $query->orderBy('id', 'desc');
         }

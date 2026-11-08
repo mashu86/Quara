@@ -115,9 +115,13 @@ class ProductController extends Controller
             $query->orderBy('final_price', 'desc');
         } elseif ($sort === 'code_asc') {
             $query->orderByRaw("CASE WHEN product_code IS NULL OR TRIM(product_code) = '' THEN 1 ELSE 0 END")
+                ->orderByRaw("CASE WHEN product_code REGEXP '^PR[0-9]+$' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN product_code REGEXP '^PR[0-9]+$' THEN CAST(SUBSTRING(product_code, 3) AS UNSIGNED) END ASC")
                 ->orderBy('product_code', 'asc')->orderBy('id', 'desc');
         } elseif ($sort === 'code_desc') {
             $query->orderByRaw("CASE WHEN product_code IS NULL OR TRIM(product_code) = '' THEN 1 ELSE 0 END")
+                ->orderByRaw("CASE WHEN product_code REGEXP '^PR[0-9]+$' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN product_code REGEXP '^PR[0-9]+$' THEN CAST(SUBSTRING(product_code, 3) AS UNSIGNED) END DESC")
                 ->orderBy('product_code', 'desc')->orderBy('id', 'desc');
         } else {
             $query->orderBy('id', 'desc');

@@ -345,9 +345,40 @@ class ProductController extends Controller
             'sizes' => 'required|array',
             'sizes.*' => 'nullable|string|max:50',
             'stocks' => 'required|array',
+            'book_enabled' => 'nullable|array',
+            'book_qty' => 'nullable|array',
+            'book_type' => 'nullable|array',
+            'book_type.*' => 'nullable|in:business_whatsapp,whatsapp_customer,instagram_customer',
+            'book_by' => 'nullable|array',
+            'book_by.*' => 'nullable|string|max:255',
+            'book_date' => 'nullable|array',
+            'book_date.*' => 'nullable|date_format:Y-m-d',
         ]);
 
+        // Booked switch on a size row: same rules as booking a size from the products list.
+        foreach ($request->input('book_enabled', []) as $index => $enabled) {
+            if ($enabled !== '1') continue;
+            $stockQty = max(0, (int) ($validated['stocks'][$index] ?? 0));
+            $bookQty = (int) $request->input("book_qty.$index", 0);
+            $rowNo = $index + 1;
+            $errors = [];
+            if ($bookQty < 1) {
+                $errors["book_qty.$index"] = "Size #$rowNo: booked quantity is required.";
+            } elseif ($bookQty > $stockQty) {
+                $errors["book_qty.$index"] = "Size #$rowNo: booked quantity cannot be more than stock ($stockQty).";
+            }
+            if (! $request->input("book_type.$index")) {
+                $errors["book_type.$index"] = "Size #$rowNo: booking type is required.";
+            } elseif ($request->input("book_type.$index") !== 'business_whatsapp' && blank($request->input("book_by.$index"))) {
+                $errors["book_by.$index"] = "Size #$rowNo: customer name or phone is required for customer bookings.";
+            }
+            if ($errors) {
+                return back()->withErrors($errors)->withInput();
+            }
+        }
+
         $categoryIds = array_values(array_filter($request->input('category_ids', [])));
+
         if (empty($categoryIds) && $request->filled('category_id')) {
             $categoryIds = [$request->category_id];
         }
@@ -422,6 +453,20 @@ class ProductController extends Controller
                         'Initial Stock Addition',
                         auth()->user()->name
                     );
+                }
+
+                if ($request->input("book_enabled.$index") === '1' && $stockQty > 0) {
+                    $bookingType = $request->input("book_type.$index");
+                    ProductBooking::create([
+                        'product_id' => $product->id,
+                        'product_size_id' => $pSize->id,
+                        'quantity' => min($stockQty, (int) $request->input("book_qty.$index")),
+                        'booked_by' => $bookingType === 'business_whatsapp' ? null : trim((string) $request->input("book_by.$index")),
+                        'booking_type' => $bookingType,
+                        'booking_date' => $request->input("book_date.$index") ?: now()->toDateString(),
+                        'status' => 'active',
+                        'created_by' => $request->user()?->id,
+                    ]);
                 }
             }
 

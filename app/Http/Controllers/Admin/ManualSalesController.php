@@ -68,7 +68,7 @@ class ManualSalesController extends Controller
     public function create()
     {
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])->with('productSize')])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderByDesc('id')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])->with('productSize')])->get();
         $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
         return view('admin.manual_sales.create', compact('products', 'categories', 'geminiApiKeys'));
     }
@@ -293,7 +293,7 @@ class ManualSalesController extends Controller
 
         $order->load(['items.product', 'items.productSize']);
         $categories = Category::where('status', 'active')->orderBy('name', 'asc')->get();
-        $products = Product::where('status', 'active')->inStockFirst()->orderBy('name', 'asc')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])])->get();
+        $products = Product::where('status', 'active')->inStockFirst()->orderByDesc('id')->with(['category', 'categories', 'comboCategory', 'sizes', 'images', 'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])])->get();
         $geminiApiKeys = GeminiApiKey::query()->orderByDesc('is_active')->orderByDesc('id')->get();
 
         return view('admin.manual_sales.edit', compact('order', 'products', 'categories', 'geminiApiKeys'));

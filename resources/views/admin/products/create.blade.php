@@ -525,9 +525,57 @@
                     <input type="text" inputmode="numeric" pattern="[0-9]*" name="stocks[]" class="form-control form-control-sm rounded-3" value="1" required>
                 </div>
             </div>
+            ${sizeBookingBlockHtml()}
         `;
         container.appendChild(div);
     }
+
+    // Optional booking per size row. Inputs are parallel arrays (one entry per row) so they stay aligned with sizes[].
+    function sizeBookingBlockHtml() {
+        const today = new Date().toISOString().slice(0, 10);
+        return `
+            <div class="size-booking-block mt-2 pt-2 border-top">
+                <input type="hidden" name="book_enabled[]" value="0" class="book-enabled-input">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input book-toggle" type="checkbox" role="switch" onchange="toggleSizeBooking(this)">
+                    <label class="form-check-label small fw-bold">Booked</label>
+                </div>
+                <div class="row g-2 mt-1 size-booking-fields d-none">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-bold mb-1">Booked Qty</label>
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" name="book_qty[]" class="form-control form-control-sm rounded-3" value="1">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-bold mb-1">Booking Type</label>
+                        <select name="book_type[]" class="form-select form-select-sm rounded-3">
+                            <option value="whatsapp_customer">WhatsApp Customer</option>
+                            <option value="instagram_customer">Instagram Customer</option>
+                            <option value="business_whatsapp">Business WhatsApp</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-bold mb-1">Customer Name / Phone</label>
+                        <input type="text" name="book_by[]" class="form-control form-control-sm rounded-3" maxlength="255">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-bold mb-1">Booking Date</label>
+                        <input type="date" name="book_date[]" class="form-control form-control-sm rounded-3" value="${today}">
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function toggleSizeBooking(toggle) {
+        const block = toggle.closest('.size-booking-block');
+        block.querySelector('.book-enabled-input').value = toggle.checked ? '1' : '0';
+        block.querySelector('.size-booking-fields').classList.toggle('d-none', !toggle.checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('#sizeRowsContainer .size-row').forEach(row => {
+            if (!row.querySelector('.size-booking-block')) row.insertAdjacentHTML('beforeend', sizeBookingBlockHtml());
+        });
+    });
 
     function removeSizeRow(btn) {
         const rows = document.querySelectorAll('.size-row');

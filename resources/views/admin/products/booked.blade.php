@@ -34,9 +34,8 @@
     <form id="bulk-unbook-form" action="{{ route('admin.products.booked.bulk-unbook') }}" method="POST">
         @csrf
         <input type="hidden" name="search" value="{{ $search }}">
-        <input type="hidden" name="page" value="{{ $bookings->currentPage() }}">
         <div class="px-3 py-2 border-top border-bottom bg-light d-flex align-items-center gap-2 flex-wrap">
-            <label class="small fw-semibold mb-0 d-flex align-items-center gap-2"><input type="checkbox" class="form-check-input m-0" id="select-all-booked"> Select all on this page</label>
+            <label class="small fw-semibold mb-0 d-flex align-items-center gap-2"><input type="checkbox" class="form-check-input m-0" id="select-all-booked"> Select all loaded</label>
             <span class="small text-muted" id="selected-booked-count">0 selected</span>
             <button type="submit" class="btn btn-sm btn-success rounded-pill ms-auto" id="bulk-unbook-button" disabled>
                 <i class="fa-solid fa-lock-open me-1"></i> Unbook selected
@@ -56,7 +55,7 @@
                     <th class="text-end pe-3">Booked</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="booked-products-tbody">
                 @forelse($bookings as $booking)
                     @php
                         $product = $booking->product;
@@ -168,9 +167,10 @@
             </tbody>
         </table>
     </div>
-    @if($bookings->hasPages())
-        <div class="card-footer bg-white pt-3">{{ $bookings->links() }}</div>
-    @endif
+    <div id="booked-scroll-sentinel" class="card-footer bg-white text-center small text-muted py-3 {{ $bookings->hasMorePages() ? '' : 'd-none' }}"
+        data-next-url="{{ $bookings->nextPageUrl() }}">
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Loading more bookings...
+    </div>
 </div>
 <style>
     .booked-products-scroll { overflow-x: auto; }
@@ -199,9 +199,9 @@ document.addEventListener('click', function(event) {
 });
 
 // Switching a booking off unbooks only that booking; other bookings of the same size stay.
-document.querySelectorAll('.booking-switch').forEach(function(toggle) {
-    toggle.addEventListener('change', async function() {
-        if (toggle.checked) return;
+document.addEventListener('change', async function(event) {
+        const toggle = event.target.closest('.booking-switch');
+        if (!toggle || toggle.checked) return;
         if (!confirm(`Unbook ${toggle.dataset.label}? Its pieces will be available again.`)) {
             toggle.checked = true;
             return;
@@ -225,10 +225,10 @@ document.querySelectorAll('.booking-switch').forEach(function(toggle) {
             toggle.checked = true;
             toggle.disabled = false;
         }
-    });
 });
 
-const bookedCheckboxes = Array.from(document.querySelectorAll('.booked-product-checkbox'));
+const bookedTbody = document.getElementById('booked-products-tbody');
+let bookedCheckboxes = Array.from(document.querySelectorAll('.booked-product-checkbox'));
 const selectAllBooked = document.getElementById('select-all-booked');
 const bulkUnbookButton = document.getElementById('bulk-unbook-button');
 const selectedBookedCount = document.getElementById('selected-booked-count');
@@ -243,7 +243,45 @@ selectAllBooked.addEventListener('change', function() {
     bookedCheckboxes.forEach(checkbox => checkbox.checked = selectAllBooked.checked);
     syncBookedSelection();
 });
-bookedCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncBookedSelection));
+bookedTbody.addEventListener('change', function(event) {
+    if (event.target.classList.contains('booked-product-checkbox')) syncBookedSelection();
+});
+
+// Infinite scroll: load the next page's rows when the bottom of the list comes into view.
+const bookedSentinel = document.getElementById('booked-scroll-sentinel');
+let bookedNextUrl = bookedSentinel.dataset.nextUrl || '';
+let bookedLoading = false;
+async function loadMoreBookings() {
+    if (bookedLoading || !bookedNextUrl) return;
+    bookedLoading = true;
+    try {
+        const response = await fetch(bookedNextUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) throw new Error('Could not load more bookings.');
+        const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const rows = doc.querySelectorAll('#booked-products-tbody > tr');
+        rows.forEach(row => { if (row.querySelector('.booked-product-checkbox')) bookedTbody.appendChild(document.importNode(row, true)); });
+        const nextSentinel = doc.getElementById('booked-scroll-sentinel');
+        bookedNextUrl = nextSentinel ? (nextSentinel.dataset.nextUrl || '') : '';
+        bookedCheckboxes = Array.from(document.querySelectorAll('.booked-product-checkbox'));
+        syncBookedSelection();
+    } catch (error) {
+        bookedNextUrl = '';
+        bookedSentinel.textContent = error.message;
+        bookedLoading = false;
+        return;
+    }
+    bookedLoading = false;
+    if (!bookedNextUrl) {
+        bookedSentinel.classList.add('d-none');
+        observer.disconnect();
+    } else if (bookedSentinel.getBoundingClientRect().top < window.innerHeight + 300) {
+        loadMoreBookings();
+    }
+}
+const observer = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) loadMoreBookings();
+}, { rootMargin: '300px 0px' });
+if (bookedNextUrl) observer.observe(bookedSentinel);
 document.getElementById('bulk-unbook-form').addEventListener('submit', function(event) {
     if (!bookedCheckboxes.some(checkbox => checkbox.checked)) {
         event.preventDefault();

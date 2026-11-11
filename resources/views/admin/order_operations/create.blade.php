@@ -822,6 +822,9 @@
                 ))));
                 $physicalStock = (int) $prod->sizes->sum('stock');
                 $isOut = (bool) $prod->is_out_of_stock;
+                $openBookings = $prod->bookings ?? collect();
+                $sizeBookedQty = (int) $openBookings->sum(fn ($b) => max(0, (int) $b->quantity - (int) $b->sold_quantity));
+                $sizeBookingNames = $openBookings->map(fn ($b) => trim((string) $b->booked_by) ?: 'Booked')->unique()->implode(', ');
             @endphp
             {
                 id: {{ $prod->id }},
@@ -831,7 +834,9 @@
                 categories: @json($catIds),
                 sizes: @json($prod->sizes),
                 isOut: {{ $isOut ? 'true' : 'false' }},
-                bookedBy: @json($prod->booked_by),
+                bookedBy: @json($isOut ? $prod->booked_by : $sizeBookingNames),
+                sizeBookedQty: {{ $sizeBookedQty }},
+                hasBooking: {{ ($isOut || $sizeBookedQty > 0) ? 'true' : 'false' }},
                 physicalStock: {{ $physicalStock }}
             },
         @endforeach
@@ -1047,21 +1052,22 @@
             if (!isNameMatched) return;
 
             const isOut = prod.isOut;
-            const physicalStock = prod.physicalStock;
+            let physicalStock = prod.physicalStock;
 
             let badgeHtml = '';
 
-            if (physicalStock <= 0) {
-                // Hide 0 stock products to keep picker clean
-                return;
-            }
-
-            if (isOut) {
-                if (!isBookedFilter) return; // Hide booked when available filter is active
-                let bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
-                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${physicalStock} pcs)">🔒${bookedInfo} (${physicalStock} pcs)</span>`;
+            if (isBookedFilter) {
+                // Booked tab: every booked product (whole-product or size bookings), whatever its stock
+                if (!prod.hasBooking) return;
+                const bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
+                const bookedPcs = isOut ? physicalStock : prod.sizeBookedQty;
+                badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${bookedPcs} pcs)">🔒${bookedInfo} (${bookedPcs} pcs)</span>`;
             } else {
-                if (isBookedFilter) return; // Hide available when booked filter is active
+                // Available tab: unbooked stock only
+                if (isOut) return;
+                const freeStock = physicalStock - (prod.sizeBookedQty || 0);
+                if (freeStock <= 0) return;
+                physicalStock = freeStock;
                 badgeHtml = `<span class="badge bg-success d-inline-block text-truncate align-middle" style="font-size: 7px; max-width: 100%;">🟢 ${physicalStock} pcs in stock</span>`;
             }
 

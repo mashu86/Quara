@@ -106,7 +106,8 @@ class OrderOperationController extends Controller
         $categories = \App\Models\Category::where('status', 'active')->orderBy('name', 'asc')->get();
         $allProducts = Product::where('status', 'active')
             ->orderBy('name', 'asc')
-            ->with(['category', 'categories', 'sizes', 'images'])
+            ->with(['category', 'categories', 'sizes', 'images',
+                'bookings' => fn ($q) => $q->whereIn('status', ['active', 'partially_sold'])])
             ->get();
 
         $operationTypes = [

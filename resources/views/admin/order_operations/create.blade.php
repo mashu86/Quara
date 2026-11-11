@@ -824,6 +824,8 @@
                 $isOut = (bool) $prod->is_out_of_stock;
                 $openBookings = $prod->bookings ?? collect();
                 $sizeBookedQty = (int) $openBookings->sum(fn ($b) => max(0, (int) $b->quantity - (int) $b->sold_quantity));
+                // Same rule as the Booked Products menu (ProductController::bookedProducts)
+                $isProductBooked = $isOut && (trim((string) $prod->booked_by) !== '' || $prod->booking_type === 'business_whatsapp');
                 $sizeBookingNames = $openBookings->map(fn ($b) => trim((string) $b->booked_by) ?: 'Booked')->unique()->implode(', ');
             @endphp
             {
@@ -834,9 +836,10 @@
                 categories: @json($catIds),
                 sizes: @json($prod->sizes),
                 isOut: {{ $isOut ? 'true' : 'false' }},
-                bookedBy: @json($isOut ? $prod->booked_by : $sizeBookingNames),
+                bookedBy: @json($isProductBooked ? (trim((string) $prod->booked_by) ?: 'Business WhatsApp') : $sizeBookingNames),
                 sizeBookedQty: {{ $sizeBookedQty }},
-                hasBooking: {{ ($isOut || $sizeBookedQty > 0) ? 'true' : 'false' }},
+                isProductBooked: {{ $isProductBooked ? 'true' : 'false' }},
+                hasBooking: {{ ($isProductBooked || $openBookings->isNotEmpty()) ? 'true' : 'false' }},
                 physicalStock: {{ $physicalStock }}
             },
         @endforeach
@@ -1060,7 +1063,7 @@
                 // Booked tab: every booked product (whole-product or size bookings), whatever its stock
                 if (!prod.hasBooking) return;
                 const bookedInfo = prod.bookedBy ? ` ${prod.bookedBy}` : '';
-                const bookedPcs = isOut ? physicalStock : prod.sizeBookedQty;
+                const bookedPcs = prod.isProductBooked ? physicalStock : prod.sizeBookedQty;
                 badgeHtml = `<span class="badge bg-warning text-dark d-inline-block text-truncate align-middle" style="font-size: 6px; max-width: 100%;" title="🔒${bookedInfo} (${bookedPcs} pcs)">🔒${bookedInfo} (${bookedPcs} pcs)</span>`;
             } else {
                 // Available tab: unbooked stock only
